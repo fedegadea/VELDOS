@@ -1,0 +1,16 @@
+{
+  "name": "veld-os",
+  "version": "1.0.0",
+  "description": "Veld OS — Sistema de gestión para marcas de ecommerce",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
