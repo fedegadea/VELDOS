@@ -621,14 +621,155 @@ tr:hover .tx-del{color:var(--muted)}
 .crm-act-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0;margin-top:5px}
 @media(max-width:1100px){.crm-pipeline{grid-template-columns:1fr 1fr}.crm-stats{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:700px){.crm-pipeline{grid-template-columns:1fr}.crm-stats{grid-template-columns:1fr 1fr}.crm-list-card,.crm-list-head{grid-template-columns:1fr 1fr}}
+
+/* ── WORKSPACE OVERLAY ── */
+.ws-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;overflow-y:auto}
+.ws-overlay.hidden{display:none}
+.ws-logo-big{font-family:var(--fd);font-size:38px;letter-spacing:-.03em;color:var(--text);margin-bottom:6px;text-align:center}
+.ws-logo-big em{color:var(--gold);font-style:italic}
+.ws-sub{font-size:12px;color:var(--muted);text-align:center;margin-bottom:40px;letter-spacing:.06em;text-transform:uppercase}
+.ws-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;width:100%;max-width:900px;margin-bottom:32px}
+.ws-card{background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:22px 20px;cursor:pointer;transition:all .2s;position:relative;min-height:120px;display:flex;flex-direction:column;justify-content:space-between}
+.ws-card:hover{border-color:rgba(41,121,255,.35);box-shadow:0 0 24px rgba(41,121,255,.1);transform:translateY(-2px)}
+.ws-card-new{border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted);min-height:120px}
+.ws-card-new:hover{color:var(--gold);border-color:var(--gold)}
+.ws-card-new .ws-new-icon{font-size:28px}
+.ws-card-new .ws-new-label{font-size:12px;font-weight:400;letter-spacing:.04em}
+.ws-card-emoji{font-size:28px;margin-bottom:8px}
+.ws-card-name{font-size:15px;font-weight:500;color:var(--text);margin-bottom:4px}
+.ws-card-meta{font-size:11px;color:var(--muted);font-weight:300}
+.ws-card-dot{width:8px;height:8px;border-radius:50%;position:absolute;top:16px;right:16px}
+.ws-card-actions{position:absolute;top:12px;right:12px;display:flex;gap:4px;opacity:0;transition:opacity .15s}
+.ws-card:hover .ws-card-actions{opacity:1}
+.ws-card-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:4px 6px;border-radius:5px;transition:all .15s}
+.ws-card-btn:hover{color:var(--text);background:var(--s2)}
+.ws-pin-screen{width:100%;max-width:340px;text-align:center}
+.ws-pin-title{font-family:var(--fd);font-size:22px;margin-bottom:6px}
+.ws-pin-sub{font-size:12px;color:var(--muted);font-weight:300;margin-bottom:20px}
+.ws-user-list{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.ws-user-item{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px}
+.ws-user-item:hover{border-color:rgba(41,121,255,.3);background:var(--s3)}
+.ws-user-item.selected{border-color:var(--gold);background:rgba(41,121,255,.08)}
+.ws-user-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0}
+.ws-user-name{font-size:13px;font-weight:500;color:var(--text)}
+.ws-user-role{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.ws-back-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;font-family:var(--fb);margin-top:12px;padding:6px 12px;border-radius:6px;transition:all .15s}
+.ws-back-btn:hover{color:var(--text);background:var(--s2)}
+.ws-create-form{width:100%;max-width:440px;background:var(--s1);border:1px solid var(--border2);border-radius:16px;padding:28px}
+.ws-create-title{font-family:var(--fd);font-size:20px;margin-bottom:20px}
+.emoji-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.emoji-opt{font-size:20px;padding:5px;border-radius:7px;cursor:pointer;transition:all .12s;border:2px solid transparent}
+.emoji-opt:hover,.emoji-opt.sel{border-color:var(--gold);background:rgba(41,121,255,.1)}
+.ws-color-row{display:flex;gap:6px;margin-top:4px}
+.ws-color-opt{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .12s}
+.ws-color-opt.sel{border-color:var(--text)}
+
+/* ── SETTINGS MODAL ── */
+.settings-tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px}
+.settings-tab{font-size:12px;padding:6px 14px;border-radius:7px;border:none;background:none;color:var(--muted);cursor:pointer;font-family:var(--fb);transition:all .15s}
+.settings-tab.active{background:rgba(41,121,255,.1);color:var(--gold)}
+.settings-panel{display:none}.settings-panel.active{display:block}
+.user-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.user-row:last-child{border-bottom:none}
+.user-avatar-sm{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+.user-info{flex:1}
+.user-name-sm{font-size:12px;font-weight:500;color:var(--text)}
+.user-role-sm{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.perm-chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.perm-chip{font-size:9px;padding:2px 7px;border-radius:8px;background:rgba(41,121,255,.1);color:var(--gold);border:1px solid rgba(41,121,255,.2)}
+.perm-chip.blocked{background:rgba(160,160,160,.06);color:var(--muted);border-color:var(--border)}
+.user-del-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:3px 6px;border-radius:5px;transition:all .15s;flex-shrink:0}
+.user-del-btn:hover{color:var(--red);background:rgba(224,112,112,.1)}
+.perm-check-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.perm-check{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted2);cursor:pointer}
+
+/* ── HOJAS ── */
+.hojas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.hoja-card{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:18px 18px 14px;cursor:pointer;transition:all .2s;position:relative}
+.hoja-card:hover{border-color:rgba(41,121,255,.35);box-shadow:0 0 16px rgba(41,121,255,.08);transform:translateY(-1px)}
+.hoja-card:hover .hoja-del{opacity:.7}
+.hoja-type-icon{font-size:26px;margin-bottom:10px}
+.hoja-card-name{font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px}
+.hoja-card-meta{font-size:11px;color:var(--muted);font-weight:300}
+.hoja-type-badge{font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:8px;margin-top:8px;display:inline-block}
+.hoja-type-doc{background:rgba(41,121,255,.1);color:var(--gold);border:1px solid rgba(41,121,255,.2)}
+.hoja-type-tabla{background:rgba(77,184,138,.1);color:var(--green);border:1px solid rgba(77,184,138,.2)}
+.hoja-type-checklist{background:rgba(124,77,255,.1);color:#a87bff;border:1px solid rgba(124,77,255,.2)}
+.hoja-del{position:absolute;top:10px;right:10px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;opacity:0;transition:opacity .15s;padding:2px 5px;border-radius:4px}
+.hoja-del:hover{color:var(--red)}
+.hoja-editor{background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.hoja-editor-head{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.hoja-editor-title{font-family:var(--fd);font-size:20px;background:none;border:none;color:var(--text);font-size:18px;outline:none;flex:1;font-family:var(--fd)}
+.hoja-editor-title:focus{color:var(--gold)}
+.hoja-doc-area{width:100%;min-height:400px;background:transparent;border:none;color:var(--text);font-family:var(--fb);font-size:14px;line-height:1.8;padding:20px 20px;outline:none;resize:none;font-weight:300}
+.hoja-doc-area::placeholder{color:var(--muted)}
+.hoja-table-wrap{overflow-x:auto;padding:12px}
+.hoja-tbl{border-collapse:collapse;width:100%;min-width:400px}
+.hoja-tbl th{background:var(--s2);border:1px solid var(--border2);padding:8px 12px;font-size:11px;font-weight:500;color:var(--muted2);text-align:left;white-space:nowrap;position:relative}
+.hoja-tbl td{border:1px solid var(--border);padding:0}
+.hoja-tbl td input{width:100%;background:transparent;border:none;color:var(--text);font-family:var(--fb);font-size:12px;padding:8px 12px;outline:none;font-weight:300}
+.hoja-tbl td input:focus{background:rgba(41,121,255,.06)}
+.hoja-tbl-add-col{background:none;border:1px dashed var(--border);color:var(--muted);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-family:var(--fb);transition:all .15s;white-space:nowrap}
+.hoja-tbl-add-col:hover{border-color:var(--gold);color:var(--gold)}
+.hoja-col-del{position:absolute;top:4px;right:4px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:10px;opacity:0;padding:1px 3px}
+.hoja-tbl th:hover .hoja-col-del{opacity:.7}
+.hoja-checklist-body{padding:12px 16px}
+.hoja-ci{display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid var(--border)}
+.hoja-ci:last-child{border-bottom:none}
+.hoja-ci-box{width:17px;height:17px;border-radius:4px;border:1px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;transition:all .2s}
+.hoja-ci-box.done{background:var(--green);border-color:var(--green);color:#0a2018}
+.hoja-ci-text{flex:1;font-size:13px;font-weight:300;color:var(--muted2);background:none;border:none;outline:none;font-family:var(--fb)}
+.hoja-ci-text.done{text-decoration:line-through;color:var(--muted)}
+.hoja-ci-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;opacity:0;padding:2px 4px;border-radius:4px}
+.hoja-ci:hover .hoja-ci-del{opacity:.6}
+.hoja-ci-del:hover{color:var(--red);opacity:1!important}
+@media(max-width:700px){.ws-grid{grid-template-columns:1fr 1fr}.hojas-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
  
+<!-- ══ WORKSPACE OVERLAY ══ -->
+<div class="ws-overlay hidden" id="ws-overlay">
+  <div class="ws-logo-big">SOULAB <em>OS</em></div>
+  <div class="ws-sub">Seleccioná tu proyecto</div>
+  <div id="ws-main-screen">
+    <div class="ws-grid" id="ws-grid"></div>
+  </div>
+  <div id="ws-create-screen" style="display:none;width:100%;max-width:440px">
+    <div class="ws-create-form">
+      <div class="ws-create-title">Nuevo proyecto</div>
+      <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="ws-new-name" placeholder="Mi segunda marca..."></div>
+      <div class="form-group"><label class="form-label">Ícono</label>
+        <div class="emoji-row" id="emoji-row">
+          <span class="emoji-opt sel" data-e="🏷️" onclick="selectEmoji(this)">🏷️</span><span class="emoji-opt" data-e="👗" onclick="selectEmoji(this)">👗</span><span class="emoji-opt" data-e="🛍️" onclick="selectEmoji(this)">🛍️</span><span class="emoji-opt" data-e="💄" onclick="selectEmoji(this)">💄</span><span class="emoji-opt" data-e="👟" onclick="selectEmoji(this)">👟</span><span class="emoji-opt" data-e="🏪" onclick="selectEmoji(this)">🏪</span><span class="emoji-opt" data-e="💎" onclick="selectEmoji(this)">💎</span><span class="emoji-opt" data-e="🎨" onclick="selectEmoji(this)">🎨</span><span class="emoji-opt" data-e="📦" onclick="selectEmoji(this)">📦</span><span class="emoji-opt" data-e="🌿" onclick="selectEmoji(this)">🌿</span><span class="emoji-opt" data-e="✨" onclick="selectEmoji(this)">✨</span>
+        </div></div>
+      <div class="form-group"><label class="form-label">Color</label>
+        <div class="ws-color-row" id="ws-color-row">
+          <div class="ws-color-opt sel" data-c="#2979ff" style="background:#2979ff" onclick="selectWsColor(this)"></div><div class="ws-color-opt" data-c="#4db88a" style="background:#4db88a" onclick="selectWsColor(this)"></div><div class="ws-color-opt" data-c="#e07070" style="background:#e07070" onclick="selectWsColor(this)"></div><div class="ws-color-opt" data-c="#c9b48a" style="background:#c9b48a" onclick="selectWsColor(this)"></div><div class="ws-color-opt" data-c="#a87bff" style="background:#a87bff" onclick="selectWsColor(this)"></div><div class="ws-color-opt" data-c="#7ab3ff" style="background:#7ab3ff" onclick="selectWsColor(this)"></div>
+        </div></div>
+      <div class="form-group"><label class="form-label">PIN de acceso (opcional)</label><input class="form-input" id="ws-new-pin" type="password" placeholder="Dejar vacío = sin PIN" maxlength="20"></div>
+      <div class="modal-footer" style="padding-top:12px;margin-top:4px">
+        <button class="btn" onclick="showWsMain()">Cancelar</button>
+        <button class="btn btn-primary" onclick="createWorkspace()">Crear proyecto</button>
+      </div>
+    </div>
+  </div>
+  <div id="ws-auth-screen" style="display:none">
+    <div class="ws-pin-screen">
+      <div class="ws-pin-title" id="ws-auth-title">—</div>
+      <div class="ws-pin-sub" id="ws-auth-sub">Ingresá tu contraseña</div>
+      <div id="ws-user-list-wrap" class="ws-user-list"></div>
+      <input class="form-input" id="ws-auth-input" type="password" placeholder="Contraseña / PIN" style="text-align:center;letter-spacing:.15em;margin-bottom:10px" onkeydown="if(event.key==='Enter')wsAuthSubmit()">
+      <div id="ws-auth-error" style="font-size:12px;color:var(--coral);min-height:18px;margin-bottom:10px"></div>
+      <button class="btn btn-primary" style="width:100%" onclick="wsAuthSubmit()">Entrar</button>
+      <button class="ws-back-btn" onclick="showWsMain()">← Volver</button>
+    </div>
+  </div>
+</div>
 <!-- ══ TOPBAR ══ -->
 <div class="topbar">
   <div class="os-brand">
-    <div class="os-name">SOULAB <em>OS</em></div>
+    <div class="os-name" onclick="openWorkspaceSelector()" title="Cambiar proyecto" style="cursor:pointer;user-select:none">SOULAB <em>OS</em></div>
     <div class="os-sep">·</div>
     <div class="area-dropdown" id="area-dropdown">
       <button class="area-btn" id="area-btn" onclick="toggleAreaDropdown()">
@@ -648,9 +789,11 @@ tr:hover .tx-del{color:var(--muted)}
         <div class="area-menu-item" onclick="selectArea('crm','CRM',this)">
           <span class="area-dot" style="background:var(--purple)"></span>CRM
         </div>
-        <div class="area-menu-item disabled" onclick="comingSoon('Productos')">
-          <span class="area-dot" style="background:var(--coral)"></span>Productos
-          <span class="area-soon">próximo</span>
+        <div class="area-menu-item" onclick="selectArea('hojas','Hojas',this)">
+          <span class="area-dot" style="background:var(--coral)"></span>Hojas
+        </div>
+        <div class="area-menu-item" style="border-top:1px solid var(--border);margin-top:4px;padding-top:8px" onclick="openWorkspaceSettings()">
+          <span style="font-size:12px;margin-right:2px">⚙️</span>Proyectos y usuarios
         </div>
       </div>
     </div>
@@ -672,6 +815,9 @@ tr:hover .tx-del{color:var(--muted)}
   </nav>
   <nav class="nav-tabs" id="nav-crm" style="display:none">
     <button class="nav-tab active" onclick="switchPage('crm',this)">CRM</button>
+  </nav>
+  <nav class="nav-tabs" id="nav-hojas" style="display:none">
+    <button class="nav-tab active" onclick="switchPage('hojas',this)" id="hojas-nav-default">Todas las hojas</button>
   </nav>
   <div class="week-badge" id="week-label"></div>
 </div>
@@ -855,6 +1001,13 @@ tr:hover .tx-del{color:var(--muted)}
   <!-- Toolbar -->
   <div class="crm-toolbar">
     <input class="crm-search" type="text" placeholder="Buscar contacto, @ig, email..." oninput="filterCRM(this.value)" id="crm-search-input">
+    <select class="crm-search" id="crm-sort-sel" onchange="setCRMSort(this.value)" style="flex:0;min-width:0;width:auto;padding-right:28px">
+      <option value="ult_desc">Últ. contacto ↓</option>
+      <option value="ult_asc">Últ. contacto ↑</option>
+      <option value="creado_desc">Creado ↓</option>
+      <option value="nombre_az">Nombre A→Z</option>
+      <option value="valor_desc">Valor ↓</option>
+    </select>
     <button class="crm-filter-btn active" onclick="setCRMFilter('',this)">Todos</button>
     <button class="crm-filter-btn" onclick="setCRMFilter('Nuevo',this)">Nuevos</button>
     <button class="crm-filter-btn" onclick="setCRMFilter('Contactado',this)">Contactados</button>
@@ -880,6 +1033,76 @@ tr:hover .tx-del{color:var(--muted)}
       <span>Contacto</span><span>Estado</span><span>Tipo</span><span>Valor</span><span>Últ. contacto</span><span>Acciones</span>
     </div>
     <div class="crm-list-view" id="crm-list"></div>
+  </div>
+</div>
+
+<!-- ══ HOJAS ══ -->
+<div class="page" id="page-hojas">
+  <div class="sec-head">
+    <div class="sec-title">Hojas<small>Documentos, tablas y checklists de tu proyecto</small></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="openModal('newHoja')">+ Nueva hoja</button>
+    </div>
+  </div>
+  <div id="hojas-list-view">
+    <div class="hojas-grid" id="hojas-grid"></div>
+  </div>
+  <div id="hojas-editor-view" style="display:none">
+    <div style="margin-bottom:12px">
+      <button class="btn" onclick="closeHoja()">← Volver a hojas</button>
+    </div>
+    <div class="hoja-editor" id="hoja-editor-container"></div>
+  </div>
+</div>
+
+<!-- ══ SETTINGS MODAL (workspace+users) ══ -->
+<div class="modal-overlay" id="settings-overlay" onclick="if(event.target===this)closeSettings()" style="display:none;align-items:center;justify-content:center;padding:20px;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:400">
+  <div class="modal" style="max-width:600px;width:100%">
+    <div class="modal-head">
+      <div class="modal-title" id="settings-title">Configuración del proyecto</div>
+      <button class="modal-close" onclick="closeSettings()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="settings-tabs">
+        <button class="settings-tab active" onclick="switchSettingsTab('proyecto',this)">Proyecto</button>
+        <button class="settings-tab" onclick="switchSettingsTab('usuarios',this)">Usuarios</button>
+      </div>
+      <div class="settings-panel active" id="stab-proyecto">
+        <div class="form-group"><label class="form-label">Nombre del proyecto</label><input class="form-input" id="set-ws-name" placeholder="Mi marca"></div>
+        <div class="form-group"><label class="form-label">Ícono</label>
+          <div class="emoji-row" id="set-emoji-row">
+            <span class="emoji-opt sel" data-e="🏷️" onclick="selectSetEmoji(this)">🏷️</span><span class="emoji-opt" data-e="👗" onclick="selectSetEmoji(this)">👗</span><span class="emoji-opt" data-e="🛍️" onclick="selectSetEmoji(this)">🛍️</span><span class="emoji-opt" data-e="💄" onclick="selectSetEmoji(this)">💄</span><span class="emoji-opt" data-e="👟" onclick="selectSetEmoji(this)">👟</span><span class="emoji-opt" data-e="🏪" onclick="selectSetEmoji(this)">🏪</span><span class="emoji-opt" data-e="💎" onclick="selectSetEmoji(this)">💎</span><span class="emoji-opt" data-e="🎨" onclick="selectSetEmoji(this)">🎨</span><span class="emoji-opt" data-e="📦" onclick="selectSetEmoji(this)">📦</span><span class="emoji-opt" data-e="🌿" onclick="selectSetEmoji(this)">🌿</span><span class="emoji-opt" data-e="✨" onclick="selectSetEmoji(this)">✨</span>
+          </div></div>
+        <div class="form-group"><label class="form-label">PIN de acceso</label><input class="form-input" id="set-ws-pin" type="password" placeholder="Dejar vacío = sin PIN"></div>
+        <div class="modal-footer"><button class="btn btn-primary" onclick="saveWsSettings()">Guardar cambios</button></div>
+      </div>
+      <div class="settings-panel" id="stab-usuarios">
+        <div id="users-list-container"></div>
+        <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
+          <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:12px">Agregar usuario</div>
+          <div class="form-row"><div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="nu-nombre" placeholder="Valentina"></div>
+          <div class="form-group"><label class="form-label">Usuario</label><input class="form-input" id="nu-username" placeholder="valen"></div></div>
+          <div class="form-row"><div class="form-group"><label class="form-label">Contraseña</label><input class="form-input" id="nu-pass" type="password" placeholder="..."></div>
+          <div class="form-group"><label class="form-label">Rol</label>
+            <select class="form-select" id="nu-role">
+              <option value="admin">Admin (todo)</option>
+              <option value="editor">Editor</option>
+              <option value="viewer">Solo lectura</option>
+            </select></div></div>
+          <div class="form-group" id="nu-perms-wrap">
+            <label class="form-label">Áreas permitidas</label>
+            <div class="perm-check-row">
+              <label class="perm-check"><input type="checkbox" id="np-marketing" checked> Marketing</label>
+              <label class="perm-check"><input type="checkbox" id="np-finanzas"> Finanzas</label>
+              <label class="perm-check"><input type="checkbox" id="np-crm" checked> CRM</label>
+              <label class="perm-check"><input type="checkbox" id="np-operaciones" checked> Operaciones</label>
+              <label class="perm-check"><input type="checkbox" id="np-hojas" checked> Hojas</label>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="addUser()">Agregar usuario</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1326,14 +1549,55 @@ tr:hover .tx-del{color:var(--muted)}
 // ══════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════
-const STORE='veld_os_v1';
-let S=load();
- 
-function load(){
-  try{const d=localStorage.getItem(STORE);if(d)return JSON.parse(d);}catch(e){}
-  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[]};
+// ── MULTI-WORKSPACE STATE ──
+const LEGACY_STORE='veld_os_v1';
+const WS_STORE='soulab_workspaces';
+let WORKSPACES;
+let S;
+let _activeWsId=null;
+let _activeUser=null;
+let _pendingWsId=null;
+
+function defaultData(){
+  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[]};
 }
-function save(){localStorage.setItem(STORE,JSON.stringify(S));}
+function loadWorkspaces(){
+  try{const d=localStorage.getItem(WS_STORE);if(d)return JSON.parse(d);}catch(e){}
+  let legacyData=null;
+  try{const d=localStorage.getItem(LEGACY_STORE);if(d)legacyData=JSON.parse(d);}catch(e){}
+  const ws1={id:'ws_'+Date.now(),name:'Mi Marca',emoji:'🏷️',color:'#2979ff',pin:'',users:[],data:legacyData||defaultData(),createdAt:new Date().toISOString().slice(0,10),lastAccess:''};
+  const obj={workspaces:[ws1],active:ws1.id};
+  localStorage.setItem(WS_STORE,JSON.stringify(obj));
+  return obj;
+}
+function saveWorkspaces(){localStorage.setItem(WS_STORE,JSON.stringify(WORKSPACES));}
+function getActiveWs(){return WORKSPACES.workspaces.find(w=>w.id===_activeWsId);}
+function save(){
+  const ws=getActiveWs();
+  if(ws){ws.data=S;ws.lastAccess=new Date().toISOString().slice(0,10);}
+  saveWorkspaces();
+}
+function load(){return null;}
+function initState(){
+  WORKSPACES=loadWorkspaces();
+  const ws=WORKSPACES.workspaces.find(w=>w.id===WORKSPACES.active)||WORKSPACES.workspaces[0];
+  if(ws&&!ws.pin&&!ws.users.length){
+    _activeWsId=ws.id;S=ws.data||defaultData();
+    if(!S.crm)S.crm=[];if(!S.customViews)S.customViews=[];
+    document.getElementById('ws-overlay')?.classList.add('hidden');render();
+  } else {openWorkspaceSelector();}
+}
+function switchWorkspace(wsId){
+  const ws=WORKSPACES.workspaces.find(w=>w.id===wsId);
+  if(!ws)return;
+  _activeWsId=wsId;_activeUser=null;WORKSPACES.active=wsId;
+  ws.lastAccess=new Date().toISOString().slice(0,10);
+  S=ws.data||defaultData();
+  if(!S.crm)S.crm=[];if(!S.customViews)S.customViews=[];
+  saveWorkspaces();
+  document.getElementById('week-label').textContent=ws.name;
+  document.getElementById('ws-overlay')?.classList.add('hidden');render();
+}
  
 function defaultCheckGroups(){
   return[
@@ -1427,11 +1691,12 @@ function _activateArea(id,label){
     const firstTab=nav.querySelector('.nav-tab');
     if(firstTab){document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));firstTab.classList.add('active');}
   }
-  const pageMap={marketing:'checklist',finanzas:'finanzas',operaciones:'operaciones',crm:'crm'};
+  const pageMap={marketing:'checklist',finanzas:'finanzas',operaciones:'operaciones',crm:'crm',hojas:'hojas'};
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+(pageMap[id]||id))?.classList.add('active');
   if(id==='finanzas')setTimeout(initFinPeriod,50);
   if(id==='crm'){if(!S.crm)S.crm=[];renderCRM();}
+  if(id==='hojas'){if(!S.customViews)S.customViews=[];renderHojas();}
   render();
 }
  
@@ -2395,7 +2660,8 @@ function openModal(tipo,data,idx){
     presupuesto:'Editar presupuesto',opscheck:'Nueva tarea operativa',
     reclamo:'Nuevo reclamo',color:'Agregar color',objetivo:'Agregar objetivo',
     idea:'Nueva idea',inspo:'Agregar referencia',
-    crm:data?'Editar contacto':'Nuevo contacto'
+    crm:data?'Editar contacto':'Nuevo contacto',
+    newHoja:'Nueva hoja'
   };
   document.getElementById('modal-title').textContent=modal_titles[tipo]||tipo;
  
@@ -2596,6 +2862,15 @@ function openModal(tipo,data,idx){
       <div class="form-group"><label class="form-label">Por qué te inspira</label>
         <textarea class="form-textarea" id="fins-nota" placeholder="Estética, paleta, forma de escribir..." rows="3"></textarea></div>
       <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveInspo()">Guardar</button></div>`,
+    newHoja:`
+      <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="fh-nombre" placeholder="Ej: Proveedores, Plan de contenido..."></div>
+      <div class="form-group"><label class="form-label">Tipo</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:6px;padding:10px;background:var(--s3);border:1px solid var(--border2);border-radius:8px;cursor:pointer;font-size:12px"><input type="radio" name="hoja-tipo" value="doc" checked> 📝 Doc</label>
+          <label style="display:flex;align-items:center;gap:6px;padding:10px;background:var(--s3);border:1px solid var(--border2);border-radius:8px;cursor:pointer;font-size:12px"><input type="radio" name="hoja-tipo" value="tabla"> 📊 Tabla</label>
+          <label style="display:flex;align-items:center;gap:6px;padding:10px;background:var(--s3);border:1px solid var(--border2);border-radius:8px;cursor:pointer;font-size:12px"><input type="radio" name="hoja-tipo" value="checklist"> ✅ Checklist</label>
+        </div></div>
+      <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveNewHoja()">Crear</button></div>`,
     crm:`
       <div class="crm-detail-grid">
         <div class="form-group"><label class="form-label">Nombre completo</label><input class="form-input" id="fcrm-nombre" placeholder="Valentina Díaz"></div>
@@ -2860,6 +3135,37 @@ const CRM_COL_COLORS={
 let _crmFilter='';
 let _crmView='pipeline';
 let _crmSearch='';
+let _crmSort='ult_desc';
+
+function setCRMSort(val){_crmSort=val;renderCRM();}
+
+// Build wa.me URL handling all common Argentine/international formats
+function buildWappUrl(raw){
+  if(!raw)return'';
+  let s=raw.trim();
+  // Remove spaces, dashes, dots, parens
+  s=s.replace(/[\s\-\.\(\)]/g,'');
+  // Already international with +
+  if(s.startsWith('+')){s=s.slice(1);}
+  // 00 prefix
+  else if(s.startsWith('00')){s=s.slice(2);}
+  // Argentine local formats
+  else if(s.startsWith('011')){s='549'+s.slice(1);}          // 011XXXXXXXX → 54911...
+  else if(s.startsWith('0')){                                  // 0XX15XXXXXXX or 0XXXXXXXXXXX
+    s=s.slice(1);                                              // remove leading 0
+    // Remove 15 mobile prefix: e.g. 11 15 1234 5678 → 9 11 1234 5678
+    s=s.replace(/^(\d{2,4})15(\d{6,8})$/,'9$1$2');
+    s='54'+s;
+  }
+  // 10-digit without country code (Argentina assumed)
+  else if(/^\d{10}$/.test(s)){s='54'+s;}
+  // 11-digit starting with 11 (Buenos Aires without 0, without 15)
+  else if(/^\d{11}$/.test(s)&&!s.startsWith('54')){s='54'+s;}
+  // Ensure Argentine mobile has 9 after country code (54XXXXXXXXXX → 549XXXXXXXXXX)
+  if(s.startsWith('54')&&!s.startsWith('549')&&s.length===12){s='549'+s.slice(2);}
+  if(s.length<8)return'';
+  return'https://wa.me/'+s;
+}
 
 function setCRMFilter(val,btn){
   _crmFilter=val;
@@ -2879,15 +3185,27 @@ function filterCRM(q){_crmSearch=q.toLowerCase();renderCRM();}
 
 function crmFiltered(){
   if(!S.crm)S.crm=[];
-  return S.crm.filter(c=>{
+  let arr=S.crm.filter(c=>{
     const matchEstado=!_crmFilter||c.estado===_crmFilter;
     const matchSearch=!_crmSearch||
       (c.nombre||'').toLowerCase().includes(_crmSearch)||
       (c.ig||'').toLowerCase().includes(_crmSearch)||
       (c.email||'').toLowerCase().includes(_crmSearch)||
+      (c.tel||'').includes(_crmSearch)||
       (c.tags||[]).join(' ').toLowerCase().includes(_crmSearch);
     return matchEstado&&matchSearch;
   });
+  // Sort
+  const cmpDate=(a,b,asc)=>{
+    const da=a||'0000';const db=b||'0000';
+    return asc?da.localeCompare(db):db.localeCompare(da);
+  };
+  if(_crmSort==='ult_desc')arr.sort((a,b)=>cmpDate(a.ultimoContacto,b.ultimoContacto,false));
+  else if(_crmSort==='ult_asc')arr.sort((a,b)=>cmpDate(a.ultimoContacto,b.ultimoContacto,true));
+  else if(_crmSort==='creado_desc')arr.sort((a,b)=>cmpDate(a.creado,b.creado,false));
+  else if(_crmSort==='nombre_az')arr.sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
+  else if(_crmSort==='valor_desc')arr.sort((a,b)=>(parseFloat(b.valor)||0)-(parseFloat(a.valor)||0));
+  return arr;
 }
 
 function renderCRM(){
@@ -2935,8 +3253,8 @@ function renderCRM(){
     if(!list)return;
     list.innerHTML=filtered.length?filtered.map(c=>{
       const ri=S.crm.indexOf(c);
-      const tel=(c.tel||'').replace(/\D/g,'');
-      const wappUrl=tel?`https://wa.me/${tel}`:'';
+      const wappUrl=buildWappUrl(c.tel);
+
       return`<div class="crm-list-card" onclick="editCRM(${ri})">
         <div>
           <div style="font-size:12px;font-weight:500;color:var(--text)">${c.nombre||'—'}</div>
@@ -2956,8 +3274,8 @@ function renderCRM(){
 }
 
 function renderCRMCard(c,ri){
-  const tel=(c.tel||'').replace(/\D/g,'');
-  const wappUrl=tel?`https://wa.me/${tel}`:'';
+      const wappUrl=buildWappUrl(c.tel);
+
   const diasUlt=c.ultimoContacto?Math.floor((new Date()-new Date(c.ultimoContacto))/(1000*60*60*24)):-1;
   const ultLabel=diasUlt<0?'Sin reg.':diasUlt===0?'Hoy':diasUlt===1?'Ayer':`${diasUlt}d atrás`;
   const estIdx=CRM_ESTADOS.indexOf(c.estado||'Nuevo');
@@ -3159,6 +3477,354 @@ function parseCSVRow(line){
 }
 
 // ══════════════════════════════════════════
+// ══════════════════════════════════════════
+// WORKSPACE UI
+// ══════════════════════════════════════════
+function openWorkspaceSelector(){
+  const ov=document.getElementById('ws-overlay');
+  if(ov){ov.classList.remove('hidden');showWsMain();}
+}
+function showWsMain(){
+  document.getElementById('ws-main-screen').style.display='';
+  document.getElementById('ws-create-screen').style.display='none';
+  document.getElementById('ws-auth-screen').style.display='none';
+  renderWsGrid();
+}
+function renderWsGrid(){
+  const grid=document.getElementById('ws-grid');
+  if(!grid)return;
+  grid.innerHTML=WORKSPACES.workspaces.map(ws=>{
+    const last=ws.lastAccess?`Últ. acceso: ${ws.lastAccess}`:'Nuevo';
+    return`<div class="ws-card" onclick="selectWs('${ws.id}')">
+      <div class="ws-card-actions">
+        <button class="ws-card-btn" title="Configurar" onclick="event.stopPropagation();openWsSettingsById('${ws.id}')">⚙️</button>
+        ${WORKSPACES.workspaces.length>1?`<button class="ws-card-btn" title="Eliminar" onclick="event.stopPropagation();deleteWs('${ws.id}')">🗑️</button>`:''}
+      </div>
+      <div>
+        <div class="ws-card-emoji">${ws.emoji||'🏷️'}</div>
+        <div class="ws-card-name">${ws.name}</div>
+        <div class="ws-card-meta">${last}</div>
+      </div>
+      <div class="ws-card-dot" style="background:${ws.color||'#2979ff'}"></div>
+    </div>`;
+  }).join('')+`<div class="ws-card ws-card-new" onclick="showWsCreate()">
+    <div class="ws-new-icon">＋</div>
+    <div class="ws-new-label">Nuevo proyecto</div>
+  </div>`;
+}
+function selectWs(wsId){
+  const ws=WORKSPACES.workspaces.find(w=>w.id===wsId);
+  if(!ws)return;
+  _pendingWsId=wsId;
+  if(!ws.pin&&!ws.users.length){switchWorkspace(wsId);return;}
+  // Show auth screen
+  document.getElementById('ws-main-screen').style.display='none';
+  document.getElementById('ws-auth-screen').style.display='';
+  document.getElementById('ws-auth-title').textContent=ws.emoji+' '+ws.name;
+  document.getElementById('ws-auth-input').value='';
+  document.getElementById('ws-auth-error').textContent='';
+  // Show users list if any
+  const ul=document.getElementById('ws-user-list-wrap');
+  if(ws.users&&ws.users.length){
+    ul.innerHTML=ws.users.map((u,i)=>{
+      const initials=(u.name||'?').slice(0,2).toUpperCase();
+      const colors=['#2979ff','#4db88a','#e07070','#a87bff','#c9b48a'];
+      const col=colors[i%colors.length];
+      return`<div class="ws-user-item" onclick="selectWsUser(this,'${u.id}')" data-uid="${u.id}">
+        <div class="ws-user-avatar" style="background:${col}20;color:${col}">${initials}</div>
+        <div><div class="ws-user-name">${u.name}</div><div class="ws-user-role">${u.role}</div></div>
+      </div>`;
+    }).join('');
+    document.getElementById('ws-auth-sub').textContent='Seleccioná tu usuario e ingresá tu contraseña';
+  } else {
+    ul.innerHTML='';
+    document.getElementById('ws-auth-sub').textContent='Ingresá el PIN del proyecto';
+  }
+  setTimeout(()=>document.getElementById('ws-auth-input')?.focus(),100);
+}
+let _selectedUserId=null;
+function selectWsUser(el,uid){
+  document.querySelectorAll('.ws-user-item').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+  _selectedUserId=uid;
+}
+function wsAuthSubmit(){
+  const ws=WORKSPACES.workspaces.find(w=>w.id===_pendingWsId);
+  if(!ws)return;
+  const inp=document.getElementById('ws-auth-input')?.value?.trim()||'';
+  const errEl=document.getElementById('ws-auth-error');
+  // User-based auth
+  if(ws.users&&ws.users.length){
+    if(!_selectedUserId){errEl.textContent='Seleccioná un usuario primero';return;}
+    const user=ws.users.find(u=>u.id===_selectedUserId);
+    if(!user){errEl.textContent='Usuario no encontrado';return;}
+    if(user.password&&inp!==user.password){errEl.textContent='Contraseña incorrecta';return;}
+    _activeUser={id:user.id,name:user.name,role:user.role,permissions:user.permissions};
+    switchWorkspace(_pendingWsId);
+    return;
+  }
+  // PIN auth
+  if(ws.pin&&inp!==ws.pin){errEl.textContent='PIN incorrecto';return;}
+  switchWorkspace(_pendingWsId);
+}
+function showWsCreate(){
+  document.getElementById('ws-main-screen').style.display='none';
+  document.getElementById('ws-create-screen').style.display='';
+  document.getElementById('ws-new-name').value='';
+  document.getElementById('ws-new-pin').value='';
+  // Reset emoji/color selections
+  document.querySelectorAll('#emoji-row .emoji-opt').forEach((e,i)=>{e.classList.toggle('sel',i===0);});
+  document.querySelectorAll('#ws-color-row .ws-color-opt').forEach((e,i)=>{e.classList.toggle('sel',i===0);});
+}
+function selectEmoji(el){document.querySelectorAll('#emoji-row .emoji-opt').forEach(e=>e.classList.remove('sel'));el.classList.add('sel');}
+function selectWsColor(el){document.querySelectorAll('#ws-color-row .ws-color-opt').forEach(e=>e.classList.remove('sel'));el.classList.add('sel');}
+function createWorkspace(){
+  const name=document.getElementById('ws-new-name')?.value?.trim();
+  if(!name){notify('Escribí un nombre');return;}
+  const emoji=document.querySelector('#emoji-row .emoji-opt.sel')?.dataset?.e||'🏷️';
+  const color=document.querySelector('#ws-color-row .ws-color-opt.sel')?.dataset?.c||'#2979ff';
+  const pin=document.getElementById('ws-new-pin')?.value?.trim()||'';
+  const ws={id:'ws_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),name,emoji,color,pin,users:[],data:defaultData(),createdAt:new Date().toISOString().slice(0,10),lastAccess:''};
+  WORKSPACES.workspaces.push(ws);
+  saveWorkspaces();
+  notify('Proyecto creado ✓');
+  selectWs(ws.id);
+}
+function deleteWs(wsId){
+  if(WORKSPACES.workspaces.length<=1){notify('No podés eliminar el único proyecto');return;}
+  if(!confirm('¿Eliminar este proyecto y todos sus datos?'))return;
+  WORKSPACES.workspaces=WORKSPACES.workspaces.filter(w=>w.id!==wsId);
+  if(WORKSPACES.active===wsId)WORKSPACES.active=WORKSPACES.workspaces[0].id;
+  saveWorkspaces();renderWsGrid();notify('Proyecto eliminado');
+}
+
+// ── Workspace Settings ──
+let _editingWsId=null;
+function openWorkspaceSettings(){toggleAreaDropdown();openWsSettingsById(_activeWsId);}
+function openWsSettingsById(wsId){
+  _editingWsId=wsId;
+  const ws=WORKSPACES.workspaces.find(w=>w.id===wsId);
+  if(!ws)return;
+  document.getElementById('settings-overlay').style.display='flex';
+  document.getElementById('settings-title').textContent='⚙️ '+ws.name;
+  document.getElementById('set-ws-name').value=ws.name;
+  document.getElementById('set-ws-pin').value=ws.pin||'';
+  // Set emoji
+  document.querySelectorAll('#set-emoji-row .emoji-opt').forEach(e=>{e.classList.toggle('sel',e.dataset.e===ws.emoji);});
+  switchSettingsTab('proyecto',document.querySelector('.settings-tab'));
+  renderUsersList(ws);
+}
+function selectSetEmoji(el){document.querySelectorAll('#set-emoji-row .emoji-opt').forEach(e=>e.classList.remove('sel'));el.classList.add('sel');}
+function switchSettingsTab(id,btn){
+  document.querySelectorAll('.settings-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.settings-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('stab-'+id)?.classList.add('active');
+  btn?.classList.add('active');
+}
+function saveWsSettings(){
+  const ws=WORKSPACES.workspaces.find(w=>w.id===_editingWsId);
+  if(!ws)return;
+  ws.name=document.getElementById('set-ws-name').value.trim()||ws.name;
+  ws.emoji=document.querySelector('#set-emoji-row .emoji-opt.sel')?.dataset?.e||ws.emoji;
+  ws.pin=document.getElementById('set-ws-pin').value.trim();
+  saveWorkspaces();
+  if(_editingWsId===_activeWsId)document.getElementById('week-label').textContent=ws.name;
+  closeSettings();notify('Proyecto guardado ✓');
+}
+function closeSettings(){document.getElementById('settings-overlay').style.display='none';}
+function renderUsersList(ws){
+  const c=document.getElementById('users-list-container');
+  if(!c)return;
+  const users=ws.users||[];
+  c.innerHTML=users.length?`<div style="margin-bottom:8px">${users.map((u,i)=>{
+    const areas=(u.permissions||[]).map(p=>`<span class="perm-chip">${p}</span>`).join('');
+    return`<div class="user-row">
+      <div class="user-avatar-sm" style="background:rgba(41,121,255,.15);color:var(--gold)">${(u.name||'?').slice(0,2).toUpperCase()}</div>
+      <div class="user-info">
+        <div class="user-name-sm">${u.name} <span style="color:var(--muted);font-size:10px">@${u.username}</span></div>
+        <div class="user-role-sm">${u.role}</div>
+        <div class="perm-chips">${areas||'<span class="perm-chip blocked">Sin acceso</span>'}</div>
+      </div>
+      <button class="user-del-btn" onclick="deleteUser('${u.id}')">🗑️</button>
+    </div>`;
+  }).join('')}</div>`:`<div class="empty"><div class="e-icon">👤</div><p>Sin usuarios — solo acceso por PIN</p></div>`;
+}
+function addUser(){
+  const ws=WORKSPACES.workspaces.find(w=>w.id===_editingWsId);
+  if(!ws)return;
+  const nombre=document.getElementById('nu-nombre')?.value?.trim();
+  const username=document.getElementById('nu-username')?.value?.trim();
+  const pass=document.getElementById('nu-pass')?.value?.trim();
+  const role=document.getElementById('nu-role')?.value||'editor';
+  if(!nombre||!username){notify('Nombre y usuario son obligatorios');return;}
+  const perms=['marketing','finanzas','crm','operaciones','hojas'].filter(p=>document.getElementById('np-'+p)?.checked);
+  if(!ws.users)ws.users=[];
+  ws.users.push({id:'u_'+Date.now(),name:nombre,username,password:pass,role,permissions:role==='admin'?['all']:perms});
+  saveWorkspaces();
+  renderUsersList(ws);
+  ['nu-nombre','nu-username','nu-pass'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  notify('Usuario agregado ✓');
+}
+function deleteUser(uid){
+  const ws=WORKSPACES.workspaces.find(w=>w.id===_editingWsId);
+  if(!ws)return;
+  ws.users=ws.users.filter(u=>u.id!==uid);
+  saveWorkspaces();renderUsersList(ws);notify('Usuario eliminado');
+}
+
+// ══════════════════════════════════════════
+// HOJAS (custom views)
+// ══════════════════════════════════════════
+const HOJA_ICONS={doc:'📝',tabla:'📊',checklist:'✅'};
+let _openHojaId=null;
+
+function renderHojas(){
+  const grid=document.getElementById('hojas-grid');
+  if(!grid)return;
+  const views=S.customViews||[];
+  grid.innerHTML=views.length?views.map((h,i)=>
+    `<div class="hoja-card" onclick="openHoja('${h.id}')">
+      <button class="hoja-del" onclick="event.stopPropagation();deleteHoja('${h.id}')">×</button>
+      <div class="hoja-type-icon">${HOJA_ICONS[h.type]||'📄'}</div>
+      <div class="hoja-card-name">${h.name}</div>
+      <div class="hoja-card-meta">Creada ${h.createdAt||''}</div>
+      <span class="hoja-type-badge hoja-type-${h.type}">${h.type}</span>
+    </div>`
+  ).join('')+`<div class="hoja-card" onclick="openModal('newHoja')" style="border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted)">
+    <div style="font-size:26px">＋</div>
+    <div style="font-size:12px">Nueva hoja</div>
+  </div>`:`<div class="empty" style="padding:60px 20px"><div class="e-icon">📋</div><p>No hay hojas todavía. Creá una para empezar.</p></div>`;
+}
+function saveNewHoja(){
+  const nombre=document.getElementById('fh-nombre')?.value?.trim();
+  if(!nombre){notify('Escribí un nombre');return;}
+  const tipo=document.querySelector('input[name="hoja-tipo"]:checked')?.value||'doc';
+  if(!S.customViews)S.customViews=[];
+  const defaults={doc:{content:''},tabla:{columns:[{id:'c1',name:'Columna 1'},{id:'c2',name:'Columna 2'}],rows:[]},checklist:{items:[]}};
+  S.customViews.push({id:'h_'+Date.now(),name:nombre,type:tipo,createdAt:new Date().toISOString().slice(0,10),...defaults[tipo]});
+  save();closeModal();renderHojas();notify('Hoja creada ✓');
+}
+function deleteHoja(id){
+  if(!confirm('¿Eliminar esta hoja?'))return;
+  S.customViews=S.customViews.filter(h=>h.id!==id);
+  save();renderHojas();notify('Hoja eliminada');
+}
+function openHoja(id){
+  const h=S.customViews.find(v=>v.id===id);
+  if(!h)return;
+  _openHojaId=id;
+  document.getElementById('hojas-list-view').style.display='none';
+  document.getElementById('hojas-editor-view').style.display='';
+  const c=document.getElementById('hoja-editor-container');
+  if(h.type==='doc')c.innerHTML=`
+    <div class="hoja-editor-head">
+      <input class="hoja-editor-title" value="${h.name}" onchange="renameHoja(this.value)">
+      <span style="font-size:10px;color:var(--muted)">auto-guardado</span>
+    </div>
+    <textarea class="hoja-doc-area" id="hoja-doc-text" placeholder="Empezá a escribir..." oninput="saveDocHoja()">${h.content||''}</textarea>`;
+  else if(h.type==='tabla')renderTablaHoja(h,c);
+  else if(h.type==='checklist')renderChecklistHoja(h,c);
+}
+function closeHoja(){
+  _openHojaId=null;
+  document.getElementById('hojas-list-view').style.display='';
+  document.getElementById('hojas-editor-view').style.display='none';
+  renderHojas();
+}
+function renameHoja(name){
+  const h=S.customViews.find(v=>v.id===_openHojaId);
+  if(h){h.name=name;save();}
+}
+function saveDocHoja(){
+  const h=S.customViews.find(v=>v.id===_openHojaId);
+  if(h){h.content=document.getElementById('hoja-doc-text')?.value||'';save();}
+}
+function renderTablaHoja(h,c){
+  const cols=h.columns||[];const rows=h.rows||[];
+  const thCols=cols.map(col=>`<th>${col.name}<button class="hoja-col-del" onclick="delTablaCol('${col.id}')">×</button></th>`).join('');
+  const trRows=rows.map((row,ri)=>`<tr>${cols.map(col=>`<td><input value="${(row.cells&&row.cells[col.id])||''}" oninput="saveTablaCell(${ri},'${col.id}',this.value)" placeholder="—"></td>`).join('')}<td style="width:30px"><button onclick="delTablaRow(${ri})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:4px">×</button></td></tr>`).join('');
+  c.innerHTML=`<div class="hoja-editor-head">
+    <input class="hoja-editor-title" value="${h.name}" onchange="renameHoja(this.value)">
+    <div style="display:flex;gap:6px">
+      <button class="hoja-tbl-add-col" onclick="addTablaCol()">+ Columna</button>
+      <button class="btn btn-sm" onclick="addTablaRow()">+ Fila</button>
+    </div>
+  </div>
+  <div class="hoja-table-wrap">
+    <table class="hoja-tbl"><thead><tr>${thCols}<th style="width:30px"></th></tr></thead><tbody>${trRows}</tbody></table>
+  </div>`;
+}
+function addTablaCol(){
+  const h=S.customViews.find(v=>v.id===_openHojaId);
+  if(!h)return;
+  if(!h.columns)h.columns=[];
+  h.columns.push({id:'c_'+Date.now(),name:'Nueva columna'});
+  save();openHoja(_openHojaId);
+}
+function delTablaCol(cid){
+  const h=S.customViews.find(v=>v.id===_openHojaId);
+  if(!h)return;
+  h.columns=h.columns.filter(c=>c.id!==cid);
+  if(h.rows)h.rows.forEach(r=>{if(r.cells)delete r.cells[cid];});
+  save();openHoja(_openHojaId);
+}
+function addTablaRow(){
+  const h=S.customViews.find(v=>v.id===_openHojaId);
+  if(!h)return;
+  if(!h.rows)h.rows=[];
+  h.rows.push({cells:{}});
+  save();openHoja(_openHojaId);
+}
+function delTablaRow(ri){
+  const h=S.customViews.find(v=>v.id===_openHojaId);
+  if(!h)return;
+  h.rows.splice(ri,1);save();openHoja(_openHojaId);
+}
+function saveTablaCell(ri,cid,val){
+  const h=S.customViews.find(v=>v.id===_openHojaId);
+  if(!h||!h.rows[ri])return;
+  if(!h.rows[ri].cells)h.rows[ri].cells={};
+  h.rows[ri].cells[cid]=val;save();
+}
+function renderChecklistHoja(h,c){
+  const items=h.items||[];
+  c.innerHTML=`<div class="hoja-editor-head">
+    <input class="hoja-editor-title" value="${h.name}" onchange="renameHoja(this.value)">
+    <button class="btn btn-sm btn-primary" onclick="addChecklistItem()">+ Ítem</button>
+  </div>
+  <div class="hoja-checklist-body" id="hoja-cl-body">
+    ${items.map((it,i)=>`<div class="hoja-ci" id="hci-${i}">
+      <div class="hoja-ci-box${it.done?' done':''}" onclick="toggleChecklistItem(${i})">${it.done?'✓':''}</div>
+      <input class="hoja-ci-text${it.done?' done':''}" value="${it.text||''}" oninput="saveChecklistText(${i},this.value)" placeholder="Tarea...">
+      <button class="hoja-ci-del" onclick="delChecklistItem(${i})">×</button>
+    </div>`).join('')}
+  </div>`;
+}
+function addChecklistItem(){
+  const h=S.customViews.find(v=>v.id===_openHojaId);
+  if(!h)return;
+  if(!h.items)h.items=[];
+  h.items.push({id:'i_'+Date.now(),text:'',done:false});
+  save();openHoja(_openHojaId);
+  setTimeout(()=>{const inputs=document.querySelectorAll('.hoja-ci-text');if(inputs.length)inputs[inputs.length-1].focus();},50);
+}
+function toggleChecklistItem(i){
+  const h=S.customViews.find(v=>v.id===_openHojaId);
+  if(!h||!h.items[i])return;
+  h.items[i].done=!h.items[i].done;save();openHoja(_openHojaId);
+}
+function saveChecklistText(i,val){
+  const h=S.customViews.find(v=>v.id===_openHojaId);
+  if(!h||!h.items[i])return;
+  h.items[i].text=val;save();
+}
+function delChecklistItem(i){
+  const h=S.customViews.find(v=>v.id===_openHojaId);
+  if(!h)return;
+  h.items.splice(i,1);save();openHoja(_openHojaId);
+}
+
+// ══════════════════════════════════════════
 // NOTIFY + RENDER MASTER
 // ══════════════════════════════════════════
 function notify(msg){
@@ -3166,7 +3832,7 @@ function notify(msg){
   el.textContent=msg;el.classList.add('show');
   setTimeout(()=>el.classList.remove('show'),2200);
 }
- 
+
 function render(){
   renderChecklist();
   renderTodo();
@@ -3178,9 +3844,10 @@ function render(){
   renderMarca();
   renderOperaciones();
   if(S.crm)renderCRM();
+  renderHojas();
 }
- 
-render();
+
+initState();
  
 </script>
 </body>
