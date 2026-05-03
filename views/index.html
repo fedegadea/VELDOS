@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SOULAB OS</title>
+<title>VELD OS</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -726,19 +726,73 @@ tr:hover .tx-del{color:var(--muted)}
 @media(max-width:700px){.ws-grid{grid-template-columns:1fr 1fr}.hojas-grid{grid-template-columns:1fr}}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
  
+<!-- ══ AUTH SCREEN ══ -->
+<div id="auth-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:600;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px">
+  <div style="width:100%;max-width:380px">
+    <div style="font-size:28px;font-weight:800;letter-spacing:2px;color:var(--gold);margin-bottom:4px;text-align:center">VELD <em style="font-style:normal;color:#fff">OS</em></div>
+    <div style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:32px">El sistema operativo de tu marca</div>
+
+    <div id="auth-tabs" style="display:flex;gap:0;margin-bottom:24px;border-radius:10px;overflow:hidden;border:1px solid var(--border)">
+      <button onclick="showAuthTab('login')" id="tab-login" style="flex:1;padding:10px;background:var(--gold);color:#fff;border:none;cursor:pointer;font-weight:600;font-size:13px">Ingresar</button>
+      <button onclick="showAuthTab('register')" id="tab-register" style="flex:1;padding:10px;background:transparent;color:var(--muted);border:none;cursor:pointer;font-size:13px">Registrarse</button>
+    </div>
+
+    <div id="auth-login-form">
+      <div style="margin-bottom:12px"><input id="auth-email" type="email" placeholder="Email" class="form-input" style="width:100%;box-sizing:border-box"></div>
+      <div style="margin-bottom:16px"><input id="auth-password" type="password" placeholder="Contraseña" class="form-input" style="width:100%;box-sizing:border-box"></div>
+      <button onclick="authLogin()" class="btn btn-primary" style="width:100%;padding:12px;font-size:14px">Ingresar</button>
+      <div style="text-align:center;margin-top:12px"><a href="#" onclick="showForgotPassword()" style="color:var(--muted);font-size:12px">¿Olvidaste tu contraseña?</a></div>
+    </div>
+
+    <div id="auth-register-form" style="display:none">
+      <div style="margin-bottom:12px"><input id="reg-name" type="text" placeholder="Tu nombre" class="form-input" style="width:100%;box-sizing:border-box"></div>
+      <div style="margin-bottom:12px"><input id="reg-email" type="email" placeholder="Email" class="form-input" style="width:100%;box-sizing:border-box"></div>
+      <div style="margin-bottom:16px"><input id="reg-password" type="password" placeholder="Contraseña (mín. 6 caracteres)" class="form-input" style="width:100%;box-sizing:border-box"></div>
+      <button onclick="authRegister()" class="btn btn-primary" style="width:100%;padding:12px;font-size:14px">Empezar 3 días gratis</button>
+      <div style="text-align:center;margin-top:10px;color:var(--muted);font-size:11px">Sin tarjeta requerida. 3 días de prueba gratuita.</div>
+    </div>
+
+    <div id="auth-error" style="display:none;margin-top:12px;padding:10px;background:rgba(255,80,80,.1);border:1px solid rgba(255,80,80,.3);border-radius:8px;color:#ff5050;font-size:13px;text-align:center"></div>
+  </div>
+</div>
+
+<!-- ══ PAYWALL SCREEN ══ -->
+<div id="paywall-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:610;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px">
+  <div style="width:100%;max-width:420px;text-align:center">
+    <div style="font-size:40px;margin-bottom:16px">🔒</div>
+    <div style="font-size:22px;font-weight:700;margin-bottom:8px">Tu período de prueba terminó</div>
+    <div style="color:var(--muted);font-size:14px;margin-bottom:32px;line-height:1.6">Suscribite para seguir usando VELD OS y mantener todos tus datos.</div>
+    <div style="background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:24px">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Suscripción mensual</div>
+      <div style="font-size:36px;font-weight:800;color:var(--gold);margin-bottom:4px">$49.000</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:20px">por mes · cancelá cuando quieras</div>
+      <ul style="text-align:left;list-style:none;padding:0;margin:0 0 20px;font-size:13px;display:flex;flex-direction:column;gap:8px">
+        <li>✅ Marcas ilimitadas</li>
+        <li>✅ CRM, finanzas, calendario y más</li>
+        <li>✅ Equipo con permisos</li>
+        <li>✅ Datos en la nube (Supabase)</li>
+        <li>✅ Soporte prioritario</li>
+      </ul>
+      <button onclick="goToPayment()" class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;font-weight:700">Suscribirme con Mercado Pago</button>
+    </div>
+    <button onclick="authLogout()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer">Cerrar sesión</button>
+  </div>
+</div>
+
 <!-- ══ SUPABASE LOADER ══ -->
 <div id="supa-loader" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:18px">
-  <div style="font-size:22px;font-weight:700;letter-spacing:2px;color:var(--gold)">SOULAB <em style="font-style:normal;color:var(--muted)">OS</em></div>
+  <div style="font-size:22px;font-weight:700;letter-spacing:2px;color:var(--gold)">VELD <em style="font-style:normal;color:var(--muted)">OS</em></div>
   <div style="width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite"></div>
   <div id="supa-loader-msg" style="font-size:13px;color:var(--muted)">Cargando proyectos…</div>
 </div>
 
 <!-- ══ WORKSPACE OVERLAY ══ -->
 <div class="ws-overlay hidden" id="ws-overlay">
-  <div class="ws-logo-big">SOULAB <em>OS</em></div>
+  <div class="ws-logo-big">VELD <em>OS</em></div>
   <div class="ws-sub">Seleccioná tu proyecto</div>
   <div id="ws-main-screen">
     <div class="ws-grid" id="ws-grid"></div>
@@ -777,7 +831,7 @@ tr:hover .tx-del{color:var(--muted)}
 <!-- ══ TOPBAR ══ -->
 <div class="topbar">
   <div class="os-brand">
-    <div class="os-name" onclick="openWorkspaceSelector()" title="Cambiar proyecto" style="cursor:pointer;user-select:none">SOULAB <em>OS</em></div>
+    <div class="os-name" onclick="openWorkspaceSelector()" title="Cambiar proyecto" style="cursor:pointer;user-select:none">VELD <em>OS</em></div>
     <div class="os-sep">·</div>
     <div class="area-dropdown" id="area-dropdown">
       <button class="area-btn" id="area-btn" onclick="toggleAreaDropdown()">
@@ -828,8 +882,12 @@ tr:hover .tx-del{color:var(--muted)}
     <button class="nav-tab active" onclick="switchPage('hojas',this)" id="hojas-nav-default">Todas las hojas</button>
   </nav>
   <div class="week-badge" id="week-label"></div>
+  <button onclick="authLogout()" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:7px;cursor:pointer;flex-shrink:0">Salir</button>
 </div>
- 
+<div id="trial-banner" style="display:none;background:linear-gradient(90deg,rgba(41,121,255,.15),rgba(41,121,255,.05));border-bottom:1px solid rgba(41,121,255,.2);padding:8px 20px;font-size:12px;color:var(--gold);text-align:center;cursor:pointer" onclick="document.getElementById('paywall-screen').style.display='flex'">
+  🎁 <span id="trial-banner-text">Te quedan X días de prueba gratis</span> · <strong>Suscribite ahora →</strong>
+</div>
+
 <!-- ══ CHECKLIST ══ -->
 <div class="page active" id="page-checklist">
   <div class="sec-head">
@@ -1074,6 +1132,7 @@ tr:hover .tx-del{color:var(--muted)}
       <div class="settings-tabs">
         <button class="settings-tab active" onclick="switchSettingsTab('proyecto',this)">Proyecto</button>
         <button class="settings-tab" onclick="switchSettingsTab('usuarios',this)">Usuarios</button>
+        <button class="settings-tab" onclick="switchSettingsTab('apariencia',this)">Apariencia</button>
       </div>
       <div class="settings-panel active" id="stab-proyecto">
         <div class="form-group"><label class="form-label">Nombre del proyecto</label><input class="form-input" id="set-ws-name" placeholder="Mi marca"></div>
@@ -1082,6 +1141,11 @@ tr:hover .tx-del{color:var(--muted)}
             <span class="emoji-opt sel" data-e="🏷️" onclick="selectSetEmoji(this)">🏷️</span><span class="emoji-opt" data-e="👗" onclick="selectSetEmoji(this)">👗</span><span class="emoji-opt" data-e="🛍️" onclick="selectSetEmoji(this)">🛍️</span><span class="emoji-opt" data-e="💄" onclick="selectSetEmoji(this)">💄</span><span class="emoji-opt" data-e="👟" onclick="selectSetEmoji(this)">👟</span><span class="emoji-opt" data-e="🏪" onclick="selectSetEmoji(this)">🏪</span><span class="emoji-opt" data-e="💎" onclick="selectSetEmoji(this)">💎</span><span class="emoji-opt" data-e="🎨" onclick="selectSetEmoji(this)">🎨</span><span class="emoji-opt" data-e="📦" onclick="selectSetEmoji(this)">📦</span><span class="emoji-opt" data-e="🌿" onclick="selectSetEmoji(this)">🌿</span><span class="emoji-opt" data-e="✨" onclick="selectSetEmoji(this)">✨</span>
           </div></div>
         <div class="form-group"><label class="form-label">PIN de acceso</label><input class="form-input" id="set-ws-pin" type="password" placeholder="Dejar vacío = sin PIN"></div>
+        <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border)">
+          <div class="form-label">Cambiar contraseña</div>
+          <input id="change-pw-new" type="password" class="form-input" placeholder="Nueva contraseña" style="width:100%;margin-bottom:8px;box-sizing:border-box">
+          <button onclick="changePassword()" class="btn" style="width:100%">Actualizar contraseña</button>
+        </div>
         <div class="modal-footer"><button class="btn btn-primary" onclick="saveWsSettings()">Guardar cambios</button></div>
       </div>
       <div class="settings-panel" id="stab-usuarios">
@@ -1110,6 +1174,19 @@ tr:hover .tx-del{color:var(--muted)}
           <button class="btn btn-primary" onclick="addUser()">Agregar usuario</button>
         </div>
       </div>
+      <div class="settings-panel" id="stab-apariencia">
+        <div class="form-label">Color primario</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+          <div class="ws-color-opt sel" data-c="#2979ff" onclick="selectAppColor(this,'#2979ff')" style="width:28px;height:28px;border-radius:50%;background:#2979ff;cursor:pointer;border:2px solid white"></div>
+          <div class="ws-color-opt" data-c="#00c896" onclick="selectAppColor(this,'#00c896')" style="width:28px;height:28px;border-radius:50%;background:#00c896;cursor:pointer;border:2px solid transparent"></div>
+          <div class="ws-color-opt" data-c="#f5a623" onclick="selectAppColor(this,'#f5a623')" style="width:28px;height:28px;border-radius:50%;background:#f5a623;cursor:pointer;border:2px solid transparent"></div>
+          <div class="ws-color-opt" data-c="#e040fb" onclick="selectAppColor(this,'#e040fb')" style="width:28px;height:28px;border-radius:50%;background:#e040fb;cursor:pointer;border:2px solid transparent"></div>
+          <div class="ws-color-opt" data-c="#ff5252" onclick="selectAppColor(this,'#ff5252')" style="width:28px;height:28px;border-radius:50%;background:#ff5252;cursor:pointer;border:2px solid transparent"></div>
+        </div>
+        <div class="form-label">Nombre visible</div>
+        <input id="app-display-name" type="text" class="form-input" style="width:100%;box-sizing:border-box" placeholder="Tu nombre en la app">
+        <button onclick="saveAppearance()" class="btn btn-primary" style="margin-top:12px;width:100%">Guardar apariencia</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1117,7 +1194,7 @@ tr:hover .tx-del{color:var(--muted)}
 <!-- ══ MARCA ══ -->
 <div class="page" id="page-marca">
   <div class="sec-head">
-    <div class="sec-title">Marca<small>Identidad, estrategia y visión de Soulab</small></div>
+    <div class="sec-title">Marca<small>Identidad, estrategia y visión de Veld</small></div>
     <div class="btn-row">
       <span id="marca-saved" class="ms-saved">Guardado ✓</span>
     </div>
@@ -1144,7 +1221,7 @@ tr:hover .tx-del{color:var(--muted)}
       <div class="marca-section active" id="ms-estetica">
         <div class="ms-card">
           <div class="ms-card-head">
-            <div><div class="ms-card-title">Estética de marca</div><div class="ms-card-sub">La personalidad visual de Soulab</div></div>
+            <div><div class="ms-card-title">Estética de marca</div><div class="ms-card-sub">La personalidad visual de Veld</div></div>
           </div>
           <div class="ms-card-body">
             <div class="ms-field">
@@ -1190,7 +1267,7 @@ tr:hover .tx-del{color:var(--muted)}
       <div class="marca-section" id="ms-estrategia">
         <div class="ms-card">
           <div class="ms-card-head">
-            <div><div class="ms-card-title">Estrategia de marketing</div><div class="ms-card-sub">Cómo Soulab llega a sus clientes</div></div>
+            <div><div class="ms-card-title">Estrategia de marketing</div><div class="ms-card-sub">Cómo Veld llega a sus clientes</div></div>
           </div>
           <div class="ms-card-body">
             <div class="ms-field">
@@ -1221,7 +1298,7 @@ tr:hover .tx-del{color:var(--muted)}
       <div class="marca-section" id="ms-cliente">
         <div class="ms-card">
           <div class="ms-card-head">
-            <div><div class="ms-card-title">Cliente ideal</div><div class="ms-card-sub">Quién es la persona que compra Soulab</div></div>
+            <div><div class="ms-card-title">Cliente ideal</div><div class="ms-card-sub">Quién es la persona que compra Veld</div></div>
           </div>
           <div class="ms-card-body">
             <div class="ms-field">
@@ -1258,7 +1335,7 @@ tr:hover .tx-del{color:var(--muted)}
       <div class="marca-section" id="ms-propuesta">
         <div class="ms-card">
           <div class="ms-card-head">
-            <div><div class="ms-card-title">Propuesta de valor</div><div class="ms-card-sub">Por qué alguien elige Soulab sobre cualquier alternativa</div></div>
+            <div><div class="ms-card-title">Propuesta de valor</div><div class="ms-card-sub">Por qué alguien elige Veld sobre cualquier alternativa</div></div>
           </div>
           <div class="ms-card-body">
             <div class="ms-field">
@@ -1270,7 +1347,7 @@ tr:hover .tx-del{color:var(--muted)}
               <textarea class="ms-textarea" id="m-pv-problema" placeholder="Ej: es difícil encontrar ropa de buena calidad y estética minimal en el mercado local sin pagar precios europeos..." oninput="saveMarca()" rows="3"></textarea>
             </div>
             <div class="ms-field">
-              <div class="ms-label">Solución que ofrece Soulab</div>
+              <div class="ms-label">Solución que ofrece Veld</div>
               <textarea class="ms-textarea" id="m-pv-solucion" placeholder="Ej: prendas de calidad real, diseño limpio, producción limitada, precio accesible para el nicho..." oninput="saveMarca()" rows="3"></textarea>
             </div>
             <div class="ms-field">
@@ -1279,7 +1356,7 @@ tr:hover .tx-del{color:var(--muted)}
             </div>
             <div class="ms-field">
               <div class="ms-label">Promesa de la marca</div>
-              <textarea class="ms-textarea" id="m-pv-promesa" placeholder="Ej: cada prenda que comprás en Soulab vas a seguir usándola en 3 años..." oninput="saveMarca()" rows="3"></textarea>
+              <textarea class="ms-textarea" id="m-pv-promesa" placeholder="Ej: cada prenda que comprás en Veld vas a seguir usándola en 3 años..." oninput="saveMarca()" rows="3"></textarea>
             </div>
           </div>
         </div>
@@ -1560,6 +1637,8 @@ tr:hover .tx-del{color:var(--muted)}
 // ── SUPABASE CONFIG ──
 const SUPA_URL='https://vlkxtrqktdcfqmebrtwa.supabase.co';
 const SUPA_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsa3h0cnFrdGRjZnFtZWJydHdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4Mjg3MzAsImV4cCI6MjA5MzQwNDczMH0.Br9NGNxHRr94-02qAszaLx7qZq-Z4LxRuXpTXGzmDA0';
+const supabaseClient = window.supabase.createClient(SUPA_URL, SUPA_ANON);
+let _authUser = null; // Supabase auth user
 
 async function supaFetch(path,opts={}){
   const{method='GET',body,prefer}=opts;
@@ -1591,7 +1670,7 @@ async function supaDelete(id){
 
 // ── MULTI-WORKSPACE STATE ──
 const LEGACY_STORE='veld_os_v1';
-const WS_STORE='soulab_workspaces';
+const WS_STORE='veld_workspaces';
 let WORKSPACES;
 let S;
 let _activeWsId=null;
@@ -1636,15 +1715,178 @@ function _enterWorkspace(ws){
   render();
 }
 
+// ── AUTH HELPERS ──
+function showAuthTab(tab){
+  document.getElementById('auth-login-form').style.display=tab==='login'?'':'none';
+  document.getElementById('auth-register-form').style.display=tab==='register'?'':'none';
+  document.getElementById('tab-login').style.background=tab==='login'?'var(--gold)':'transparent';
+  document.getElementById('tab-login').style.color=tab==='login'?'#fff':'var(--muted)';
+  document.getElementById('tab-register').style.background=tab==='register'?'var(--gold)':'transparent';
+  document.getElementById('tab-register').style.color=tab==='register'?'#fff':'var(--muted)';
+}
+function showAuthError(msg){const e=document.getElementById('auth-error');if(e){e.textContent=msg;e.style.display='';}}
+function hideAuthError(){const e=document.getElementById('auth-error');if(e)e.style.display='none';}
+
+async function authLogin(){
+  const email=document.getElementById('auth-email')?.value?.trim();
+  const password=document.getElementById('auth-password')?.value;
+  if(!email||!password){showAuthError('Completá email y contraseña');return;}
+  hideAuthError();
+  const btn=document.querySelector('#auth-login-form .btn-primary');
+  if(btn){btn.textContent='Ingresando…';btn.disabled=true;}
+  try{
+    const{data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+    if(error)throw error;
+    _authUser=data.user;
+    document.getElementById('auth-screen').style.display='none';
+    await checkSubscriptionAndProceed();
+  }catch(e){
+    showAuthError(e.message==='Invalid login credentials'?'Email o contraseña incorrectos':e.message);
+  }finally{if(btn){btn.textContent='Ingresar';btn.disabled=false;}}
+}
+
+async function authRegister(){
+  const name=document.getElementById('reg-name')?.value?.trim();
+  const email=document.getElementById('reg-email')?.value?.trim();
+  const password=document.getElementById('reg-password')?.value;
+  if(!name||!email||!password){showAuthError('Completá todos los campos');return;}
+  if(password.length<6){showAuthError('La contraseña debe tener al menos 6 caracteres');return;}
+  hideAuthError();
+  const btn=document.querySelector('#auth-register-form .btn-primary');
+  if(btn){btn.textContent='Creando cuenta…';btn.disabled=true;}
+  try{
+    const{data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{name}}});
+    if(error)throw error;
+    _authUser=data.user;
+    await supaFetch('/rest/v1/user_subscriptions',{
+      method:'POST',
+      prefer:'resolution=merge-duplicates,return=minimal',
+      body:{
+        id:_authUser.id,
+        email,
+        name,
+        plan:'trial',
+        trial_ends_at:new Date(Date.now()+3*24*60*60*1000).toISOString()
+      }
+    });
+    document.getElementById('auth-screen').style.display='none';
+    await checkSubscriptionAndProceed();
+  }catch(e){
+    showAuthError(e.message.includes('already registered')?'Ya existe una cuenta con ese email':e.message);
+  }finally{if(btn){btn.textContent='Empezar 3 días gratis';btn.disabled=false;}}
+}
+
+async function authLogout(){
+  await supabaseClient.auth.signOut();
+  _authUser=null;
+  document.getElementById('paywall-screen').style.display='none';
+  document.getElementById('auth-screen').style.display='flex';
+  showAuthTab('login');
+}
+
+async function checkSubscriptionAndProceed(){
+  if(!_authUser)return;
+  try{
+    const rows=await supaFetch('/rest/v1/user_subscriptions?id=eq.'+_authUser.id+'&select=*');
+    const sub=rows&&rows[0];
+    if(!sub){
+      const trialEnd=new Date(Date.now()+3*24*60*60*1000).toISOString();
+      await supaFetch('/rest/v1/user_subscriptions',{method:'POST',prefer:'resolution=merge-duplicates,return=minimal',body:{id:_authUser.id,email:_authUser.email,name:_authUser.user_metadata?.name||'',plan:'trial',trial_ends_at:trialEnd}});
+      showTrialBanner(3);
+      await _loadWorkspacesAndRender();
+      return;
+    }
+    if(sub.plan==='active'){
+      document.getElementById('trial-banner').style.display='none';
+      await _loadWorkspacesAndRender();
+    } else if(sub.plan==='trial'){
+      const trialEnd=new Date(sub.trial_ends_at);
+      const daysLeft=Math.ceil((trialEnd-Date.now())/(1000*60*60*24));
+      if(daysLeft>0){showTrialBanner(daysLeft);await _loadWorkspacesAndRender();}
+      else{showPaywall();}
+    } else {
+      showPaywall();
+    }
+  }catch(e){
+    console.warn('Subscription check error:',e);
+    await _loadWorkspacesAndRender(); // fail open
+  }
+}
+
+function showTrialBanner(days){
+  const banner=document.getElementById('trial-banner');
+  const txt=document.getElementById('trial-banner-text');
+  if(banner){banner.style.display='';}
+  if(txt){txt.textContent=`Te queda${days===1?'':'n'} ${days} día${days===1?'':'s'} de prueba gratis`;}
+}
+function showPaywall(){
+  document.getElementById('paywall-screen').style.display='flex';
+}
+async function goToPayment(){
+  try{
+    const res=await fetch('/api/mp/create-preference',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email:_authUser?.email,userId:_authUser?.id})
+    });
+    const data=await res.json();
+    if(data.init_point){window.location.href=data.init_point;}
+  }catch(e){notify('Error al conectar con Mercado Pago');}
+}
+async function showForgotPassword(){
+  const email=document.getElementById('auth-email')?.value?.trim()||prompt('Ingresá tu email:');
+  if(!email)return;
+  const{error}=await supabaseClient.auth.resetPasswordForEmail(email);
+  if(error)notify('Error: '+error.message);
+  else notify('Te enviamos un email para resetear tu contraseña ✓');
+}
+async function changePassword(){
+  const newPw=document.getElementById('change-pw-new')?.value;
+  if(!newPw||newPw.length<6){notify('Mínimo 6 caracteres');return;}
+  const{error}=await supabaseClient.auth.updateUser({password:newPw});
+  if(error)notify('Error: '+error.message);
+  else{document.getElementById('change-pw-new').value='';notify('Contraseña actualizada ✓');}
+}
+
+// ── APARIENCIA ──
+function selectAppColor(el,color){
+  document.querySelectorAll('#stab-apariencia .ws-color-opt').forEach(e=>{e.style.border='2px solid transparent';});
+  el.style.border='2px solid white';
+  document.documentElement.style.setProperty('--gold',color);
+  localStorage.setItem('veld_accent_color',color);
+}
+function saveAppearance(){
+  const name=document.getElementById('app-display-name')?.value?.trim();
+  if(name)localStorage.setItem('veld_display_name',name);
+  notify('Apariencia guardada ✓');
+  closeSettings();
+}
+function applyAppearance(){
+  const color=localStorage.getItem('veld_accent_color');
+  if(color)document.documentElement.style.setProperty('--gold',color);
+}
+
+let _proceedAfterAuth=async function(){};
+
 async function initState(){
+  applyAppearance();
+  // Check Supabase auth session first
+  const{data:{session}}=await supabaseClient.auth.getSession();
+  if(session){
+    _authUser=session.user;
+  } else {
+    document.getElementById('auth-screen').style.display='flex';
+    _proceedAfterAuth=_loadWorkspacesAndRender;
+    return;
+  }
+  await checkSubscriptionAndProceed();
+}
+
+async function _loadWorkspacesAndRender(){
   const loader=document.getElementById('supa-loader');
   if(loader)loader.style.display='flex';
   let wsArr=null;
-  try{
-    wsArr=await supaLoadAll();
-  }catch(e){
-    console.warn('[Supabase] load error, falling back to localStorage:',e);
-  }
+  try{wsArr=await supaLoadAll();}catch(e){console.warn('[Supabase] load error:',e);}
   if(loader)loader.style.display='none';
 
   if(wsArr&&wsArr.length){
@@ -1653,28 +1895,19 @@ async function initState(){
     WORKSPACES={workspaces:wsArr,active:activeId};
     _localSave();
   } else if(wsArr&&wsArr.length===0){
-    // No workspaces in Supabase yet — migrate from localStorage
     const local=_localLoad();
     WORKSPACES=local;
-    const msg=document.getElementById('supa-loader-msg');
-    if(msg)msg.textContent='Migrando datos a la nube…';
-    if(loader)loader.style.display='flex';
     for(const ws of WORKSPACES.workspaces){
-      try{await supaUpsert(ws);}catch(e){console.warn('[Supabase] migrate error:',e);}
+      try{await supaUpsert(ws);}catch(e){}
     }
-    if(loader)loader.style.display='none';
     _localSave();
   } else {
-    // Supabase unavailable → use localStorage
     WORKSPACES=_localLoad();
   }
 
   const ws=WORKSPACES.workspaces.find(w=>w.id===WORKSPACES.active)||WORKSPACES.workspaces[0];
-  if(ws&&!ws.pin&&!ws.users.length){
-    _enterWorkspace(ws);
-  } else {
-    openWorkspaceSelector();
-  }
+  if(ws&&!ws.pin&&!ws.users.length){_enterWorkspace(ws);}
+  else{openWorkspaceSelector();}
 }
 
 function switchWorkspace(wsId){
@@ -3469,7 +3702,7 @@ function exportCRM(){
   const csv=[headers.join(','),...rows.map(r=>r.join(','))].join('\n');
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv); // BOM for Excel
-  a.download='crm_soulab_'+fmtDate(new Date())+'.csv';
+  a.download='crm_veld_'+fmtDate(new Date())+'.csv';
   a.click();
   notify('CSV exportado (ordenado por fecha) ✓');
 }
