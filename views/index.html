@@ -604,6 +604,16 @@ tr:hover .tx-del{color:var(--muted)}
 .crm-views{display:flex;gap:4px;margin-bottom:16px}
 .crm-view-btn{font-size:11px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:var(--fb);transition:all .15s}
 .crm-view-btn.active{background:rgba(41,121,255,.1);border-color:rgba(41,121,255,.3);color:var(--gold)}
+.crm-card-move{display:flex;gap:3px;margin-top:8px;padding-top:7px;border-top:1px solid var(--border)}
+.crm-move-btn{flex:1;font-size:10px;padding:3px 0;border-radius:5px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:var(--fb);transition:all .15s;text-align:center}
+.crm-move-btn:hover{border-color:var(--gold);color:var(--gold)}
+.crm-move-btn.primary{background:rgba(41,121,255,.1);border-color:rgba(41,121,255,.25);color:var(--gold)}
+.crm-col-body.drag-over{background:rgba(41,121,255,.06);border:1px dashed rgba(41,121,255,.4);border-radius:8px}
+.crm-card.dragging{opacity:.4;transform:scale(.97)}
+.crm-import-btn{font-size:11px;padding:7px 13px;border-radius:8px;border:1px solid var(--border2);background:rgba(41,121,255,.06);color:var(--gold);cursor:pointer;font-family:var(--fb);transition:all .15s;white-space:nowrap}
+.crm-import-btn:hover{background:rgba(41,121,255,.12)}
+.crm-list-wapp{display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:3px 8px;border-radius:6px;background:rgba(77,184,138,.1);color:var(--green);border:1px solid rgba(77,184,138,.2);cursor:pointer;font-family:var(--fb);text-decoration:none;white-space:nowrap}
+.crm-list-wapp:hover{background:rgba(77,184,138,.2)}
 .crm-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .crm-activity{border-top:1px solid var(--border);margin-top:16px;padding-top:14px}
 .crm-activity-title{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
@@ -806,7 +816,9 @@ tr:hover .tx-del{color:var(--muted)}
   <div class="sec-head">
     <div class="sec-title">CRM<small>Pipeline de contactos, clientes y leads</small></div>
     <div class="btn-row">
-      <button class="btn" onclick="exportCRM()">↓ Exportar</button>
+      <input type="file" id="crm-import-file" accept=".csv" style="display:none" onchange="importCSV(this)">
+      <button class="crm-import-btn" onclick="document.getElementById('crm-import-file').click()">↑ Importar CSV</button>
+      <button class="btn" onclick="exportCRM()">↓ Exportar CSV</button>
       <button class="btn btn-primary" onclick="openModal('crm')">+ Contacto</button>
     </div>
   </div>
@@ -865,7 +877,7 @@ tr:hover .tx-del{color:var(--muted)}
   <!-- Lista view -->
   <div id="crm-lista-view" style="display:none">
     <div class="crm-list-head">
-      <span>Contacto</span><span>Estado</span><span>Tipo</span><span>Valor</span><span>Último contacto</span><span></span>
+      <span>Contacto</span><span>Estado</span><span>Tipo</span><span>Valor</span><span>Últ. contacto</span><span>Acciones</span>
     </div>
     <div class="crm-list-view" id="crm-list"></div>
   </div>
@@ -2908,46 +2920,67 @@ function renderCRM(){
           <span class="crm-col-title" style="color:${CRM_COL_COLORS[est]}">${est}</span>
           <span class="crm-col-count">${cards.length}</span>
         </div>
-        <div class="crm-col-body">
-          ${cards.length?cards.map((c,i)=>renderCRMCard(c,S.crm.indexOf(c))).join(''):`<div class="empty" style="padding:20px 12px"><p style="font-size:11px">Sin contactos</p></div>`}
+        <div class="crm-col-body"
+          ondragover="event.preventDefault();this.classList.add('drag-over')"
+          ondragleave="this.classList.remove('drag-over')"
+          ondrop="crmDrop(event,'${est}');this.classList.remove('drag-over')">
+          ${cards.length
+            ? cards.map(c=>renderCRMCard(c,S.crm.indexOf(c))).join('')
+            : `<div class="empty" style="padding:20px 12px"><p style="font-size:11px">Sin contactos</p></div>`}
         </div>
       </div>`;
     }).join('');
   } else {
     const list=document.getElementById('crm-list');
     if(!list)return;
-    list.innerHTML=filtered.length?filtered.map((c,i)=>{
+    list.innerHTML=filtered.length?filtered.map(c=>{
       const ri=S.crm.indexOf(c);
+      const tel=(c.tel||'').replace(/\D/g,'');
+      const wappUrl=tel?`https://wa.me/${tel}`:'';
       return`<div class="crm-list-card" onclick="editCRM(${ri})">
         <div>
           <div style="font-size:12px;font-weight:500;color:var(--text)">${c.nombre||'—'}</div>
-          <div style="font-size:11px;color:var(--muted)">${c.ig||''} ${c.tel?'· '+c.tel:''}</div>
+          <div style="font-size:11px;color:var(--muted)">${c.ig||''}</div>
         </div>
         <span class="crm-estado-pill ${CRM_ESTADO_COLORS[c.estado]||'ep-nuevo'}">${c.estado||'Nuevo'}</span>
         <span class="crm-tag ${c.tipo||'lead'}">${c.tipo||'lead'}</span>
         <span style="font-size:12px;font-weight:500;color:var(--gold)">${c.valor?'$'+parseFloat(c.valor).toLocaleString('es-AR'):'—'}</span>
         <span style="font-size:11px;color:var(--muted)">${c.ultimoContacto||'—'}</span>
-        <button class="btn btn-xs btn-danger" onclick="event.stopPropagation();deleteCRM(${ri})">×</button>
+        <div style="display:flex;gap:5px;align-items:center" onclick="event.stopPropagation()">
+          ${wappUrl?`<a class="crm-list-wapp" href="${wappUrl}" target="_blank">💬 WA</a>`:'<span style="width:52px"></span>'}
+          <button class="btn btn-xs btn-danger" onclick="deleteCRM(${ri})">×</button>
+        </div>
       </div>`;
     }).join(''):`<div class="empty"><div class="e-icon">👥</div><p>No hay contactos que coincidan</p></div>`;
   }
 }
 
 function renderCRMCard(c,ri){
-  const tel=c.tel?(c.tel.replace(/\D/g,'')):'';
+  const tel=(c.tel||'').replace(/\D/g,'');
   const wappUrl=tel?`https://wa.me/${tel}`:'';
   const diasUlt=c.ultimoContacto?Math.floor((new Date()-new Date(c.ultimoContacto))/(1000*60*60*24)):-1;
-  const ultLabel=diasUlt<0?'Sin registro':diasUlt===0?'Hoy':diasUlt===1?'Ayer':`Hace ${diasUlt}d`;
-  return`<div class="crm-card" onclick="editCRM(${ri})">
+  const ultLabel=diasUlt<0?'Sin reg.':diasUlt===0?'Hoy':diasUlt===1?'Ayer':`${diasUlt}d atrás`;
+  const estIdx=CRM_ESTADOS.indexOf(c.estado||'Nuevo');
+  const prevEst=estIdx>0?CRM_ESTADOS[estIdx-1]:null;
+  const nextEst=estIdx<CRM_ESTADOS.length-2?CRM_ESTADOS[estIdx+1]:null; // max Recurrente
+  return`<div class="crm-card"
+    draggable="true"
+    ondragstart="crmDragStart(event,${ri})"
+    ondragend="this.classList.remove('dragging')"
+    onclick="editCRM(${ri})">
     <button class="crm-card-del" onclick="event.stopPropagation();deleteCRM(${ri})">×</button>
     <div class="crm-card-name">${c.nombre||'Sin nombre'}</div>
     <div class="crm-card-ig">${c.ig||''}</div>
     <div class="crm-card-foot">
       ${c.valor?`<span class="crm-valor-badge">$${parseFloat(c.valor).toLocaleString('es-AR')}</span>`:''}
       <span class="crm-last-contact">🕐 ${ultLabel}</span>
-      ${wappUrl?`<a class="crm-wapp" href="${wappUrl}" target="_blank" onclick="event.stopPropagation()">💬 WA</a>`:''}
     </div>
-    ${c.notas?`<div style="font-size:10px;color:var(--muted2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-weight:300;line-height:1.4">${c.notas.slice(0,80)}${c.notas.length>80?'…':''}</div>`:''}
+    ${c.notas?`<div style="font-size:10px;color:var(--muted2);margin-top:6px;padding-top:5px;border-top:1px solid var(--border);font-weight:300;line-height:1.3">${c.notas.slice(0,70)}${c.notas.length>70?'…':''}</div>`:''}
+    <div class="crm-card-move" onclick="event.stopPropagation()">
+      ${wappUrl?`<a class="crm-wapp" href="${wappUrl}" target="_blank" style="flex:1.4;justify-content:center">💬 WA</a>`:'<span style="flex:1.4"></span>'}
+      ${prevEst?`<button class="crm-move-btn" onclick="moveCRM(${ri},-1)" title="${prevEst}">◀ ${prevEst}</button>`:'<span style="flex:1"></span>'}
+      ${nextEst?`<button class="crm-move-btn primary" onclick="moveCRM(${ri},1)" title="${nextEst}">${nextEst} ▶</button>`:'<span style="flex:1"></span>'}
+    </div>
   </div>`;
 }
 
@@ -2993,18 +3026,136 @@ function deleteCRM(ri){
   S.crm.splice(ri,1);save();renderCRM();notify('Contacto eliminado');
 }
 
+// ── Drag & Drop ──
+let _dragIdx=null;
+function crmDragStart(e,ri){
+  _dragIdx=ri;
+  e.dataTransfer.effectAllowed='move';
+  e.currentTarget.classList.add('dragging');
+}
+function crmDrop(e,newEstado){
+  e.preventDefault();
+  if(_dragIdx===null)return;
+  S.crm[_dragIdx].estado=newEstado;
+  _dragIdx=null;
+  save();renderCRM();notify('Estado actualizado ✓');
+}
+
+// ── Move state with buttons ──
+function moveCRM(ri,dir){
+  const c=S.crm[ri];
+  if(!c)return;
+  const idx=CRM_ESTADOS.indexOf(c.estado||'Nuevo');
+  const newIdx=Math.max(0,Math.min(CRM_ESTADOS.length-2,idx+dir)); // cap at Recurrente
+  c.estado=CRM_ESTADOS[newIdx];
+  save();renderCRM();notify(`${c.nombre} → ${c.estado}`);
+}
+
+// ── Export CSV (sorted by ultimoContacto desc) ──
 function exportCRM(){
   if(!S.crm||!S.crm.length){notify('No hay contactos para exportar');return;}
-  const headers=['Nombre','Instagram','WhatsApp','Email','Estado','Tipo','Valor','Último contacto','Canal','Tags','Notas'];
-  const rows=S.crm.map(c=>[
-    c.nombre,c.ig,c.tel,c.email,c.estado,c.tipo,c.valor,c.ultimoContacto,c.canal,(c.tags||[]).join(';'),c.notas
+  const sorted=[...S.crm].sort((a,b)=>{
+    const da=a.ultimoContacto||a.creado||'';
+    const db=b.ultimoContacto||b.creado||'';
+    return db.localeCompare(da); // newest first
+  });
+  const headers=['Nombre','Instagram','WhatsApp','Email','Estado','Tipo','Valor','Último contacto','Fecha creado','Canal','Tags','Notas'];
+  const rows=sorted.map(c=>[
+    c.nombre,c.ig,c.tel,c.email,c.estado,c.tipo,c.valor,c.ultimoContacto,c.creado,c.canal,(c.tags||[]).join(';'),c.notas
   ].map(v=>`"${(v||'').replace(/"/g,'""')}"`));
   const csv=[headers.join(','),...rows.map(r=>r.join(','))].join('\n');
   const a=document.createElement('a');
-  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv); // BOM for Excel
   a.download='crm_soulab_'+fmtDate(new Date())+'.csv';
   a.click();
-  notify('CSV exportado ✓');
+  notify('CSV exportado (ordenado por fecha) ✓');
+}
+
+// ── Import CSV ──
+function importCSV(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const text=e.target.result.replace(/^﻿/,''); // strip BOM
+      const lines=text.split(/\r?\n/).filter(l=>l.trim());
+      if(lines.length<2){notify('CSV vacío o sin datos');return;}
+      // Parse headers (case-insensitive flexible matching)
+      const rawHeaders=parseCSVRow(lines[0]).map(h=>h.toLowerCase().trim());
+      const col=(names)=>{
+        for(const n of names){
+          const i=rawHeaders.findIndex(h=>h.includes(n));
+          if(i>=0)return i;
+        }
+        return -1;
+      };
+      const COL={
+        nombre:col(['nombre','name','contacto','contact']),
+        ig:col(['instagram','ig','@']),
+        tel:col(['whatsapp','wapp','tel','phone','celular','móvil']),
+        email:col(['email','mail','correo']),
+        estado:col(['estado','status','etapa','stage']),
+        tipo:col(['tipo','type']),
+        valor:col(['valor','value','monto']),
+        ultimoContacto:col(['último contacto','ultimo contacto','last contact','fecha contacto']),
+        creado:col(['fecha creado','creado','created','fecha alta']),
+        canal:col(['canal','channel','origen','source']),
+        tags:col(['tags','etiquetas','labels']),
+        notas:col(['notas','notes','comentarios','obs']),
+      };
+      const getCol=(row,idx)=>idx>=0&&idx<row.length?(row[idx]||''):'';
+      let imported=0,skipped=0;
+      if(!S.crm)S.crm=[];
+      for(let i=1;i<lines.length;i++){
+        const row=parseCSVRow(lines[i]);
+        if(!row.length||row.every(c=>!c.trim()))continue;
+        const nombre=getCol(row,COL.nombre).trim();
+        if(!nombre){skipped++;continue;}
+        // Skip if already exists (by nombre+ig)
+        const ig=getCol(row,COL.ig).trim();
+        const exists=S.crm.some(c=>c.nombre===nombre&&(c.ig||'')===(ig||''));
+        if(exists){skipped++;continue;}
+        const estadoRaw=getCol(row,COL.estado).trim();
+        const estadoMatch=CRM_ESTADOS.find(e=>e.toLowerCase()===estadoRaw.toLowerCase())||'Nuevo';
+        S.crm.push({
+          nombre,ig,
+          tel:getCol(row,COL.tel).trim(),
+          email:getCol(row,COL.email).trim(),
+          estado:estadoMatch,
+          tipo:getCol(row,COL.tipo).trim()||'lead',
+          valor:getCol(row,COL.valor).trim(),
+          ultimoContacto:getCol(row,COL.ultimoContacto).trim(),
+          creado:getCol(row,COL.creado).trim()||fmtDate(new Date()),
+          canal:getCol(row,COL.canal).trim(),
+          tags:getCol(row,COL.tags).split(';').map(t=>t.trim()).filter(Boolean),
+          notas:getCol(row,COL.notas).trim(),
+        });
+        imported++;
+      }
+      save();renderCRM();
+      notify(`${imported} contactos importados${skipped?`, ${skipped} omitidos`:''} ✓`);
+    }catch(err){
+      notify('Error al leer el CSV: '+err.message);
+    }
+    input.value=''; // reset so same file can be re-imported
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+// Minimal CSV row parser (handles quoted fields with commas and newlines)
+function parseCSVRow(line){
+  const result=[];let cur='';let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch==='"'){
+      if(inQ&&line[i+1]==='"'){cur+='"';i++;}
+      else inQ=!inQ;
+    } else if(ch===','&&!inQ){result.push(cur);cur='';}
+    else cur+=ch;
+  }
+  result.push(cur);
+  return result;
 }
 
 // ══════════════════════════════════════════
