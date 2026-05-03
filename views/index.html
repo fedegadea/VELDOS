@@ -724,10 +724,18 @@ tr:hover .tx-del{color:var(--muted)}
 .hoja-ci:hover .hoja-ci-del{opacity:.6}
 .hoja-ci-del:hover{color:var(--red);opacity:1!important}
 @media(max-width:700px){.ws-grid{grid-template-columns:1fr 1fr}.hojas-grid{grid-template-columns:1fr}}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
  
+<!-- ══ SUPABASE LOADER ══ -->
+<div id="supa-loader" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:18px">
+  <div style="font-size:22px;font-weight:700;letter-spacing:2px;color:var(--gold)">SOULAB <em style="font-style:normal;color:var(--muted)">OS</em></div>
+  <div style="width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite"></div>
+  <div id="supa-loader-msg" style="font-size:13px;color:var(--muted)">Cargando proyectos…</div>
+</div>
+
 <!-- ══ WORKSPACE OVERLAY ══ -->
 <div class="ws-overlay hidden" id="ws-overlay">
   <div class="ws-logo-big">SOULAB <em>OS</em></div>
@@ -1549,6 +1557,38 @@ tr:hover .tx-del{color:var(--muted)}
 // ══════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════
+// ── SUPABASE CONFIG ──
+const SUPA_URL='https://vlkxtrqktdcfqmebrtwa.supabase.co';
+const SUPA_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsa3h0cnFrdGRjZnFtZWJydHdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4Mjg3MzAsImV4cCI6MjA5MzQwNDczMH0.Br9NGNxHRr94-02qAszaLx7qZq-Z4LxRuXpTXGzmDA0';
+
+async function supaFetch(path,opts={}){
+  const{method='GET',body,prefer}=opts;
+  const headers={'apikey':SUPA_ANON,'Authorization':'Bearer '+SUPA_ANON,'Content-Type':'application/json'};
+  if(prefer)headers['Prefer']=prefer;
+  const res=await fetch(SUPA_URL+path,{method,headers,body:body!=null?JSON.stringify(body):undefined});
+  if(!res.ok){const t=await res.text();throw new Error(t);}
+  const text=await res.text();
+  return text?JSON.parse(text):null;
+}
+
+function _rowToWs(r){
+  return{id:r.id,name:r.name,emoji:r.emoji||'🏷️',color:r.color||'#2979ff',pin:r.pin||'',users:r.users||[],data:r.data||defaultData(),createdAt:r.created_at||'',lastAccess:r.last_access||''};
+}
+function _wsToRow(ws){
+  return{id:ws.id,name:ws.name,emoji:ws.emoji,color:ws.color,pin:ws.pin||'',users:ws.users||[],data:ws.data,created_at:ws.createdAt||new Date().toISOString().slice(0,10),last_access:ws.lastAccess||''};
+}
+
+async function supaLoadAll(){
+  const rows=await supaFetch('/rest/v1/workspaces?select=*&order=created_at.asc');
+  return(rows||[]).map(_rowToWs);
+}
+async function supaUpsert(ws){
+  await supaFetch('/rest/v1/workspaces',{method:'POST',prefer:'resolution=merge-duplicates,return=minimal',body:_wsToRow(ws)});
+}
+async function supaDelete(id){
+  await supaFetch('/rest/v1/workspaces?id=eq.'+encodeURIComponent(id),{method:'DELETE'});
+}
+
 // ── MULTI-WORKSPACE STATE ──
 const LEGACY_STORE='veld_os_v1';
 const WS_STORE='soulab_workspaces';
@@ -1561,42 +1601,87 @@ let _pendingWsId=null;
 function defaultData(){
   return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[]};
 }
-function loadWorkspaces(){
+
+function _localLoad(){
   try{const d=localStorage.getItem(WS_STORE);if(d)return JSON.parse(d);}catch(e){}
   let legacyData=null;
   try{const d=localStorage.getItem(LEGACY_STORE);if(d)legacyData=JSON.parse(d);}catch(e){}
   const ws1={id:'ws_'+Date.now(),name:'Mi Marca',emoji:'🏷️',color:'#2979ff',pin:'',users:[],data:legacyData||defaultData(),createdAt:new Date().toISOString().slice(0,10),lastAccess:''};
-  const obj={workspaces:[ws1],active:ws1.id};
-  localStorage.setItem(WS_STORE,JSON.stringify(obj));
-  return obj;
+  return{workspaces:[ws1],active:ws1.id};
 }
-function saveWorkspaces(){localStorage.setItem(WS_STORE,JSON.stringify(WORKSPACES));}
+function _localSave(){
+  try{localStorage.setItem(WS_STORE,JSON.stringify(WORKSPACES));}catch(e){}
+  try{localStorage.setItem('supa_active_ws',WORKSPACES.active||'');}catch(e){}
+}
 function getActiveWs(){return WORKSPACES.workspaces.find(w=>w.id===_activeWsId);}
+
 function save(){
   const ws=getActiveWs();
   if(ws){ws.data=S;ws.lastAccess=new Date().toISOString().slice(0,10);}
-  saveWorkspaces();
+  _localSave();
+  // Async Supabase sync — fire & forget, non-blocking
+  if(ws)supaUpsert(ws).catch(e=>console.warn('[Supabase] save error:',e));
 }
 function load(){return null;}
-function initState(){
-  WORKSPACES=loadWorkspaces();
+
+function _enterWorkspace(ws){
+  _activeWsId=ws.id;
+  S=ws.data||defaultData();
+  if(!S.crm)S.crm=[];
+  if(!S.customViews)S.customViews=[];
+  WORKSPACES.active=ws.id;
+  _localSave();
+  document.getElementById('week-label').textContent=ws.name;
+  document.getElementById('ws-overlay')?.classList.add('hidden');
+  render();
+}
+
+async function initState(){
+  const loader=document.getElementById('supa-loader');
+  if(loader)loader.style.display='flex';
+  let wsArr=null;
+  try{
+    wsArr=await supaLoadAll();
+  }catch(e){
+    console.warn('[Supabase] load error, falling back to localStorage:',e);
+  }
+  if(loader)loader.style.display='none';
+
+  if(wsArr&&wsArr.length){
+    const savedActive=localStorage.getItem('supa_active_ws');
+    const activeId=savedActive&&wsArr.find(w=>w.id===savedActive)?savedActive:wsArr[0].id;
+    WORKSPACES={workspaces:wsArr,active:activeId};
+    _localSave();
+  } else if(wsArr&&wsArr.length===0){
+    // No workspaces in Supabase yet — migrate from localStorage
+    const local=_localLoad();
+    WORKSPACES=local;
+    const msg=document.getElementById('supa-loader-msg');
+    if(msg)msg.textContent='Migrando datos a la nube…';
+    if(loader)loader.style.display='flex';
+    for(const ws of WORKSPACES.workspaces){
+      try{await supaUpsert(ws);}catch(e){console.warn('[Supabase] migrate error:',e);}
+    }
+    if(loader)loader.style.display='none';
+    _localSave();
+  } else {
+    // Supabase unavailable → use localStorage
+    WORKSPACES=_localLoad();
+  }
+
   const ws=WORKSPACES.workspaces.find(w=>w.id===WORKSPACES.active)||WORKSPACES.workspaces[0];
   if(ws&&!ws.pin&&!ws.users.length){
-    _activeWsId=ws.id;S=ws.data||defaultData();
-    if(!S.crm)S.crm=[];if(!S.customViews)S.customViews=[];
-    document.getElementById('ws-overlay')?.classList.add('hidden');render();
-  } else {openWorkspaceSelector();}
+    _enterWorkspace(ws);
+  } else {
+    openWorkspaceSelector();
+  }
 }
+
 function switchWorkspace(wsId){
   const ws=WORKSPACES.workspaces.find(w=>w.id===wsId);
   if(!ws)return;
-  _activeWsId=wsId;_activeUser=null;WORKSPACES.active=wsId;
-  ws.lastAccess=new Date().toISOString().slice(0,10);
-  S=ws.data||defaultData();
-  if(!S.crm)S.crm=[];if(!S.customViews)S.customViews=[];
-  saveWorkspaces();
-  document.getElementById('week-label').textContent=ws.name;
-  document.getElementById('ws-overlay')?.classList.add('hidden');render();
+  _activeUser=null;
+  _enterWorkspace(ws);
 }
  
 function defaultCheckGroups(){
@@ -3586,7 +3671,8 @@ function createWorkspace(){
   const pin=document.getElementById('ws-new-pin')?.value?.trim()||'';
   const ws={id:'ws_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),name,emoji,color,pin,users:[],data:defaultData(),createdAt:new Date().toISOString().slice(0,10),lastAccess:''};
   WORKSPACES.workspaces.push(ws);
-  saveWorkspaces();
+  _localSave();
+  supaUpsert(ws).catch(e=>console.warn('[Supabase] createWorkspace error:',e));
   notify('Proyecto creado ✓');
   selectWs(ws.id);
 }
@@ -3595,7 +3681,9 @@ function deleteWs(wsId){
   if(!confirm('¿Eliminar este proyecto y todos sus datos?'))return;
   WORKSPACES.workspaces=WORKSPACES.workspaces.filter(w=>w.id!==wsId);
   if(WORKSPACES.active===wsId)WORKSPACES.active=WORKSPACES.workspaces[0].id;
-  saveWorkspaces();renderWsGrid();notify('Proyecto eliminado');
+  _localSave();
+  supaDelete(wsId).catch(e=>console.warn('[Supabase] deleteWs error:',e));
+  renderWsGrid();notify('Proyecto eliminado');
 }
 
 // ── Workspace Settings ──
@@ -3627,7 +3715,8 @@ function saveWsSettings(){
   ws.name=document.getElementById('set-ws-name').value.trim()||ws.name;
   ws.emoji=document.querySelector('#set-emoji-row .emoji-opt.sel')?.dataset?.e||ws.emoji;
   ws.pin=document.getElementById('set-ws-pin').value.trim();
-  saveWorkspaces();
+  _localSave();
+  supaUpsert(ws).catch(e=>console.warn('[Supabase] saveWsSettings error:',e));
   if(_editingWsId===_activeWsId)document.getElementById('week-label').textContent=ws.name;
   closeSettings();notify('Proyecto guardado ✓');
 }
@@ -3660,7 +3749,8 @@ function addUser(){
   const perms=['marketing','finanzas','crm','operaciones','hojas'].filter(p=>document.getElementById('np-'+p)?.checked);
   if(!ws.users)ws.users=[];
   ws.users.push({id:'u_'+Date.now(),name:nombre,username,password:pass,role,permissions:role==='admin'?['all']:perms});
-  saveWorkspaces();
+  _localSave();
+  supaUpsert(ws).catch(e=>console.warn('[Supabase] addUser error:',e));
   renderUsersList(ws);
   ['nu-nombre','nu-username','nu-pass'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   notify('Usuario agregado ✓');
@@ -3669,7 +3759,9 @@ function deleteUser(uid){
   const ws=WORKSPACES.workspaces.find(w=>w.id===_editingWsId);
   if(!ws)return;
   ws.users=ws.users.filter(u=>u.id!==uid);
-  saveWorkspaces();renderUsersList(ws);notify('Usuario eliminado');
+  _localSave();
+  supaUpsert(ws).catch(e=>console.warn('[Supabase] deleteUser error:',e));
+  renderUsersList(ws);notify('Usuario eliminado');
 }
 
 // ══════════════════════════════════════════
