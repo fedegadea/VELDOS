@@ -743,9 +743,25 @@ tr:hover .tx-del{color:var(--muted)}
 
     <div id="auth-login-form">
       <div style="margin-bottom:12px"><input id="auth-email" type="email" placeholder="Email" class="form-input" style="width:100%;box-sizing:border-box"></div>
-      <div style="margin-bottom:16px"><input id="auth-password" type="password" placeholder="Contraseña" class="form-input" style="width:100%;box-sizing:border-box"></div>
+      <div style="margin-bottom:16px"><input id="auth-password" type="password" placeholder="Contraseña" class="form-input" style="width:100%;box-sizing:border-box" onkeydown="if(event.key==='Enter')authLogin()"></div>
       <button onclick="authLogin()" class="btn btn-primary" style="width:100%;padding:12px;font-size:14px">Ingresar</button>
-      <div style="text-align:center;margin-top:12px"><a href="#" onclick="showForgotPassword()" style="color:var(--muted);font-size:12px">¿Olvidaste tu contraseña?</a></div>
+      <div style="text-align:center;margin-top:12px"><a href="#" onclick="showForgotPassword();return false" style="color:var(--muted);font-size:12px">¿Olvidaste tu contraseña?</a></div>
+    </div>
+
+    <!-- Forgot password form (hidden by default) -->
+    <div id="auth-forgot-form" style="display:none">
+      <div style="margin-bottom:8px;font-size:13px;color:var(--muted)">Te enviamos un link al email para crear una contraseña nueva.</div>
+      <div style="margin-bottom:12px"><input id="forgot-email" type="email" placeholder="Tu email" class="form-input" style="width:100%;box-sizing:border-box"></div>
+      <button onclick="sendResetEmail()" class="btn btn-primary" style="width:100%;padding:12px;font-size:14px">Enviar link de recuperación</button>
+      <div style="text-align:center;margin-top:10px"><a href="#" onclick="showAuthTab('login');return false" style="color:var(--muted);font-size:12px">← Volver</a></div>
+    </div>
+
+    <!-- Reset password form (shown after clicking email link) -->
+    <div id="auth-reset-form" style="display:none">
+      <div style="margin-bottom:8px;font-size:14px;font-weight:600">Crear nueva contraseña</div>
+      <div style="margin-bottom:12px"><input id="reset-pw" type="password" placeholder="Nueva contraseña (mín. 6 caracteres)" class="form-input" style="width:100%;box-sizing:border-box"></div>
+      <div style="margin-bottom:16px"><input id="reset-pw2" type="password" placeholder="Repetir contraseña" class="form-input" style="width:100%;box-sizing:border-box"></div>
+      <button onclick="submitResetPassword()" class="btn btn-primary" style="width:100%;padding:12px;font-size:14px">Guardar nueva contraseña</button>
     </div>
 
     <div id="auth-register-form" style="display:none">
@@ -1122,7 +1138,7 @@ tr:hover .tx-del{color:var(--muted)}
 </div>
 
 <!-- ══ SETTINGS MODAL (workspace+users) ══ -->
-<div class="modal-overlay" id="settings-overlay" onclick="if(event.target===this)closeSettings()" style="display:none;align-items:center;justify-content:center;padding:20px;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:400">
+<div class="modal-overlay" id="settings-overlay" onclick="if(event.target===this)closeSettings()" style="display:none;align-items:center;justify-content:center;padding:20px;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:550">
   <div class="modal" style="max-width:600px;width:100%">
     <div class="modal-head">
       <div class="modal-title" id="settings-title">Configuración del proyecto</div>
@@ -1140,11 +1156,14 @@ tr:hover .tx-del{color:var(--muted)}
           <div class="emoji-row" id="set-emoji-row">
             <span class="emoji-opt sel" data-e="🏷️" onclick="selectSetEmoji(this)">🏷️</span><span class="emoji-opt" data-e="👗" onclick="selectSetEmoji(this)">👗</span><span class="emoji-opt" data-e="🛍️" onclick="selectSetEmoji(this)">🛍️</span><span class="emoji-opt" data-e="💄" onclick="selectSetEmoji(this)">💄</span><span class="emoji-opt" data-e="👟" onclick="selectSetEmoji(this)">👟</span><span class="emoji-opt" data-e="🏪" onclick="selectSetEmoji(this)">🏪</span><span class="emoji-opt" data-e="💎" onclick="selectSetEmoji(this)">💎</span><span class="emoji-opt" data-e="🎨" onclick="selectSetEmoji(this)">🎨</span><span class="emoji-opt" data-e="📦" onclick="selectSetEmoji(this)">📦</span><span class="emoji-opt" data-e="🌿" onclick="selectSetEmoji(this)">🌿</span><span class="emoji-opt" data-e="✨" onclick="selectSetEmoji(this)">✨</span>
           </div></div>
-        <div class="form-group"><label class="form-label">PIN de acceso</label><input class="form-input" id="set-ws-pin" type="password" placeholder="Dejar vacío = sin PIN"></div>
+        <div class="form-group">
+          <label class="form-label">PIN del espacio <small style="color:var(--muted);font-weight:400">(para proteger el acceso a este proyecto)</small></label>
+          <input class="form-input" id="set-ws-pin" type="password" placeholder="Dejar vacío = sin PIN">
+        </div>
         <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border)">
-          <div class="form-label">Cambiar contraseña</div>
-          <input id="change-pw-new" type="password" class="form-input" placeholder="Nueva contraseña" style="width:100%;margin-bottom:8px;box-sizing:border-box">
-          <button onclick="changePassword()" class="btn" style="width:100%">Actualizar contraseña</button>
+          <div class="form-label">Contraseña de tu cuenta <small style="color:var(--muted);font-weight:400">(la que usás para entrar a VELD OS)</small></div>
+          <input id="change-pw-new" type="password" class="form-input" placeholder="Nueva contraseña de cuenta" style="width:100%;margin-bottom:8px;box-sizing:border-box">
+          <button onclick="changePassword()" class="btn" style="width:100%">Actualizar contraseña de cuenta</button>
         </div>
         <div class="modal-footer"><button class="btn btn-primary" onclick="saveWsSettings()">Guardar cambios</button></div>
       </div>
@@ -1719,10 +1738,14 @@ function _enterWorkspace(ws){
 function showAuthTab(tab){
   document.getElementById('auth-login-form').style.display=tab==='login'?'':'none';
   document.getElementById('auth-register-form').style.display=tab==='register'?'':'none';
+  document.getElementById('auth-forgot-form').style.display='none';
+  document.getElementById('auth-reset-form').style.display='none';
+  document.getElementById('auth-tabs').style.display='flex';
   document.getElementById('tab-login').style.background=tab==='login'?'var(--gold)':'transparent';
   document.getElementById('tab-login').style.color=tab==='login'?'#fff':'var(--muted)';
   document.getElementById('tab-register').style.background=tab==='register'?'var(--gold)':'transparent';
   document.getElementById('tab-register').style.color=tab==='register'?'#fff':'var(--muted)';
+  hideAuthError();
 }
 function showAuthError(msg){const e=document.getElementById('auth-error');if(e){e.textContent=msg;e.style.display='';}}
 function hideAuthError(){const e=document.getElementById('auth-error');if(e)e.style.display='none';}
@@ -1784,8 +1807,17 @@ async function authLogout(){
   showAuthTab('login');
 }
 
+// Emails con acceso permanente gratuito (dueños / founders)
+const FREE_FOREVER=['federicosegundogadea@gmail.com'];
+
 async function checkSubscriptionAndProceed(){
   if(!_authUser)return;
+  // Whitelist — acceso total sin cobro
+  if(FREE_FOREVER.includes(_authUser.email)){
+    document.getElementById('trial-banner').style.display='none';
+    await _loadWorkspacesAndRender();
+    return;
+  }
   try{
     const rows=await supaFetch('/rest/v1/user_subscriptions?id=eq.'+_authUser.id+'&select=*');
     const sub=rows&&rows[0];
@@ -1833,19 +1865,65 @@ async function goToPayment(){
     if(data.init_point){window.location.href=data.init_point;}
   }catch(e){notify('Error al conectar con Mercado Pago');}
 }
-async function showForgotPassword(){
-  const email=document.getElementById('auth-email')?.value?.trim()||prompt('Ingresá tu email:');
-  if(!email)return;
-  const{error}=await supabaseClient.auth.resetPasswordForEmail(email);
-  if(error)notify('Error: '+error.message);
-  else notify('Te enviamos un email para resetear tu contraseña ✓');
+function showForgotPassword(){
+  // Hide all auth sub-forms, show forgot form
+  document.getElementById('auth-login-form').style.display='none';
+  document.getElementById('auth-register-form').style.display='none';
+  document.getElementById('auth-reset-form').style.display='none';
+  document.getElementById('auth-forgot-form').style.display='';
+  // Pre-fill email if already typed
+  const emailInput=document.getElementById('auth-email');
+  const forgotInput=document.getElementById('forgot-email');
+  if(forgotInput&&emailInput?.value)forgotInput.value=emailInput.value;
+  // Hide tabs
+  document.getElementById('auth-tabs').style.display='none';
+}
+async function sendResetEmail(){
+  const email=document.getElementById('forgot-email')?.value?.trim();
+  if(!email){showAuthError('Ingresá tu email');return;}
+  const btn=document.querySelector('#auth-forgot-form .btn-primary');
+  if(btn){btn.textContent='Enviando…';btn.disabled=true;}
+  const{error}=await supabaseClient.auth.resetPasswordForEmail(email,{
+    redirectTo:window.location.origin+'/?reset=true'
+  });
+  if(btn){btn.textContent='Enviar link de recuperación';btn.disabled=false;}
+  if(error){showAuthError(error.message);}
+  else{
+    document.getElementById('auth-forgot-form').style.display='none';
+    const err=document.getElementById('auth-error');
+    if(err){err.style.background='rgba(0,200,150,.1)';err.style.borderColor='rgba(0,200,150,.3)';err.style.color='#00c896';err.textContent='✓ Revisá tu email — te mandamos el link de recuperación';err.style.display='';}
+  }
+}
+async function submitResetPassword(){
+  const pw=document.getElementById('reset-pw')?.value;
+  const pw2=document.getElementById('reset-pw2')?.value;
+  if(!pw||pw.length<6){showAuthError('Mínimo 6 caracteres');return;}
+  if(pw!==pw2){showAuthError('Las contraseñas no coinciden');return;}
+  const btn=document.querySelector('#auth-reset-form .btn-primary');
+  if(btn){btn.textContent='Guardando…';btn.disabled=true;}
+  const{error}=await supabaseClient.auth.updateUser({password:pw});
+  if(btn){btn.textContent='Guardar nueva contraseña';btn.disabled=false;}
+  if(error){showAuthError(error.message);}
+  else{
+    notify('Contraseña actualizada ✓');
+    document.getElementById('auth-reset-form').style.display='none';
+    document.getElementById('auth-tabs').style.display='flex';
+    showAuthTab('login');
+    // If we have a session now, proceed
+    const{data:{session}}=await supabaseClient.auth.getSession();
+    if(session){
+      _authUser=session.user;
+      document.getElementById('auth-screen').style.display='none';
+      await checkSubscriptionAndProceed();
+    }
+  }
 }
 async function changePassword(){
   const newPw=document.getElementById('change-pw-new')?.value;
   if(!newPw||newPw.length<6){notify('Mínimo 6 caracteres');return;}
   const{error}=await supabaseClient.auth.updateUser({password:newPw});
   if(error)notify('Error: '+error.message);
-  else{document.getElementById('change-pw-new').value='';notify('Contraseña actualizada ✓');}
+  else{document.getElementById('change-pw-new').value='';notify('Contraseña de cuenta actualizada ✓');}
 }
 
 // ── APARIENCIA ──
@@ -1870,6 +1948,20 @@ let _proceedAfterAuth=async function(){};
 
 async function initState(){
   applyAppearance();
+
+  // Handle Supabase auth state changes (incluyendo recovery de contraseña)
+  supabaseClient.auth.onAuthStateChange(async(event,session)=>{
+    if(event==='PASSWORD_RECOVERY'){
+      // Usuario clickeó el link de recuperación — mostrar form para nueva contraseña
+      document.getElementById('auth-screen').style.display='flex';
+      document.getElementById('auth-login-form').style.display='none';
+      document.getElementById('auth-register-form').style.display='none';
+      document.getElementById('auth-forgot-form').style.display='none';
+      document.getElementById('auth-tabs').style.display='none';
+      document.getElementById('auth-reset-form').style.display='';
+    }
+  });
+
   // Check Supabase auth session first
   const{data:{session}}=await supabaseClient.auth.getSession();
   if(session){
