@@ -606,9 +606,15 @@ tr:hover .tx-del{color:var(--muted)}
 .crm-wapp{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:3px 8px;border-radius:6px;background:rgba(77,184,138,.1);color:var(--green);border:1px solid rgba(77,184,138,.2);cursor:pointer;font-family:var(--fb);transition:all .15s;text-decoration:none}
 .crm-wapp:hover{background:rgba(77,184,138,.2)}
 .crm-list-view{display:flex;flex-direction:column;gap:6px}
-.crm-list-card{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr 1fr auto;gap:12px;align-items:center;cursor:pointer;transition:all .2s}
+.crm-list-card{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:grid;grid-template-columns:2fr 1.2fr .8fr .8fr .8fr .8fr auto;gap:10px;align-items:center;cursor:pointer;transition:all .2s}
 .crm-list-card:hover{border-color:rgba(41,121,255,.3);box-shadow:0 0 12px rgba(41,121,255,.06)}
-.crm-list-head{display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr 1fr auto;gap:12px;padding:6px 16px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.crm-list-card.selected{border-color:rgba(41,121,255,.45);background:rgba(41,121,255,.04)}
+.crm-list-head{display:grid;grid-template-columns:2fr 1.2fr .8fr .8fr .8fr .8fr auto;gap:10px;padding:6px 16px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+/* Bulk select bar */
+.crm-select-bar{display:none;align-items:center;gap:12px;padding:10px 16px;background:rgba(41,121,255,.07);border:1px solid rgba(41,121,255,.2);border-radius:10px;margin-bottom:12px;flex-wrap:wrap}
+.crm-select-bar.visible{display:flex}
+.crm-cb{width:15px;height:15px;cursor:pointer;accent-color:var(--gold);flex-shrink:0;border-radius:3px}
+.crm-sel-count{font-size:12px;color:var(--muted2);flex:1}
 .crm-estado-pill{font-size:10px;padding:3px 10px;border-radius:10px;font-weight:500;text-align:center}
 .ep-nuevo{background:rgba(160,160,160,.08);color:var(--muted2);border:1px solid var(--border)}
 .ep-contactado{background:rgba(41,121,255,.1);color:#7ab3ff;border:1px solid rgba(41,121,255,.2)}
@@ -1136,6 +1142,7 @@ tr:hover .tx-del{color:var(--muted)}
       <input type="file" id="crm-import-file" accept=".csv" style="display:none" onchange="importCSV(this)">
       <button class="crm-import-btn" onclick="document.getElementById('crm-import-file').click()">↑ Importar CSV</button>
       <button class="btn" onclick="exportCRM()">↓ Exportar CSV</button>
+      <button class="btn" id="crm-select-btn" onclick="toggleCRMSelectMode()">☑ Seleccionar</button>
       <button class="btn btn-primary" onclick="openModal('crm')">+ Contacto</button>
     </div>
   </div>
@@ -1173,6 +1180,8 @@ tr:hover .tx-del{color:var(--muted)}
   <div class="crm-toolbar">
     <input class="crm-search" type="text" placeholder="Buscar contacto, @ig, email..." oninput="filterCRM(this.value)" id="crm-search-input">
     <select class="crm-search" id="crm-sort-sel" onchange="setCRMSort(this.value)" style="flex:0;min-width:0;width:auto;padding-right:28px">
+      <option value="compra_desc" selected>Últ. compra ↓</option>
+      <option value="compra_asc">Últ. compra ↑</option>
       <option value="ult_desc">Últ. contacto ↓</option>
       <option value="ult_asc">Últ. contacto ↑</option>
       <option value="creado_desc">Creado ↓</option>
@@ -1185,6 +1194,16 @@ tr:hover .tx-del{color:var(--muted)}
     <button class="crm-filter-btn" onclick="setCRMFilter('Interesado',this)">Interesados</button>
     <button class="crm-filter-btn" onclick="setCRMFilter('Cliente',this)">Clientes</button>
     <button class="crm-filter-btn" onclick="setCRMFilter('Recurrente',this)">Recurrentes</button>
+  </div>
+
+  <!-- Bulk select bar -->
+  <div class="crm-select-bar" id="crm-select-bar">
+    <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;color:var(--muted2)">
+      <input type="checkbox" class="crm-cb" id="crm-select-all" onchange="selectAllCRM(this.checked)"> Todos
+    </label>
+    <span class="crm-sel-count" id="crm-sel-count">0 seleccionados</span>
+    <button class="btn btn-sm btn-danger" onclick="deleteSelectedCRM()">🗑 Eliminar seleccionados</button>
+    <button class="btn btn-sm" onclick="toggleCRMSelectMode()">Cancelar</button>
   </div>
 
   <!-- View toggle -->
@@ -1201,7 +1220,7 @@ tr:hover .tx-del{color:var(--muted)}
   <!-- Lista view -->
   <div id="crm-lista-view" style="display:none">
     <div class="crm-list-head">
-      <span>Contacto</span><span>Estado</span><span>Tipo</span><span>Valor</span><span>Últ. contacto</span><span>Acciones</span>
+      <span>Contacto</span><span>Estado</span><span>Tipo</span><span>Valor</span><span>Últ. compra</span><span>Últ. contacto</span><span>Acciones</span>
     </div>
     <div class="crm-list-view" id="crm-list"></div>
   </div>
@@ -3607,17 +3626,15 @@ function openModal(tipo,data,idx){
         <div class="form-group"><label class="form-label">Valor facturado ($)</label><input class="form-input" id="fcrm-valor" type="number" placeholder="0"></div>
         <div class="form-group"><label class="form-label">Último contacto</label><input class="form-input" id="fcrm-ult" type="date" value="${fmtDate(new Date())}"></div>
       </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Última compra</label><input class="form-input" id="fcrm-compra" type="date"></div>
+        <div class="form-group"><label class="form-label">Canal de origen</label>
+          <select class="form-select" id="fcrm-canal">
+            <option value="Instagram">Instagram</option><option value="WhatsApp">WhatsApp</option><option value="Referido">Referido</option><option value="Tienda Nube">Tienda Nube</option><option value="Meta Ads">Meta Ads</option><option value="Tienda física">Tienda física</option><option value="Otro">Otro</option>
+          </select></div>
+      </div>
       <div class="form-group"><label class="form-label">Etiquetas (separadas por coma)</label>
         <input class="form-input" id="fcrm-tags" placeholder="ropa, talle S, Buenos Aires..."></div>
-      <div class="form-group"><label class="form-label">Canal de origen</label>
-        <select class="form-select" id="fcrm-canal">
-          <option value="Instagram">Instagram</option>
-          <option value="WhatsApp">WhatsApp</option>
-          <option value="Referido">Referido</option>
-          <option value="Tienda Nube">Tienda Nube</option>
-          <option value="Meta Ads">Meta Ads</option>
-          <option value="Otro">Otro</option>
-        </select></div>
       <div class="form-group"><label class="form-label">Notas</label>
         <textarea class="form-textarea" id="fcrm-notas" placeholder="Historial, preferencias, último pedido..." rows="3"></textarea></div>
       <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveCRM()">Guardar contacto</button></div>`,
@@ -3867,7 +3884,7 @@ const CRM_COL_COLORS={
 let _crmFilter='';
 let _crmView='pipeline';
 let _crmSearch='';
-let _crmSort='ult_desc';
+let _crmSort='compra_desc';
 
 function setCRMSort(val){_crmSort=val;renderCRM();}
 
@@ -3932,7 +3949,9 @@ function crmFiltered(){
     const da=a||'0000';const db=b||'0000';
     return asc?da.localeCompare(db):db.localeCompare(da);
   };
-  if(_crmSort==='ult_desc')arr.sort((a,b)=>cmpDate(a.ultimoContacto,b.ultimoContacto,false));
+  if(_crmSort==='compra_desc')arr.sort((a,b)=>cmpDate(a.ultimaCompra,b.ultimaCompra,false));
+  else if(_crmSort==='compra_asc')arr.sort((a,b)=>cmpDate(a.ultimaCompra,b.ultimaCompra,true));
+  else if(_crmSort==='ult_desc')arr.sort((a,b)=>cmpDate(a.ultimoContacto,b.ultimoContacto,false));
   else if(_crmSort==='ult_asc')arr.sort((a,b)=>cmpDate(a.ultimoContacto,b.ultimoContacto,true));
   else if(_crmSort==='creado_desc')arr.sort((a,b)=>cmpDate(a.creado,b.creado,false));
   else if(_crmSort==='nombre_az')arr.sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
@@ -3987,15 +4006,21 @@ function renderCRM(){
       const ri=S.crm.indexOf(c);
       const wappUrl=buildWappUrl(c.tel);
 
-      return`<div class="crm-list-card" onclick="editCRM(${ri})">
-        <div>
-          <div style="font-size:12px;font-weight:500;color:var(--text)">${c.nombre||'—'}</div>
-          <div style="font-size:11px;color:var(--muted)">${c.ig||''}</div>
+      const isSel=_crmSelected.has(ri);
+      const compraLabel=c.ultimaCompra?c.ultimaCompra.split('-').reverse().join('/'):'—';
+      return`<div class="crm-list-card${isSel?' selected':''}" onclick="${_crmSelectMode?`toggleCRMSelect(${ri},event)`:`editCRM(${ri})`}">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0">
+          ${_crmSelectMode?`<input type="checkbox" class="crm-cb" ${isSel?'checked':''} onclick="toggleCRMSelect(${ri},event)" style="flex-shrink:0">`:''}
+          <div style="min-width:0">
+            <div style="font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.nombre||'—'}</div>
+            <div style="font-size:11px;color:var(--muted)">${c.ig||''}</div>
+          </div>
         </div>
         <span class="crm-estado-pill ${CRM_ESTADO_COLORS[c.estado]||'ep-nuevo'}">${c.estado||'Nuevo'}</span>
         <span class="crm-tag ${c.tipo||'lead'}">${c.tipo||'lead'}</span>
         <span style="font-size:12px;font-weight:500;color:var(--gold)">${c.valor?'$'+parseFloat(c.valor).toLocaleString('es-AR'):'—'}</span>
-        <span style="font-size:11px;color:var(--muted)">${c.ultimoContacto||'—'}</span>
+        <span style="font-size:11px;color:${c.ultimaCompra?'var(--green)':'var(--muted)'}">${compraLabel}</span>
+        <span style="font-size:11px;color:var(--muted)">${c.ultimoContacto?c.ultimoContacto.split('-').reverse().join('/'):'—'}</span>
         <div style="display:flex;gap:5px;align-items:center" onclick="event.stopPropagation()">
           ${wappUrl?`<a class="crm-list-wapp" href="${wappUrl}" target="_blank">💬 WA</a>`:'<span style="width:52px"></span>'}
           <button class="btn btn-xs btn-danger" onclick="deleteCRM(${ri})">×</button>
@@ -4025,6 +4050,7 @@ function renderCRMCard(c,ri){
       ${c.valor?`<span class="crm-valor-badge">$${parseFloat(c.valor).toLocaleString('es-AR')}</span>`:''}
       <span class="crm-last-contact">🕐 ${ultLabel}</span>
     </div>
+    ${c.ultimaCompra?`<div style="font-size:10px;color:var(--green);margin-top:4px">🛍 Última compra: ${c.ultimaCompra.split('-').reverse().join('/')}</div>`:''}
     ${c.notas?`<div style="font-size:10px;color:var(--muted2);margin-top:6px;padding-top:5px;border-top:1px solid var(--border);font-weight:300;line-height:1.3">${c.notas.slice(0,70)}${c.notas.length>70?'…':''}</div>`:''}
     <div class="crm-card-move" onclick="event.stopPropagation()">
       ${wappUrl?`<a class="crm-wapp" href="${wappUrl}" target="_blank" style="flex:1.4;justify-content:center">💬 WA</a>`:'<span style="flex:1.4"></span>'}
@@ -4046,6 +4072,7 @@ function saveCRM(){
     tipo:document.getElementById('fcrm-tipo')?.value||'lead',
     valor:document.getElementById('fcrm-valor')?.value||'',
     ultimoContacto:document.getElementById('fcrm-ult')?.value||'',
+    ultimaCompra:document.getElementById('fcrm-compra')?.value||'',
     canal:document.getElementById('fcrm-canal')?.value||'',
     tags:(document.getElementById('fcrm-tags')?.value||'').split(',').map(t=>t.trim()).filter(Boolean),
     notas:document.getElementById('fcrm-notas')?.value?.trim()||'',
@@ -4065,7 +4092,7 @@ function editCRM(ri){
     const f=(id,val)=>{const e=document.getElementById(id);if(e)e.value=val||'';};
     f('fcrm-nombre',c.nombre);f('fcrm-ig',c.ig);f('fcrm-tel',c.tel);
     f('fcrm-email',c.email);f('fcrm-estado',c.estado);f('fcrm-tipo',c.tipo);
-    f('fcrm-valor',c.valor);f('fcrm-ult',c.ultimoContacto);
+    f('fcrm-valor',c.valor);f('fcrm-ult',c.ultimoContacto);f('fcrm-compra',c.ultimaCompra);
     f('fcrm-canal',c.canal);f('fcrm-tags',(c.tags||[]).join(', '));
     f('fcrm-notas',c.notas);
   },50);
@@ -4073,7 +4100,58 @@ function editCRM(ri){
 
 function deleteCRM(ri){
   if(!confirm('¿Eliminar este contacto?'))return;
-  S.crm.splice(ri,1);save();renderCRM();notify('Contacto eliminado');
+  S.crm.splice(ri,1);
+  _crmSelected.delete(ri);
+  save();renderCRM();notify('Contacto eliminado');
+}
+
+// ── Bulk select ──
+let _crmSelected=new Set();
+let _crmSelectMode=false;
+
+function toggleCRMSelectMode(){
+  _crmSelectMode=!_crmSelectMode;
+  _crmSelected.clear();
+  const bar=document.getElementById('crm-select-bar');
+  const btn=document.getElementById('crm-select-btn');
+  bar?.classList.toggle('visible',_crmSelectMode);
+  if(btn)btn.textContent=_crmSelectMode?'✕ Cancelar':'☑ Seleccionar';
+  document.getElementById('crm-sel-count').textContent='0 seleccionados';
+  document.getElementById('crm-select-all').checked=false;
+  renderCRM();
+}
+
+function toggleCRMSelect(ri,e){
+  if(e)e.stopPropagation();
+  if(_crmSelected.has(ri))_crmSelected.delete(ri);else _crmSelected.add(ri);
+  const filtered=crmFiltered();
+  const countEl=document.getElementById('crm-sel-count');
+  const allCb=document.getElementById('crm-select-all');
+  if(countEl)countEl.textContent=_crmSelected.size+' seleccionado'+ (_crmSelected.size===1?'':'s');
+  if(allCb){allCb.checked=_crmSelected.size===filtered.length;allCb.indeterminate=_crmSelected.size>0&&_crmSelected.size<filtered.length;}
+  renderCRM();
+}
+
+function selectAllCRM(checked){
+  _crmSelected.clear();
+  if(checked)crmFiltered().forEach(c=>_crmSelected.add(S.crm.indexOf(c)));
+  const countEl=document.getElementById('crm-sel-count');
+  if(countEl)countEl.textContent=_crmSelected.size+' seleccionado'+(_crmSelected.size===1?'':'s');
+  renderCRM();
+}
+
+function deleteSelectedCRM(){
+  if(!_crmSelected.size){notify('Seleccioná al menos un contacto');return;}
+  if(!confirm(`¿Eliminar ${_crmSelected.size} contacto${_crmSelected.size>1?'s':''}? Esta acción no se puede deshacer.`))return;
+  const indices=[..._crmSelected].sort((a,b)=>b-a);
+  indices.forEach(i=>S.crm.splice(i,1));
+  _crmSelected.clear();
+  _crmSelectMode=false;
+  const bar=document.getElementById('crm-select-bar');
+  const btn=document.getElementById('crm-select-btn');
+  bar?.classList.remove('visible');
+  if(btn)btn.textContent='☑ Seleccionar';
+  save();renderCRM();notify(`${indices.length} contacto${indices.length>1?'s':''} eliminado${indices.length>1?'s':''} ✓`);
 }
 
 // ── Drag & Drop ──
