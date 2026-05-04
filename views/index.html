@@ -181,7 +181,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:14px
 .ep-confirmada{background:rgba(184,160,212,.1);color:var(--purple);border:1px solid rgba(184,160,212,.2)}
 .ep-envio{background:rgba(196,132,106,.1);color:var(--coral);border:1px solid rgba(196,132,106,.2)}
 .ep-entregado{background:rgba(143,191,168,.1);color:var(--green);border:1px solid rgba(143,191,168,.2)}
- 
+.ep-completado{background:rgba(41,121,255,.12);color:#7ab3ff;border:1px solid rgba(41,121,255,.25)}
+
 /* ── COLLABS ── */
 .collabs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}
 .collab-card{background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .2s,box-shadow .2s}
@@ -739,6 +740,43 @@ tr:hover .tx-del{color:var(--muted)}
 .hoja-ci-del:hover{color:var(--red);opacity:1!important}
 @media(max-width:700px){.ws-grid{grid-template-columns:1fr 1fr}.hojas-grid{grid-template-columns:1fr}}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── SIDEBAR ── */
+:root{--topbar-h:57px}
+.sidebar{
+  position:fixed;top:0;left:0;width:220px;height:100vh;
+  padding-top:var(--topbar-h);
+  background:var(--s1);border-right:1px solid var(--border);
+  z-index:90;overflow-y:auto;
+  display:none;flex-direction:column;
+}
+.sidebar.visible{display:flex}
+.sb-ws{padding:18px 16px 14px;border-bottom:1px solid var(--border)}
+.sb-ws-emoji{font-size:30px;line-height:1;margin-bottom:8px}
+.sb-ws-name{font-family:var(--fd);font-size:20px;letter-spacing:-.02em;color:var(--text);line-height:1.15;word-break:break-word;margin-bottom:6px}
+.sb-ws-change{font-size:10px;color:var(--muted);cursor:pointer;letter-spacing:.06em;text-transform:uppercase;transition:color .15s;display:inline-flex;align-items:center;gap:4px;background:none;border:none;font-family:var(--fb);padding:0}
+.sb-ws-change:hover{color:var(--gold)}
+.sb-section{padding:10px 8px 6px}
+.sb-section-label{font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);padding:0 8px;margin-bottom:6px;display:block}
+.sb-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;font-size:12px;color:var(--muted2);cursor:pointer;transition:all .15s;border:1px solid transparent;font-weight:300;width:100%;background:none;font-family:var(--fb);text-align:left}
+.sb-item:hover{background:var(--s2);color:var(--text)}
+.sb-item.active{background:rgba(41,121,255,.1);color:var(--gold);border-color:rgba(41,121,255,.2);font-weight:400}
+.sb-item-icon{font-size:14px;flex-shrink:0;width:18px;text-align:center;line-height:1}
+.sb-divider{height:1px;background:var(--border);margin:6px 12px}
+.sb-bottom{margin-top:auto;padding:12px 8px;border-top:1px solid var(--border)}
+.sb-share-btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 10px;border-radius:8px;font-size:11px;color:var(--muted2);cursor:pointer;transition:all .15s;border:1px solid var(--border);background:none;font-family:var(--fb);width:100%;letter-spacing:.01em}
+.sb-share-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(41,121,255,.06)}
+
+/* Desktop: sidebar active adjustments */
+@media(min-width:769px){
+  body.has-sidebar .page{margin-left:220px}
+  body.has-sidebar #trial-banner{margin-left:220px}
+  body.has-sidebar .nav-tabs{display:none!important}
+  body.has-sidebar #area-dropdown{display:none}
+  body.has-sidebar .os-sep{display:none}
+}
+/* Mobile: no sidebar */
+@media(max-width:768px){.sidebar{display:none!important}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -864,7 +902,7 @@ tr:hover .tx-del{color:var(--muted)}
 <!-- ══ TOPBAR ══ -->
 <div class="topbar">
   <div class="os-brand">
-    <div class="os-name" onclick="openWorkspaceSelector()" title="Cambiar proyecto" style="cursor:pointer;user-select:none">VELD <em>OS</em></div>
+    <div class="os-name" onclick="openWorkspaceSelector()" title="Cambiar proyecto" style="cursor:pointer;user-select:none;font-size:24px;font-weight:700;letter-spacing:-.02em">VELD <em>OS</em></div>
     <div class="os-sep">·</div>
     <div class="area-dropdown" id="area-dropdown">
       <button class="area-btn" id="area-btn" onclick="toggleAreaDropdown()">
@@ -919,6 +957,37 @@ tr:hover .tx-del{color:var(--muted)}
   <button onclick="toggleTheme()" id="theme-btn" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:7px;cursor:pointer;flex-shrink:0">☀️ Light</button>
   <button onclick="authLogout()" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:7px;cursor:pointer;flex-shrink:0">Salir</button>
 </div>
+<!-- ══ SIDEBAR ══ -->
+<div class="sidebar" id="sidebar">
+  <div class="sb-ws">
+    <div class="sb-ws-emoji" id="sb-emoji">🏷️</div>
+    <div class="sb-ws-name" id="sb-name">—</div>
+    <button class="sb-ws-change" onclick="openWorkspaceSelector()">↗ Cambiar proyecto</button>
+  </div>
+  <div class="sb-section">
+    <span class="sb-section-label">Marketing</span>
+    <button class="sb-item active" id="sbi-checklist" onclick="sbNav('marketing','checklist',this)"><span class="sb-item-icon">📋</span>Checklist</button>
+    <button class="sb-item" id="sbi-todo" onclick="sbNav('marketing','todo',this)"><span class="sb-item-icon">✅</span>To Do</button>
+    <button class="sb-item" id="sbi-briefs" onclick="sbNav('marketing','briefs',this)"><span class="sb-item-icon">📄</span>Briefs</button>
+    <button class="sb-item" id="sbi-canje" onclick="sbNav('marketing','canje',this)"><span class="sb-item-icon">🤝</span>Canjes</button>
+    <button class="sb-item" id="sbi-collabs" onclick="sbNav('marketing','collabs',this)"><span class="sb-item-icon">👥</span>Collabs</button>
+    <button class="sb-item" id="sbi-drive" onclick="sbNav('marketing','drive',this)"><span class="sb-item-icon">📅</span>Drive + Cal</button>
+    <button class="sb-item" id="sbi-marca" onclick="sbNav('marketing','marca',this)"><span class="sb-item-icon">🎨</span>Marca</button>
+    <button class="sb-item" id="sbi-producto" onclick="sbNav('marketing','producto',this)"><span class="sb-item-icon">📦</span>Producto</button>
+  </div>
+  <div class="sb-divider"></div>
+  <div class="sb-section">
+    <span class="sb-section-label">Negocio</span>
+    <button class="sb-item" id="sbi-finanzas" onclick="sbNav('finanzas','finanzas',this)"><span class="sb-item-icon">💰</span>Finanzas</button>
+    <button class="sb-item" id="sbi-operaciones" onclick="sbNav('operaciones','operaciones',this)"><span class="sb-item-icon">⚙️</span>Operaciones</button>
+    <button class="sb-item" id="sbi-crm" onclick="sbNav('crm','crm',this)"><span class="sb-item-icon">👤</span>CRM</button>
+    <button class="sb-item" id="sbi-hojas" onclick="sbNav('hojas','hojas',this)"><span class="sb-item-icon">📁</span>Hojas</button>
+  </div>
+  <div class="sb-bottom">
+    <button class="sb-share-btn" onclick="copyShareUrl()">🔗 Copiar link de este espacio</button>
+  </div>
+</div>
+
 <div id="trial-banner" style="display:none;background:linear-gradient(90deg,rgba(41,121,255,.15),rgba(41,121,255,.05));border-bottom:1px solid rgba(41,121,255,.2);padding:8px 20px;font-size:12px;color:var(--gold);text-align:center;cursor:pointer" onclick="document.getElementById('paywall-screen').style.display='flex'">
   🎁 <span id="trial-banner-text">Te quedan X días de prueba gratis</span> · <strong>Suscribite ahora →</strong>
 </div>
@@ -1812,6 +1881,8 @@ let S;
 let _activeWsId=null;
 let _activeUser=null;
 let _pendingWsId=null;
+let _activeArea='marketing';
+let _activePage='checklist';
 
 function defaultData(){
   return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[]};
@@ -1847,8 +1918,16 @@ function _enterWorkspace(ws){
   WORKSPACES.active=ws.id;
   _localSave();
   document.getElementById('week-label').textContent=ws.name;
+  // Sidebar
+  const sbEl=document.getElementById('sb-emoji');
+  const sbNm=document.getElementById('sb-name');
+  if(sbEl)sbEl.textContent=ws.emoji||'🏷️';
+  if(sbNm)sbNm.textContent=ws.name;
+  document.getElementById('sidebar')?.classList.add('visible');
+  document.body.classList.add('has-sidebar');
   document.getElementById('ws-overlay')?.classList.add('hidden');
   render();
+  updateUrl();
 }
 
 // ── AUTH HELPERS ──
@@ -2114,6 +2193,22 @@ async function _loadWorkspacesAndRender(){
     WORKSPACES=_localLoad();
   }
 
+  // URL nav: if shared link has ?ws=id, try to open that workspace
+  if(window._urlNav){
+    const nav=window._urlNav;
+    const target=WORKSPACES.workspaces.find(w=>w.id===nav.wsId);
+    if(target){
+      if(!target.pin&&!target.users.length){
+        _enterWorkspace(target);
+        sbNav(nav.area||'marketing',nav.page||'checklist',document.getElementById('sbi-'+(nav.page||'checklist')));
+      } else {
+        _pendingWsId=target.id;
+        window._pendingUrlNav=nav;
+        selectWs(target.id);
+      }
+      return;
+    }
+  }
   const ws=WORKSPACES.workspaces.find(w=>w.id===WORKSPACES.active)||WORKSPACES.workspaces[0];
   if(ws&&!ws.pin&&!ws.users.length){_enterWorkspace(ws);}
   else{openWorkspaceSelector();}
@@ -2166,7 +2261,12 @@ function switchPage(id,btn){
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id)?.classList.add('active');
   if(btn)btn.classList.add('active');
+  // Sync sidebar
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  document.getElementById('sbi-'+id)?.classList.add('active');
+  _activePage=id;
   render();
+  updateUrl();
 }
  
 function switchInner(group,id,btn){
@@ -2219,15 +2319,84 @@ function _activateArea(id,label){
     if(firstTab){document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));firstTab.classList.add('active');}
   }
   const pageMap={marketing:'checklist',finanzas:'finanzas',operaciones:'operaciones',crm:'crm',hojas:'hojas'};
+  const defaultPage=pageMap[id]||id;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+(pageMap[id]||id))?.classList.add('active');
+  document.getElementById('page-'+defaultPage)?.classList.add('active');
+  // Sync sidebar
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  document.getElementById('sbi-'+defaultPage)?.classList.add('active');
+  _activeArea=id; _activePage=defaultPage;
   if(id==='finanzas')setTimeout(initFinPeriod,50);
   if(id==='crm'){if(!S.crm)S.crm=[];renderCRM();}
   if(id==='hojas'){if(!S.customViews)S.customViews=[];renderHojas();}
   render();
+  updateUrl();
 }
  
 function comingSoon(name){toggleAreaDropdown();notify(`${name} — próximamente`);}
+
+// ── SIDEBAR NAV ──
+function sbNav(area,page,el){
+  // Close area dropdown if open
+  document.getElementById('area-menu')?.classList.remove('open');
+  document.getElementById('area-chevron')?.classList.remove('open');
+  // Finanzas PIN guard
+  if(area==='finanzas'&&!finUnlocked){
+    pendingFinArea=document.querySelector(`.area-menu-item[onclick*="'finanzas'"]`);
+    pendingFinLabel='Finanzas';
+    document.getElementById('pin-overlay')?.classList.add('open');
+    const pi=document.getElementById('pin-input');
+    if(pi){pi.value='';setTimeout(()=>pi.focus(),100);}
+    document.getElementById('pin-error').textContent='';
+    return;
+  }
+  // Activate area (without toggling dropdown)
+  const pageMap={marketing:'checklist',finanzas:'finanzas',operaciones:'operaciones',crm:'crm',hojas:'hojas'};
+  document.getElementById('area-label').textContent=area.charAt(0).toUpperCase()+area.slice(1);
+  document.querySelectorAll('[id^="nav-"]').forEach(n=>n.style.display='none');
+  const nav=document.getElementById('nav-'+area);
+  if(nav)nav.style.display='flex';
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+page)?.classList.add('active');
+  // Sidebar active
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  if(el)el.classList.add('active');
+  _activeArea=area; _activePage=page;
+  if(area==='finanzas')setTimeout(initFinPeriod,50);
+  if(area==='crm'){if(!S.crm)S.crm=[];renderCRM();}
+  if(area==='hojas'){if(!S.customViews)S.customViews=[];renderHojas();}
+  render();
+  updateUrl();
+}
+
+// ── URL SHARE ──
+function updateUrl(){
+  if(!_activeWsId)return;
+  try{
+    const p=new URLSearchParams({ws:_activeWsId,area:_activeArea||'marketing',page:_activePage||'checklist'});
+    history.replaceState({},'',location.pathname+'?'+p.toString());
+  }catch(e){}
+}
+
+function copyShareUrl(){
+  updateUrl();
+  const url=location.href;
+  navigator.clipboard.writeText(url).then(()=>notify('🔗 Link copiado — quien lo abra verá este espacio')).catch(()=>{
+    prompt('Copiá este link:',url);
+  });
+}
+
+function readUrlParams(){
+  try{
+    const p=new URLSearchParams(location.search);
+    const wsId=p.get('ws'),area=p.get('area'),page=p.get('page');
+    if(wsId){
+      window._urlNav={wsId,area:area||'marketing',page:page||'checklist'};
+    }
+  }catch(e){}
+}
+readUrlParams();
  
 document.addEventListener('click',function(e){
   const dd=document.getElementById('area-dropdown');
@@ -2319,7 +2488,7 @@ function updateProgress(){
   const bc=S.briefs.length;
   document.getElementById('pc-briefs').textContent=Math.min(bc,7);
   document.getElementById('pb-briefs').style.width=Math.min(bc/7*100,100)+'%';
-  const cc=S.creadoras.filter(c=>['contactada','confirmada','envio','entregado'].includes(c.estado)).length;
+  const cc=S.creadoras.filter(c=>['contactada','confirmada','envio','entregado','completado'].includes(c.estado)).length;
   document.getElementById('pc-canje').textContent=Math.min(cc,7);
   document.getElementById('pb-canje').style.width=Math.min(cc/7*100,100)+'%';
   const col=S.collabs.filter(c=>c.estado==='activa').length;
@@ -2418,9 +2587,9 @@ function deleteBrief(i){S.briefs.splice(i,1);save();renderBriefs();notify('Brief
 // ══════════════════════════════════════════
 // KANBAN CREADORAS
 // ══════════════════════════════════════════
-const ESTADOS=['potencial','contactada','confirmada','envio','entregado'];
-const ESTADOS_LABEL={potencial:'Potencial',contactada:'Contactada',confirmada:'Confirmada',envio:'Envío coord.',entregado:'Entregado'};
-function estadoColor(e){return{potencial:'var(--blue)',contactada:'var(--gold)',confirmada:'var(--purple)',envio:'var(--coral)',entregado:'var(--green)'}[e]||'var(--muted)';}
+const ESTADOS=['potencial','contactada','confirmada','envio','entregado','completado'];
+const ESTADOS_LABEL={potencial:'Potencial',contactada:'Contactada',confirmada:'Confirmada',envio:'Envío coord.',entregado:'Entregado',completado:'Completado'};
+function estadoColor(e){return{potencial:'var(--blue)',contactada:'var(--gold)',confirmada:'var(--purple)',envio:'var(--coral)',entregado:'var(--green)',completado:'#7ab3ff'}[e]||'var(--muted)';}
  
 function renderKanban(tipo){
   const c=document.getElementById('kanban-'+tipo);
@@ -2436,6 +2605,7 @@ function renderKanban(tipo){
       <div class="kol-body">
         ${items.map(cr=>{
           const ri=S.creadoras.indexOf(cr);
+          const linkedBrief=cr.briefId?(S.briefs||[]).find(b=>(b.id||b.titulo)===cr.briefId):null;
           return`<div class="creadora-card">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px">
               <div><div class="c-name">${cr.nombre}</div><div class="c-handle">${cr.handle}</div></div>
@@ -2443,9 +2613,13 @@ function renderKanban(tipo){
             </div>
             ${cr.oferta?`<div class="c-brief">${cr.oferta}</div>`:''}
             ${cr.notas?`<div class="c-brief" style="border-color:rgba(201,180,138,.3)">${cr.notas}</div>`:''}
+            <div id="card-brief-${ri}" style="margin:4px 0">
+              ${linkedBrief?`<div style="font-size:10px;color:var(--gold);background:rgba(41,121,255,.08);border:1px solid rgba(41,121,255,.2);border-radius:6px;padding:4px 8px;cursor:pointer" onclick="linkBriefToCreadora(${ri})">📄 ${linkedBrief.titulo||linkedBrief.nombre}</div>`:''}
+            </div>
             <div class="c-actions">
               ${ESTADOS.filter(e=>e!==est).map(e=>`<button class="c-btn" onclick="moverCreadora(${ri},'${e}')">${ESTADOS_LABEL[e]}</button>`).join('')}
               ${cr.wapp?`<a href="https://wa.me/${cr.wapp.replace(/\D/g,'')}" target="_blank"><button class="c-btn c-wapp">WA</button></a>`:''}
+              <button class="c-btn" onclick="linkBriefToCreadora(${ri})" title="Vincular brief">📄</button>
               <button class="c-btn" style="color:var(--red);opacity:.6" onclick="deleteCreadora(${ri})">×</button>
             </div>
           </div>`;
@@ -3248,6 +3422,10 @@ function openModal(tipo,data,idx){
           <option value="1 reel + 1 story — canje especial">Top: 1 reel + 1 story</option>
           <option value="">Otra</option>
         </select></div>
+      <div class="form-group"><label class="form-label">Brief vinculado</label>
+        <select class="form-select" id="f-brief-id" onmousedown="populateBriefSelect('f-brief-id')">
+          <option value="">Sin brief vinculado</option>
+        </select></div>
       <div class="form-group"><label class="form-label">WhatsApp</label><input class="form-input" id="f-wapp" placeholder="+549 ..."></div>
       <div class="form-group"><label class="form-label">Notas</label><textarea class="form-textarea" id="f-notas" placeholder="Seguidores, nicho, por qué es buen fit..."></textarea></div>
       <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveCreadora()">Guardar</button></div>`,
@@ -3446,6 +3624,7 @@ function openModal(tipo,data,idx){
   };
   document.getElementById('modal-body').innerHTML=forms[tipo]||'';
   overlay.classList.add('open');
+  if(tipo==='creadora'){setTimeout(()=>populateBriefSelect('f-brief-id'),50);}
   if(tipo==='transaccion'){
     updateTxCats();
     document.getElementById('f-color-picker')?.addEventListener('input',function(){document.getElementById('f-color-hex').value=this.value;});
@@ -3501,8 +3680,31 @@ function saveBrief(){
 function saveCreadora(){
   const n=document.getElementById('f-nombre')?.value?.trim();
   if(!n){notify('Escribí un nombre');return;}
-  S.creadoras.push({nombre:n,handle:document.getElementById('f-handle').value,tipo:document.getElementById('f-ctipo').value,estado:document.getElementById('f-estado').value,oferta:document.getElementById('f-oferta').value,wapp:document.getElementById('f-wapp').value,notas:document.getElementById('f-notas').value});
+  S.creadoras.push({nombre:n,handle:document.getElementById('f-handle').value,tipo:document.getElementById('f-ctipo').value,estado:document.getElementById('f-estado').value,oferta:document.getElementById('f-oferta').value,wapp:document.getElementById('f-wapp').value,notas:document.getElementById('f-notas').value,briefId:document.getElementById('f-brief-id')?.value||''});
   save();closeModal();render();notify('Creadora guardada ✓');
+}
+function populateBriefSelect(selectId){
+  const sel=document.getElementById(selectId);
+  if(!sel)return;
+  const briefs=S.briefs||[];
+  const current=sel.value;
+  sel.innerHTML='<option value="">Sin brief vinculado</option>'+briefs.map(b=>`<option value="${b.id||b.titulo}"${(current===b.id||current===b.titulo)?'selected':''}>${b.titulo||b.nombre||'Brief'}</option>`).join('');
+  if(current)sel.value=current;
+}
+function linkBriefToCreadora(ri){
+  const cr=S.creadoras[ri];
+  if(!cr)return;
+  const briefs=S.briefs||[];
+  if(!briefs.length){notify('No hay briefs creados todavía');return;}
+  const opts=briefs.map(b=>`<option value="${b.id||b.titulo}"${cr.briefId===(b.id||b.titulo)?'selected':''}>${b.titulo||b.nombre||'Brief'}</option>`).join('');
+  const sel=document.createElement('select');
+  sel.innerHTML='<option value="">Sin brief</option>'+opts;
+  sel.style.cssText='width:100%;background:var(--s3);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:12px;padding:6px 10px;border-radius:6px;outline:none;margin-top:4px';
+  sel.value=cr.briefId||'';
+  sel.onchange=()=>{S.creadoras[ri].briefId=sel.value;save();render();notify('Brief vinculado ✓');};
+  // Show as inline widget inside the card
+  const cardBriefEl=document.getElementById('card-brief-'+ri);
+  if(cardBriefEl){cardBriefEl.innerHTML='';cardBriefEl.appendChild(sel);setTimeout(()=>sel.focus(),50);}
 }
 function saveCollab(){
   const m=document.getElementById('f-marca')?.value?.trim();
@@ -4099,6 +4301,12 @@ function wsAuthSubmit(){
   // PIN auth
   if(ws.pin&&inp!==ws.pin){errEl.textContent='PIN incorrecto';return;}
   switchWorkspace(_pendingWsId);
+  // Navigate to shared URL section if came from a link
+  if(window._pendingUrlNav){
+    const nav=window._pendingUrlNav;
+    window._pendingUrlNav=null;
+    setTimeout(()=>sbNav(nav.area||'marketing',nav.page||'checklist',document.getElementById('sbi-'+(nav.page||'checklist'))),100);
+  }
 }
 async function resetWorkspacePin(){
   // Solo disponible si el dueño ya está autenticado con Supabase Auth
