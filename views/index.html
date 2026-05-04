@@ -16,6 +16,20 @@
   --glow:rgba(41,121,255,0.18);--glow2:rgba(41,121,255,0.08);
   --fd:'DM Serif Display',Georgia,serif;--fb:'DM Sans',system-ui,sans-serif;
 }
+/* ── LIGHT MODE ── */
+body.light{
+  --bg:#f2f2f7;--s1:#ffffff;--s2:#f7f7fb;--s3:#ebebf2;
+  --border:rgba(0,0,0,0.07);--border2:rgba(0,0,0,0.13);
+  --text:#0d0d1a;--muted:#8888a0;--muted2:#555570;
+  --glow:rgba(41,121,255,0.08);--glow2:rgba(41,121,255,0.03);
+}
+body.light{background-image:radial-gradient(ellipse at 20% 0%,rgba(41,121,255,0.04) 0%,transparent 60%),radial-gradient(ellipse at 80% 100%,rgba(124,77,255,0.03) 0%,transparent 60%)}
+body.light .topbar{background:rgba(242,242,247,.97)}
+body.light .modal{background:rgba(255,255,255,0.99);border-color:var(--border2)}
+body.light .notif{background:var(--s1)}
+body.light .form-input,body.light .form-textarea,body.light .form-select{background:var(--s3);color:var(--text)}
+body.light .btn-primary{color:#fff}
+body.light .nav-tab.active{text-shadow:none}
 body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:14px;line-height:1.6;min-height:100vh;background-image:radial-gradient(ellipse at 20% 0%,rgba(41,121,255,0.06) 0%,transparent 60%),radial-gradient(ellipse at 80% 100%,rgba(124,77,255,0.04) 0%,transparent 60%)}
  
 /* ── TOPBAR OS ── */
@@ -840,6 +854,9 @@ tr:hover .tx-del{color:var(--muted)}
       <input class="form-input" id="ws-auth-input" type="password" placeholder="Contraseña / PIN" style="text-align:center;letter-spacing:.15em;margin-bottom:10px" onkeydown="if(event.key==='Enter')wsAuthSubmit()">
       <div id="ws-auth-error" style="font-size:12px;color:var(--coral);min-height:18px;margin-bottom:10px"></div>
       <button class="btn btn-primary" style="width:100%" onclick="wsAuthSubmit()">Entrar</button>
+      <div id="ws-reset-pin-wrap" style="margin-top:10px;display:none">
+        <button onclick="resetWorkspacePin()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline">¿Olvidaste el PIN? Resetearlo</button>
+      </div>
       <button class="ws-back-btn" onclick="showWsMain()">← Volver</button>
     </div>
   </div>
@@ -884,6 +901,7 @@ tr:hover .tx-del{color:var(--muted)}
     <button class="nav-tab" onclick="switchPage('collabs',this)">Collabs</button>
     <button class="nav-tab" onclick="switchPage('drive',this)">Drive + Cal</button>
     <button class="nav-tab" onclick="switchPage('marca',this)">Marca</button>
+    <button class="nav-tab" onclick="switchPage('producto',this)">Producto</button>
   </nav>
   <nav class="nav-tabs" id="nav-finanzas" style="display:none">
     <button class="nav-tab active" onclick="switchPage('finanzas',this)">Finanzas</button>
@@ -898,6 +916,7 @@ tr:hover .tx-del{color:var(--muted)}
     <button class="nav-tab active" onclick="switchPage('hojas',this)" id="hojas-nav-default">Todas las hojas</button>
   </nav>
   <div class="week-badge" id="week-label"></div>
+  <button onclick="toggleTheme()" id="theme-btn" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:7px;cursor:pointer;flex-shrink:0">☀️ Light</button>
   <button onclick="authLogout()" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:7px;cursor:pointer;flex-shrink:0">Salir</button>
 </div>
 <div id="trial-banner" style="display:none;background:linear-gradient(90deg,rgba(41,121,255,.15),rgba(41,121,255,.05));border-bottom:1px solid rgba(41,121,255,.2);padding:8px 20px;font-size:12px;color:var(--gold);text-align:center;cursor:pointer" onclick="document.getElementById('paywall-screen').style.display='flex'">
@@ -909,6 +928,7 @@ tr:hover .tx-del{color:var(--muted)}
   <div class="sec-head">
     <div class="sec-title">Checklist semanal<small>Marcá cada paso al completarlo</small></div>
     <div class="btn-row">
+      <button class="btn" onclick="addCheckGroup()">+ Nueva lista</button>
       <button class="btn" onclick="resetChecklist()">Reiniciar semana</button>
     </div>
   </div>
@@ -1423,7 +1443,104 @@ tr:hover .tx-del{color:var(--muted)}
     </div><!-- /marca-sections -->
   </div><!-- /marca-layout -->
 </div>
- 
+
+<!-- ══ PRODUCTO ══ -->
+<div class="page" id="page-producto">
+  <div class="sec-head">
+    <div class="sec-title">Producto<small>Planificación de productos, producciones y lanzamientos</small></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="prod-add-btn" onclick="openProdModal()">+ Nuevo</button>
+    </div>
+  </div>
+  <div class="inner-tabs" id="prod-tabs">
+    <button class="inner-tab active" onclick="switchProdTab('productos',this)">📦 Productos</button>
+    <button class="inner-tab" onclick="switchProdTab('producciones',this)">🎬 Producciones</button>
+    <button class="inner-tab" onclick="switchProdTab('prototipos',this)">🧪 Prototipos</button>
+    <button class="inner-tab" onclick="switchProdTab('lanzamientos',this)">🚀 Lanzamientos</button>
+  </div>
+
+  <!-- Productos -->
+  <div class="inner-section active" id="prod-section-productos">
+    <div class="todo-kanban" id="prod-kanban-productos"></div>
+  </div>
+
+  <!-- Producciones -->
+  <div class="inner-section" id="prod-section-producciones">
+    <div class="todo-kanban" id="prod-kanban-producciones"></div>
+  </div>
+
+  <!-- Prototipos -->
+  <div class="inner-section" id="prod-section-prototipos">
+    <div class="todo-kanban" id="prod-kanban-prototipos"></div>
+  </div>
+
+  <!-- Lanzamientos / Calendario -->
+  <div class="inner-section" id="prod-section-lanzamientos">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px" id="launch-upcoming"></div>
+    <div style="margin-top:8px">
+      <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Todos los lanzamientos</div>
+      <div id="launch-all"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Producto -->
+<div class="modal-overlay" id="modal-producto">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-head">
+      <div class="modal-title" id="prod-modal-title">Nuevo ítem</div>
+      <button class="modal-close" onclick="closeProdModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Tipo</label>
+        <select class="form-select" id="pf-tipo" onchange="updateProdModalFields()">
+          <option value="productos">📦 Producto</option>
+          <option value="producciones">🎬 Producción</option>
+          <option value="prototipos">🧪 Prototipo</option>
+          <option value="lanzamientos">🚀 Lanzamiento</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nombre</label>
+        <input class="form-input" id="pf-nombre" placeholder="Ej: Jean negro tiro alto">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descripción</label>
+        <textarea class="form-textarea" id="pf-desc" placeholder="Detalles, materiales, referencias…"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <select class="form-select" id="pf-estado">
+            <option value="idea">💡 Idea</option>
+            <option value="en desarrollo">⚙️ En desarrollo</option>
+            <option value="muestra">👀 Muestra/prototipo</option>
+            <option value="listo">✅ Listo</option>
+            <option value="pausado">⏸ Pausado</option>
+          </select>
+        </div>
+        <div class="form-group" id="pf-fecha-group">
+          <label class="form-label">Fecha objetivo</label>
+          <input class="form-input" id="pf-fecha" type="date">
+        </div>
+      </div>
+      <div class="form-group" id="pf-categoria-group">
+        <label class="form-label">Categoría / Colección</label>
+        <input class="form-input" id="pf-categoria" placeholder="Ej: Colección verano, Accesorios…">
+      </div>
+      <div class="form-group" id="pf-presupuesto-group">
+        <label class="form-label">Presupuesto estimado</label>
+        <input class="form-input" id="pf-presupuesto" placeholder="Ej: $50.000">
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeProdModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveProdItem()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ══ PIN LOCK ══ -->
 <div class="pin-overlay" id="pin-overlay">
   <div class="pin-box">
@@ -2143,7 +2260,10 @@ function renderChecklist(){
           <div class="cg-title">${g.title}</div>
           <div class="cg-range">${g.range}</div>
         </div>
-        <button class="btn btn-xs" onclick="editGroupTitle(${gi})">✎</button>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-xs" onclick="editGroupTitle(${gi})">✎</button>
+          <button class="btn btn-xs btn-danger" onclick="deleteCheckGroup(${gi})" title="Eliminar lista">×</button>
+        </div>
       </div>
       <div class="cg-body">
         ${g.items.map((item,ii)=>`
@@ -3950,6 +4070,9 @@ function selectWs(wsId){
     ul.innerHTML='';
     document.getElementById('ws-auth-sub').textContent='Ingresá el PIN del proyecto';
   }
+  // Mostrar "olvidé el PIN" solo si hay sesión de cuenta activa (el dueño ya está logueado)
+  const resetWrap=document.getElementById('ws-reset-pin-wrap');
+  if(resetWrap)resetWrap.style.display=_authUser?'':'none';
   setTimeout(()=>document.getElementById('ws-auth-input')?.focus(),100);
 }
 let _selectedUserId=null;
@@ -3975,6 +4098,18 @@ function wsAuthSubmit(){
   }
   // PIN auth
   if(ws.pin&&inp!==ws.pin){errEl.textContent='PIN incorrecto';return;}
+  switchWorkspace(_pendingWsId);
+}
+async function resetWorkspacePin(){
+  // Solo disponible si el dueño ya está autenticado con Supabase Auth
+  if(!_authUser){notify('Tenés que estar logueado para hacer esto');return;}
+  const ws=WORKSPACES.workspaces.find(w=>w.id===_pendingWsId);
+  if(!ws)return;
+  if(!confirm(`¿Resetear el PIN de "${ws.name}"? Quedará sin protección hasta que pongas uno nuevo.`))return;
+  ws.pin='';
+  _localSave();
+  try{await supaUpsert(ws);}catch(e){console.warn('[Supabase] resetPin error:',e);}
+  notify('PIN reseteado. Ahora podés entrar sin PIN y configurar uno nuevo en ⚙️ Proyectos y usuarios');
   switchWorkspace(_pendingWsId);
 }
 function showWsCreate(){
@@ -4262,9 +4397,260 @@ function render(){
   renderOperaciones();
   if(S.crm)renderCRM();
   renderHojas();
+  renderProducto();
 }
 
 initState();
+
+// ══════════════════════════════════════════
+// DARK / LIGHT MODE
+// ══════════════════════════════════════════
+function toggleTheme(){
+  const light=document.body.classList.toggle('light');
+  const btn=document.getElementById('theme-btn');
+  if(btn)btn.textContent=light?'🌙 Dark':'☀️ Light';
+  localStorage.setItem('veldTheme',light?'light':'dark');
+}
+(function initTheme(){
+  if(localStorage.getItem('veldTheme')==='light'){
+    document.body.classList.add('light');
+    const btn=document.getElementById('theme-btn');
+    if(btn)btn.textContent='🌙 Dark';
+  }
+})();
+
+// ══════════════════════════════════════════
+// CHECKLIST — NUEVA LISTA
+// ══════════════════════════════════════════
+function addCheckGroup(){
+  const name=prompt('Nombre de la nueva lista:');
+  if(!name?.trim())return;
+  if(!S.checkGroups)S.checkGroups=[];
+  S.checkGroups.push({id:'g_'+Date.now(),title:name.trim(),range:'',items:[{id:'c'+Date.now(),text:'Primera tarea',owner:'',done:false}]});
+  save();renderChecklist();notify('Lista creada ✓');
+  setTimeout(()=>{
+    const last=document.querySelectorAll('.check-group');
+    if(last.length)last[last.length-1].scrollIntoView({behavior:'smooth',block:'center'});
+  },80);
+}
+function deleteCheckGroup(gi){
+  if(!confirm('¿Eliminar esta lista?'))return;
+  S.checkGroups.splice(gi,1);save();renderChecklist();notify('Lista eliminada');
+}
+
+// ══════════════════════════════════════════
+// PRODUCTO
+// ══════════════════════════════════════════
+const PROD_ESTADOS={
+  'idea':        {label:'💡 Idea',        color:'var(--muted)'},
+  'en desarrollo':{label:'⚙️ Desarrollo',  color:'var(--gold)'},
+  'muestra':     {label:'👀 Muestra',     color:'var(--blue)'},
+  'listo':       {label:'✅ Listo',       color:'var(--green)'},
+  'pausado':     {label:'⏸ Pausado',     color:'var(--coral)'},
+};
+const PROD_COLS=['idea','en desarrollo','muestra','listo','pausado'];
+
+let _prodTab='productos';
+let _prodEditId=null;
+
+function switchProdTab(tab,el){
+  _prodTab=tab;
+  document.querySelectorAll('#prod-tabs .inner-tab').forEach(t=>t.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.querySelectorAll('#page-producto .inner-section').forEach(s=>s.classList.remove('active'));
+  const sec=document.getElementById('prod-section-'+tab);
+  if(sec)sec.classList.add('active');
+  const addBtn=document.getElementById('prod-add-btn');
+  if(addBtn)addBtn.style.display=tab==='lanzamientos'?'none':'inline-flex';
+  renderProducto();
+}
+
+function renderProducto(){
+  if(!S.producto)S.producto={productos:[],producciones:[],prototipos:[],lanzamientos:[]};
+  renderProdKanban('productos');
+  renderProdKanban('producciones');
+  renderProdKanban('prototipos');
+  renderLanzamientos();
+}
+
+function renderProdKanban(tipo){
+  const el=document.getElementById('prod-kanban-'+tipo);
+  if(!el)return;
+  const items=(S.producto[tipo]||[]);
+  el.innerHTML=PROD_COLS.map(col=>{
+    const cards=items.filter(i=>i.estado===col);
+    const st=PROD_ESTADOS[col];
+    return`<div class="todo-col">
+      <div class="tc-head">
+        <span class="tc-title" style="color:${st.color}">${st.label}</span>
+        <span class="tc-count">${cards.length}</span>
+      </div>
+      <div class="tc-body">
+        ${cards.length?cards.map(c=>`
+          <div class="todo-card" onclick="editProdItem('${tipo}','${c.id}')">
+            <div class="todo-card-title">${c.nombre}</div>
+            ${c.desc?`<div class="todo-card-desc">${c.desc}</div>`:''}
+            <div class="todo-card-foot">
+              ${c.categoria?`<span class="todo-resp resp-todos">${c.categoria}</span>`:''}
+              ${c.fecha?`<span class="todo-date">📅 ${c.fecha}</span>`:''}
+              ${c.presupuesto?`<span class="todo-prio prio-media">${c.presupuesto}</span>`:''}
+            </div>
+            <div class="todo-card-actions">
+              <button class="btn btn-xs" onclick="event.stopPropagation();moveProd('${tipo}','${c.id}',-1)">←</button>
+              <button class="btn btn-xs" onclick="event.stopPropagation();moveProd('${tipo}','${c.id}',1)">→</button>
+              <button class="btn btn-xs btn-danger" onclick="event.stopPropagation();deleteProd('${tipo}','${c.id}')">×</button>
+            </div>
+          </div>`).join(''):`<div class="empty" style="padding:20px"><div class="e-icon">·</div></div>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderLanzamientos(){
+  const el=document.getElementById('launch-upcoming');
+  const elAll=document.getElementById('launch-all');
+  if(!el||!elAll)return;
+  if(!S.producto)S.producto={productos:[],producciones:[],prototipos:[],lanzamientos:[]};
+  const all=(S.producto.lanzamientos||[]).sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
+  const today=new Date();today.setHours(0,0,0,0);
+  const upcoming=all.filter(l=>l.fecha&&new Date(l.fecha)>=today).slice(0,4);
+  el.innerHTML=upcoming.length?upcoming.map(l=>`
+    <div class="brief-card" onclick="editLanzamiento('${l.id}')">
+      <div class="brief-card-head">
+        <div class="brief-num">${daysUntil(l.fecha)}<span style="font-size:14px;color:var(--muted)">d</span></div>
+        <div class="brief-meta">
+          <div class="brief-title">${l.nombre}</div>
+          <div class="brief-tipo">📅 ${l.fecha}</div>
+        </div>
+      </div>
+      <div class="brief-card-body">
+        <div class="brief-desc">${l.desc||'Sin descripción'}</div>
+        <div class="brief-tags">
+          ${l.tipo?`<span class="tag tag-d">${l.tipo}</span>`:''}
+          ${l.estado?`<span class="tag tag-a">${l.estado}</span>`:''}
+        </div>
+      </div>
+    </div>`).join(''):`<div class="empty" style="grid-column:1/-1;padding:30px"><div class="e-icon">🚀</div><p>No hay lanzamientos próximos</p></div>`;
+  elAll.innerHTML=all.length?all.map(l=>`
+    <div class="contenido-item" onclick="editLanzamiento('${l.id}')">
+      <div class="ci-thumb" style="font-size:20px">🚀</div>
+      <div class="ci-info">
+        <div class="ci-name">${l.nombre}</div>
+        <div class="ci-meta">${l.fecha||'Sin fecha'} ${l.tipo?'· '+l.tipo:''}</div>
+        <div class="ci-badges">${l.estado?`<span class="ci-badge cb-orgánico">${l.estado}</span>`:''}${l.desc?`<span class="ci-badge cb-pendiente">${l.desc.slice(0,40)}…</span>`:''}</div>
+      </div>
+      <button class="btn btn-xs btn-danger" onclick="event.stopPropagation();deleteProd('lanzamientos','${l.id}')">×</button>
+    </div>`).join(''):`<div class="empty"><div class="e-icon">📋</div><p>Aún no hay lanzamientos cargados</p></div>`;
+}
+
+function daysUntil(dateStr){
+  const d=new Date(dateStr);d.setHours(0,0,0,0);
+  const today=new Date();today.setHours(0,0,0,0);
+  return Math.max(0,Math.round((d-today)/86400000));
+}
+
+function openProdModal(tipo){
+  _prodEditId=null;
+  document.getElementById('prod-modal-title').textContent='Nuevo ítem';
+  document.getElementById('pf-tipo').value=tipo||_prodTab;
+  document.getElementById('pf-nombre').value='';
+  document.getElementById('pf-desc').value='';
+  document.getElementById('pf-estado').value='idea';
+  document.getElementById('pf-fecha').value='';
+  document.getElementById('pf-categoria').value='';
+  document.getElementById('pf-presupuesto').value='';
+  updateProdModalFields();
+  document.getElementById('modal-producto').classList.add('open');
+  setTimeout(()=>document.getElementById('pf-nombre').focus(),80);
+}
+
+function editProdItem(tipo,id){
+  const item=(S.producto[tipo]||[]).find(i=>i.id===id);
+  if(!item)return;
+  _prodEditId=id;
+  document.getElementById('prod-modal-title').textContent='Editar ítem';
+  document.getElementById('pf-tipo').value=tipo;
+  document.getElementById('pf-nombre').value=item.nombre||'';
+  document.getElementById('pf-desc').value=item.desc||'';
+  document.getElementById('pf-estado').value=item.estado||'idea';
+  document.getElementById('pf-fecha').value=item.fecha||'';
+  document.getElementById('pf-categoria').value=item.categoria||'';
+  document.getElementById('pf-presupuesto').value=item.presupuesto||'';
+  updateProdModalFields();
+  document.getElementById('modal-producto').classList.add('open');
+}
+
+function editLanzamiento(id){ editProdItem('lanzamientos',id); }
+
+function closeProdModal(){ document.getElementById('modal-producto').classList.remove('open'); _prodEditId=null; }
+
+function updateProdModalFields(){
+  const tipo=document.getElementById('pf-tipo').value;
+  const isLaunch=tipo==='lanzamientos';
+  document.getElementById('pf-fecha-group').style.display='block';
+  document.getElementById('pf-categoria-group').style.display=isLaunch?'none':'block';
+  document.getElementById('pf-presupuesto-group').style.display=isLaunch?'none':'block';
+  if(isLaunch){
+    document.getElementById('pf-estado').innerHTML=`
+      <option value="planificado">📋 Planificado</option>
+      <option value="en preparación">⚙️ En preparación</option>
+      <option value="lanzado">🚀 Lanzado</option>
+      <option value="cancelado">❌ Cancelado</option>`;
+  } else {
+    document.getElementById('pf-estado').innerHTML=`
+      <option value="idea">💡 Idea</option>
+      <option value="en desarrollo">⚙️ En desarrollo</option>
+      <option value="muestra">👀 Muestra/prototipo</option>
+      <option value="listo">✅ Listo</option>
+      <option value="pausado">⏸ Pausado</option>`;
+  }
+}
+
+function saveProdItem(){
+  const tipo=document.getElementById('pf-tipo').value;
+  const nombre=document.getElementById('pf-nombre').value.trim();
+  if(!nombre){notify('Escribí un nombre');return;}
+  if(!S.producto)S.producto={productos:[],producciones:[],prototipos:[],lanzamientos:[]};
+  if(!S.producto[tipo])S.producto[tipo]=[];
+  const item={
+    id:_prodEditId||'p_'+Date.now(),
+    nombre,
+    desc:document.getElementById('pf-desc').value.trim(),
+    estado:document.getElementById('pf-estado').value,
+    fecha:document.getElementById('pf-fecha').value,
+    categoria:document.getElementById('pf-categoria').value.trim(),
+    presupuesto:document.getElementById('pf-presupuesto').value.trim(),
+  };
+  if(_prodEditId){
+    // puede haber cambiado de tipo — borramos del tipo viejo
+    ['productos','producciones','prototipos','lanzamientos'].forEach(t=>{
+      S.producto[t]=(S.producto[t]||[]).filter(i=>i.id!==_prodEditId);
+    });
+  }
+  S.producto[tipo].push(item);
+  save();closeProdModal();
+  // cambiar tab al tipo guardado
+  const tabBtn=document.querySelector(`#prod-tabs .inner-tab[onclick*="${tipo}"]`);
+  switchProdTab(tipo,tabBtn);
+  notify('Guardado ✓');
+}
+
+function deleteProd(tipo,id){
+  if(!confirm('¿Eliminar?'))return;
+  S.producto[tipo]=(S.producto[tipo]||[]).filter(i=>i.id!==id);
+  save();renderProducto();notify('Eliminado');
+}
+
+function moveProd(tipo,id,dir){
+  const arr=S.producto[tipo]||[];
+  const item=arr.find(i=>i.id===id);
+  if(!item)return;
+  const idx=PROD_COLS.indexOf(item.estado);
+  const next=PROD_COLS[idx+dir];
+  if(!next)return;
+  item.estado=next;
+  save();renderProdKanban(tipo);notify('Movido ✓');
+}
  
 </script>
 </body>
