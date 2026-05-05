@@ -2039,9 +2039,12 @@ const SUPA_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsIn
 const supabaseClient = window.supabase.createClient(SUPA_URL, SUPA_ANON);
 let _authUser = null; // Supabase auth user
 
+let _authToken=null; // se setea con el JWT del usuario al hacer login
+
 async function supaFetch(path,opts={}){
   const{method='GET',body,prefer}=opts;
-  const headers={'apikey':SUPA_ANON,'Authorization':'Bearer '+SUPA_ANON,'Content-Type':'application/json'};
+  const token=_authToken||SUPA_ANON;
+  const headers={'apikey':SUPA_ANON,'Authorization':'Bearer '+token,'Content-Type':'application/json'};
   if(prefer)headers['Prefer']=prefer;
   const res=await fetch(SUPA_URL+path,{method,headers,body:body!=null?JSON.stringify(body):undefined});
   if(!res.ok){const t=await res.text();throw new Error(t);}
@@ -2050,15 +2053,18 @@ async function supaFetch(path,opts={}){
 }
 
 function _rowToWs(r){
-  return{id:r.id,name:r.name,emoji:r.emoji||'🏷️',color:r.color||'#2979ff',pin:r.pin||'',users:r.users||[],data:r.data||defaultData(),createdAt:r.created_at||'',lastAccess:r.last_access||''};
+  return{id:r.id,name:r.name,emoji:r.emoji||'🏷️',color:r.color||'#2979ff',pin:r.pin||'',users:r.users||[],data:r.data||defaultData(),createdAt:r.created_at||'',lastAccess:r.last_access||'',owner:r.data?.__owner||''};
 }
 function _wsToRow(ws){
-  return{id:ws.id,name:ws.name,emoji:ws.emoji,color:ws.color,pin:ws.pin||'',users:ws.users||[],data:ws.data,created_at:ws.createdAt||new Date().toISOString().slice(0,10),last_access:ws.lastAccess||''};
+  const data={...(ws.data||defaultData()),__owner:ws.owner||_authUser?.email||''};
+  return{id:ws.id,name:ws.name,emoji:ws.emoji,color:ws.color,pin:ws.pin||'',users:ws.users||[],data,created_at:ws.createdAt||new Date().toISOString().slice(0,10),last_access:ws.lastAccess||''};
 }
 
 async function supaLoadAll(){
   const rows=await supaFetch('/rest/v1/workspaces?select=*&order=created_at.asc');
-  return(rows||[]).map(_rowToWs);
+  const all=(rows||[]).map(_rowToWs);
+  if(_authUser?.email) return all.filter(ws=>!ws.owner||ws.owner===_authUser.email);
+  return all;
 }
 async function supaUpsert(ws){
   await supaFetch('/rest/v1/workspaces',{method:'POST',prefer:'resolution=merge-duplicates,return=minimal',body:_wsToRow(ws)});
@@ -2356,6 +2362,7 @@ async function initState(){
   const{data:{session}}=await supabaseClient.auth.getSession();
   if(session){
     _authUser=session.user;
+    _authToken=session.access_token;
   } else {
     document.getElementById('auth-screen').style.display='flex';
     _proceedAfterAuth=_loadWorkspacesAndRender;
@@ -2377,13 +2384,10 @@ async function _loadWorkspacesAndRender(){
     WORKSPACES={workspaces:wsArr,active:activeId};
     _localSave();
   } else if(wsArr&&wsArr.length===0){
-    const local=_localLoad();
-    WORKSPACES=local;
-    for(const ws of WORKSPACES.workspaces){
-      try{await supaUpsert(ws);}catch(e){}
-    }
-    _localSave();
+    // Supabase OK pero sin workspaces para este usuario → mostrar onboarding
+    WORKSPACES={workspaces:[],active:null};
   } else {
+    // Supabase falló → fallback local
     WORKSPACES=_localLoad();
   }
 
@@ -4844,7 +4848,7 @@ function createWorkspace(){
   const emoji=document.querySelector('#emoji-row .emoji-opt.sel')?.dataset?.e||'🏷️';
   const color=document.querySelector('#ws-color-row .ws-color-opt.sel')?.dataset?.c||'#2979ff';
   const pin=document.getElementById('ws-new-pin')?.value?.trim()||'';
-  const ws={id:'ws_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),name,emoji,color,pin,users:[],data:defaultData(),createdAt:new Date().toISOString().slice(0,10),lastAccess:''};
+  const ws={id:'ws_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),name,emoji,color,pin,users:[],data:defaultData(),createdAt:new Date().toISOString().slice(0,10),lastAccess:'',owner:_authUser?.email||''};
   WORKSPACES.workspaces.push(ws);
   _localSave();
   supaUpsert(ws).catch(e=>console.warn('[Supabase] createWorkspace error:',e));
