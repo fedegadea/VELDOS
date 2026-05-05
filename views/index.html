@@ -615,6 +615,25 @@ tr:hover .tx-del{color:var(--muted)}
 .crm-adv-sel{background:var(--s2);border:1px solid var(--border2);color:var(--muted2);font-family:var(--fb);font-size:11px;padding:5px 10px;border-radius:8px;cursor:pointer;transition:all .18s}
 .crm-adv-sel:focus{outline:none;border-color:rgba(41,121,255,.4)}
 .crm-adv-sel:hover{border-color:rgba(41,121,255,.3)}
+/* Seguimiento view */
+.crm-seg-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center;justify-content:space-between}
+.crm-seg-filter-grp{display:flex;gap:5px;flex-wrap:wrap}
+.crm-seg-card{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:11px 16px;display:grid;grid-template-columns:10px 2fr 1fr .8fr .8fr 1fr auto;gap:10px;align-items:center;cursor:pointer;transition:all .18s;margin-bottom:5px}
+.crm-seg-card:hover{border-color:rgba(41,121,255,.3);box-shadow:0 0 10px rgba(41,121,255,.06)}
+.crm-seg-head{display:grid;grid-template-columns:10px 2fr 1fr .8fr .8fr 1fr auto;gap:10px;padding:5px 16px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.crm-seg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.crm-seg-summary{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;gap:20px;flex-wrap:wrap}
+.crm-seg-sum-item{text-align:center}
+.crm-seg-sum-val{font-size:20px;font-family:var(--fd);font-weight:400}
+.crm-seg-sum-lbl{font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
+/* Contact history in modal */
+.crm-hist-section{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.crm-hist-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.crm-hist-entry{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px}
+.crm-hist-entry:last-child{border-bottom:none}
+.crm-hist-date{color:var(--muted2);flex-shrink:0;min-width:72px;font-size:10px;padding-top:1px}
+.crm-hist-nota{color:var(--text);flex:1;line-height:1.4}
+.crm-hist-nota.empty{color:var(--muted);font-style:italic}
 /* Bulk select bar */
 .crm-select-bar{display:none;align-items:center;gap:12px;padding:10px 16px;background:rgba(41,121,255,.07);border:1px solid rgba(41,121,255,.2);border-radius:10px;margin-bottom:12px;flex-wrap:wrap}
 .crm-select-bar.visible{display:flex}
@@ -1249,11 +1268,36 @@ tr:hover .tx-del{color:var(--muted)}
   <div class="crm-views">
     <button class="crm-view-btn active" onclick="setCRMView('pipeline',this)">Pipeline</button>
     <button class="crm-view-btn" onclick="setCRMView('lista',this)">Lista</button>
+    <button class="crm-view-btn" onclick="setCRMView('seg',this)">📡 Seguimiento</button>
   </div>
 
   <!-- Pipeline view -->
   <div id="crm-pipeline-view">
     <div class="crm-pipeline" id="crm-pipeline"></div>
+  </div>
+
+  <!-- Seguimiento view -->
+  <div id="crm-seg-view" style="display:none">
+    <div class="crm-seg-summary">
+      <div class="crm-seg-sum-item"><div class="crm-seg-sum-val" id="seg-hoy">0</div><div class="crm-seg-sum-lbl">Contactados hoy</div></div>
+      <div class="crm-seg-sum-item"><div class="crm-seg-sum-val" id="seg-semana">0</div><div class="crm-seg-sum-lbl">Esta semana</div></div>
+      <div class="crm-seg-sum-item"><div class="crm-seg-sum-val" id="seg-sin">0</div><div class="crm-seg-sum-lbl">Sin contactar</div></div>
+      <div class="crm-seg-sum-item"><div class="crm-seg-sum-val" id="seg-vencidos">0</div><div class="crm-seg-sum-lbl">+30 días sin contacto</div></div>
+    </div>
+    <div class="crm-seg-filters">
+      <div class="crm-seg-filter-grp" id="crm-seg-filter-grp">
+        <button class="crm-filter-btn active" onclick="setCRMSegFilter('all',this)">Todos</button>
+        <button class="crm-filter-btn" onclick="setCRMSegFilter('hoy',this)">Hoy</button>
+        <button class="crm-filter-btn" onclick="setCRMSegFilter('semana',this)">Esta semana</button>
+        <button class="crm-filter-btn" onclick="setCRMSegFilter('7d',this)">+7 días sin contacto</button>
+        <button class="crm-filter-btn" onclick="setCRMSegFilter('30d',this)">+30 días</button>
+        <button class="crm-filter-btn" onclick="setCRMSegFilter('nunca',this)">Sin contactar</button>
+      </div>
+    </div>
+    <div class="crm-seg-head">
+      <span></span><span>Contacto</span><span>Estado</span><span>Provincia</span><span>Valor</span><span>Último contacto</span><span>Acción</span>
+    </div>
+    <div id="crm-seg-list"></div>
   </div>
 
   <!-- Lista view -->
@@ -3696,7 +3740,8 @@ function openModal(tipo,data,idx){
       <div class="form-group"><label class="form-label">Etiquetas (separadas por coma)</label>
         <input class="form-input" id="fcrm-tags" placeholder="ropa, talle S, Buenos Aires..."></div>
       <div class="form-group"><label class="form-label">Notas</label>
-        <textarea class="form-textarea" id="fcrm-notas" placeholder="Historial, preferencias, último pedido..." rows="3"></textarea></div>
+        <textarea class="form-textarea" id="fcrm-notas" placeholder="Preferencias, talle, observaciones..." rows="2"></textarea></div>
+      <div id="crm-hist-container"></div>
       <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveCRM()">Guardar contacto</button></div>`,
   };
   document.getElementById('modal-body').innerHTML=forms[tipo]||'';
@@ -3993,6 +4038,7 @@ function setCRMView(view,btn){
   btn.classList.add('active');
   document.getElementById('crm-pipeline-view').style.display=view==='pipeline'?'block':'none';
   document.getElementById('crm-lista-view').style.display=view==='lista'?'block':'none';
+  document.getElementById('crm-seg-view').style.display=view==='seg'?'block':'none';
   renderCRM();
 }
 function filterCRM(q){_crmSearch=q.toLowerCase();renderCRM();}
@@ -4141,11 +4187,13 @@ function renderCRM(){
         <span style="font-size:12px;font-weight:500;color:var(--gold)">${c.valor?'$'+parseFloat(c.valor).toLocaleString('es-AR'):'—'}</span>
         <span style="font-size:11px;color:${c.cantidadCompras>0?'var(--green)':'var(--muted)'}">${c.cantidadCompras||0} compra${c.cantidadCompras==1?'':'s'}</span>
         <div style="display:flex;gap:5px;align-items:center" onclick="event.stopPropagation()">
-          ${wappUrl?`<a class="crm-list-wapp" href="${wappUrl}" target="_blank">💬 WA</a>`:'<span style="width:52px"></span>'}
+          ${wappUrl?`<a class="crm-list-wapp" href="${wappUrl}" target="_blank" onclick="logContact(${ri})">💬 WA</a>`:'<span style="width:52px"></span>'}
           <button class="btn btn-xs btn-danger" onclick="deleteCRM(${ri})">×</button>
         </div>
       </div>`;
     }).join(''):`<div class="empty"><div class="e-icon">👥</div><p>No hay contactos que coincidan</p></div>`;
+  } else if(_crmView==='seg'){
+    renderCRMSeg();
   }
 }
 
@@ -4173,11 +4221,130 @@ function renderCRMCard(c,ri){
     ${c.ultimaCompra?`<div style="font-size:10px;color:var(--green);margin-top:3px">🛍 ${c.ultimaCompra.split('-').reverse().join('/')}${c.cantidadCompras?' · '+c.cantidadCompras+' compra'+(c.cantidadCompras==1?'':'s'):''}</div>`:''}
     ${c.notas?`<div style="font-size:10px;color:var(--muted2);margin-top:6px;padding-top:5px;border-top:1px solid var(--border);font-weight:300;line-height:1.3">${c.notas.slice(0,70)}${c.notas.length>70?'…':''}</div>`:''}
     <div class="crm-card-move" onclick="event.stopPropagation()">
-      ${wappUrl?`<a class="crm-wapp" href="${wappUrl}" target="_blank" style="flex:1.4;justify-content:center">💬 WA</a>`:'<span style="flex:1.4"></span>'}
+      ${wappUrl?`<a class="crm-wapp" href="${wappUrl}" target="_blank" style="flex:1.4;justify-content:center" onclick="logContact(${ri})">💬 WA</a>`:'<span style="flex:1.4"></span>'}
       ${prevEst?`<button class="crm-move-btn" onclick="moveCRM(${ri},-1)" title="${prevEst}">◀ ${prevEst}</button>`:'<span style="flex:1"></span>'}
       ${nextEst?`<button class="crm-move-btn primary" onclick="moveCRM(${ri},1)" title="${nextEst}">${nextEst} ▶</button>`:'<span style="flex:1"></span>'}
     </div>
   </div>`;
+}
+
+// ── Seguimiento helpers ──
+let _crmSegFilter='all';
+
+function diasSinContacto(c){
+  if(!c.ultimoContacto)return -1;
+  return Math.max(0,Math.floor((new Date()-new Date(c.ultimoContacto))/(1000*60*60*24)));
+}
+function urgencyColor(d){
+  if(d<0)return'var(--muted)';
+  if(d===0)return'var(--green)';
+  if(d<=7)return'#4db88a';
+  if(d<=30)return'#e8b84b';
+  return'var(--red)';
+}
+function urgencyLabel(d){
+  if(d<0)return'Sin contacto';
+  if(d===0)return'Hoy';
+  if(d===1)return'Ayer';
+  return`hace ${d}d`;
+}
+
+function logContact(ri,nota=''){
+  const c=S.crm?.[ri];
+  if(!c)return;
+  if(!c.contactos)c.contactos=[];
+  c.contactos.push({fecha:fmtDate(new Date()),nota});
+  c.ultimoContacto=fmtDate(new Date());
+  save();renderCRM();
+  notify('💬 Contacto registrado');
+}
+
+function renderContactHistory(ri){
+  const hist=document.getElementById('crm-hist-container');
+  if(!hist||!S.crm?.[ri])return;
+  const c=S.crm[ri];
+  const entries=(c.contactos||[]).slice().reverse();
+  hist.innerHTML=`<div class="crm-hist-section">
+    <div class="crm-hist-label">
+      <span>Historial de contactos</span>
+      <span style="font-size:10px;color:var(--muted);font-style:normal;text-transform:none;letter-spacing:0">${(c.contactos||[]).length} entrada${(c.contactos||[]).length===1?'':'s'}</span>
+    </div>
+    ${entries.length?entries.map(e=>`<div class="crm-hist-entry">
+      <span class="crm-hist-date">${e.fecha?e.fecha.split('-').reverse().join('/'):''}</span>
+      <span class="crm-hist-nota${e.nota?'':' empty'}">${e.nota||'— sin nota —'}</span>
+    </div>`).join(''):'<div style="font-size:11px;color:var(--muted);padding:5px 0 8px">Sin contactos registrados aún. Se auto-registra al hacer click en 💬 WA.</div>'}
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <input class="form-input" id="crm-nota-input" placeholder="Agregar nota o registro manual..." style="flex:1;font-size:12px;padding:7px 12px">
+      <button class="btn btn-sm btn-primary" onclick="addContactNote(${ri})">+ Registrar</button>
+    </div>
+  </div>`;
+}
+
+function addContactNote(ri){
+  const nota=(document.getElementById('crm-nota-input')?.value||'').trim();
+  const c=S.crm?.[ri];
+  if(!c)return;
+  if(!c.contactos)c.contactos=[];
+  c.contactos.push({fecha:fmtDate(new Date()),nota});
+  c.ultimoContacto=fmtDate(new Date());
+  save();renderCRM();renderContactHistory(ri);
+  notify('Nota guardada ✓');
+}
+
+function setCRMSegFilter(f,btn){
+  _crmSegFilter=f;
+  document.querySelectorAll('#crm-seg-filter-grp .crm-filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCRMSeg();
+}
+
+function renderCRMSeg(){
+  const today=fmtDate(new Date());
+  const arr=S.crm||[];
+  // Stats
+  const hoy=arr.filter(c=>c.ultimoContacto===today).length;
+  const semana=arr.filter(c=>{const d=diasSinContacto(c);return d>=0&&d<=7;}).length;
+  const sinContactar=arr.filter(c=>!c.ultimoContacto).length;
+  const vencidos=arr.filter(c=>{const d=diasSinContacto(c);return d>30;}).length;
+  const el=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  el('seg-hoy',hoy);el('seg-semana',semana);el('seg-sin',sinContactar);el('seg-vencidos',vencidos);
+  // Filter
+  let filtered=[...arr];
+  if(_crmSegFilter==='hoy')filtered=arr.filter(c=>c.ultimoContacto===today);
+  else if(_crmSegFilter==='semana')filtered=arr.filter(c=>{const d=diasSinContacto(c);return d>=0&&d<=7;});
+  else if(_crmSegFilter==='7d')filtered=arr.filter(c=>diasSinContacto(c)>=7||diasSinContacto(c)<0);
+  else if(_crmSegFilter==='30d')filtered=arr.filter(c=>diasSinContacto(c)>30||diasSinContacto(c)<0);
+  else if(_crmSegFilter==='nunca')filtered=arr.filter(c=>!c.ultimoContacto);
+  // Sort: sin contacto primero, luego más días primero
+  filtered.sort((a,b)=>{
+    const da=diasSinContacto(a),db=diasSinContacto(b);
+    if(da<0&&db>=0)return-1;
+    if(db<0&&da>=0)return 1;
+    return db-da;
+  });
+  const list=document.getElementById('crm-seg-list');
+  if(!list)return;
+  if(!filtered.length){list.innerHTML=`<div class="empty"><div class="e-icon">📡</div><p>No hay contactos en este filtro</p></div>`;return;}
+  list.innerHTML=filtered.map(c=>{
+    const ri=S.crm.indexOf(c);
+    const d=diasSinContacto(c);
+    const wappUrl=buildWappUrl(c.tel);
+    return`<div class="crm-seg-card" onclick="editCRM(${ri})">
+      <div class="crm-seg-dot" style="background:${urgencyColor(d)}"></div>
+      <div>
+        <div style="font-size:12px;font-weight:500;color:var(--text)">${c.nombre}</div>
+        <div style="font-size:11px;color:var(--muted)">${c.ig||c.email||'—'}</div>
+      </div>
+      <span class="crm-estado-pill ${CRM_ESTADO_COLORS[c.estado]||'ep-nuevo'}">${c.estado||'Nuevo'}</span>
+      <span style="font-size:11px;color:var(--muted2)">${c.provincia||'—'}</span>
+      <span style="font-size:12px;font-weight:500;color:var(--gold)">${c.valor?'$'+parseFloat(c.valor).toLocaleString('es-AR'):'—'}</span>
+      <span style="font-size:12px;font-weight:600;color:${urgencyColor(d)}">${urgencyLabel(d)}</span>
+      <div style="display:flex;gap:6px;align-items:center" onclick="event.stopPropagation()">
+        ${wappUrl?`<a class="crm-list-wapp" href="${wappUrl}" target="_blank" onclick="logContact(${ri})" style="white-space:nowrap">💬 WA</a>`:''}
+        <button class="btn btn-xs" onclick="event.stopPropagation();editCRM(${ri})">Ver</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function saveCRM(){
@@ -4221,6 +4388,7 @@ function editCRM(ri){
     f('fcrm-canal',c.canal);f('fcrm-ciudad',c.ciudad);f('fcrm-provincia',c.provincia);
     f('fcrm-compras-cant',c.cantidadCompras);f('fcrm-marketing',c.marketing);f('fcrm-newsletter',c.newsletter);
     f('fcrm-tags',(c.tags||[]).join(', '));f('fcrm-notas',c.notas);
+    renderContactHistory(ri);
   },50);
 }
 
@@ -4382,9 +4550,11 @@ function importCSV(input){
         const nombre=getCol(row,COL.nombre);
         if(!nombre||/^sin\s*nombre$/i.test(nombre)){skipped++;continue;}
         const email=getCol(row,COL.email);
-        // Deduplicate by email (preferred) or nombre
+        const tel=getCol(row,COL.tel).replace(/\s/g,'');
+        // Deduplicate: email > teléfono > nombre
         if(email&&S.crm.some(c=>c.email&&c.email===email)){dupes++;continue;}
-        else if(!email&&S.crm.some(c=>c.nombre===nombre)){dupes++;continue;}
+        else if(!email&&tel&&S.crm.some(c=>c.tel&&c.tel.replace(/\s/g,'')===tel)){dupes++;continue;}
+        else if(!email&&!tel&&S.crm.some(c=>c.nombre===nombre)){dupes++;continue;}
         const rawValor=getCol(row,COL.valor).replace(',','.');
         const valor=rawValor?String(parseFloat(rawValor)||0):'';
         const cantidadCompras=parseInt(getCol(row,COL.cantidadCompras))||0;
@@ -4397,7 +4567,7 @@ function importCSV(input){
         const marketing=/acepta$/i.test(rawMarketing)&&!/no acepta/i.test(rawMarketing)?'Acepta':'No acepta';
         S.crm.push({
           nombre,email,
-          tel:getCol(row,COL.tel),
+          tel:tel||getCol(row,COL.tel),
           ig:getCol(row,COL.ig),
           ciudad:getCol(row,COL.ciudad),
           localidad:getCol(row,COL.localidad),
