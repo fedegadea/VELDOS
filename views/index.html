@@ -668,29 +668,35 @@ tr:hover .tx-del{color:var(--muted)}
 @media(max-width:700px){.crm-pipeline{grid-template-columns:1fr}.crm-stats{grid-template-columns:1fr 1fr}.crm-list-card,.crm-list-head{grid-template-columns:1fr 1fr}}
 
 /* ── WORKSPACE OVERLAY ── */
-.ws-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;overflow-y:auto}
+.ws-overlay{position:fixed;inset:0;background:var(--bg);background-image:radial-gradient(ellipse at 15% 10%,rgba(41,121,255,0.09) 0%,transparent 55%),radial-gradient(ellipse at 85% 90%,rgba(124,77,255,0.06) 0%,transparent 55%);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;overflow-y:auto}
 .ws-overlay.hidden{display:none}
-.ws-logo-big{font-family:var(--fd);font-size:38px;letter-spacing:-.03em;color:var(--text);margin-bottom:6px;text-align:center}
+.ws-logo-big{font-family:var(--fd);font-size:42px;letter-spacing:-.04em;color:var(--text);margin-bottom:4px;text-align:center;line-height:1}
 .ws-logo-big em{color:var(--gold);font-style:italic}
-.ws-sub{font-size:12px;color:var(--muted);text-align:center;margin-bottom:40px;letter-spacing:.06em;text-transform:uppercase}
-.ws-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;width:100%;max-width:900px;margin-bottom:32px}
-.ws-card{background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:22px 20px;cursor:pointer;transition:all .2s;position:relative;min-height:120px;display:flex;flex-direction:column;justify-content:space-between}
-.ws-card:hover{border-color:rgba(41,121,255,.35);box-shadow:0 0 24px rgba(41,121,255,.1);transform:translateY(-2px)}
-.ws-card-new{border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted);min-height:120px}
+.ws-tagline{font-size:11px;color:var(--muted);text-align:center;margin-bottom:44px;letter-spacing:.12em;text-transform:uppercase}
+.ws-sub{font-size:11px;color:var(--muted);text-align:center;margin-bottom:28px;letter-spacing:.08em;text-transform:uppercase}
+.ws-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;width:100%;max-width:940px;margin-bottom:28px}
+.ws-card{background:var(--s1);border:1px solid var(--border);border-radius:18px;padding:24px 22px 20px;cursor:pointer;transition:all .22s;position:relative;min-height:130px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.ws-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--ws-color,var(--gold));opacity:.5;transition:opacity .22s}
+.ws-card:hover{border-color:rgba(41,121,255,.35);box-shadow:0 8px 32px rgba(0,0,0,.2);transform:translateY(-3px)}
+.ws-card:hover::after{opacity:1}
+.ws-card-new{border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted);min-height:130px}
 .ws-card-new:hover{color:var(--gold);border-color:var(--gold)}
-.ws-card-new .ws-new-icon{font-size:28px}
+.ws-card-new .ws-new-icon{font-size:30px}
 .ws-card-new .ws-new-label{font-size:12px;font-weight:400;letter-spacing:.04em}
-.ws-card-emoji{font-size:28px;margin-bottom:8px}
-.ws-card-name{font-size:15px;font-weight:500;color:var(--text);margin-bottom:4px}
+.ws-card-emoji{font-size:32px;margin-bottom:10px}
+.ws-card-name{font-family:var(--fd);font-size:17px;letter-spacing:-.02em;color:var(--text);margin-bottom:4px;line-height:1.2}
 .ws-card-meta{font-size:11px;color:var(--muted);font-weight:300}
-.ws-card-dot{width:8px;height:8px;border-radius:50%;position:absolute;top:16px;right:16px}
-.ws-card-actions{position:absolute;top:12px;right:12px;display:flex;gap:4px;opacity:0;transition:opacity .15s}
+.ws-card-actions{position:absolute;top:13px;right:13px;display:flex;gap:3px;opacity:0;transition:opacity .15s}
 .ws-card:hover .ws-card-actions{opacity:1}
-.ws-card-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:4px 6px;border-radius:5px;transition:all .15s}
-.ws-card-btn:hover{color:var(--text);background:var(--s2)}
-.ws-pin-screen{width:100%;max-width:340px;text-align:center}
-.ws-pin-title{font-family:var(--fd);font-size:22px;margin-bottom:6px}
-.ws-pin-sub{font-size:12px;color:var(--muted);font-weight:300;margin-bottom:20px}
+.ws-card-btn{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:12px;padding:4px 7px;border-radius:6px;transition:all .15s;line-height:1}
+.ws-card-btn:hover{color:var(--text);background:var(--s2);border-color:var(--border2)}
+/* PIN / auth screen */
+.ws-pin-screen{width:100%;max-width:360px;text-align:center}
+.ws-pin-emoji{font-size:54px;margin-bottom:12px;line-height:1}
+.ws-pin-title{font-family:var(--fd);font-size:26px;letter-spacing:-.02em;margin-bottom:5px}
+.ws-pin-sub{font-size:12px;color:var(--muted);font-weight:300;margin-bottom:22px}
+.ws-pin-input-wrap{position:relative;margin-bottom:12px}
+.ws-pin-input-wrap input{text-align:center;letter-spacing:.25em;font-size:18px;padding:14px 20px}
 .ws-user-list{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
 .ws-user-item{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px}
 .ws-user-item:hover{border-color:rgba(41,121,255,.3);background:var(--s3)}
@@ -698,16 +704,48 @@ tr:hover .tx-del{color:var(--muted)}
 .ws-user-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0}
 .ws-user-name{font-size:13px;font-weight:500;color:var(--text)}
 .ws-user-role{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-.ws-back-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;font-family:var(--fb);margin-top:12px;padding:6px 12px;border-radius:6px;transition:all .15s}
+.ws-back-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;font-family:var(--fb);margin-top:14px;padding:6px 14px;border-radius:8px;transition:all .15s;display:inline-block}
 .ws-back-btn:hover{color:var(--text);background:var(--s2)}
-.ws-create-form{width:100%;max-width:440px;background:var(--s1);border:1px solid var(--border2);border-radius:16px;padding:28px}
-.ws-create-title{font-family:var(--fd);font-size:20px;margin-bottom:20px}
+.ws-divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--muted);font-size:11px}
+.ws-divider::before,.ws-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+/* Create form */
+.ws-create-form{width:100%;max-width:460px;background:var(--s1);border:1px solid var(--border2);border-radius:18px;padding:30px}
+.ws-create-title{font-family:var(--fd);font-size:22px;letter-spacing:-.02em;margin-bottom:22px}
 .emoji-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
-.emoji-opt{font-size:20px;padding:5px;border-radius:7px;cursor:pointer;transition:all .12s;border:2px solid transparent}
+.emoji-opt{font-size:20px;padding:6px;border-radius:8px;cursor:pointer;transition:all .12s;border:2px solid transparent}
 .emoji-opt:hover,.emoji-opt.sel{border-color:var(--gold);background:rgba(41,121,255,.1)}
-.ws-color-row{display:flex;gap:6px;margin-top:4px}
-.ws-color-opt{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .12s}
-.ws-color-opt.sel{border-color:var(--text)}
+.ws-color-row{display:flex;gap:8px;margin-top:4px}
+.ws-color-opt{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .12s}
+.ws-color-opt.sel{border-color:var(--text);transform:scale(1.15)}
+/* Onboarding empty state */
+.ws-onboarding{text-align:center;max-width:440px;padding:20px}
+.ws-onb-icon{font-size:56px;margin-bottom:16px;line-height:1}
+.ws-onb-title{font-family:var(--fd);font-size:28px;letter-spacing:-.03em;margin-bottom:8px}
+.ws-onb-sub{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:28px;font-weight:300}
+/* Stock module */
+.stock-stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px}
+.stock-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.stock-card{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:18px 16px;cursor:pointer;transition:all .2s;position:relative}
+.stock-card:hover{border-color:rgba(41,121,255,.3);box-shadow:0 4px 16px rgba(41,121,255,.06);transform:translateY(-1px)}
+.stock-card.low-stock{border-color:rgba(232,184,75,.4);background:rgba(232,184,75,.03)}
+.stock-card.out-stock{border-color:rgba(224,112,112,.4);background:rgba(224,112,112,.03)}
+.stock-card-cat{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.stock-card-nombre{font-size:14px;font-weight:500;color:var(--text);margin-bottom:2px;line-height:1.3}
+.stock-card-sku{font-size:10px;color:var(--muted);margin-bottom:12px;font-family:monospace}
+.stock-qty{font-size:22px;font-family:var(--fd);font-weight:400;line-height:1}
+.stock-qty.ok{color:var(--green)}
+.stock-qty.low{color:#e8b84b}
+.stock-qty.out{color:var(--red)}
+.stock-qty-label{font-size:10px;color:var(--muted);margin-top:2px}
+.stock-precios{margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:11px;color:var(--muted2)}
+.stock-mov-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.stock-mov-table th{text-align:left;padding:5px 8px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:400;border-bottom:1px solid var(--border)}
+.stock-mov-table td{padding:7px 8px;border-bottom:1px solid var(--border);color:var(--muted2)}
+.stock-mov-table tr:last-child td{border-bottom:none}
+.mov-tag{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
+.mov-tag.entrada{background:rgba(77,184,138,.12);color:var(--green)}
+.mov-tag.salida{background:rgba(224,112,112,.1);color:var(--coral)}
+@media(max-width:768px){.stock-stat-row{grid-template-columns:1fr 1fr}.stock-grid{grid-template-columns:1fr}}
 
 /* ── SETTINGS MODAL ── */
 .settings-tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px}
@@ -891,41 +929,62 @@ tr:hover .tx-del{color:var(--muted)}
 <!-- ══ WORKSPACE OVERLAY ══ -->
 <div class="ws-overlay hidden" id="ws-overlay">
   <div class="ws-logo-big">VELD <em>OS</em></div>
-  <div class="ws-sub">Seleccioná tu proyecto</div>
+  <div class="ws-tagline">Sistema operativo para marcas</div>
+
+  <!-- Pantalla principal: grid de proyectos -->
   <div id="ws-main-screen">
+    <div class="ws-sub" id="ws-main-sub">Tus proyectos</div>
     <div class="ws-grid" id="ws-grid"></div>
   </div>
-  <div id="ws-create-screen" style="display:none;width:100%;max-width:440px">
+
+  <!-- Pantalla de onboarding: sin proyectos aún -->
+  <div id="ws-onboarding-screen" style="display:none">
+    <div class="ws-onboarding">
+      <div class="ws-onb-icon">✦</div>
+      <div class="ws-onb-title">Bienvenido a VELD OS</div>
+      <div class="ws-onb-sub">Tu sistema operativo para marcas digitales. Creá tu primer proyecto y empezá a gestionar marketing, finanzas, CRM y stock desde un solo lugar.</div>
+      <button class="btn btn-primary" style="width:100%;padding:14px;font-size:14px" onclick="showWsCreate()">✦ Crear mi primer proyecto</button>
+    </div>
+  </div>
+
+  <!-- Pantalla de creación -->
+  <div id="ws-create-screen" style="display:none;width:100%;max-width:460px">
     <div class="ws-create-form">
       <div class="ws-create-title">Nuevo proyecto</div>
-      <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="ws-new-name" placeholder="Mi segunda marca..."></div>
+      <div class="form-group"><label class="form-label">Nombre de la marca</label><input class="form-input" id="ws-new-name" placeholder="Ej: Valentina Store, La Ropa de Sofi..."></div>
       <div class="form-group"><label class="form-label">Ícono</label>
         <div class="emoji-row" id="emoji-row">
-          <span class="emoji-opt sel" data-e="🏷️" onclick="selectEmoji(this)">🏷️</span><span class="emoji-opt" data-e="👗" onclick="selectEmoji(this)">👗</span><span class="emoji-opt" data-e="🛍️" onclick="selectEmoji(this)">🛍️</span><span class="emoji-opt" data-e="💄" onclick="selectEmoji(this)">💄</span><span class="emoji-opt" data-e="👟" onclick="selectEmoji(this)">👟</span><span class="emoji-opt" data-e="🏪" onclick="selectEmoji(this)">🏪</span><span class="emoji-opt" data-e="💎" onclick="selectEmoji(this)">💎</span><span class="emoji-opt" data-e="🎨" onclick="selectEmoji(this)">🎨</span><span class="emoji-opt" data-e="📦" onclick="selectEmoji(this)">📦</span><span class="emoji-opt" data-e="🌿" onclick="selectEmoji(this)">🌿</span><span class="emoji-opt" data-e="✨" onclick="selectEmoji(this)">✨</span>
+          <span class="emoji-opt sel" data-e="🏷️" onclick="selectEmoji(this)">🏷️</span><span class="emoji-opt" data-e="👗" onclick="selectEmoji(this)">👗</span><span class="emoji-opt" data-e="🛍️" onclick="selectEmoji(this)">🛍️</span><span class="emoji-opt" data-e="💄" onclick="selectEmoji(this)">💄</span><span class="emoji-opt" data-e="👟" onclick="selectEmoji(this)">👟</span><span class="emoji-opt" data-e="🏪" onclick="selectEmoji(this)">🏪</span><span class="emoji-opt" data-e="💎" onclick="selectEmoji(this)">💎</span><span class="emoji-opt" data-e="🎨" onclick="selectEmoji(this)">🎨</span><span class="emoji-opt" data-e="📦" onclick="selectEmoji(this)">📦</span><span class="emoji-opt" data-e="🌿" onclick="selectEmoji(this)">🌿</span><span class="emoji-opt" data-e="✨" onclick="selectEmoji(this)">✨</span><span class="emoji-opt" data-e="🌸" onclick="selectEmoji(this)">🌸</span><span class="emoji-opt" data-e="⚡" onclick="selectEmoji(this)">⚡</span><span class="emoji-opt" data-e="🔥" onclick="selectEmoji(this)">🔥</span>
         </div></div>
       <div class="form-group"><label class="form-label">Color</label>
         <div class="ws-color-row" id="ws-color-row">
-          <div class="ws-color-opt sel" data-c="#2979ff" style="background:#2979ff" onclick="selectWsColor(this)"></div><div class="ws-color-opt" data-c="#4db88a" style="background:#4db88a" onclick="selectWsColor(this)"></div><div class="ws-color-opt" data-c="#e07070" style="background:#e07070" onclick="selectWsColor(this)"></div><div class="ws-color-opt" data-c="#c9b48a" style="background:#c9b48a" onclick="selectWsColor(this)"></div><div class="ws-color-opt" data-c="#a87bff" style="background:#a87bff" onclick="selectWsColor(this)"></div><div class="ws-color-opt" data-c="#7ab3ff" style="background:#7ab3ff" onclick="selectWsColor(this)"></div>
+          <div class="ws-color-opt sel" data-c="#2979ff" style="background:#2979ff" onclick="selectWsColor(this)"></div><div class="ws-color-opt" data-c="#4db88a" style="background:#4db88a" onclick="selectWsColor(this)"></div><div class="ws-color-opt" data-c="#e07070" style="background:#e07070" onclick="selectWsColor(this)"></div><div class="ws-color-opt" data-c="#c9b48a" style="background:#c9b48a" onclick="selectWsColor(this)"></div><div class="ws-color-opt" data-c="#a87bff" style="background:#a87bff" onclick="selectWsColor(this)"></div><div class="ws-color-opt" data-c="#7ab3ff" style="background:#7ab3ff" onclick="selectWsColor(this)"></div><div class="ws-color-opt" data-c="#e8b84b" style="background:#e8b84b" onclick="selectWsColor(this)"></div>
         </div></div>
-      <div class="form-group"><label class="form-label">PIN de acceso (opcional)</label><input class="form-input" id="ws-new-pin" type="password" placeholder="Dejar vacío = sin PIN" maxlength="20"></div>
+      <div class="form-group"><label class="form-label">PIN de acceso <span style="color:var(--muted);font-weight:300">(recomendado para compartir)</span></label><input class="form-input" id="ws-new-pin" type="password" placeholder="Dejar vacío = sin PIN" maxlength="20"></div>
       <div class="modal-footer" style="padding-top:12px;margin-top:4px">
         <button class="btn" onclick="showWsMain()">Cancelar</button>
-        <button class="btn btn-primary" onclick="createWorkspace()">Crear proyecto</button>
+        <button class="btn btn-primary" onclick="createWorkspace()">Crear proyecto →</button>
       </div>
     </div>
   </div>
+
+  <!-- Pantalla de autenticación / PIN -->
   <div id="ws-auth-screen" style="display:none">
     <div class="ws-pin-screen">
+      <div class="ws-pin-emoji" id="ws-auth-emoji">🏷️</div>
       <div class="ws-pin-title" id="ws-auth-title">—</div>
-      <div class="ws-pin-sub" id="ws-auth-sub">Ingresá tu contraseña</div>
+      <div class="ws-pin-sub" id="ws-auth-sub">Ingresá el PIN para acceder</div>
       <div id="ws-user-list-wrap" class="ws-user-list"></div>
-      <input class="form-input" id="ws-auth-input" type="password" placeholder="Contraseña / PIN" style="text-align:center;letter-spacing:.15em;margin-bottom:10px" onkeydown="if(event.key==='Enter')wsAuthSubmit()">
-      <div id="ws-auth-error" style="font-size:12px;color:var(--coral);min-height:18px;margin-bottom:10px"></div>
-      <button class="btn btn-primary" style="width:100%" onclick="wsAuthSubmit()">Entrar</button>
-      <div id="ws-reset-pin-wrap" style="margin-top:10px;display:none">
-        <button onclick="resetWorkspacePin()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline">¿Olvidaste el PIN? Resetearlo</button>
+      <div class="ws-pin-input-wrap">
+        <input class="form-input" id="ws-auth-input" type="password" placeholder="PIN" onkeydown="if(event.key==='Enter')wsAuthSubmit()">
       </div>
-      <button class="ws-back-btn" onclick="showWsMain()">← Volver</button>
+      <div id="ws-auth-error" style="font-size:12px;color:var(--coral);min-height:16px;margin-bottom:10px;text-align:center"></div>
+      <button class="btn btn-primary" style="width:100%;padding:13px" onclick="wsAuthSubmit()">Acceder al proyecto</button>
+      <div id="ws-reset-pin-wrap" style="margin-top:10px;display:none">
+        <button onclick="resetWorkspacePin()" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;text-decoration:underline">¿Olvidaste el PIN? Resetearlo</button>
+      </div>
+      <div class="ws-divider" id="ws-auth-divider">o</div>
+      <button class="ws-back-btn" onclick="showWsMain()" id="ws-back-to-grid">← Ver mis proyectos</button>
     </div>
   </div>
 </div>
@@ -955,6 +1014,9 @@ tr:hover .tx-del{color:var(--muted)}
         <div class="area-menu-item" onclick="selectArea('hojas','Hojas',this)">
           <span class="area-dot" style="background:var(--coral)"></span>Hojas
         </div>
+        <div class="area-menu-item" onclick="selectArea('stock','Stock',this)">
+          <span class="area-dot" style="background:#e8b84b"></span>Stock
+        </div>
         <div class="area-menu-item" style="border-top:1px solid var(--border);margin-top:4px;padding-top:8px" onclick="openWorkspaceSettings()">
           <span style="font-size:12px;margin-right:2px">⚙️</span>Proyectos y usuarios
         </div>
@@ -982,6 +1044,9 @@ tr:hover .tx-del{color:var(--muted)}
   </nav>
   <nav class="nav-tabs" id="nav-hojas" style="display:none">
     <button class="nav-tab active" onclick="switchPage('hojas',this)" id="hojas-nav-default">Todas las hojas</button>
+  </nav>
+  <nav class="nav-tabs" id="nav-stock" style="display:none">
+    <button class="nav-tab active" onclick="switchPage('stock',this)">Inventario</button>
   </nav>
   <div class="week-badge" id="week-label"></div>
   <button onclick="toggleTheme()" id="theme-btn" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:7px;cursor:pointer;flex-shrink:0">☀️ Light</button>
@@ -1011,6 +1076,7 @@ tr:hover .tx-del{color:var(--muted)}
     <button class="sb-item" id="sbi-finanzas" onclick="sbNav('finanzas','finanzas',this)"><span class="sb-item-icon">💰</span>Finanzas</button>
     <button class="sb-item" id="sbi-operaciones" onclick="sbNav('operaciones','operaciones',this)"><span class="sb-item-icon">⚙️</span>Operaciones</button>
     <button class="sb-item" id="sbi-crm" onclick="sbNav('crm','crm',this)"><span class="sb-item-icon">👤</span>CRM</button>
+    <button class="sb-item" id="sbi-stock" onclick="sbNav('stock','stock',this)"><span class="sb-item-icon">📦</span>Stock</button>
     <button class="sb-item" id="sbi-hojas" onclick="sbNav('hojas','hojas',this)"><span class="sb-item-icon">📁</span>Hojas</button>
   </div>
   <div class="sb-bottom">
@@ -1923,7 +1989,33 @@ tr:hover .tx-del{color:var(--muted)}
  
   </div>
 </div>
- 
+<!-- ══ STOCK ══ -->
+<div class="page" id="page-stock">
+  <div class="sec-head">
+    <div class="sec-title">Stock<small>Inventario de productos y movimientos</small></div>
+    <div class="btn-row">
+      <button class="btn" onclick="openStockMovModal()">± Movimiento</button>
+      <button class="btn btn-primary" onclick="openNewProductModal()">+ Producto</button>
+    </div>
+  </div>
+  <div class="stock-stat-row">
+    <div class="prog-card"><div class="prog-label">Total SKUs</div><div style="font-size:26px;font-family:var(--fd);margin-top:4px" id="st-total">0</div></div>
+    <div class="prog-card"><div class="prog-label">Unidades en stock</div><div style="font-size:26px;font-family:var(--fd);margin-top:4px" id="st-units">0</div></div>
+    <div class="prog-card"><div class="prog-label">Stock crítico</div><div style="font-size:26px;font-family:var(--fd);margin-top:4px;color:var(--red)" id="st-low">0</div></div>
+    <div class="prog-card"><div class="prog-label">Valor inventario</div><div style="font-size:22px;font-family:var(--fd);margin-top:4px" id="st-value">$0</div></div>
+  </div>
+  <div class="crm-toolbar" style="margin-bottom:16px">
+    <input class="crm-search" type="text" placeholder="Buscar producto, SKU..." oninput="filterStock(this.value)" id="stock-search-inp">
+    <select class="crm-adv-sel" style="font-size:12px;padding:7px 12px" onchange="filterStockCat(this.value)" id="stock-cat-sel">
+      <option value="">Todas las categorías</option>
+    </select>
+    <button class="crm-filter-btn active" onclick="setStockFilter('',this)">Todos</button>
+    <button class="crm-filter-btn" onclick="setStockFilter('low',this)">Stock bajo</button>
+    <button class="crm-filter-btn" onclick="setStockFilter('out',this)">Sin stock</button>
+  </div>
+  <div class="stock-grid" id="stock-grid"></div>
+</div>
+
 <!-- ══ MODAL ══ -->
 <div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
   <div class="modal" id="modal-box">
@@ -1987,7 +2079,7 @@ let _activeArea='marketing';
 let _activePage='checklist';
 
 function defaultData(){
-  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[]};
+  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[]};
 }
 
 function _localLoad(){
@@ -2431,6 +2523,7 @@ function _activateArea(id,label){
   if(id==='finanzas')setTimeout(initFinPeriod,50);
   if(id==='crm'){if(!S.crm)S.crm=[];renderCRM();}
   if(id==='hojas'){if(!S.customViews)S.customViews=[];renderHojas();}
+  if(id==='stock'){if(!S.stock)S.stock=[];renderStock();}
   render();
   updateUrl();
 }
@@ -2468,6 +2561,7 @@ function sbNav(area,page,el){
   if(area==='finanzas')setTimeout(initFinPeriod,50);
   if(area==='crm'){if(!S.crm)S.crm=[];renderCRM();}
   if(area==='hojas'){if(!S.customViews)S.customViews=[];renderHojas();}
+  if(area==='stock'){if(!S.stock)S.stock=[];renderStock();}
   render();
   updateUrl();
 }
@@ -4621,42 +4715,52 @@ function openWorkspaceSelector(){
   if(ov){ov.classList.remove('hidden');showWsMain();}
 }
 function showWsMain(){
-  document.getElementById('ws-main-screen').style.display='';
+  const hasWs=WORKSPACES&&WORKSPACES.workspaces&&WORKSPACES.workspaces.length>0;
+  document.getElementById('ws-main-screen').style.display=hasWs?'':'none';
+  document.getElementById('ws-onboarding-screen').style.display=hasWs?'none':'';
   document.getElementById('ws-create-screen').style.display='none';
   document.getElementById('ws-auth-screen').style.display='none';
-  renderWsGrid();
+  if(hasWs)renderWsGrid();
 }
 function renderWsGrid(){
   const grid=document.getElementById('ws-grid');
   if(!grid)return;
   grid.innerHTML=WORKSPACES.workspaces.map(ws=>{
-    const last=ws.lastAccess?`Últ. acceso: ${ws.lastAccess}`:'Nuevo';
-    return`<div class="ws-card" onclick="selectWs('${ws.id}')">
+    const last=ws.lastAccess?`Accedido ${ws.lastAccess}`:'Sin accesos aún';
+    const color=ws.color||'#2979ff';
+    const shareUrl=location.origin+location.pathname+'?ws='+ws.id;
+    return`<div class="ws-card" style="--ws-color:${color}" onclick="selectWs('${ws.id}')">
       <div class="ws-card-actions">
+        <button class="ws-card-btn" title="Copiar link" onclick="event.stopPropagation();copyWsLink('${ws.id}')" style="font-size:14px">🔗</button>
         <button class="ws-card-btn" title="Configurar" onclick="event.stopPropagation();openWsSettingsById('${ws.id}')">⚙️</button>
         ${WORKSPACES.workspaces.length>1?`<button class="ws-card-btn" title="Eliminar" onclick="event.stopPropagation();deleteWs('${ws.id}')">🗑️</button>`:''}
       </div>
       <div>
         <div class="ws-card-emoji">${ws.emoji||'🏷️'}</div>
         <div class="ws-card-name">${ws.name}</div>
-        <div class="ws-card-meta">${last}</div>
+        <div class="ws-card-meta">${last}${ws.pin?' · 🔒':''}</div>
       </div>
-      <div class="ws-card-dot" style="background:${ws.color||'#2979ff'}"></div>
     </div>`;
   }).join('')+`<div class="ws-card ws-card-new" onclick="showWsCreate()">
     <div class="ws-new-icon">＋</div>
     <div class="ws-new-label">Nuevo proyecto</div>
   </div>`;
 }
+function copyWsLink(wsId){
+  const url=location.origin+location.pathname+'?ws='+wsId;
+  navigator.clipboard.writeText(url).then(()=>notify('🔗 Link del proyecto copiado'));
+}
 function selectWs(wsId){
   const ws=WORKSPACES.workspaces.find(w=>w.id===wsId);
   if(!ws)return;
   _pendingWsId=wsId;
   if(!ws.pin&&!ws.users.length){switchWorkspace(wsId);return;}
-  // Show auth screen
+  // Show focused PIN screen
   document.getElementById('ws-main-screen').style.display='none';
+  document.getElementById('ws-onboarding-screen').style.display='none';
   document.getElementById('ws-auth-screen').style.display='';
-  document.getElementById('ws-auth-title').textContent=ws.emoji+' '+ws.name;
+  document.getElementById('ws-auth-emoji').textContent=ws.emoji||'🏷️';
+  document.getElementById('ws-auth-title').textContent=ws.name;
   document.getElementById('ws-auth-input').value='';
   document.getElementById('ws-auth-error').textContent='';
   // Show users list if any
@@ -4674,9 +4778,8 @@ function selectWs(wsId){
     document.getElementById('ws-auth-sub').textContent='Seleccioná tu usuario e ingresá tu contraseña';
   } else {
     ul.innerHTML='';
-    document.getElementById('ws-auth-sub').textContent='Ingresá el PIN del proyecto';
+    document.getElementById('ws-auth-sub').textContent='Ingresá el PIN para acceder';
   }
-  // Mostrar "olvidé el PIN" solo si hay sesión de cuenta activa (el dueño ya está logueado)
   const resetWrap=document.getElementById('ws-reset-pin-wrap');
   if(resetWrap)resetWrap.style.display=_authUser?'':'none';
   setTimeout(()=>document.getElementById('ws-auth-input')?.focus(),100);
@@ -5263,7 +5366,230 @@ function moveProd(tipo,id,dir){
   item.estado=next;
   save();renderProdKanban(tipo);notify('Movido ✓');
 }
- 
+
+// ══════════════════════════════════════════
+// STOCK MODULE
+// ══════════════════════════════════════════
+let _stockSearch='';
+let _stockCat='';
+let _stockFilter='';
+
+function renderStock(){
+  if(!S.stock)S.stock=[];
+  const arr=S.stock;
+  // Stats
+  const units=arr.reduce((s,p)=>s+(parseInt(p.stock)||0),0);
+  const low=arr.filter(p=>{const st=parseInt(p.stock||0);return st>0&&st<=(parseInt(p.stockMin)||5);}).length;
+  const out=arr.filter(p=>!parseInt(p.stock||0)).length;
+  const value=arr.reduce((s,p)=>s+(parseFloat(p.costo||0)*parseInt(p.stock||0)),0);
+  const el2=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  el2('st-total',arr.length);
+  el2('st-units',units);
+  el2('st-low',low+out);
+  el2('st-value','$'+value.toLocaleString('es-AR'));
+  // Populate category filter
+  const cats=[...new Set(arr.map(p=>p.categoria||'').filter(Boolean))].sort();
+  const catSel=document.getElementById('stock-cat-sel');
+  if(catSel){
+    const prev=catSel.value;
+    catSel.innerHTML='<option value="">Todas las categorías</option>'+cats.map(c=>`<option value="${c}"${prev===c?'selected':''}>${c}</option>`).join('');
+  }
+  // Filter
+  let filtered=arr.filter(p=>{
+    const q=(_stockSearch||'').toLowerCase();
+    const st=parseInt(p.stock||0);
+    const min=parseInt(p.stockMin||5);
+    const matchSearch=!q||(p.nombre||'').toLowerCase().includes(q)||(p.sku||'').toLowerCase().includes(q)||(p.categoria||'').toLowerCase().includes(q);
+    const matchCat=!_stockCat||(p.categoria||'')===_stockCat;
+    const matchFilter=!_stockFilter||(_stockFilter==='low'&&st>0&&st<=min)||(_stockFilter==='out'&&st===0);
+    return matchSearch&&matchCat&&matchFilter;
+  });
+  // Render grid
+  const grid=document.getElementById('stock-grid');
+  if(!grid)return;
+  if(!filtered.length){
+    grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="e-icon">📦</div><p>${arr.length?'No hay productos que coincidan con el filtro':'Agregá tu primer producto al inventario'}</p></div>`;
+    return;
+  }
+  grid.innerHTML=filtered.map(p=>{
+    const ri=S.stock.indexOf(p);
+    const st=parseInt(p.stock||0);
+    const min=parseInt(p.stockMin||5);
+    const isOut=st===0;
+    const isLow=!isOut&&st<=min;
+    const qClass=isOut?'out':isLow?'low':'ok';
+    const qLabel=isOut?'Sin stock':isLow?`${st} uds ⚠`:`${st} uds`;
+    return`<div class="stock-card${isOut?' out-stock':isLow?' low-stock':''}" onclick="openProductDetail(${ri})">
+      <button style="position:absolute;top:10px;right:10px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;padding:2px 5px;border-radius:4px" onclick="event.stopPropagation();deleteProduct(${ri})">×</button>
+      <div class="stock-card-cat">${p.categoria||'Sin categoría'}</div>
+      <div class="stock-card-nombre">${p.nombre||'Sin nombre'}</div>
+      ${p.sku?`<div class="stock-card-sku">${p.sku}</div>`:'<div style="height:16px"></div>'}
+      <div class="stock-qty ${qClass}">${qLabel}</div>
+      <div class="stock-qty-label">${isOut?'Reabastecer':isLow?'Stock bajo':'En stock'}</div>
+      ${(p.precio||p.costo)?`<div class="stock-precios">
+        ${p.costo?`<span>Costo: $${parseFloat(p.costo).toLocaleString('es-AR')}</span>`:''}
+        ${p.precio?`<span>Precio: $${parseFloat(p.precio).toLocaleString('es-AR')}</span>`:''}
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function filterStock(q){_stockSearch=q;renderStock();}
+function filterStockCat(v){_stockCat=v;renderStock();}
+function setStockFilter(v,btn){
+  _stockFilter=v;
+  document.querySelectorAll('#page-stock .crm-filter-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderStock();
+}
+
+function openNewProductModal(){
+  _editIdx=null;
+  document.getElementById('modal-title').textContent='Nuevo producto';
+  document.getElementById('modal-body').innerHTML=`
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nombre del producto</label><input class="form-input" id="fst-nombre" placeholder="Ej: Jean negro talle S"></div>
+      <div class="form-group"><label class="form-label">SKU / Código</label><input class="form-input" id="fst-sku" placeholder="Ej: JN-S-001"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Categoría</label><input class="form-input" id="fst-cat" placeholder="Ej: Pantalones, Remeras..."></div>
+      <div class="form-group"><label class="form-label">Stock inicial</label><input class="form-input" id="fst-stock" type="number" min="0" placeholder="0" value="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Costo ($)</label><input class="form-input" id="fst-costo" type="number" min="0" placeholder="0"></div>
+      <div class="form-group"><label class="form-label">Precio de venta ($)</label><input class="form-input" id="fst-precio" type="number" min="0" placeholder="0"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Stock mínimo <span style="color:var(--muted);font-weight:300">(alerta de reposición)</span></label><input class="form-input" id="fst-min" type="number" min="0" placeholder="5" value="5"></div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveProduct()">Guardar producto</button></div>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function openProductDetail(ri){
+  const p=S.stock?.[ri];
+  if(!p)return;
+  _editIdx=ri;
+  document.getElementById('modal-title').textContent=p.nombre||'Producto';
+  const movs=(p.movimientos||[]).slice().reverse();
+  document.getElementById('modal-body').innerHTML=`
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="fst-nombre" value="${p.nombre||''}"></div>
+      <div class="form-group"><label class="form-label">SKU</label><input class="form-input" id="fst-sku" value="${p.sku||''}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Categoría</label><input class="form-input" id="fst-cat" value="${p.categoria||''}"></div>
+      <div class="form-group"><label class="form-label">Stock actual</label><input class="form-input" id="fst-stock" type="number" value="${p.stock||0}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Costo ($)</label><input class="form-input" id="fst-costo" type="number" value="${p.costo||''}"></div>
+      <div class="form-group"><label class="form-label">Precio venta ($)</label><input class="form-input" id="fst-precio" type="number" value="${p.precio||''}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Stock mínimo (alerta)</label><input class="form-input" id="fst-min" type="number" value="${p.stockMin||5}"></div>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+      <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+        <span>Historial de movimientos</span>
+        <button class="btn btn-xs btn-primary" onclick="openStockMovModal(${ri})">+ Movimiento</button>
+      </div>
+      ${movs.length?`<table class="stock-mov-table">
+        <tr><th>Fecha</th><th>Tipo</th><th>Cantidad</th><th>Motivo</th><th>Saldo</th></tr>
+        ${movs.slice(0,15).map(m=>`<tr>
+          <td>${m.fecha||'—'}</td>
+          <td><span class="mov-tag ${m.tipo}">${m.tipo==='entrada'?'↑ Entrada':'↓ Salida'}</span></td>
+          <td style="font-weight:500;color:${m.tipo==='entrada'?'var(--green)':'var(--coral)'}">${m.tipo==='entrada'?'+':'−'}${m.cantidad}</td>
+          <td>${m.motivo||'—'}</td>
+          <td style="font-weight:600;color:var(--text)">${m.saldo}</td>
+        </tr>`).join('')}
+      </table>`:`<div style="font-size:11px;color:var(--muted);padding:6px 0">Sin movimientos registrados todavía.</div>`}
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveProduct()">Guardar cambios</button>
+    </div>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function saveProduct(){
+  const nombre=(document.getElementById('fst-nombre')?.value||'').trim();
+  if(!nombre){notify('Escribí un nombre para el producto');return;}
+  if(!S.stock)S.stock=[];
+  const existing=_editIdx!==null?S.stock[_editIdx]:{};
+  const obj={
+    id:existing.id||('p_'+Date.now()),
+    nombre,
+    sku:(document.getElementById('fst-sku')?.value||'').trim(),
+    categoria:(document.getElementById('fst-cat')?.value||'').trim(),
+    stock:document.getElementById('fst-stock')?.value||'0',
+    costo:document.getElementById('fst-costo')?.value||'',
+    precio:document.getElementById('fst-precio')?.value||'',
+    stockMin:document.getElementById('fst-min')?.value||'5',
+    movimientos:existing.movimientos||[]
+  };
+  if(_editIdx!==null)S.stock[_editIdx]=obj;else S.stock.push(obj);
+  save();closeModal();renderStock();
+  notify(_editIdx!==null?'Producto actualizado ✓':'Producto agregado al inventario ✓');
+}
+
+function openStockMovModal(ri=null){
+  document.getElementById('modal-title').textContent='Registrar movimiento';
+  if(!S.stock||!S.stock.length){notify('Primero agregá un producto');return;}
+  const opts=S.stock.map((p,i)=>`<option value="${i}"${ri===i?'selected':''}>${p.nombre}${p.sku?' ('+p.sku+')':''} — Stock: ${p.stock||0}</option>`).join('');
+  document.getElementById('modal-body').innerHTML=`
+    <div class="form-group"><label class="form-label">Producto</label>
+      <select class="form-select" id="fmov-ri">${opts}</select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Tipo de movimiento</label>
+        <select class="form-select" id="fmov-tipo">
+          <option value="entrada">↑ Entrada — compra, devolución</option>
+          <option value="salida">↓ Salida — venta, merma</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Cantidad</label>
+        <input class="form-input" id="fmov-cant" type="number" min="1" placeholder="1">
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Motivo / Referencia</label>
+      <input class="form-input" id="fmov-motivo" placeholder="Ej: Compra proveedor, Venta pedido #45...">
+    </div>
+    <div class="form-group"><label class="form-label">Fecha</label>
+      <input class="form-input" id="fmov-fecha" type="date" value="${fmtDate(new Date())}">
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveMovimiento()">Registrar</button>
+    </div>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function saveMovimiento(){
+  const ri=parseInt(document.getElementById('fmov-ri')?.value);
+  const tipo=document.getElementById('fmov-tipo')?.value;
+  const cant=parseInt(document.getElementById('fmov-cant')?.value)||0;
+  if(!cant||cant<1){notify('Ingresá una cantidad válida');return;}
+  const p=S.stock?.[ri];
+  if(!p){notify('Producto no encontrado');return;}
+  const stockActual=parseInt(p.stock||0);
+  const nuevoStock=tipo==='entrada'?stockActual+cant:stockActual-cant;
+  if(nuevoStock<0){notify(`Stock insuficiente. Disponible: ${stockActual} uds`);return;}
+  if(!p.movimientos)p.movimientos=[];
+  p.movimientos.push({
+    fecha:document.getElementById('fmov-fecha')?.value||fmtDate(new Date()),
+    tipo,cantidad:cant,
+    motivo:(document.getElementById('fmov-motivo')?.value||'').trim(),
+    saldo:nuevoStock
+  });
+  p.stock=String(nuevoStock);
+  save();closeModal();renderStock();
+  notify(`${tipo==='entrada'?'↑ Entrada':'↓ Salida'} de ${cant} uds registrada ✓`);
+}
+
+function deleteProduct(ri){
+  const p=S.stock?.[ri];
+  if(!p)return;
+  if(!confirm(`¿Eliminar "${p.nombre}" y todo su historial?`))return;
+  S.stock.splice(ri,1);
+  save();renderStock();notify('Producto eliminado');
+}
+
 </script>
 </body>
 </html>
