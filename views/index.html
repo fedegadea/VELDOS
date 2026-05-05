@@ -4165,7 +4165,7 @@ function renderCRM(){
         </div>
       </div>`;
     }).join('');
-  } else {
+  } else if(_crmView==='lista'){
     const list=document.getElementById('crm-list');
     if(!list)return;
     list.innerHTML=filtered.length?filtered.map(c=>{
