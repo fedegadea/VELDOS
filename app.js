@@ -91,8 +91,8 @@ app.get("/api/mp/success", (req, res) => {
 })
 
 // ── Tienda Nube ──────────────────────────────────────────────────────────────
-const TN_STORE_ID = process.env.TN_STORE_ID || "31250"
-const TN_TOKEN    = process.env.TN_TOKEN    || "747a564acf2fad835b6021e2928b5af84743f706b91c5643"
+const TN_STORE_ID = process.env.TN_STORE_ID || "7669167"
+const TN_TOKEN    = process.env.TN_TOKEN    || "4f3f5efacbde70dc0943a7c43099753fddb04273"
 
 app.get("/api/tn/orders", async (req, res) => {
   const { desde, hasta, page = 1 } = req.query
