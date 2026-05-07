@@ -126,7 +126,32 @@ app.get("/api/tn/orders", async (req, res) => {
   }
 })
 
-// ── Tienda Nube — Privacy webhooks (obligatorios) ───────────────────────────
+// ── Páginas públicas (requeridas por Tienda Nube) ────────────────────────────
+app.get("/privacidad", (req, res) => {
+  res.send(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Política de privacidad — VELDOS</title><style>body{font-family:system-ui,sans-serif;max-width:700px;margin:60px auto;padding:0 24px;color:#222;line-height:1.7}h1{font-size:24px;margin-bottom:8px}h2{font-size:16px;margin-top:32px}p,li{font-size:14px;color:#444}a{color:#2979ff}</style></head><body>
+  <h1>Política de privacidad</h1>
+  <p>Última actualización: ${new Date().toLocaleDateString('es-AR')}</p>
+  <h2>Datos que recopilamos</h2>
+  <p>VELDOS accede a los datos de órdenes de tu tienda Tiendanube (número de orden, fecha, monto total y medio de pago) únicamente para mostrarlos dentro de tu espacio de trabajo. No almacenamos datos personales de tus clientes.</p>
+  <h2>Uso de los datos</h2>
+  <p>Los datos de órdenes se importan a tu espacio de trabajo en VELDOS para que puedas visualizar tus finanzas. Nunca se comparten con terceros.</p>
+  <h2>Eliminación de datos</h2>
+  <p>Al desinstalar la aplicación, podés eliminar todos los datos importados desde tu panel de VELDOS. También podés escribirnos a <a href="mailto:soporte@veldos.app">soporte@veldos.app</a>.</p>
+  <h2>Contacto</h2>
+  <p><a href="mailto:soporte@veldos.app">soporte@veldos.app</a></p>
+  </body></html>`)
+})
+
+app.get("/soporte", (req, res) => {
+  res.send(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Soporte — VELDOS</title><style>body{font-family:system-ui,sans-serif;max-width:700px;margin:60px auto;padding:0 24px;color:#222;line-height:1.7}h1{font-size:24px;margin-bottom:8px}p{font-size:14px;color:#444}a{color:#2979ff}</style></head><body>
+  <h1>Soporte</h1>
+  <p>Para consultas o problemas con la integración de VELDOS con Tiendanube, escribinos a:</p>
+  <p><strong><a href="mailto:soporte@veldos.app">soporte@veldos.app</a></strong></p>
+  <p>Respondemos dentro de las 48 horas hábiles.</p>
+  </body></html>`)
+})
+
+// ── Tienda Nube — Privacy webhooks (obligatorios) ────────────────────────────
 app.post("/api/tn/webhooks/store-redact", (req, res) => {
   // Called when a store uninstalls the app and requests data deletion
   // VELDOS stores order data inside user workspaces in Supabase — no separate store records to delete
