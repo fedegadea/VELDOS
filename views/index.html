@@ -1844,6 +1844,10 @@ tr:hover .tx-del{color:var(--muted)}
         <div class="fin-card"><div class="fin-card-head"><div class="fin-card-title">Desglose de gastos</div></div><div id="gastos-desglose"></div></div>
         <div class="fin-card"><div class="fin-card-head"><div class="fin-card-title">Ingresos vs Gastos</div><span style="font-size:10px;color:var(--muted)" id="chart-periodo-label"></span></div><div class="chart-wrap" id="fin-chart"></div></div>
         <div class="fin-card"><div class="fin-card-head"><div class="fin-card-title">Costos fijos del período</div></div><div id="costos-fijos-resumen" style="padding:8px 16px 12px"></div></div>
+        <div class="fin-card" id="vendor-comisiones-card" style="display:none">
+          <div class="fin-card-head"><div class="fin-card-title">Comisiones de vendedores</div></div>
+          <div id="vendor-comisiones-body" style="padding:8px 16px 12px"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -3297,8 +3301,56 @@ function renderFinanzas(){
   }
  
   renderFinChart(desde,hasta);
+  renderVendorComisiones();
 }
- 
+
+function renderVendorComisiones(){
+  const card=document.getElementById('vendor-comisiones-card');
+  const body=document.getElementById('vendor-comisiones-body');
+  if(!card||!body)return;
+  const txs=(S.finanzas||[]).filter(t=>t.comisionVendedor&&!t.comisionVendedor.retirada);
+  if(!txs.length){card.style.display='none';return;}
+  card.style.display='block';
+  // Group by vendor name
+  const byVendor={};
+  txs.forEach(t=>{
+    const n=t.comisionVendedor.nombre;
+    if(!byVendor[n])byVendor[n]={nombre:n,total:0,txIds:[]};
+    byVendor[n].total+=t.comisionVendedor.monto;
+    byVendor[n].txIds.push((S.finanzas||[]).indexOf(t));
+  });
+  body.innerHTML=Object.values(byVendor).map(v=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-size:13px;color:var(--text);font-weight:500">${v.nombre}</div>
+        <div style="font-size:11px;color:var(--muted)">${v.txIds.length} venta${v.txIds.length!==1?'s':''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:14px;color:var(--gold);font-weight:600">${fmtMoney(v.total)}</span>
+        <button class="btn btn-sm" style="font-size:11px;background:var(--coral);color:#fff;border:none" onclick="retirarComisionVendedor('${v.nombre.replace(/'/g,"\\'")}')">Retirar</button>
+      </div>
+    </div>`).join('')+`
+    <div style="display:flex;justify-content:space-between;padding:10px 0 2px;font-size:12px">
+      <span style="color:var(--muted2)">Total pendiente</span>
+      <span style="color:var(--gold);font-weight:600">${fmtMoney(Object.values(byVendor).reduce((a,v)=>a+v.total,0))}</span>
+    </div>`;
+}
+
+function retirarComisionVendedor(nombre){
+  if(!confirm('¿Registrar retiro de comisiones para '+nombre+'?'))return;
+  if(!S.finanzas)S.finanzas=[];
+  // Collect pending commissions for this vendor
+  const pending=S.finanzas.filter(t=>t.comisionVendedor&&t.comisionVendedor.nombre===nombre&&!t.comisionVendedor.retirada);
+  if(!pending.length){notify('No hay comisiones pendientes');return;}
+  const totalRetiro=pending.reduce((a,t)=>a+t.comisionVendedor.monto,0);
+  // Mark all as retired
+  pending.forEach(t=>{ t.comisionVendedor.retirada=true; });
+  // Create a gasto transaction for accounting
+  const hoy=fmtDate(new Date());
+  S.finanzas.push({tipo:'gasto',fecha:hoy,concepto:'Comisión vendedor — '+nombre,categoria:'Sueldos/comisiones',monto:totalRetiro,medioPago:'',cuotas:1,unidades:0,notas:'Retiro automático de comisiones pendientes'});
+  save();renderFinanzas();notify('Comisión de '+nombre+' retirada ✓');
+}
+
 function renderFinChart(desde,hasta){
   const chart=document.getElementById('fin-chart');
   if(!chart||!desde||!hasta)return;
@@ -3670,7 +3722,7 @@ function openModal(tipo,data,idx){
       <div class="form-row">
         <div class="form-group"><label class="form-label">Categoría</label><select class="form-select" id="ftx-cat"></select></div>
         <div class="form-group"><label class="form-label">Monto bruto ($)</label>
-          <input class="form-input" id="ftx-monto" type="number" placeholder="0" oninput="calcPreviewComision()"></div>
+          <input class="form-input" id="ftx-monto" type="number" placeholder="0" oninput="calcPreviewComision();calcVendorPreview()"></div>
       </div>
       <div class="form-row" id="ftx-medio-wrap">
         <div class="form-group"><label class="form-label">Medio de pago</label>
@@ -3684,6 +3736,21 @@ function openModal(tipo,data,idx){
       <div class="form-group" id="ftx-unidades-wrap">
         <label class="form-label">Unidades vendidas</label>
         <input class="form-input" id="ftx-unidades" type="number" placeholder="0"></div>
+      <div id="ftx-vendor-wrap" style="display:none;border:1px solid var(--border2);border-radius:8px;padding:10px 12px;margin-bottom:8px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--muted2);margin-bottom:0">
+          <input type="checkbox" id="ftx-vendor-check" onchange="toggleVendorSection()">
+          Comisión de vendedor
+        </label>
+        <div id="ftx-vendor-fields" style="display:none;margin-top:10px">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Nombre del vendedor</label>
+              <input class="form-input" id="ftx-vendor-nombre" placeholder="Ej: María García" oninput="calcVendorPreview()"></div>
+            <div class="form-group"><label class="form-label">Comisión (%)</label>
+              <input class="form-input" id="ftx-vendor-pct" type="number" step="0.5" min="0" max="100" placeholder="Ej: 10" oninput="calcVendorPreview()"></div>
+          </div>
+          <div id="ftx-vendor-preview" style="font-size:11px;color:var(--muted2);padding:7px 10px;background:var(--s3);border-radius:6px;display:none"></div>
+        </div>
+      </div>
       <div class="form-group"><label class="form-label">Notas</label>
         <textarea class="form-textarea" id="ftx-notas" placeholder="Detalle adicional..." rows="2"></textarea></div>
       <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveTx()">Guardar</button></div>`,
@@ -3961,8 +4028,10 @@ function updateTxCats(){
   if(sel)sel.innerHTML=(tipo==='ingreso'?TX_CATS_ING:TX_CATS_GAS).map(c=>`<option>${c}</option>`).join('');
   const uWrap=document.getElementById('ftx-unidades-wrap');
   const mWrap=document.getElementById('ftx-medio-wrap');
+  const vWrap=document.getElementById('ftx-vendor-wrap');
   if(uWrap)uWrap.style.display=tipo==='ingreso'?'block':'none';
   if(mWrap)mWrap.style.display=tipo==='ingreso'?'grid':'none';
+  if(vWrap)vWrap.style.display=tipo==='ingreso'?'block':'none';
 }
 function calcPreviewComision(){
   const monto=parseFloat(document.getElementById('ftx-monto')?.value)||0;
@@ -3977,6 +4046,23 @@ function calcPreviewComision(){
   prev.style.display='block';
   prev.textContent=`Comisión ${pct}%: -${fmtMoney(com)} → Neto que recibís: ${fmtMoney(monto-com)}`;
 }
+function toggleVendorSection(){
+  const check=document.getElementById('ftx-vendor-check');
+  const fields=document.getElementById('ftx-vendor-fields');
+  if(fields)fields.style.display=check?.checked?'block':'none';
+  if(!check?.checked){const p=document.getElementById('ftx-vendor-preview');if(p)p.style.display='none';}
+}
+function calcVendorPreview(){
+  const monto=parseFloat(document.getElementById('ftx-monto')?.value)||0;
+  const pct=parseFloat(document.getElementById('ftx-vendor-pct')?.value)||0;
+  const nombre=(document.getElementById('ftx-vendor-nombre')?.value||'').trim();
+  const prev=document.getElementById('ftx-vendor-preview');
+  if(!prev)return;
+  if(!monto||!pct){prev.style.display='none';return;}
+  const com=Math.round(monto*(pct/100));
+  prev.style.display='block';
+  prev.textContent=`Comisión ${nombre?'de '+nombre+' ':''}(${pct}%): ${fmtMoney(com)}`;
+}
 function saveTx(){
   const concepto=document.getElementById('ftx-concepto')?.value?.trim();
   const monto=parseFloat(document.getElementById('ftx-monto')?.value);
@@ -3984,7 +4070,13 @@ function saveTx(){
   if(!monto||monto<=0){notify('Ingresá un monto válido');return;}
   if(!S.finanzas)S.finanzas=[];
   const tipo=document.getElementById('ftx-tipo').value;
-  S.finanzas.push({tipo,fecha:document.getElementById('ftx-fecha').value,concepto,categoria:document.getElementById('ftx-cat').value,monto,medioPago:tipo==='ingreso'?document.getElementById('ftx-medio')?.value:'',cuotas:tipo==='ingreso'?parseInt(document.getElementById('ftx-cuotas')?.value)||1:1,unidades:parseInt(document.getElementById('ftx-unidades')?.value)||0,notas:document.getElementById('ftx-notas')?.value||''});
+  const vendorCheck=document.getElementById('ftx-vendor-check');
+  const vendorNombre=(document.getElementById('ftx-vendor-nombre')?.value||'').trim();
+  const vendorPct=parseFloat(document.getElementById('ftx-vendor-pct')?.value)||0;
+  const comisionVendedor=(tipo==='ingreso'&&vendorCheck?.checked&&vendorNombre&&vendorPct>0)
+    ?{nombre:vendorNombre,pct:vendorPct,monto:Math.round(monto*(vendorPct/100)),retirada:false}
+    :null;
+  S.finanzas.push({tipo,fecha:document.getElementById('ftx-fecha').value,concepto,categoria:document.getElementById('ftx-cat').value,monto,medioPago:tipo==='ingreso'?document.getElementById('ftx-medio')?.value:'',cuotas:tipo==='ingreso'?parseInt(document.getElementById('ftx-cuotas')?.value)||1:1,unidades:parseInt(document.getElementById('ftx-unidades')?.value)||0,notas:document.getElementById('ftx-notas')?.value||'',comisionVendedor:comisionVendedor||undefined});
   save();closeModal();renderFinanzas();notify('Movimiento guardado ✓');
 }
 function saveMedioPago(){
