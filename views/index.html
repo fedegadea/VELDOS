@@ -1073,7 +1073,13 @@ tr:hover .tx-del{color:var(--muted)}
   <div class="sb-divider"></div>
   <div class="sb-section">
     <span class="sb-section-label">Negocio</span>
-    <button class="sb-item" id="sbi-finanzas" onclick="sbNav('finanzas','finanzas',this)"><span class="sb-item-icon">💰</span>Finanzas</button>
+    <button class="sb-item" id="sbi-finanzas" onclick="sbNav('finanzas','finanzas',this)">
+      <span class="sb-item-icon">💰</span>
+      <span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">
+        Finanzas
+        <span id="tn-nav-badge" style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">🛍️ Tienda Nube</span>
+      </span>
+    </button>
     <button class="sb-item" id="sbi-operaciones" onclick="sbNav('operaciones','operaciones',this)"><span class="sb-item-icon">⚙️</span>Operaciones</button>
     <button class="sb-item" id="sbi-crm" onclick="sbNav('crm','crm',this)"><span class="sb-item-icon">👤</span>CRM</button>
     <button class="sb-item" id="sbi-stock" onclick="sbNav('stock','stock',this)"><span class="sb-item-icon">📦</span>Stock</button>
@@ -2148,6 +2154,7 @@ function _enterWorkspace(ws){
   document.getElementById('ws-overlay')?.classList.add('hidden');
   render();
   updateUrl();
+  updateTNBadge();
 }
 
 // ── AUTH HELPERS ──
@@ -3368,6 +3375,18 @@ function retirarComisionVendedor(nombre){
 }
 
 // ── Tienda Nube import ───────────────────────────────────────────────────────
+function updateTNBadge(){
+  const badge=document.getElementById('tn-nav-badge');
+  if(!badge)return;
+  const tnTxs=(S.finanzas||[]).filter(t=>t.tn_id);
+  if(tnTxs.length){
+    badge.style.color='var(--green)';
+    badge.textContent='🛍️ TN activa · '+tnTxs.length+' venta'+(tnTxs.length!==1?'s':'');
+  } else {
+    badge.style.color='var(--muted)';
+    badge.textContent='🛍️ Tienda Nube';
+  }
+}
 function initTNDates(){
   const now=new Date();
   const ini=new Date(now.getFullYear(),now.getMonth(),1);
@@ -3531,6 +3550,7 @@ function importTNSelected(orders){
   if(area)area.innerHTML=`<div style="font-size:13px;color:var(--green);padding:10px 0">✓ ${count} venta${count!==1?'s':''} importada${count!==1?'s':''} correctamente.</div>`;
   switchFinTab('movimientos',document.querySelector('.inner-tab'));
   renderFinanzas();
+  updateTNBadge();
   notify(`${count} ventas importadas de Tienda Nube ✓`);
 }
 
