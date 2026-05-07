@@ -372,21 +372,33 @@ body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:14px
 .fin-period input[type=date]:focus{border-color:var(--gold)}
 .fin-period-sep{color:var(--muted);font-size:12px}
  
-.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:24px}
-.kpi-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:18px 20px;position:relative;overflow:hidden;transition:border-color .2s,box-shadow .2s}
-.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
-.kpi-ing::before{background:var(--green)}
-.kpi-gas::before{background:var(--coral)}
-.kpi-gan::before{background:var(--blue)}
-.kpi-margen::before{background:var(--blue)}
-.kpi-ads::before{background:var(--purple)}
-.kpi-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
-.kpi-value{font-family:var(--fd);font-size:28px;line-height:1;margin-bottom:4px}
+/* ── KPI Scoreboard ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px}
+.kpi-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:16px 18px;position:relative;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.kpi-card:hover{border-color:var(--border2);box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
+.kpi-ing::before{background:linear-gradient(90deg,var(--green),rgba(143,191,168,.4))}
+.kpi-gas::before{background:linear-gradient(90deg,var(--coral),rgba(196,120,120,.4))}
+.kpi-gan::before{background:linear-gradient(90deg,var(--gold),rgba(215,185,95,.4))}
+.kpi-ads::before{background:linear-gradient(90deg,var(--purple),rgba(138,110,170,.4))}
+.kpi-ventas::before{background:linear-gradient(90deg,var(--blue),rgba(80,140,200,.4))}
+.kpi-tn::before{background:linear-gradient(90deg,#00a99d,rgba(0,169,157,.3))}
+.kpi-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-weight:500}
+.kpi-value{font-family:var(--fd);font-size:24px;line-height:1;margin-bottom:3px;font-weight:700}
 .kpi-sub{font-size:11px;color:var(--muted);font-weight:300}
+.kpi-minibar{height:3px;border-radius:2px;background:var(--s3);margin-top:10px;overflow:hidden}
+.kpi-minibar-fill{height:100%;border-radius:2px;transition:width .7s ease}
 .kpi-trend{display:inline-flex;align-items:center;gap:4px;font-size:11px;margin-top:6px;padding:2px 8px;border-radius:10px}
 .trend-up{background:rgba(143,191,168,.12);color:var(--green)}
 .trend-down{background:rgba(196,120,120,.12);color:var(--red)}
 .trend-flat{background:rgba(160,160,160,.08);color:var(--muted)}
+
+/* ── TN Pulse row ── */
+.tn-pulse-row{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border:1px solid rgba(0,169,157,.25);border-radius:12px;overflow:hidden;margin-bottom:14px;background:rgba(0,169,157,.04)}
+.tn-pulse-item{padding:12px 14px;border-right:1px solid rgba(0,169,157,.15);text-align:center}
+.tn-pulse-item:last-child{border-right:none}
+.tn-pulse-val{font-size:17px;font-weight:700;font-family:var(--fd);line-height:1;margin-bottom:3px}
+.tn-pulse-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
  
 .fin-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:14px;margin-bottom:14px}
 .fin-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden}
@@ -421,12 +433,15 @@ tr:hover .tx-del{color:var(--muted)}
 .gasto-amount{font-size:12px;font-weight:500;color:var(--coral);min-width:80px;text-align:right}
 .gasto-pct{font-size:10px;color:var(--muted);min-width:36px;text-align:right}
  
-/* Mini chart área */
-.chart-wrap{padding:16px 18px 10px}
-.chart-bars{display:flex;align-items:flex-end;gap:6px;height:80px}
-.chart-bar-col{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1}
-.chart-bar{border-radius:3px 3px 0 0;width:100%;transition:height .4s ease;min-height:2px}
-.chart-bar-label{font-size:9px;color:var(--muted);text-align:center;white-space:nowrap}
+/* ── Chart ── */
+.chart-wrap{padding:16px 18px 12px}
+.chart-bars{display:flex;align-items:flex-end;gap:5px;height:120px;position:relative}
+.chart-bar-col{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;min-width:0}
+.chart-bar{border-radius:4px 4px 0 0;width:100%;transition:height .5s ease;min-height:2px;cursor:default}
+.chart-bar:hover{filter:brightness(1.15)}
+.chart-bar-label{font-size:9px;color:var(--muted);text-align:center;white-space:nowrap;overflow:hidden;max-width:100%}
+.chart-gridline{position:absolute;left:0;right:0;border-top:1px dashed var(--border);pointer-events:none}
+.chart-gridval{position:absolute;right:0;font-size:8px;color:var(--muted);transform:translateY(-50%);padding-right:2px}
  
 /* ── OPERACIONES ── */
 .ops-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -532,12 +547,14 @@ tr:hover .tx-del{color:var(--muted)}
 .area-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .area-soon{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-left:auto;padding:1px 6px;border:1px solid var(--border);border-radius:8px}
  
+@media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:1000px){
   .kpi-grid{grid-template-columns:repeat(3,1fr)}
   .fin-grid{grid-template-columns:1fr}
+  .tn-pulse-row{grid-template-columns:repeat(3,1fr)}
   .ops-grid{grid-template-columns:1fr}
 }
-@media(max-width:600px){.kpi-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.kpi-grid{grid-template-columns:1fr 1fr};.tn-pulse-row{grid-template-columns:1fr 1fr}}
 
 /* ── CALENDARIO MENSUAL ── */
 .cal-nav{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
@@ -1825,13 +1842,89 @@ tr:hover .tx-del{color:var(--muted)}
       <button class="btn btn-sm" onclick="setPeriod('30')">30 días</button>
       <button class="btn btn-sm" onclick="setPeriod('90')">90 días</button>
     </div>
+    <!-- KPI Scoreboard -->
     <div class="kpi-grid">
-      <div class="kpi-card"><div class="kpi-label">Ingresos brutos</div><div class="kpi-value" id="kpi-ing" style="color:var(--green)">$0</div><div class="kpi-sub" id="kpi-ing-sub">en el período</div></div>
-      <div class="kpi-card"><div class="kpi-label">Costos totales</div><div class="kpi-value" id="kpi-gas" style="color:var(--coral)">$0</div><div class="kpi-sub" id="kpi-gas-sub">gastos + comisiones</div></div>
-      <div class="kpi-card"><div class="kpi-label">Ganancia neta</div><div class="kpi-value" id="kpi-gan" style="color:var(--gold)">$0</div><div class="kpi-sub" id="kpi-margen-sub">margen: 0%</div></div>
-      <div class="kpi-card"><div class="kpi-label">Ads (Meta)</div><div class="kpi-value" id="kpi-ads" style="color:var(--blue)">$0</div><div class="kpi-sub" id="kpi-ads-sub">del gasto total: 0%</div></div>
-      <div class="kpi-card"><div class="kpi-label">Ventas</div><div class="kpi-value" id="kpi-ventas" style="color:var(--purple)">0</div><div class="kpi-sub" id="kpi-ticket-sub">ticket prom: $0</div></div>
+      <div class="kpi-card kpi-ing">
+        <div class="kpi-label">Ingresos brutos</div>
+        <div class="kpi-value" id="kpi-ing" style="color:var(--green)">$0</div>
+        <div class="kpi-sub" id="kpi-ing-sub">en el período</div>
+        <div class="kpi-minibar"><div class="kpi-minibar-fill" id="kpi-ing-bar" style="width:100%;background:var(--green);opacity:.5"></div></div>
+      </div>
+      <div class="kpi-card kpi-gas">
+        <div class="kpi-label">Costos totales</div>
+        <div class="kpi-value" id="kpi-gas" style="color:var(--coral)">$0</div>
+        <div class="kpi-sub" id="kpi-gas-sub">gastos + fees</div>
+        <div class="kpi-minibar"><div class="kpi-minibar-fill" id="kpi-gas-bar" style="width:0%;background:var(--coral);opacity:.5"></div></div>
+      </div>
+      <div class="kpi-card kpi-gan">
+        <div class="kpi-label">Ganancia neta</div>
+        <div class="kpi-value" id="kpi-gan" style="color:var(--gold)">$0</div>
+        <div class="kpi-sub" id="kpi-margen-sub">margen: 0%</div>
+        <div class="kpi-minibar"><div class="kpi-minibar-fill" id="kpi-gan-bar" style="width:0%;background:var(--gold)"></div></div>
+      </div>
+      <div class="kpi-card kpi-ventas">
+        <div class="kpi-label">Ventas</div>
+        <div class="kpi-value" id="kpi-ventas" style="color:var(--blue)">0</div>
+        <div class="kpi-sub" id="kpi-ticket-sub">ticket prom: —</div>
+      </div>
+      <div class="kpi-card kpi-ads">
+        <div class="kpi-label">Ads (Meta)</div>
+        <div class="kpi-value" id="kpi-ads" style="color:var(--purple)">$0</div>
+        <div class="kpi-sub" id="kpi-ads-sub">del gasto: 0%</div>
+      </div>
+      <div class="kpi-card kpi-tn" id="kpi-tn-card" style="display:none">
+        <div class="kpi-label" style="color:#00a99d">🛍️ Tienda Nube</div>
+        <div class="kpi-value" id="kpi-tn-orders" style="color:#00a99d">0</div>
+        <div class="kpi-sub" id="kpi-tn-sub">órdenes en período</div>
+      </div>
     </div>
+
+    <!-- TN Pulse row (hidden until TN data exists) -->
+    <div id="tn-pulse-row" class="tn-pulse-row" style="display:none">
+      <div class="tn-pulse-item">
+        <div style="font-size:9px;color:#00a99d;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">🛍️ Tienda Nube</div>
+        <div class="tn-pulse-val" id="tn-pulse-orders" style="color:var(--text)">0</div>
+        <div class="tn-pulse-label">órdenes</div>
+      </div>
+      <div class="tn-pulse-item">
+        <div style="font-size:9px;color:var(--muted);margin-bottom:6px">&nbsp;</div>
+        <div class="tn-pulse-val" id="tn-pulse-ing" style="color:var(--green)">$0</div>
+        <div class="tn-pulse-label">facturado</div>
+      </div>
+      <div class="tn-pulse-item">
+        <div style="font-size:9px;color:var(--muted);margin-bottom:6px">&nbsp;</div>
+        <div class="tn-pulse-val" id="tn-pulse-com" style="color:var(--coral)">$0</div>
+        <div class="tn-pulse-label">comisiones gateway</div>
+      </div>
+      <div class="tn-pulse-item">
+        <div style="font-size:9px;color:var(--muted);margin-bottom:6px">&nbsp;</div>
+        <div class="tn-pulse-val" id="tn-pulse-envio" style="color:var(--blue)">$0</div>
+        <div class="tn-pulse-label">costo envíos</div>
+      </div>
+      <div class="tn-pulse-item">
+        <div style="font-size:9px;color:var(--muted);margin-bottom:6px">&nbsp;</div>
+        <div class="tn-pulse-val" id="tn-pulse-net" style="color:var(--gold)">$0</div>
+        <div class="tn-pulse-label">neto después de fees</div>
+      </div>
+    </div>
+
+    <!-- Chart (full width) -->
+    <div class="fin-card" style="margin-bottom:14px">
+      <div class="fin-card-head">
+        <div class="fin-card-title">Evolución del período</div>
+        <div style="display:flex;align-items:center;gap:14px">
+          <span style="font-size:10px;color:var(--muted)" id="chart-periodo-label"></span>
+          <div style="display:flex;gap:10px;font-size:10px;color:var(--muted)">
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--green);opacity:.7;margin-right:3px;vertical-align:middle"></span>Ingresos</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--coral);opacity:.7;margin-right:3px;vertical-align:middle"></span>Gastos</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--gold);margin-right:3px;vertical-align:middle"></span>Ganancia</span>
+          </div>
+        </div>
+      </div>
+      <div class="chart-wrap" id="fin-chart"></div>
+    </div>
+
+    <!-- Transactions + Breakdowns -->
     <div class="fin-grid">
       <div class="fin-card">
         <div class="fin-card-head">
@@ -1841,15 +1934,20 @@ tr:hover .tx-del{color:var(--muted)}
           </select>
         </div>
         <div class="fin-card-body" style="overflow-x:auto">
-          <table class="tx-table"><thead><tr><th>Fecha</th><th>Concepto</th><th>Categoría</th><th>Medio</th><th>Bruto</th><th>Comisión</th><th>Neto</th><th></th></tr></thead><tbody id="tx-tbody"></tbody></table>
+          <table class="tx-table"><thead><tr><th>Fecha</th><th>Concepto</th><th>Categoría</th><th>Medio</th><th>Bruto</th><th>Fee</th><th>Neto</th><th></th></tr></thead><tbody id="tx-tbody"></tbody></table>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:14px">
-        <div class="fin-card"><div class="fin-card-head"><div class="fin-card-title">Desglose de gastos</div></div><div id="gastos-desglose"></div></div>
-        <div class="fin-card"><div class="fin-card-head"><div class="fin-card-title">Ingresos vs Gastos</div><span style="font-size:10px;color:var(--muted)" id="chart-periodo-label"></span></div><div class="chart-wrap" id="fin-chart"></div></div>
-        <div class="fin-card"><div class="fin-card-head"><div class="fin-card-title">Costos fijos del período</div></div><div id="costos-fijos-resumen" style="padding:8px 16px 12px"></div></div>
+        <div class="fin-card">
+          <div class="fin-card-head"><div class="fin-card-title">Desglose de costos</div></div>
+          <div id="gastos-desglose"></div>
+        </div>
+        <div class="fin-card">
+          <div class="fin-card-head"><div class="fin-card-title">Costos fijos del período</div></div>
+          <div id="costos-fijos-resumen" style="padding:8px 16px 12px"></div>
+        </div>
         <div class="fin-card" id="vendor-comisiones-card" style="display:none">
-          <div class="fin-card-head"><div class="fin-card-title">Comisiones de vendedores</div></div>
+          <div class="fin-card-head"><div class="fin-card-title">💰 Comisiones pendientes</div></div>
           <div id="vendor-comisiones-body" style="padding:8px 16px 12px"></div>
         </div>
       </div>
@@ -3289,15 +3387,53 @@ function renderFinanzas(){
   const ventas=txs.filter(t=>t.tipo==='ingreso').reduce((a,t)=>a+(t.unidades||0),0);
   const ticket=ingresosBrutos>0&&ventas>0?Math.round(ingresosBrutos/ventas):0;
  
+  // TN-specific metrics
+  const tnTxs=txs.filter(t=>t.tipo==='ingreso'&&t.tn_id);
+  const tnOrders=tnTxs.length;
+  const tnIng=tnTxs.reduce((a,t)=>a+t.monto,0);
+  const tnCom=tnTxs.reduce((a,t)=>a+calcComisionTx(t),0);
+  const tnEnvio=tnTxs.reduce((a,t)=>a+(parseFloat(t.tn_envio)||0),0);
+  const tnNet=tnIng-tnCom-tnEnvio;
+
+  // KPI cards
   document.getElementById('kpi-ing').textContent=fmtMoney(ingresosBrutos);
   document.getElementById('kpi-gas').textContent=fmtMoney(gastosTotal);
   document.getElementById('kpi-gan').textContent=fmtMoney(ganancia);
   document.getElementById('kpi-gan').style.color=ganancia>=0?'var(--gold)':'var(--red)';
-  document.getElementById('kpi-margen-sub').textContent='margen: '+margen+'%';
+  document.getElementById('kpi-margen-sub').textContent='margen '+margen+'%';
   document.getElementById('kpi-ads').textContent=fmtMoney(adsGasto);
   document.getElementById('kpi-ads-sub').textContent='del gasto: '+(gastosTotal>0?Math.round(adsGasto/gastosTotal*100):0)+'%';
   document.getElementById('kpi-ventas').textContent=ventas||'—';
-  document.getElementById('kpi-ticket-sub').textContent=ticket?'ticket prom: '+fmtMoney(ticket):'sin unidades';
+  document.getElementById('kpi-ticket-sub').textContent=ticket?'ticket: '+fmtMoney(ticket):'sin unidades';
+
+  // KPI mini progress bars
+  const maxKpi=Math.max(ingresosBrutos,gastosTotal,1);
+  const setBar=(id,w,clr)=>{const el=document.getElementById(id);if(el){el.style.width=Math.min(100,Math.round(w/maxKpi*100))+'%';if(clr)el.style.background=clr;}};
+  setBar('kpi-ing-bar',ingresosBrutos,'var(--green)');
+  setBar('kpi-gas-bar',gastosTotal,'var(--coral)');
+  setBar('kpi-gan-bar',Math.max(0,ganancia),ganancia>=0?'var(--gold)':'var(--red)');
+
+  // TN card
+  const tnCard=document.getElementById('kpi-tn-card');
+  if(tnCard){tnCard.style.display=tnOrders?'block':'none';}
+  const tnOrdEl=document.getElementById('kpi-tn-orders');
+  if(tnOrdEl)tnOrdEl.textContent=tnOrders;
+  const tnSubEl=document.getElementById('kpi-tn-sub');
+  if(tnSubEl)tnSubEl.textContent=tnOrders===1?'1 orden TN':tnOrders+' órdenes TN';
+
+  // TN Pulse row
+  const pulseRow=document.getElementById('tn-pulse-row');
+  if(pulseRow){
+    pulseRow.style.display=tnOrders?'grid':'none';
+    if(tnOrders){
+      document.getElementById('tn-pulse-orders').textContent=tnOrders;
+      document.getElementById('tn-pulse-ing').textContent=fmtMoney(tnIng);
+      document.getElementById('tn-pulse-com').textContent=fmtMoney(tnCom);
+      document.getElementById('tn-pulse-envio').textContent=fmtMoney(tnEnvio);
+      document.getElementById('tn-pulse-net').textContent=fmtMoney(tnNet);
+      document.getElementById('tn-pulse-net').style.color=tnNet>=0?'var(--gold)':'var(--red)';
+    }
+  }
  
   // tabla
   const tbody=document.getElementById('tx-tbody');
@@ -3699,10 +3835,13 @@ function importTNSelected(orders){
   save();
   const area=document.getElementById('tn-import-area');
   if(area)area.innerHTML=`<div style="font-size:13px;color:var(--green);padding:10px 0">✓ ${count} venta${count!==1?'s':''} importada${count!==1?'s':''} correctamente.</div>`;
-  switchFinTab('movimientos',document.querySelector('.inner-tab'));
-  renderFinanzas();
   updateTNBadge();
-  notify(`${count} ventas importadas de Tienda Nube ✓`);
+  notify(`🛍️ ${count} venta${count!==1?'s':''} importada${count!==1?'s':''} de Tienda Nube`);
+  // Navigate to Finanzas → Movimientos to see them
+  setTimeout(()=>{
+    sbNav('finanzas','finanzas',document.getElementById('sbi-finanzas'));
+    setTimeout(()=>{switchFinTab('movimientos',document.querySelector('#fin-tabs .inner-tab'));renderFinanzas();},150);
+  },800);
 }
 
 function upsertCRMFromTN(order,fecha,total){
@@ -3763,21 +3902,40 @@ function renderFinChart(desde,hasta){
     }
   }
   const data=buckets.map(b=>{
-    const ing=(S.finanzas||[]).filter(t=>t.tipo==='ingreso'&&t.fecha>=b.desde&&t.fecha<=b.hasta).reduce((a,t)=>a+t.monto,0);
-    const gas=(S.finanzas||[]).filter(t=>t.tipo==='gasto'&&t.fecha>=b.desde&&t.fecha<=b.hasta).reduce((a,t)=>a+t.monto,0);
-    return{...b,ing,gas};
+    const bTxs=(S.finanzas||[]).filter(t=>t.fecha>=b.desde&&t.fecha<=b.hasta);
+    const ing=bTxs.filter(t=>t.tipo==='ingreso').reduce((a,t)=>a+t.monto,0);
+    const gas=bTxs.filter(t=>t.tipo==='gasto').reduce((a,t)=>a+t.monto,0);
+    const coms=bTxs.filter(t=>t.tipo==='ingreso').reduce((a,t)=>a+calcComisionTx(t),0);
+    const gan=ing-(gas+coms);
+    return{...b,ing,gas,gan};
   });
-  const maxVal=Math.max(...data.map(d=>Math.max(d.ing,d.gas)),1);
+  const maxVal=Math.max(...data.map(d=>Math.max(d.ing,d.gas,Math.abs(d.gan||0))),1);
+  const CH=110; // chart height px
+  const toH=v=>Math.max(2,Math.round(Math.abs(v)/maxVal*CH));
   document.getElementById('chart-periodo-label').textContent=diffDays<=35?'por semana':'por mes';
-  chart.innerHTML=`<div class="chart-bars">${data.map(d=>`
-    <div class="chart-bar-col">
-      <div class="chart-bar" style="height:${Math.round(d.ing/maxVal*72)}px;background:var(--green);opacity:.7" title="Ingresos: ${fmtMoney(d.ing)}"></div>
-      <div class="chart-bar" style="height:${Math.round(d.gas/maxVal*72)}px;background:var(--coral);opacity:.7" title="Gastos: ${fmtMoney(d.gas)}"></div>
-      <div class="chart-bar-label">${d.label}</div>
-    </div>`).join('')}</div>
-  <div style="display:flex;gap:14px;padding:6px 0 0;font-size:10px;color:var(--muted)">
-    <span><span style="width:8px;height:8px;border-radius:2px;background:var(--green);opacity:.7;display:inline-block;margin-right:4px"></span>Ingresos</span>
-    <span><span style="width:8px;height:8px;border-radius:2px;background:var(--coral);opacity:.7;display:inline-block;margin-right:4px"></span>Gastos</span>
+
+  // Grid lines at 25%, 50%, 75%, 100%
+  const gridLines=[0.25,0.5,0.75,1].map(p=>{
+    const y=Math.round((1-p)*CH);
+    return`<div class="chart-gridline" style="bottom:${Math.round(p*CH)}px;opacity:.35"></div>`;
+  }).join('');
+
+  const bars=data.map(d=>{
+    const ganPos=Math.max(0,d.gan||0);
+    const ganNeg=Math.min(0,d.gan||0);
+    const ganColor=ganPos>0?'var(--gold)':'var(--red)';
+    return`<div style="display:flex;flex-direction:column;align-items:center;gap:0;flex:1;min-width:0">
+      <div style="display:flex;align-items:flex-end;gap:2px;height:${CH}px;width:100%;justify-content:center">
+        <div class="chart-bar" style="height:${toH(d.ing)}px;background:var(--green);opacity:.65;flex:1" title="Ingresos ${d.label}: ${fmtMoney(d.ing)}"></div>
+        <div class="chart-bar" style="height:${toH(d.gas)}px;background:var(--coral);opacity:.65;flex:1" title="Gastos ${d.label}: ${fmtMoney(d.gas)}"></div>
+        <div class="chart-bar" style="height:${toH(ganPos||Math.abs(ganNeg))}px;background:${ganColor};opacity:.85;flex:1" title="Ganancia ${d.label}: ${fmtMoney(d.gan||0)}"></div>
+      </div>
+      <div class="chart-bar-label" style="margin-top:5px;font-size:9px;color:var(--muted)">${d.label}</div>
+    </div>`;
+  }).join('');
+
+  chart.innerHTML=`<div style="position:relative">
+    <div class="chart-bars" style="height:${CH}px">${gridLines}${bars}</div>
   </div>`;
 }
  
