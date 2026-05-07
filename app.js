@@ -90,6 +90,43 @@ app.get("/api/mp/success", (req, res) => {
   res.redirect("/?payment=success")
 })
 
+// ── Tienda Nube ──────────────────────────────────────────────────────────────
+const TN_STORE_ID = process.env.TN_STORE_ID || "31250"
+const TN_TOKEN    = process.env.TN_TOKEN    || "747a564acf2fad835b6021e2928b5af84743f706b91c5643"
+
+app.get("/api/tn/orders", async (req, res) => {
+  const { desde, hasta, page = 1 } = req.query
+  try {
+    const params = new URLSearchParams({
+      payment_status: "paid",
+      per_page: 200,
+      page,
+      fields: "id,number,created_at,total,currency,gateway,payment_details,customer,products"
+    })
+    if (desde) params.set("created_at_min", new Date(desde).toISOString())
+    if (hasta) params.set("created_at_max", new Date(hasta + "T23:59:59").toISOString())
+
+    const r = await fetch(
+      `https://api.tiendanube.com/v1/${TN_STORE_ID}/orders?${params}`,
+      {
+        headers: {
+          "Authentication": `bearer ${TN_TOKEN}`,
+          "User-Agent": "VELDOS/1.0 (soporte@veldos.app)",
+          "Content-Type": "application/json"
+        }
+      }
+    )
+    if (!r.ok) {
+      const txt = await r.text()
+      return res.status(r.status).json({ error: txt })
+    }
+    const data = await r.json()
+    res.json(Array.isArray(data) ? data : [])
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
 if (require.main === module) {
   app.listen(process.env.PORT || 3000, function(){
     console.log("VELD OS — servidor iniciado en puerto " + (process.env.PORT || 3000))
