@@ -153,6 +153,7 @@ app.get("/api/tn/orders", async (req, res) => {
         }
       }
     )
+    if (r.status === 404) return res.json([]) // No orders in period
     if (!r.ok) {
       const txt = await r.text()
       return res.status(r.status).json({ error: txt })
