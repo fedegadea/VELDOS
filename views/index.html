@@ -3766,8 +3766,8 @@ function renderTNPreview(orders, totalFetched){
         <tbody>${rows}</tbody>
       </table>
     </div>
-    <button class="btn btn-primary" onclick="importTNSelected(${JSON.stringify(orders).replace(/</g,'\\u003c')})">
-      ✓ Importar seleccionadas
+    <button class="btn btn-primary" style="padding:10px 24px;font-size:13px" onclick="importTNSelected(window._tnPendingOrders)">
+      ✓ Importar seleccionadas a Finanzas
     </button>`;
 
   // Store orders for import
