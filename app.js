@@ -101,7 +101,7 @@ app.get("/api/tn/orders", async (req, res) => {
       payment_status: "paid",
       per_page: 200,
       page,
-      fields: "id,number,created_at,total,currency,gateway,payment_details,customer,products"
+      fields: "id,number,created_at,total,currency,gateway,payment_details,customer,products,shipping_cost_owner,shipping_address"
     })
     if (desde) params.set("created_at_min", new Date(desde).toISOString())
     if (hasta) params.set("created_at_max", new Date(hasta + "T23:59:59").toISOString())
@@ -123,6 +123,132 @@ app.get("/api/tn/orders", async (req, res) => {
     res.json(Array.isArray(data) ? data : [])
   } catch (e) {
     res.status(500).json({ error: e.message })
+  }
+})
+
+// Register TN webhook and store workspace ID
+app.post("/api/tn/activate", async (req, res) => {
+  const { wsId } = req.body
+  if (!wsId) return res.status(400).json({ error: "wsId required" })
+  try {
+    // Register webhook with TN
+    const r = await fetch(`https://api.tiendanube.com/2025-03/${TN_STORE_ID}/webhooks`, {
+      method: "POST",
+      headers: {
+        "Authentication": `bearer ${TN_TOKEN}`,
+        "User-Agent": "VELDOS (soporte@veldos.app)",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        event: "order/paid",
+        url: (process.env.BASE_URL || "https://veldos-bjvr.vercel.app") + "/api/tn/webhook"
+      })
+    })
+    // Store wsId in Supabase (patch the workspace data)
+    const SUPA_URL = "https://vlkxtrqktdcfqmebrtwa.supabase.co"
+    const SUPA_KEY = process.env.SUPA_SERVICE_KEY || ""
+    // Get current workspace data
+    const wsRes = await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${wsId}&select=data`, {
+      headers: { "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY }
+    })
+    const wsRows = await wsRes.json()
+    if (wsRows?.[0]) {
+      const data = { ...(wsRows[0].data || {}), tnWebhookActive: true, tnWebhookWsId: wsId }
+      await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${wsId}`, {
+        method: "PATCH",
+        headers: {
+          "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY,
+          "Content-Type": "application/json", "Prefer": "return=minimal"
+        },
+        body: JSON.stringify({ data })
+      })
+    }
+    res.json({ ok: true })
+  } catch(e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// TN webhook — auto-import paid orders
+app.post("/api/tn/webhook", async (req, res) => {
+  res.sendStatus(200) // Respond immediately to TN
+  const { event, id: orderId } = req.body
+  if (event !== "order/paid" || !orderId) return
+  try {
+    // Fetch order from TN API
+    const oRes = await fetch(
+      `https://api.tiendanube.com/2025-03/${TN_STORE_ID}/orders/${orderId}`,
+      { headers: { "Authentication": `bearer ${TN_TOKEN}`, "User-Agent": "VELDOS (soporte@veldos.app)" } }
+    )
+    if (!oRes.ok) return
+    const o = await oRes.json()
+    // Find workspace with tnWebhookActive
+    const SUPA_URL = "https://vlkxtrqktdcfqmebrtwa.supabase.co"
+    const SUPA_KEY = process.env.SUPA_SERVICE_KEY || ""
+    const wsRes = await fetch(`${SUPA_URL}/rest/v1/workspaces?select=id,data`, {
+      headers: { "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY }
+    })
+    const allWs = await wsRes.json()
+    const target = (allWs || []).find(w => w.data?.tnWebhookActive)
+    if (!target) return
+    const data = target.data
+    if (!data.finanzas) data.finanzas = []
+    // Check dedup
+    if (data.finanzas.find(t => String(t.tn_id) === String(o.id))) return
+    // Map gateway
+    const g = (o.gateway || "").toLowerCase()
+    const medioPago = g.includes("mercado") ? "Mercado Pago" : g.includes("nuvem") || g.includes("nube") ? "Pago Nube" : g.includes("transfer") ? "transferencia" : g.includes("cash") || g.includes("efectivo") ? "Efectivo" : o.gateway || "Otro"
+    const fecha = (o.created_at || "").slice(0, 10)
+    const cliente = o.customer?.name || o.customer?.email || "Cliente TN"
+    const productos = (o.products || []).map(p => p.name).join(", ") || "Venta"
+    data.finanzas.push({
+      tipo: "ingreso", fecha,
+      concepto: `TN #${o.number} — ${cliente}`,
+      categoria: "Ventas tienda",
+      monto: parseFloat(o.total) || 0,
+      medioPago, cuotas: 1,
+      unidades: (o.products || []).reduce((a, p) => a + (p.quantity || 1), 0),
+      notas: productos,
+      tn_id: o.id,
+      tn_envio: parseFloat(o.shipping_cost_owner || 0)
+    })
+    // CRM upsert
+    if (o.customer) {
+      if (!data.crm) data.crm = []
+      const email = o.customer.email || ""
+      const existing = email ? data.crm.find(c => c.email === email || c.tn_customer_id === o.customer.id) : null
+      if (existing) {
+        existing.valor = (parseFloat(existing.valor) || 0) + parseFloat(o.total || 0)
+        existing.cantCompras = (parseInt(existing.cantCompras) || 0) + 1
+        existing.compra = fecha
+      } else {
+        data.crm.push({
+          nombre: o.customer.name || "Cliente TN", email,
+          tel: o.customer.phone || "", ig: "",
+          estado: "Cliente", tipo: "cliente",
+          valor: parseFloat(o.total) || 0,
+          ultContacto: fecha, compra: fecha, cantCompras: 1,
+          canal: "Tienda Nube",
+          ciudad: o.shipping_address?.city || "",
+          provincia: o.shipping_address?.province || "",
+          marketing: "", newsletter: "no", tags: "tiendanube",
+          notas: "Importado automáticamente desde Tienda Nube",
+          creado: new Date().toISOString().slice(0, 10),
+          tn_customer_id: o.customer.id
+        })
+      }
+    }
+    // Save back to Supabase
+    await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${target.id}`, {
+      method: "PATCH",
+      headers: {
+        "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY,
+        "Content-Type": "application/json", "Prefer": "return=minimal"
+      },
+      body: JSON.stringify({ data })
+    })
+  } catch(e) {
+    console.error("TN webhook error:", e)
   }
 })
 

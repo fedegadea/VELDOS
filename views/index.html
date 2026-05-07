@@ -1048,6 +1048,9 @@ tr:hover .tx-del{color:var(--muted)}
   <nav class="nav-tabs" id="nav-stock" style="display:none">
     <button class="nav-tab active" onclick="switchPage('stock',this)">Inventario</button>
   </nav>
+  <nav class="nav-tabs" id="nav-integraciones" style="display:none">
+    <button class="nav-tab active" onclick="switchPage('integraciones',this)">Integraciones</button>
+  </nav>
   <div class="week-badge" id="week-label"></div>
   <button onclick="toggleTheme()" id="theme-btn" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:7px;cursor:pointer;flex-shrink:0">☀️ Light</button>
   <button onclick="authLogout()" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:7px;cursor:pointer;flex-shrink:0">Salir</button>
@@ -1073,16 +1076,11 @@ tr:hover .tx-del{color:var(--muted)}
   <div class="sb-divider"></div>
   <div class="sb-section">
     <span class="sb-section-label">Negocio</span>
-    <button class="sb-item" id="sbi-finanzas" onclick="sbNav('finanzas','finanzas',this)">
-      <span class="sb-item-icon">💰</span>
-      <span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">
-        Finanzas
-        <span id="tn-nav-badge" style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">🛍️ Tienda Nube</span>
-      </span>
-    </button>
+    <button class="sb-item" id="sbi-finanzas" onclick="sbNav('finanzas','finanzas',this)"><span class="sb-item-icon">💰</span>Finanzas</button>
     <button class="sb-item" id="sbi-operaciones" onclick="sbNav('operaciones','operaciones',this)"><span class="sb-item-icon">⚙️</span>Operaciones</button>
     <button class="sb-item" id="sbi-crm" onclick="sbNav('crm','crm',this)"><span class="sb-item-icon">👤</span>CRM</button>
     <button class="sb-item" id="sbi-stock" onclick="sbNav('stock','stock',this)"><span class="sb-item-icon">📦</span>Stock</button>
+    <button class="sb-item" id="sbi-integraciones" onclick="sbNav('integraciones','integraciones',this)"><span class="sb-item-icon">🔗</span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Integraciones<span id="tn-nav-badge" style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">🛍️ Tienda Nube</span></span></button>
     <button class="sb-item" id="sbi-hojas" onclick="sbNav('hojas','hojas',this)"><span class="sb-item-icon">📁</span>Hojas</button>
   </div>
   <div class="sb-bottom">
@@ -1941,22 +1939,6 @@ tr:hover .tx-del{color:var(--muted)}
         </div>
       </div>
  
-      <!-- Tienda Nube -->
-      <div class="fin-card" style="grid-column:1/-1">
-        <div class="fin-card-head">
-          <div class="fin-card-title">🛍️ Importar ventas de Tienda Nube <span style="font-size:10px;font-weight:300;color:var(--muted)">— solo órdenes con pago confirmado</span></div>
-          <span id="tn-status" style="font-size:11px;color:var(--green);font-weight:500"></span>
-        </div>
-        <div class="fin-card-body" style="padding:12px 16px">
-          <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
-            <div class="form-group" style="margin:0;min-width:130px"><label class="form-label">Desde</label><input class="form-input" id="tn-desde" type="date"></div>
-            <div class="form-group" style="margin:0;min-width:130px"><label class="form-label">Hasta</label><input class="form-input" id="tn-hasta" type="date"></div>
-            <button class="btn btn-primary" onclick="fetchTNOrders()" id="tn-import-btn">Traer órdenes</button>
-          </div>
-          <div id="tn-import-area" style="margin-top:14px"></div>
-        </div>
-      </div>
-
       <!-- Impuestos monotributo -->
       <div class="fin-card">
         <div class="fin-card-head"><div class="fin-card-title">Impuestos / Monotributo</div></div>
@@ -1974,6 +1956,80 @@ tr:hover .tx-del{color:var(--muted)}
  
 </div>
  
+<!-- ══ INTEGRACIONES ══ -->
+<div class="page" id="page-integraciones">
+  <div class="sec-head">
+    <div class="sec-title">Integraciones<small>Conectá tus plataformas a VELDOS</small></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+    <!-- Tienda Nube card -->
+    <div class="fin-card" style="grid-column:1/-1">
+      <div class="fin-card-head" style="padding:20px 20px 16px">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="font-size:32px;line-height:1">🛍️</div>
+          <div>
+            <div style="font-size:16px;font-weight:600;color:var(--text)">Tienda Nube</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Importá ventas, clientes y métricas de rentabilidad</div>
+          </div>
+        </div>
+        <span id="tn-conn-badge" style="font-size:11px;padding:4px 12px;border-radius:20px;font-weight:500;background:var(--s3);color:var(--muted)">Verificando…</span>
+      </div>
+      <div style="padding:0 20px 20px;display:flex;flex-direction:column;gap:20px">
+
+        <!-- Import section -->
+        <div style="border:1px solid var(--border2);border-radius:10px;padding:16px">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">📥 Importar ventas</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Solo importa órdenes con pago confirmado · No reimporta duplicados</div>
+          <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+            <div class="form-group" style="margin:0;min-width:130px"><label class="form-label">Desde</label><input class="form-input" id="tn-desde" type="date"></div>
+            <div class="form-group" style="margin:0;min-width:130px"><label class="form-label">Hasta</label><input class="form-input" id="tn-hasta" type="date"></div>
+            <button class="btn btn-primary" onclick="fetchTNOrders()" id="tn-import-btn">Traer órdenes</button>
+          </div>
+          <div id="tn-import-area" style="margin-top:14px"></div>
+        </div>
+
+        <!-- Webhook section -->
+        <div style="border:1px solid var(--border2);border-radius:10px;padding:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">⚡ Sincronización automática</div>
+              <div style="font-size:11px;color:var(--muted)">Cada venta se importa sola al instante, sin apretar nada</div>
+            </div>
+            <div id="tn-webhook-area">
+              <button class="btn btn-primary" id="tn-webhook-btn" onclick="activarTNWebhook()">Activar webhook</button>
+            </div>
+          </div>
+          <div id="tn-webhook-status" style="margin-top:10px;font-size:11px;color:var(--muted)"></div>
+        </div>
+
+        <!-- Stats -->
+        <div id="tn-int-stats" style="display:flex;gap:16px;flex-wrap:wrap"></div>
+      </div>
+    </div>
+
+    <!-- Coming soon cards -->
+    <div class="fin-card" style="opacity:.6">
+      <div class="fin-card-head">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="font-size:24px">📊</div>
+          <div><div style="font-size:14px;font-weight:600">Meta Ads</div><div style="font-size:11px;color:var(--muted)">Importá gasto en ads automáticamente</div></div>
+        </div>
+        <span style="font-size:10px;padding:3px 10px;border-radius:20px;background:var(--s3);color:var(--muted)">Próximamente</span>
+      </div>
+    </div>
+    <div class="fin-card" style="opacity:.6">
+      <div class="fin-card-head">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="font-size:24px">📦</div>
+          <div><div style="font-size:14px;font-weight:600">MercadoLibre</div><div style="font-size:11px;color:var(--muted)">Sincronizá ventas de ML</div></div>
+        </div>
+        <span style="font-size:10px;padding:3px 10px;border-radius:20px;background:var(--s3);color:var(--muted)">Próximamente</span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ══ OPERACIONES ══ -->
 <div class="page" id="page-operaciones">
   <div class="sec-head">
@@ -2089,7 +2145,7 @@ function _wsToRow(ws){
 async function supaLoadAll(){
   const rows=await supaFetch('/rest/v1/workspaces?select=*&order=created_at.asc');
   const all=(rows||[]).map(_rowToWs);
-  if(_authUser?.email) return all.filter(ws=>!ws.owner||ws.owner===_authUser.email);
+  if(_authUser?.email){const e=_authUser.email;return all.filter(ws=>!ws.owner||ws.owner===e||(ws.data?.sharedWith||[]).includes(e));}
   return all;
 }
 async function supaUpsert(ws){
@@ -2577,7 +2633,7 @@ function sbNav(area,page,el){
     return;
   }
   // Activate area (without toggling dropdown)
-  const pageMap={marketing:'checklist',finanzas:'finanzas',operaciones:'operaciones',crm:'crm',hojas:'hojas'};
+  const pageMap={marketing:'checklist',finanzas:'finanzas',operaciones:'operaciones',crm:'crm',hojas:'hojas',integraciones:'integraciones'};
   document.getElementById('area-label').textContent=area.charAt(0).toUpperCase()+area.slice(1);
   document.querySelectorAll('[id^="nav-"]').forEach(n=>n.style.display='none');
   const nav=document.getElementById('nav-'+area);
@@ -2593,6 +2649,7 @@ function sbNav(area,page,el){
   if(area==='crm'){if(!S.crm)S.crm=[];renderCRM();}
   if(area==='hojas'){if(!S.customViews)S.customViews=[];renderHojas();}
   if(area==='stock'){if(!S.stock)S.stock=[];renderStock();}
+  if(area==='integraciones')renderIntegraciones();
   render();
   updateUrl();
 }
@@ -3166,7 +3223,7 @@ function switchFinTab(id,btn){
   if(id==='movimientos')renderFinanzas();
   if(id==='presupuesto')renderPresupuesto();
   if(id==='capital')loadCapitalFields();
-  if(id==='config'){renderMediosPago();renderCostosFijos();loadTaxConfig();initTNDates();}
+  if(id==='config'){renderMediosPago();renderCostosFijos();loadTaxConfig();}
 }
  
 function fmtDate(d){return d.toISOString().split('T')[0];}
@@ -3375,16 +3432,68 @@ function retirarComisionVendedor(nombre){
 }
 
 // ── Tienda Nube import ───────────────────────────────────────────────────────
+function renderIntegraciones(){
+  // Connection badge
+  const badge=document.getElementById('tn-conn-badge');
+  if(badge){badge.textContent='✅ Conectada';badge.style.background='rgba(77,184,138,.15)';badge.style.color='var(--green)';}
+  // Stats
+  const stats=document.getElementById('tn-int-stats');
+  const tnTxs=(S.finanzas||[]).filter(t=>t.tn_id);
+  if(stats){
+    if(tnTxs.length){
+      const total=tnTxs.reduce((a,t)=>a+t.monto,0);
+      const last=tnTxs.map(t=>t.fecha).sort().reverse()[0];
+      stats.innerHTML=`
+        <div class="kpi-card" style="flex:1;min-width:120px"><div class="kpi-label">Ventas importadas</div><div class="kpi-value" style="color:var(--purple)">${tnTxs.length}</div><div class="kpi-sub">de Tienda Nube</div></div>
+        <div class="kpi-card" style="flex:1;min-width:120px"><div class="kpi-label">Facturación TN</div><div class="kpi-value" style="color:var(--green)">${fmtMoney(total)}</div><div class="kpi-sub">total importado</div></div>
+        <div class="kpi-card" style="flex:1;min-width:120px"><div class="kpi-label">Última importación</div><div class="kpi-value" style="color:var(--text);font-size:18px">${last||'—'}</div><div class="kpi-sub">fecha de la venta</div></div>`;
+    } else {
+      stats.innerHTML='';
+    }
+  }
+  // Webhook status
+  const wStatus=document.getElementById('tn-webhook-status');
+  const wBtn=document.getElementById('tn-webhook-btn');
+  if(S.data?.tnWebhookActive){
+    if(wStatus)wStatus.innerHTML=`<span style="color:var(--green)">⚡ Webhook activo</span> — las ventas se importan automáticamente al instante`;
+    if(wBtn){wBtn.textContent='Desactivar webhook';wBtn.style.background='var(--s3)';wBtn.style.color='var(--muted)';}
+  } else {
+    if(wStatus)wStatus.textContent='';
+    if(wBtn){wBtn.textContent='Activar webhook';wBtn.style.background='';wBtn.style.color='';}
+  }
+  // Init dates
+  initTNDates();
+  updateTNBadge();
+}
+
 function updateTNBadge(){
   const badge=document.getElementById('tn-nav-badge');
   if(!badge)return;
   const tnTxs=(S.finanzas||[]).filter(t=>t.tn_id);
-  if(tnTxs.length){
-    badge.style.color='var(--green)';
-    badge.textContent='🛍️ TN activa · '+tnTxs.length+' venta'+(tnTxs.length!==1?'s':'');
-  } else {
-    badge.style.color='var(--muted)';
-    badge.textContent='🛍️ Tienda Nube';
+  if(tnTxs.length){badge.style.color='var(--green)';badge.textContent='🛍️ TN activa · '+tnTxs.length+' ventas';}
+  else{badge.style.color='var(--muted)';badge.textContent='🛍️ Tienda Nube';}
+}
+
+async function activarTNWebhook(){
+  const btn=document.getElementById('tn-webhook-btn');
+  if(S.data?.tnWebhookActive){
+    // Deactivate
+    if(!confirm('¿Desactivar el webhook automático?'))return;
+    S.data.tnWebhookActive=false;
+    save();renderIntegraciones();notify('Webhook desactivado');
+    return;
+  }
+  if(btn)btn.disabled=true;
+  try{
+    const r=await fetch('/api/tn/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId:_activeWsId})});
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error activando webhook');
+    S.data.tnWebhookActive=true;
+    save();renderIntegraciones();notify('⚡ Webhook activado — tus ventas se importarán automáticamente');
+  }catch(e){
+    notify('Error: '+e.message);
+  }finally{
+    if(btn)btn.disabled=false;
   }
 }
 function initTNDates(){
@@ -3540,8 +3649,10 @@ function importTNSelected(orders){
       unidades:(o.products||[]).reduce((a,p)=>a+(p.quantity||1),0),
       notas:productos,
       tn_id:o.id,
+      tn_envio:parseFloat(o.shipping_cost_owner||0),
       comisionVendedor:comisionVendedor||undefined
     });
+    if(o.customer)upsertCRMFromTN(o,fecha,total);
     count++;
   });
   if(!count){notify('No seleccionaste ninguna orden');return;}
@@ -3552,6 +3663,41 @@ function importTNSelected(orders){
   renderFinanzas();
   updateTNBadge();
   notify(`${count} ventas importadas de Tienda Nube ✓`);
+}
+
+function upsertCRMFromTN(order,fecha,total){
+  if(!order.customer)return;
+  if(!S.crm)S.crm=[];
+  const email=order.customer.email||'';
+  const existing=email?S.crm.find(c=>c.email===email||c.tn_customer_id===order.customer.id):null;
+  if(existing){
+    existing.valor=(parseFloat(existing.valor)||0)+total;
+    existing.cantCompras=(parseInt(existing.cantCompras)||0)+1;
+    existing.compra=fecha;
+    existing.tn_customer_id=order.customer.id;
+  } else {
+    S.crm.push({
+      nombre:order.customer.name||'Cliente TN',
+      email,
+      tel:order.customer.phone||'',
+      ig:'',
+      estado:'Cliente',
+      tipo:'cliente',
+      valor:total,
+      ultContacto:fecha,
+      compra:fecha,
+      cantCompras:1,
+      canal:'Tienda Nube',
+      ciudad:order.shipping_address?.city||'',
+      provincia:order.shipping_address?.province||'',
+      marketing:'',
+      newsletter:'no',
+      tags:'tiendanube',
+      notas:'Importado automáticamente desde Tienda Nube',
+      creado:fmtDate(new Date()),
+      tn_customer_id:order.customer.id
+    });
+  }
 }
 
 function renderFinChart(desde,hasta){
