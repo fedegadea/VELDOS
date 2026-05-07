@@ -94,7 +94,7 @@ app.get("/api/mp/success", (req, res) => {
 const TN_CLIENT_ID     = process.env.TN_CLIENT_ID     || "31250"
 const TN_CLIENT_SECRET = process.env.TN_CLIENT_SECRET || "747a564acf2fad835b6021e2928b5af84743f706b91c5643"
 const TN_STORE_ID      = process.env.TN_STORE_ID      || "7669167"
-let   TN_TOKEN         = process.env.TN_TOKEN         || "4f3f5efacbde70dc0943a7c43099753fddb04273"
+let   TN_TOKEN         = process.env.TN_TOKEN         || "09d8ecb7e8e46f4ad9d786039462e7d0d8bc4f42"
 
 // OAuth callback — Tiendanube redirige acá con el código de autorización
 app.get("/api/tn/callback", async (req, res) => {
