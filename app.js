@@ -117,11 +117,13 @@ async function patchWorkspace(wsId, data) {
 }
 
 // Step 1: Redirect user to TN OAuth page with wsId in state
+// The `store` param is the subdomain (e.g. "mitienda" from mitienda.mitiendanube.com)
 app.get("/api/tn/connect", (req, res) => {
-  const { wsId } = req.query
+  const { wsId, store } = req.query
   if (!wsId) return res.status(400).send("<h2>Error: wsId requerido</h2>")
-  const scope = "read_orders read_customers write_products"
-  const authUrl = `https://www.tiendanube.com/apps/${TN_CLIENT_ID}/authorize?scope=${encodeURIComponent(scope)}&state=${encodeURIComponent(wsId)}`
+  if (!store) return res.status(400).send("<h2>Error: subdominio de tienda requerido</h2>")
+  // Redirect directly to the store's admin authorization page
+  const authUrl = `https://${encodeURIComponent(store)}.mitiendanube.com/admin/apps/${TN_CLIENT_ID}/authorize?state=${encodeURIComponent(wsId)}`
   res.redirect(authUrl)
 })
 
@@ -147,9 +149,22 @@ app.get("/api/tn/callback", async (req, res) => {
     if (wsId) {
       const ws = await getWorkspace(wsId)
       if (ws) {
+        // Try to fetch store name from TN API
+        let storeName = ""
+        try {
+          const sRes = await fetch(`https://api.tiendanube.com/2025-03/${data.user_id}/store`, {
+            headers: { "Authentication": `bearer ${data.access_token}`, "User-Agent": "VELDOS (soporte@veldos.app)" }
+          })
+          if (sRes.ok) {
+            const sData = await sRes.json()
+            storeName = (sData.name?.es || sData.name?.pt || Object.values(sData.name||{})[0] || "").slice(0,60)
+          }
+        } catch(e) { /* ignore, storeName stays empty */ }
+
         const wsData = { ...(ws.data || {}), tnIntegration: {
           storeId: String(data.user_id),
           token: data.access_token,
+          storeName,
           connectedAt: new Date().toISOString()
         }}
         await patchWorkspace(wsId, wsData)

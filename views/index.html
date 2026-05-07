@@ -1975,37 +1975,7 @@ tr:hover .tx-del{color:var(--muted)}
         </div>
         <span id="tn-conn-badge" style="font-size:11px;padding:4px 12px;border-radius:20px;font-weight:500;background:var(--s3);color:var(--muted)">Verificando…</span>
       </div>
-      <div style="padding:0 20px 20px;display:flex;flex-direction:column;gap:20px">
-
-        <!-- Import section -->
-        <div style="border:1px solid var(--border2);border-radius:10px;padding:16px">
-          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">📥 Importar ventas</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Solo importa órdenes con pago confirmado · No reimporta duplicados</div>
-          <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
-            <div class="form-group" style="margin:0;min-width:130px"><label class="form-label">Desde</label><input class="form-input" id="tn-desde" type="date"></div>
-            <div class="form-group" style="margin:0;min-width:130px"><label class="form-label">Hasta</label><input class="form-input" id="tn-hasta" type="date"></div>
-            <button class="btn btn-primary" onclick="fetchTNOrders()" id="tn-import-btn">Traer órdenes</button>
-          </div>
-          <div id="tn-import-area" style="margin-top:14px"></div>
-        </div>
-
-        <!-- Webhook section -->
-        <div style="border:1px solid var(--border2);border-radius:10px;padding:16px">
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-            <div>
-              <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">⚡ Sincronización automática</div>
-              <div style="font-size:11px;color:var(--muted)">Cada venta se importa sola al instante, sin apretar nada</div>
-            </div>
-            <div id="tn-webhook-area">
-              <button class="btn btn-primary" id="tn-webhook-btn" onclick="activarTNWebhook()">Activar webhook</button>
-            </div>
-          </div>
-          <div id="tn-webhook-status" style="margin-top:10px;font-size:11px;color:var(--muted)"></div>
-        </div>
-
-        <!-- Stats -->
-        <div id="tn-int-stats" style="display:flex;gap:16px;flex-wrap:wrap"></div>
-      </div>
+      <div id="tn-card-body" style="padding:0 20px 20px"></div>
     </div>
 
     <!-- Coming soon cards -->
@@ -2472,6 +2442,16 @@ async function _loadWorkspacesAndRender(){
   } else {
     // Supabase falló → fallback local
     WORKSPACES=_localLoad();
+  }
+
+  // Handle TN OAuth redirect back
+  const _tnParams=new URLSearchParams(window.location.search);
+  if(_tnParams.get('tn_connected')==='1'){
+    history.replaceState({},'',window.location.pathname);
+    setTimeout(()=>{
+      sbNav('integraciones','integraciones',document.getElementById('sbi-integraciones'));
+      notify('🛍️ Tienda Nube conectada correctamente');
+    },600);
   }
 
   // URL nav: if shared link has ?ws=id, try to open that workspace
@@ -3433,35 +3413,78 @@ function retirarComisionVendedor(nombre){
 
 // ── Tienda Nube import ───────────────────────────────────────────────────────
 function renderIntegraciones(){
-  // Connection badge
+  const body=document.getElementById('tn-card-body');
   const badge=document.getElementById('tn-conn-badge');
+  if(!body)return;
+  const tn=S.tnIntegration;
+
+  if(!tn){
+    // Not connected
+    if(badge){badge.textContent='No conectada';badge.style.background='var(--s3)';badge.style.color='var(--muted)';}
+    body.innerHTML=`
+      <div style="text-align:center;padding:32px 20px">
+        <div style="font-size:44px;margin-bottom:14px">🛍️</div>
+        <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">Conectá tu Tienda Nube</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:24px;max-width:380px;margin-left:auto;margin-right:auto;line-height:1.6">Ingresá el subdominio de tu tienda para vincularla a este proyecto. Las ventas se importarán automáticamente.</div>
+        <div style="display:flex;align-items:center;gap:0;max-width:360px;margin:0 auto 8px;border:1px solid var(--border2);border-radius:9px;overflow:hidden;background:var(--s2)">
+          <input id="tn-store-input" type="text" placeholder="mitienda"
+            style="flex:1;border:none;background:transparent;padding:11px 14px;font-size:13px;color:var(--text);outline:none"
+            onkeydown="if(event.key==='Enter')connectTN()"
+          />
+          <span style="padding:0 10px 0 2px;font-size:12px;color:var(--muted);white-space:nowrap">.mitiendanube.com</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:16px">Por ejemplo: si tu tienda es <em>moda.mitiendanube.com</em>, ingresá <strong>moda</strong></div>
+        <button class="btn btn-primary" style="padding:11px 28px;font-size:14px" onclick="connectTN()">🔗 Conectar tienda</button>
+      </div>`;
+    updateTNBadge();
+    return;
+  }
+
+  // Connected
   if(badge){badge.textContent='✅ Conectada';badge.style.background='rgba(77,184,138,.15)';badge.style.color='var(--green)';}
-  // Stats
-  const stats=document.getElementById('tn-int-stats');
   const tnTxs=(S.finanzas||[]).filter(t=>t.tn_id);
-  if(stats){
-    if(tnTxs.length){
-      const total=tnTxs.reduce((a,t)=>a+t.monto,0);
-      const last=tnTxs.map(t=>t.fecha).sort().reverse()[0];
-      stats.innerHTML=`
-        <div class="kpi-card" style="flex:1;min-width:120px"><div class="kpi-label">Ventas importadas</div><div class="kpi-value" style="color:var(--purple)">${tnTxs.length}</div><div class="kpi-sub">de Tienda Nube</div></div>
-        <div class="kpi-card" style="flex:1;min-width:120px"><div class="kpi-label">Facturación TN</div><div class="kpi-value" style="color:var(--green)">${fmtMoney(total)}</div><div class="kpi-sub">total importado</div></div>
-        <div class="kpi-card" style="flex:1;min-width:120px"><div class="kpi-label">Última importación</div><div class="kpi-value" style="color:var(--text);font-size:18px">${last||'—'}</div><div class="kpi-sub">fecha de la venta</div></div>`;
-    } else {
-      stats.innerHTML='';
-    }
-  }
-  // Webhook status
-  const wStatus=document.getElementById('tn-webhook-status');
-  const wBtn=document.getElementById('tn-webhook-btn');
-  if(S.tnWebhookActive){
-    if(wStatus)wStatus.innerHTML=`<span style="color:var(--green)">⚡ Webhook activo</span> — las ventas se importan automáticamente al instante`;
-    if(wBtn){wBtn.textContent='Desactivar webhook';wBtn.style.background='var(--s3)';wBtn.style.color='var(--muted)';}
-  } else {
-    if(wStatus)wStatus.textContent='';
-    if(wBtn){wBtn.textContent='Activar webhook';wBtn.style.background='';wBtn.style.color='';}
-  }
-  // Init dates
+  const total=tnTxs.reduce((a,t)=>a+t.monto,0);
+  const last=tnTxs.map(t=>t.fecha).sort().reverse()[0]||'—';
+
+  const statsHtml=tnTxs.length?`
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:4px">
+      <div class="kpi-card" style="flex:1;min-width:110px"><div class="kpi-label">Ventas importadas</div><div class="kpi-value" style="color:var(--purple)">${tnTxs.length}</div><div class="kpi-sub">de Tienda Nube</div></div>
+      <div class="kpi-card" style="flex:1;min-width:110px"><div class="kpi-label">Facturación TN</div><div class="kpi-value" style="color:var(--green)">${fmtMoney(total)}</div><div class="kpi-sub">total importado</div></div>
+      <div class="kpi-card" style="flex:1;min-width:110px"><div class="kpi-label">Última venta</div><div class="kpi-value" style="color:var(--text);font-size:16px">${last}</div><div class="kpi-sub">fecha</div></div>
+    </div>`:'';
+
+  const webhookHtml=S.tnWebhookActive
+    ?`<span style="color:var(--green);font-size:12px">⚡ Activo — las ventas entran automáticamente</span>
+       <button onclick="activarTNWebhook()" style="margin-left:12px;font-size:11px;color:var(--muted);background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer">Desactivar</button>`
+    :`<span style="font-size:12px;color:var(--muted)">Cada venta pagada se importa sola sin hacer nada</span>
+       <button class="btn btn-primary" style="margin-left:12px;font-size:12px;padding:6px 16px" onclick="activarTNWebhook()">Activar</button>`;
+
+  body.innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--s3);border-radius:8px;margin-bottom:16px">
+      <span style="font-size:12px;color:var(--muted2)">🛍️ Tienda conectada: <strong style="color:var(--text)">${tn.storeName||('ID #'+tn.storeId)}</strong>${tn.connectedAt?' · desde '+tn.connectedAt.slice(0,10):''}</span>
+      <button onclick="disconnectTN()" style="margin-left:auto;font-size:10px;color:var(--muted);background:none;border:1px solid var(--border2);border-radius:5px;padding:2px 8px;cursor:pointer">Desconectar</button>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div style="border:1px solid var(--border2);border-radius:10px;padding:16px">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">📥 Importar ventas</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Solo órdenes con pago confirmado · No reimporta duplicados</div>
+        <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+          <div class="form-group" style="margin:0;min-width:130px"><label class="form-label">Desde</label><input class="form-input" id="tn-desde" type="date"></div>
+          <div class="form-group" style="margin:0;min-width:130px"><label class="form-label">Hasta</label><input class="form-input" id="tn-hasta" type="date"></div>
+          <button class="btn btn-primary" onclick="fetchTNOrders()" id="tn-import-btn">Traer órdenes</button>
+        </div>
+        <div id="tn-import-area" style="margin-top:14px"></div>
+      </div>
+
+      <div style="border:1px solid var(--border2);border-radius:10px;padding:16px;display:flex;align-items:center;flex-wrap:wrap;gap:10px">
+        <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">⚡ Sincronización automática</div>
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">${webhookHtml}</div>
+        </div>
+      </div>
+      ${statsHtml}
+    </div>`;
+
   initTNDates();
   updateTNBadge();
 }
@@ -3474,6 +3497,20 @@ function updateTNBadge(){
   else{badge.style.color='var(--muted)';badge.textContent='🛍️ Tienda Nube';}
 }
 
+function connectTN(){
+  const inp=document.getElementById('tn-store-input');
+  let store=(inp?inp.value:'').trim();
+  // Accept full URLs like https://moda.mitiendanube.com or moda.mitiendanube.com → extract subdomain
+  store=store.replace(/^https?:\/\//i,'').split('.')[0].trim();
+  if(!store){if(inp){inp.focus();inp.style.outline='2px solid var(--red)';}return;}
+  window.location.href='/api/tn/connect?wsId='+encodeURIComponent(_activeWsId)+'&store='+encodeURIComponent(store);
+}
+function disconnectTN(){
+  if(!confirm('¿Desconectar Tienda Nube de este proyecto?'))return;
+  delete S.tnIntegration;
+  S.tnWebhookActive=false;
+  save();renderIntegraciones();notify('Tienda Nube desconectada');
+}
 async function activarTNWebhook(){
   const btn=document.getElementById('tn-webhook-btn');
   if(S.tnWebhookActive){
@@ -3513,7 +3550,7 @@ async function fetchTNOrders(){
   if(btn)btn.disabled=true;
   if(area)area.innerHTML=`<div style="font-size:12px;color:var(--muted);padding:12px 0">Buscando órdenes…</div>`;
   try{
-    const r=await fetch(`/api/tn/orders?desde=${desde}&hasta=${hasta}`);
+    const r=await fetch(`/api/tn/orders?desde=${desde}&hasta=${hasta}&wsId=${encodeURIComponent(_activeWsId)}`);
     const orders=await r.json();
     if(!r.ok||orders.error){area.innerHTML=`<div style="color:var(--coral);font-size:12px;padding:8px 0">Error: ${orders.error||'no se pudo conectar'}</div>`;return;}
     // Filter already imported
