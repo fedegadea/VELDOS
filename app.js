@@ -5,6 +5,10 @@ const app = express()
 app.use(express.static(path.join(__dirname, "/public")))
 app.use(express.json())
 
+// Shared constants
+const SUPA_URL = "https://vlkxtrqktdcfqmebrtwa.supabase.co"
+const SUPA_KEY = () => process.env.SUPA_SERVICE_KEY || ""
+
 // Mercado Pago
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN || "TEST-PLACEHOLDER"
 
@@ -66,15 +70,12 @@ app.post("/api/mp/webhook", async (req, res) => {
       })
       const pmt = await pmtRes.json()
       if (pmt.status === "approved" && pmt.external_reference) {
-        // Update user subscription in Supabase
-        const SUPA_URL = "https://vlkxtrqktdcfqmebrtwa.supabase.co"
-        const SUPA_SERVICE_KEY = process.env.SUPA_SERVICE_KEY || ""
         const subEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
         await fetch(SUPA_URL + "/rest/v1/user_subscriptions?id=eq." + pmt.external_reference, {
           method: "PATCH",
           headers: {
-            "apikey": SUPA_SERVICE_KEY,
-            "Authorization": "Bearer " + SUPA_SERVICE_KEY,
+            "apikey": SUPA_KEY(),
+            "Authorization": "Bearer " + SUPA_KEY(),
             "Content-Type": "application/json"
           },
           body: JSON.stringify({ plan: "active", subscription_ends_at: subEnd })
@@ -93,12 +94,40 @@ app.get("/api/mp/success", (req, res) => {
 // ── Tienda Nube ──────────────────────────────────────────────────────────────
 const TN_CLIENT_ID     = process.env.TN_CLIENT_ID     || "31250"
 const TN_CLIENT_SECRET = process.env.TN_CLIENT_SECRET || "747a564acf2fad835b6021e2928b5af84743f706b91c5643"
-const TN_STORE_ID      = process.env.TN_STORE_ID      || "7669167"
-let   TN_TOKEN         = process.env.TN_TOKEN         || "09d8ecb7e8e46f4ad9d786039462e7d0d8bc4f42"
 
-// OAuth callback — Tiendanube redirige acá con el código de autorización
+// Helper: fetch workspace from Supabase by id
+async function getWorkspace(wsId) {
+  const r = await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${encodeURIComponent(wsId)}&select=id,data`, {
+    headers: { "apikey": SUPA_KEY(), "Authorization": "Bearer " + SUPA_KEY() }
+  })
+  const rows = await r.json()
+  return rows?.[0] || null
+}
+
+// Helper: patch workspace data in Supabase
+async function patchWorkspace(wsId, data) {
+  await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${encodeURIComponent(wsId)}`, {
+    method: "PATCH",
+    headers: {
+      "apikey": SUPA_KEY(), "Authorization": "Bearer " + SUPA_KEY(),
+      "Content-Type": "application/json", "Prefer": "return=minimal"
+    },
+    body: JSON.stringify({ data })
+  })
+}
+
+// Step 1: Redirect user to TN OAuth page with wsId in state
+app.get("/api/tn/connect", (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).send("<h2>Error: wsId requerido</h2>")
+  const scope = "read_orders read_customers write_products"
+  const authUrl = `https://www.tiendanube.com/apps/${TN_CLIENT_ID}/authorize?scope=${encodeURIComponent(scope)}&state=${encodeURIComponent(wsId)}`
+  res.redirect(authUrl)
+})
+
+// Step 2: OAuth callback — exchange code, store credentials in workspace
 app.get("/api/tn/callback", async (req, res) => {
-  const { code } = req.query
+  const { code, state: wsId } = req.query
   if (!code) return res.send("<h2>Error: no se recibió código de autorización</h2>")
   try {
     const r = await fetch("https://www.tiendanube.com/apps/authorize/token", {
@@ -112,9 +141,23 @@ app.get("/api/tn/callback", async (req, res) => {
       })
     })
     const data = await r.json()
-    if (!data.access_token) return res.send(`<h2>Error: ${JSON.stringify(data)}</h2>`)
-    // Update in-memory token so the server uses it immediately
-    TN_TOKEN = data.access_token
+    if (!data.access_token) return res.send(`<h2>Error al obtener token: ${JSON.stringify(data)}</h2>`)
+
+    // If we have a wsId, store credentials in that workspace
+    if (wsId) {
+      const ws = await getWorkspace(wsId)
+      if (ws) {
+        const wsData = { ...(ws.data || {}), tnIntegration: {
+          storeId: String(data.user_id),
+          token: data.access_token,
+          connectedAt: new Date().toISOString()
+        }}
+        await patchWorkspace(wsId, wsData)
+        return res.redirect("/?tn_connected=1")
+      }
+    }
+
+    // Fallback: show token (shouldn't happen in normal flow)
     res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
       body{font-family:system-ui;max-width:600px;margin:60px auto;padding:0 24px;color:#222}
       .token{background:#f5f5f5;padding:16px;border-radius:8px;word-break:break-all;font-family:monospace;font-size:13px}
@@ -124,7 +167,6 @@ app.get("/api/tn/callback", async (req, res) => {
       <p>Store ID: <strong>${data.user_id}</strong></p>
       <p>Access token:</p>
       <div class="token">${data.access_token}</div>
-      <p style="color:#888;font-size:13px">Copiá este token y pegalo en el chat para que lo configure en el servidor.</p>
       <p style="margin-top:24px"><a href="/">← Volver a VELDOS</a></p>
     </body></html>`)
   } catch(e) {
@@ -133,8 +175,20 @@ app.get("/api/tn/callback", async (req, res) => {
 })
 
 app.get("/api/tn/orders", async (req, res) => {
-  const { desde, hasta, page = 1 } = req.query
+  const { desde, hasta, page = 1, wsId } = req.query
   try {
+    // Get workspace-specific credentials
+    let storeId, token
+    if (wsId) {
+      const ws = await getWorkspace(wsId)
+      const tn = ws?.data?.tnIntegration
+      if (!tn?.token) return res.status(400).json({ error: "Tienda Nube no conectada en este proyecto" })
+      storeId = tn.storeId
+      token = tn.token
+    } else {
+      return res.status(400).json({ error: "wsId requerido" })
+    }
+
     const params = new URLSearchParams({
       payment_status: "paid",
       per_page: 200,
@@ -145,10 +199,10 @@ app.get("/api/tn/orders", async (req, res) => {
     if (hasta) params.set("created_at_max", new Date(hasta + "T23:59:59").toISOString())
 
     const r = await fetch(
-      `https://api.tiendanube.com/2025-03/${TN_STORE_ID}/orders?${params}`,
+      `https://api.tiendanube.com/2025-03/${storeId}/orders?${params}`,
       {
         headers: {
-          "Authentication": `bearer ${TN_TOKEN}`,
+          "Authentication": `bearer ${token}`,
           "User-Agent": "VELDOS (soporte@veldos.app)"
         }
       }
@@ -165,16 +219,20 @@ app.get("/api/tn/orders", async (req, res) => {
   }
 })
 
-// Register TN webhook and store workspace ID
+// Register TN webhook for a specific workspace
 app.post("/api/tn/activate", async (req, res) => {
   const { wsId } = req.body
   if (!wsId) return res.status(400).json({ error: "wsId required" })
   try {
-    // Register webhook with TN
-    const r = await fetch(`https://api.tiendanube.com/2025-03/${TN_STORE_ID}/webhooks`, {
+    const ws = await getWorkspace(wsId)
+    const tn = ws?.data?.tnIntegration
+    if (!tn?.token) return res.status(400).json({ error: "Tienda Nube no conectada en este proyecto" })
+
+    // Register webhook with TN using workspace-specific credentials
+    await fetch(`https://api.tiendanube.com/2025-03/${tn.storeId}/webhooks`, {
       method: "POST",
       headers: {
-        "Authentication": `bearer ${TN_TOKEN}`,
+        "Authentication": `bearer ${tn.token}`,
         "User-Agent": "VELDOS (soporte@veldos.app)",
         "Content-Type": "application/json"
       },
@@ -183,53 +241,45 @@ app.post("/api/tn/activate", async (req, res) => {
         url: (process.env.BASE_URL || "https://veldos-bjvr.vercel.app") + "/api/tn/webhook"
       })
     })
-    // Store wsId in Supabase (patch the workspace data)
-    const SUPA_URL = "https://vlkxtrqktdcfqmebrtwa.supabase.co"
-    const SUPA_KEY = process.env.SUPA_SERVICE_KEY || ""
-    // Get current workspace data
-    const wsRes = await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${wsId}&select=data`, {
-      headers: { "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY }
-    })
-    const wsRows = await wsRes.json()
-    if (wsRows?.[0]) {
-      const data = { ...(wsRows[0].data || {}), tnWebhookActive: true, tnWebhookWsId: wsId }
-      await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${wsId}`, {
-        method: "PATCH",
-        headers: {
-          "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY,
-          "Content-Type": "application/json", "Prefer": "return=minimal"
-        },
-        body: JSON.stringify({ data })
-      })
-    }
+
+    // Save tnWebhookActive flag in workspace data
+    const wsData = { ...(ws.data || {}), tnWebhookActive: true }
+    await patchWorkspace(wsId, wsData)
     res.json({ ok: true })
   } catch(e) {
     res.status(500).json({ error: e.message })
   }
 })
 
-// TN webhook — auto-import paid orders
+// TN webhook — auto-import paid orders (multi-store: match by storeId)
 app.post("/api/tn/webhook", async (req, res) => {
   res.sendStatus(200) // Respond immediately to TN
-  const { event, id: orderId } = req.body
+  const { event, store_id: webhookStoreId, id: orderId } = req.body
   if (event !== "order/paid" || !orderId) return
   try {
-    // Fetch order from TN API
+    // Find workspace with matching storeId and tnWebhookActive
+    const wsRes = await fetch(`${SUPA_URL}/rest/v1/workspaces?select=id,data`, {
+      headers: { "apikey": SUPA_KEY(), "Authorization": "Bearer " + SUPA_KEY() }
+    })
+    const allWs = await wsRes.json()
+    // Match by storeId from webhook payload, fall back to any tnWebhookActive
+    const target = (allWs || []).find(w =>
+      w.data?.tnWebhookActive &&
+      w.data?.tnIntegration &&
+      (!webhookStoreId || String(w.data.tnIntegration.storeId) === String(webhookStoreId))
+    ) || (allWs || []).find(w => w.data?.tnWebhookActive && w.data?.tnIntegration)
+    if (!target) return
+
+    const tn = target.data.tnIntegration
+
+    // Fetch order from TN API using workspace-specific credentials
     const oRes = await fetch(
-      `https://api.tiendanube.com/2025-03/${TN_STORE_ID}/orders/${orderId}`,
-      { headers: { "Authentication": `bearer ${TN_TOKEN}`, "User-Agent": "VELDOS (soporte@veldos.app)" } }
+      `https://api.tiendanube.com/2025-03/${tn.storeId}/orders/${orderId}`,
+      { headers: { "Authentication": `bearer ${tn.token}`, "User-Agent": "VELDOS (soporte@veldos.app)" } }
     )
     if (!oRes.ok) return
     const o = await oRes.json()
-    // Find workspace with tnWebhookActive
-    const SUPA_URL = "https://vlkxtrqktdcfqmebrtwa.supabase.co"
-    const SUPA_KEY = process.env.SUPA_SERVICE_KEY || ""
-    const wsRes = await fetch(`${SUPA_URL}/rest/v1/workspaces?select=id,data`, {
-      headers: { "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY }
-    })
-    const allWs = await wsRes.json()
-    const target = (allWs || []).find(w => w.data?.tnWebhookActive)
-    if (!target) return
+
     const data = target.data
     if (!data.finanzas) data.finanzas = []
     // Check dedup
@@ -278,14 +328,7 @@ app.post("/api/tn/webhook", async (req, res) => {
       }
     }
     // Save back to Supabase
-    await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${target.id}`, {
-      method: "PATCH",
-      headers: {
-        "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY,
-        "Content-Type": "application/json", "Prefer": "return=minimal"
-      },
-      body: JSON.stringify({ data })
-    })
+    await patchWorkspace(target.id, data)
   } catch(e) {
     console.error("TN webhook error:", e)
   }
