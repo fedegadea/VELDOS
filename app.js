@@ -122,8 +122,9 @@ app.get("/api/tn/connect", (req, res) => {
   const { wsId, store } = req.query
   if (!wsId) return res.status(400).send("<h2>Error: wsId requerido</h2>")
   if (!store) return res.status(400).send("<h2>Error: subdominio de tienda requerido</h2>")
-  // Redirect directly to the store's admin authorization page
-  const authUrl = `https://${encodeURIComponent(store)}.mitiendanube.com/admin/apps/${TN_CLIENT_ID}/authorize?state=${encodeURIComponent(wsId)}`
+  // Redirect directly to the store's admin authorization page with required scopes
+  const scope = "read_orders read_customers write_products"
+  const authUrl = `https://${store}.mitiendanube.com/admin/apps/${TN_CLIENT_ID}/authorize?scope=${encodeURIComponent(scope)}&state=${encodeURIComponent(wsId)}`
   res.redirect(authUrl)
 })
 
@@ -204,31 +205,36 @@ app.get("/api/tn/orders", async (req, res) => {
       return res.status(400).json({ error: "wsId requerido" })
     }
 
-    const params = new URLSearchParams({
-      payment_status: "paid",
-      per_page: 200,
-      page,
-      fields: "id,number,created_at,total,currency,gateway,payment_details,customer,products,shipping_cost_owner,shipping_address"
-    })
+    const params = new URLSearchParams({ per_page: 200, page })
     if (desde) params.set("created_at_min", new Date(desde).toISOString())
     if (hasta) params.set("created_at_max", new Date(hasta + "T23:59:59").toISOString())
 
-    const r = await fetch(
-      `https://api.tiendanube.com/2025-03/${storeId}/orders?${params}`,
-      {
-        headers: {
-          "Authentication": `bearer ${token}`,
-          "User-Agent": "VELDOS (soporte@veldos.app)"
-        }
+    const url = `https://api.tiendanube.com/2025-03/${storeId}/orders?${params}`
+    console.log("[TN orders] GET", url)
+    const r = await fetch(url, {
+      headers: {
+        "Authentication": `bearer ${token}`,
+        "User-Agent": "VELDOS (soporte@veldos.app)"
       }
-    )
+    })
+    console.log("[TN orders] status:", r.status)
     if (r.status === 404) return res.json([]) // No orders in period
     if (!r.ok) {
       const txt = await r.text()
+      console.log("[TN orders] error body:", txt)
       return res.status(r.status).json({ error: txt })
     }
     const data = await r.json()
-    res.json(Array.isArray(data) ? data : [])
+    const orders = Array.isArray(data) ? data : []
+    console.log("[TN orders] total fetched:", orders.length, "| statuses:", [...new Set(orders.map(o=>o.payment_status||o.financial_status))])
+    // Filter to paid orders only (support both field names TN might use)
+    const paid = orders.filter(o => {
+      const ps = (o.payment_status || "").toLowerCase()
+      const fs = (o.financial_status || "").toLowerCase()
+      return ps === "paid" || fs === "paid" || ps === "authorized" || fs === "authorized"
+    })
+    console.log("[TN orders] paid after filter:", paid.length)
+    res.json(paid)
   } catch (e) {
     res.status(500).json({ error: e.message })
   }

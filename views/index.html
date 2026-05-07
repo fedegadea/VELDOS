@@ -3425,7 +3425,7 @@ function renderIntegraciones(){
       <div style="text-align:center;padding:32px 20px">
         <div style="font-size:44px;margin-bottom:14px">🛍️</div>
         <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">Conectá tu Tienda Nube</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:24px;max-width:380px;margin-left:auto;margin-right:auto;line-height:1.6">Ingresá el subdominio de tu tienda para vincularla a este proyecto. Las ventas se importarán automáticamente.</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:24px;max-width:380px;margin-left:auto;margin-right:auto;line-height:1.6">Ingresá la URL de tu admin de Tienda Nube para vincularla a este proyecto.</div>
         <div style="display:flex;align-items:center;gap:0;max-width:360px;margin:0 auto 8px;border:1px solid var(--border2);border-radius:9px;overflow:hidden;background:var(--s2)">
           <input id="tn-store-input" type="text" placeholder="mitienda"
             style="flex:1;border:none;background:transparent;padding:11px 14px;font-size:13px;color:var(--text);outline:none"
@@ -3433,7 +3433,7 @@ function renderIntegraciones(){
           />
           <span style="padding:0 10px 0 2px;font-size:12px;color:var(--muted);white-space:nowrap">.mitiendanube.com</span>
         </div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:16px">Por ejemplo: si tu tienda es <em>moda.mitiendanube.com</em>, ingresá <strong>moda</strong></div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:16px">Es la URL de tu panel de admin. Si entrás por <em>mitienda.mitiendanube.com/admin</em>, ingresá <strong>mitienda</strong></div>
         <button class="btn btn-primary" style="padding:11px 28px;font-size:14px" onclick="connectTN()">🔗 Conectar tienda</button>
       </div>`;
     updateTNBadge();
@@ -3553,11 +3553,15 @@ async function fetchTNOrders(){
     const r=await fetch(`/api/tn/orders?desde=${desde}&hasta=${hasta}&wsId=${encodeURIComponent(_activeWsId)}`);
     const orders=await r.json();
     if(!r.ok||orders.error){area.innerHTML=`<div style="color:var(--coral);font-size:12px;padding:8px 0">Error: ${orders.error||'no se pudo conectar'}</div>`;return;}
+    if(!orders.length){
+      area.innerHTML=`<div style="font-size:12px;color:var(--muted);padding:8px 0">No se encontraron ventas pagadas en ese período. Probá ampliar el rango de fechas.</div>`;
+      return;
+    }
     // Filter already imported
     const imported=new Set((S.finanzas||[]).filter(t=>t.tn_id).map(t=>String(t.tn_id)));
     const nuevas=orders.filter(o=>!imported.has(String(o.id)));
     if(!nuevas.length){
-      area.innerHTML=`<div style="font-size:12px;color:var(--green);padding:8px 0">✓ No hay órdenes nuevas en ese período (${orders.length} ya importadas).</div>`;
+      area.innerHTML=`<div style="font-size:12px;color:var(--green);padding:8px 0">✓ Todas las ${orders.length} órdenes del período ya están importadas.</div>`;
       return;
     }
     renderTNPreview(nuevas,orders.length);
