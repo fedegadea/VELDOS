@@ -91,8 +91,46 @@ app.get("/api/mp/success", (req, res) => {
 })
 
 // ── Tienda Nube ──────────────────────────────────────────────────────────────
-const TN_STORE_ID = process.env.TN_STORE_ID || "7669167"
-const TN_TOKEN    = process.env.TN_TOKEN    || "4f3f5efacbde70dc0943a7c43099753fddb04273"
+const TN_CLIENT_ID     = process.env.TN_CLIENT_ID     || "31250"
+const TN_CLIENT_SECRET = process.env.TN_CLIENT_SECRET || "747a564acf2fad835b6021e2928b5af84743f706b91c5643"
+const TN_STORE_ID      = process.env.TN_STORE_ID      || "7669167"
+let   TN_TOKEN         = process.env.TN_TOKEN         || "4f3f5efacbde70dc0943a7c43099753fddb04273"
+
+// OAuth callback — Tiendanube redirige acá con el código de autorización
+app.get("/api/tn/callback", async (req, res) => {
+  const { code } = req.query
+  if (!code) return res.send("<h2>Error: no se recibió código de autorización</h2>")
+  try {
+    const r = await fetch("https://www.tiendanube.com/apps/authorize/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_id: TN_CLIENT_ID,
+        client_secret: TN_CLIENT_SECRET,
+        grant_type: "authorization_code",
+        code
+      })
+    })
+    const data = await r.json()
+    if (!data.access_token) return res.send(`<h2>Error: ${JSON.stringify(data)}</h2>`)
+    // Update in-memory token so the server uses it immediately
+    TN_TOKEN = data.access_token
+    res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+      body{font-family:system-ui;max-width:600px;margin:60px auto;padding:0 24px;color:#222}
+      .token{background:#f5f5f5;padding:16px;border-radius:8px;word-break:break-all;font-family:monospace;font-size:13px}
+      .ok{color:#4db88a;font-size:20px;font-weight:700}
+    </style></head><body>
+      <div class="ok">✅ Token generado con éxito</div>
+      <p>Store ID: <strong>${data.user_id}</strong></p>
+      <p>Access token:</p>
+      <div class="token">${data.access_token}</div>
+      <p style="color:#888;font-size:13px">Copiá este token y pegalo en el chat para que lo configure en el servidor.</p>
+      <p style="margin-top:24px"><a href="/">← Volver a VELDOS</a></p>
+    </body></html>`)
+  } catch(e) {
+    res.send(`<h2>Error: ${e.message}</h2>`)
+  }
+})
 
 app.get("/api/tn/orders", async (req, res) => {
   const { desde, hasta, page = 1 } = req.query
