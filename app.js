@@ -107,12 +107,11 @@ app.get("/api/tn/orders", async (req, res) => {
     if (hasta) params.set("created_at_max", new Date(hasta + "T23:59:59").toISOString())
 
     const r = await fetch(
-      `https://api.tiendanube.com/v1/${TN_STORE_ID}/orders?${params}`,
+      `https://api.tiendanube.com/2025-03/${TN_STORE_ID}/orders?${params}`,
       {
         headers: {
           "Authentication": `bearer ${TN_TOKEN}`,
-          "User-Agent": "VELDOS/1.0 (soporte@veldos.app)",
-          "Content-Type": "application/json"
+          "User-Agent": "VELDOS (soporte@veldos.app)"
         }
       }
     )
@@ -125,6 +124,28 @@ app.get("/api/tn/orders", async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
+})
+
+// ── Tienda Nube — Privacy webhooks (obligatorios) ───────────────────────────
+app.post("/api/tn/webhooks/store-redact", (req, res) => {
+  // Called when a store uninstalls the app and requests data deletion
+  // VELDOS stores order data inside user workspaces in Supabase — no separate store records to delete
+  console.log("TN store/redact:", req.body?.store_id)
+  res.sendStatus(200)
+})
+
+app.post("/api/tn/webhooks/customers-redact", (req, res) => {
+  // Called when a customer requests their data to be deleted
+  // VELDOS only stores order totals/dates, no personal customer data
+  console.log("TN customers/redact:", req.body?.customer?.id)
+  res.sendStatus(200)
+})
+
+app.post("/api/tn/webhooks/customers-data-request", (req, res) => {
+  // Called when a customer requests to see what data the app holds about them
+  // VELDOS holds no personal customer data — respond with empty set
+  console.log("TN customers/data_request:", req.body?.customer?.id)
+  res.sendStatus(200)
 })
 
 if (require.main === module) {
