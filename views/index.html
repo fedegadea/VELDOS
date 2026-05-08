@@ -1824,10 +1824,10 @@ tr:hover .tx-del{color:var(--muted)}
  
   <!-- Tabs finanzas -->
   <div class="inner-tabs" id="fin-tabs">
-    <button class="inner-tab active" onclick="switchFinTab('movimientos',this)">Movimientos</button>
-    <button class="inner-tab" onclick="switchFinTab('presupuesto',this)">Presupuesto</button>
-    <button class="inner-tab" onclick="switchFinTab('capital',this)">Capital</button>
-    <button class="inner-tab" onclick="switchFinTab('config',this)">Configuración</button>
+    <button class="inner-tab active" data-tab="movimientos" onclick="switchFinTab('movimientos',this)">Movimientos</button>
+    <button class="inner-tab" data-tab="presupuesto" onclick="switchFinTab('presupuesto',this)">Presupuesto</button>
+    <button class="inner-tab" data-tab="capital" onclick="switchFinTab('capital',this)">Capital</button>
+    <button class="inner-tab" data-tab="config" onclick="switchFinTab('config',this)">Configuración</button>
   </div>
  
   <!-- ── TAB: MOVIMIENTOS ── -->
@@ -2213,8 +2213,24 @@ function _wsToRow(ws){
 async function supaLoadAll(){
   const rows=await supaFetch('/rest/v1/workspaces?select=*&order=created_at.asc');
   const all=(rows||[]).map(_rowToWs);
-  if(_authUser?.email){const e=_authUser.email;return all.filter(ws=>!ws.owner||ws.owner===e||(ws.data?.sharedWith||[]).includes(e));}
-  return all;
+  if(!_authUser?.email)return all;
+  const e=_authUser.email;
+  // Workspaces explicitly owned by or shared with this user
+  const mine=all.filter(ws=>ws.owner===e||(ws.data?.sharedWith||[]).includes(e));
+  // Ownerless workspaces (created before auth system) — claim them for the current user
+  const unclaimed=all.filter(ws=>!ws.owner);
+  if(unclaimed.length){
+    for(const ws of unclaimed){
+      ws.owner=e;
+      // Silently patch owner in Supabase
+      supaFetch('/rest/v1/workspaces?id=eq.'+encodeURIComponent(ws.id),{
+        method:'PATCH',prefer:'return=minimal',
+        body:{data:{...(ws.data||{}),__owner:e}}
+      }).catch(()=>{});
+    }
+    return [...mine,...unclaimed];
+  }
+  return mine;
 }
 async function supaUpsert(ws){
   await supaFetch('/rest/v1/workspaces',{method:'POST',prefer:'resolution=merge-duplicates,return=minimal',body:_wsToRow(ws)});
@@ -2262,6 +2278,7 @@ function load(){return null;}
 
 function _enterWorkspace(ws){
   _activeWsId=ws.id;
+  localStorage.setItem('supa_active_ws',ws.id); // persist for refresh
   S=ws.data||defaultData();
   if(!S.crm)S.crm=[];
   if(!S.customViews)S.customViews=[];
@@ -2308,6 +2325,7 @@ async function authLogin(){
     const{data,error}=await supabaseClient.auth.signInWithPassword({email,password});
     if(error)throw error;
     _authUser=data.user;
+    _authToken=data.session?.access_token||null;
     document.getElementById('auth-screen').style.display='none';
     await checkSubscriptionAndProceed();
   }catch(e){
@@ -2328,6 +2346,7 @@ async function authRegister(){
     const{data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{name}}});
     if(error)throw error;
     _authUser=data.user;
+    _authToken=data.session?.access_token||null;
     await supaFetch('/rest/v1/user_subscriptions',{
       method:'POST',
       prefer:'resolution=merge-duplicates,return=minimal',
@@ -2496,10 +2515,14 @@ let _proceedAfterAuth=async function(){};
 async function initState(){
   applyAppearance();
 
-  // Handle Supabase auth state changes (incluyendo recovery de contraseña)
+  // Handle Supabase auth state changes — keep token fresh, handle password recovery
   supabaseClient.auth.onAuthStateChange(async(event,session)=>{
+    if(session){
+      _authToken=session.access_token;
+      if(!_authUser)_authUser=session.user;
+    }
+    if(event==='SIGNED_OUT'){_authUser=null;_authToken=null;}
     if(event==='PASSWORD_RECOVERY'){
-      // Usuario clickeó el link de recuperación — mostrar form para nueva contraseña
       document.getElementById('auth-screen').style.display='flex';
       document.getElementById('auth-login-form').style.display='none';
       document.getElementById('auth-register-form').style.display='none';
@@ -2524,22 +2547,29 @@ async function initState(){
 
 async function _loadWorkspacesAndRender(){
   const loader=document.getElementById('supa-loader');
+  const loaderMsg=document.getElementById('supa-loader-msg');
   if(loader)loader.style.display='flex';
+  if(loaderMsg)loaderMsg.textContent='Cargando proyectos…';
+
   let wsArr=null;
-  try{wsArr=await supaLoadAll();}catch(e){console.warn('[Supabase] load error:',e);}
+  try{wsArr=await supaLoadAll();}catch(e){
+    console.warn('[Supabase] load error:',e);
+    if(loaderMsg)loaderMsg.textContent='Sin conexión — usando datos locales';
+  }
   if(loader)loader.style.display='none';
 
   if(wsArr&&wsArr.length){
+    // Prefer last active from localStorage if it's still accessible
     const savedActive=localStorage.getItem('supa_active_ws');
-    const activeId=savedActive&&wsArr.find(w=>w.id===savedActive)?savedActive:wsArr[0].id;
+    const activeId=(savedActive&&wsArr.find(w=>w.id===savedActive))?savedActive:wsArr[0].id;
     WORKSPACES={workspaces:wsArr,active:activeId};
     _localSave();
   } else if(wsArr&&wsArr.length===0){
-    // Supabase OK pero sin workspaces para este usuario → mostrar onboarding
     WORKSPACES={workspaces:[],active:null};
   } else {
-    // Supabase falló → fallback local
+    // Supabase failed — use local cache but warn
     WORKSPACES=_localLoad();
+    notify('⚠️ Sin conexión — mostrando datos guardados localmente');
   }
 
   // Handle TN OAuth redirect back
@@ -2549,17 +2579,20 @@ async function _loadWorkspacesAndRender(){
     setTimeout(()=>{
       sbNav('integraciones','integraciones',document.getElementById('sbi-integraciones'));
       notify('🛍️ Tienda Nube conectada correctamente');
-    },600);
+    },400);
+    _restoreActiveWorkspace();
+    return;
   }
 
-  // URL nav: if shared link has ?ws=id, try to open that workspace
+  // Restore from URL params (refresh / shared link)
   if(window._urlNav){
     const nav=window._urlNav;
+    window._urlNav=null; // consume it
     const target=WORKSPACES.workspaces.find(w=>w.id===nav.wsId);
     if(target){
       if(!target.pin&&!target.users.length){
         _enterWorkspace(target);
-        sbNav(nav.area||'marketing',nav.page||'checklist',document.getElementById('sbi-'+(nav.page||'checklist')));
+        _applyUrlNav(nav);
       } else {
         _pendingWsId=target.id;
         window._pendingUrlNav=nav;
@@ -2567,10 +2600,33 @@ async function _loadWorkspacesAndRender(){
       }
       return;
     }
+    // wsId not found (e.g. no longer accessible) — fall through to default
   }
+
+  _restoreActiveWorkspace();
+}
+
+function _restoreActiveWorkspace(){
   const ws=WORKSPACES.workspaces.find(w=>w.id===WORKSPACES.active)||WORKSPACES.workspaces[0];
   if(ws&&!ws.pin&&!ws.users.length){_enterWorkspace(ws);}
+  else if(ws){selectWs(ws.id);}
   else{openWorkspaceSelector();}
+}
+
+function _applyUrlNav(nav){
+  if(!nav)return;
+  const area=nav.area||'marketing';
+  const page=nav.page||'checklist';
+  const fintab=nav.fintab||null;
+  const btn=document.getElementById('sbi-'+page)||document.getElementById('sbi-'+area);
+  sbNav(area,page,btn);
+  // Restore fin-tab if applicable
+  if(fintab&&area==='finanzas'){
+    setTimeout(()=>{
+      const tabBtn=document.querySelector(`#fin-tabs .inner-tab[data-tab="${fintab}"]`);
+      switchFinTab(fintab,tabBtn);
+    },100);
+  }
 }
 
 function switchWorkspace(wsId){
@@ -2732,11 +2788,13 @@ function sbNav(area,page,el){
   updateUrl();
 }
 
-// ── URL SHARE ──
+// ── URL STATE ──
+let _activeFinTab='movimientos'; // track active fin-tab for URL
 function updateUrl(){
   if(!_activeWsId)return;
   try{
     const p=new URLSearchParams({ws:_activeWsId,area:_activeArea||'marketing',page:_activePage||'checklist'});
+    if(_activeArea==='finanzas')p.set('fintab',_activeFinTab||'movimientos');
     history.replaceState({},'',location.pathname+'?'+p.toString());
   }catch(e){}
 }
@@ -2752,9 +2810,9 @@ function copyShareUrl(){
 function readUrlParams(){
   try{
     const p=new URLSearchParams(location.search);
-    const wsId=p.get('ws'),area=p.get('area'),page=p.get('page');
+    const wsId=p.get('ws'),area=p.get('area'),page=p.get('page'),fintab=p.get('fintab');
     if(wsId){
-      window._urlNav={wsId,area:area||'marketing',page:page||'checklist'};
+      window._urlNav={wsId,area:area||'marketing',page:page||'checklist',fintab:fintab||null};
     }
   }catch(e){}
 }
@@ -3285,6 +3343,7 @@ const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','
 const RECURRENCIAS=['Mensual','Bimestral','Trimestral','Semestral','Anual'];
  
 function switchFinTab(id,btn){
+  _activeFinTab=id;
   document.querySelectorAll('.fin-tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('#fin-tabs .inner-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('fintab-'+id)?.classList.add('active');
@@ -3302,6 +3361,7 @@ function switchFinTab(id,btn){
   if(id==='presupuesto')renderPresupuesto();
   if(id==='capital')loadCapitalFields();
   if(id==='config'){renderMediosPago();renderCostosFijos();loadTaxConfig();}
+  updateUrl();
 }
  
 function fmtDate(d){return d.toISOString().split('T')[0];}
@@ -5463,11 +5523,10 @@ function wsAuthSubmit(){
   // PIN auth
   if(ws.pin&&inp!==ws.pin){errEl.textContent='PIN incorrecto';return;}
   switchWorkspace(_pendingWsId);
-  // Navigate to shared URL section if came from a link
   if(window._pendingUrlNav){
     const nav=window._pendingUrlNav;
     window._pendingUrlNav=null;
-    setTimeout(()=>sbNav(nav.area||'marketing',nav.page||'checklist',document.getElementById('sbi-'+(nav.page||'checklist'))),100);
+    setTimeout(()=>_applyUrlNav(nav),150);
   }
 }
 async function resetWorkspacePin(){
