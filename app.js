@@ -191,49 +191,58 @@ app.get("/api/tn/callback", async (req, res) => {
 })
 
 app.get("/api/tn/orders", async (req, res) => {
-  const { desde, hasta, page = 1, wsId } = req.query
+  const { desde, hasta, wsId } = req.query
   try {
     // Get workspace-specific credentials
-    let storeId, token
-    if (wsId) {
-      const ws = await getWorkspace(wsId)
-      const tn = ws?.data?.tnIntegration
-      if (!tn?.token) return res.status(400).json({ error: "Tienda Nube no conectada en este proyecto" })
-      storeId = tn.storeId
-      token = tn.token
-    } else {
-      return res.status(400).json({ error: "wsId requerido" })
+    if (!wsId) return res.status(400).json({ error: "wsId requerido" })
+    const ws = await getWorkspace(wsId)
+    const tn = ws?.data?.tnIntegration
+    if (!tn?.token) return res.status(400).json({ error: "Tienda Nube no conectada en este proyecto" })
+    const { storeId, token } = tn
+
+    const headers = {
+      "Authentication": `bearer ${token}`,
+      "User-Agent": "VELDOS (soporte@veldos.app)"
     }
 
-    const params = new URLSearchParams({ per_page: 200, page })
-    if (desde) params.set("created_at_min", new Date(desde).toISOString())
-    if (hasta) params.set("created_at_max", new Date(hasta + "T23:59:59").toISOString())
+    // Fetch ALL pages until TN returns fewer than per_page results
+    const PER_PAGE = 200
+    let allOrders = []
+    let page = 1
+    while (true) {
+      const params = new URLSearchParams({ per_page: PER_PAGE, page })
+      if (desde) params.set("created_at_min", new Date(desde).toISOString())
+      if (hasta) params.set("created_at_max", new Date(hasta + "T23:59:59").toISOString())
 
-    const url = `https://api.tiendanube.com/2025-03/${storeId}/orders?${params}`
-    console.log("[TN orders] GET", url)
-    const r = await fetch(url, {
-      headers: {
-        "Authentication": `bearer ${token}`,
-        "User-Agent": "VELDOS (soporte@veldos.app)"
+      const url = `https://api.tiendanube.com/2025-03/${storeId}/orders?${params}`
+      console.log(`[TN orders] GET page ${page}`, url)
+      const r = await fetch(url, { headers })
+      console.log(`[TN orders] page ${page} status:`, r.status)
+
+      if (r.status === 404) break // no more orders
+      if (!r.ok) {
+        const txt = await r.text()
+        console.log("[TN orders] error:", txt)
+        return res.status(r.status).json({ error: txt })
       }
-    })
-    console.log("[TN orders] status:", r.status)
-    if (r.status === 404) return res.json([]) // No orders in period
-    if (!r.ok) {
-      const txt = await r.text()
-      console.log("[TN orders] error body:", txt)
-      return res.status(r.status).json({ error: txt })
+
+      const data = await r.json()
+      const batch = Array.isArray(data) ? data : []
+      allOrders = allOrders.concat(batch)
+      console.log(`[TN orders] page ${page}: ${batch.length} orders (total so far: ${allOrders.length})`)
+
+      if (batch.length < PER_PAGE) break // last page
+      page++
+      if (page > 50) break // safety cap: 10 000 orders max
     }
-    const data = await r.json()
-    const orders = Array.isArray(data) ? data : []
-    console.log("[TN orders] total fetched:", orders.length, "| statuses:", [...new Set(orders.map(o=>o.payment_status||o.financial_status))])
-    // Filter to paid orders only (support both field names TN might use)
-    const paid = orders.filter(o => {
+
+    // Filter to paid orders only
+    const paid = allOrders.filter(o => {
       const ps = (o.payment_status || "").toLowerCase()
       const fs = (o.financial_status || "").toLowerCase()
       return ps === "paid" || fs === "paid" || ps === "authorized" || fs === "authorized"
     })
-    console.log("[TN orders] paid after filter:", paid.length)
+    console.log(`[TN orders] total fetched: ${allOrders.length} | paid: ${paid.length}`)
     res.json(paid)
   } catch (e) {
     res.status(500).json({ error: e.message })

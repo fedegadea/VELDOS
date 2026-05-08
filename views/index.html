@@ -3457,7 +3457,7 @@ function renderFinanzas(){
         <td style="color:var(--muted);font-size:11px">${tx.fecha}</td>
         <td>${tx.concepto}</td>
         <td><span style="font-size:10px;padding:2px 7px;border-radius:8px;background:var(--s3);color:${TX_CAT_COLORS[tx.categoria]||'var(--muted)'}">${tx.categoria||'—'}</span></td>
-        <td style="font-size:11px;color:var(--muted)">${tx.medioPago||'—'}${tx.cuotas>1?' ('+tx.cuotas+'c)':''}</td>
+        <td style="font-size:11px;color:var(--muted)">${tx.medioPago||'—'}${tx.cuotas>1?' ('+tx.cuotas+'c)':''}${tx.tn_descuento?` <span style="background:rgba(215,185,95,.15);color:var(--gold);border-radius:4px;padding:1px 5px;font-size:10px">🏷️${tx.tn_descuento}</span>`:''}</td>
         <td style="color:${color};font-weight:500">${sign}${fmtMoney(tx.monto)}</td>
         <td style="font-size:11px;color:var(--coral)">${com>0?'-'+fmtMoney(com):'—'}</td>
         <td style="font-weight:500;color:${color}">${sign}${fmtMoney(neto)}</td>
@@ -3726,19 +3726,25 @@ function renderTNPreview(orders, totalFetched){
     const total=parseFloat(o.total)||0;
     const medio=mapGateway(o);
     const productos=(o.products||[]).map(p=>p.name).slice(0,2).join(', ')+(o.products?.length>2?'…':'');
+    // Discount / coupon code
+    const coupons=o.coupon||o.coupons||[];
+    const descuento=Array.isArray(coupons)&&coupons.length
+      ?coupons.map(c=>c.code).filter(Boolean).join(', ')
+      :(typeof coupons==='string'?coupons:'');
     return`<tr id="tn-row-${i}" style="border-bottom:1px solid var(--border)">
       <td style="padding:8px 4px"><input type="checkbox" id="tn-chk-${i}" checked></td>
       <td style="padding:8px 6px;font-size:11px;color:var(--muted)">#${o.number}</td>
       <td style="padding:8px 6px;font-size:12px">${fecha}</td>
       <td style="padding:8px 6px;font-size:12px;color:var(--muted2)">${cliente}</td>
-      <td style="padding:8px 6px;font-size:11px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${productos}">${productos}</td>
+      <td style="padding:8px 6px;font-size:11px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${productos}">${productos}</td>
       <td style="padding:8px 6px;font-size:12px;color:var(--green);font-weight:500">${fmtMoney(total)}</td>
       <td style="padding:8px 6px;font-size:11px;color:var(--muted)">${medio}</td>
+      <td style="padding:8px 6px;font-size:11px">${descuento?`<span style="background:rgba(215,185,95,.15);color:var(--gold);border-radius:5px;padding:2px 6px;font-weight:500;font-size:10px">🏷️ ${descuento}</span>`:'<span style="color:var(--border2)">—</span>'}</td>
       <td style="padding:8px 6px">
         <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;white-space:nowrap">
           <input type="checkbox" id="tn-vchk-${i}" onchange="toggleTNVendor(${i})"> Comisión
         </label>
-        <div id="tn-vfields-${i}" style="display:none;margin-top:4px;display:none">
+        <div id="tn-vfields-${i}" style="display:none;margin-top:4px">
           <input class="form-input" id="tn-vnombre-${i}" placeholder="Vendedor" style="margin-bottom:3px;font-size:11px;padding:4px 6px">
           <input class="form-input" id="tn-vpct-${i}" type="number" placeholder="%" min="0" max="100" style="font-size:11px;padding:4px 6px;width:60px">
         </div>
@@ -3761,6 +3767,7 @@ function renderTNPreview(orders, totalFetched){
           <th style="padding:6px;font-size:10px;color:var(--muted);text-align:left">Productos</th>
           <th style="padding:6px;font-size:10px;color:var(--muted);text-align:left">Total</th>
           <th style="padding:6px;font-size:10px;color:var(--muted);text-align:left">Medio</th>
+          <th style="padding:6px;font-size:10px;color:var(--muted);text-align:left">Descuento</th>
           <th style="padding:6px;font-size:10px;color:var(--muted);text-align:left">Vendedor</th>
         </tr></thead>
         <tbody>${rows}</tbody>
@@ -3814,6 +3821,10 @@ function importTNSelected(orders){
     const comisionVendedor=(vchk?.checked&&vNombre&&vPct>0)
       ?{nombre:vNombre,pct:vPct,monto:Math.round(total*(vPct/100)),retirada:false}
       :null;
+    const coupons=o.coupon||o.coupons||[];
+    const descuento=Array.isArray(coupons)&&coupons.length
+      ?coupons.map(c=>c.code).filter(Boolean).join(', ')
+      :(typeof coupons==='string'?coupons:'');
     S.finanzas.push({
       tipo:'ingreso',
       fecha,
@@ -3826,6 +3837,7 @@ function importTNSelected(orders){
       notas:productos,
       tn_id:o.id,
       tn_envio:parseFloat(o.shipping_cost_owner||0),
+      tn_descuento:descuento||undefined,
       comisionVendedor:comisionVendedor||undefined
     });
     if(o.customer)upsertCRMFromTN(o,fecha,total);
