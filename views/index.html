@@ -2587,7 +2587,7 @@ async function _loadWorkspacesAndRender(){
   // Restore from URL params (refresh / shared link)
   if(window._urlNav){
     const nav=window._urlNav;
-    window._urlNav=null; // consume it
+    // wsId not found — keep _urlNav so _restoreActiveWorkspace can use it
     const target=WORKSPACES.workspaces.find(w=>w.id===nav.wsId);
     if(target){
       if(!target.pin&&!target.users.length){
@@ -2600,7 +2600,7 @@ async function _loadWorkspacesAndRender(){
       }
       return;
     }
-    // wsId not found (e.g. no longer accessible) — fall through to default
+    // wsId not found (e.g. no longer accessible) — keep _urlNav for _restoreActiveWorkspace — fall through to default
   }
 
   _restoreActiveWorkspace();
@@ -2608,7 +2608,7 @@ async function _loadWorkspacesAndRender(){
 
 function _restoreActiveWorkspace(){
   const ws=WORKSPACES.workspaces.find(w=>w.id===WORKSPACES.active)||WORKSPACES.workspaces[0];
-  if(ws&&!ws.pin&&!ws.users.length){_enterWorkspace(ws);}
+  if(ws&&!ws.pin&&!ws.users.length){_enterWorkspace(ws);if(window._urlNav){const nav=window._urlNav;window._urlNav=null;_applyUrlNav(nav);}}
   else if(ws){selectWs(ws.id);}
   else{openWorkspaceSelector();}
 }
