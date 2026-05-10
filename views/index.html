@@ -6574,6 +6574,32 @@ function _cfGetReal(rowLabel,monthKey,tipo){
   }).reduce((a,tx)=>a+(parseFloat(tx.monto)||0),0);
 }
 
+// ── Fallback para datos históricos sin gasto separado ─────────
+// Comisiones: órdenes TN viejas sin gasto _com separado → calcComisionTx
+// Envíos:     órdenes TN viejas sin gasto _envio separado → campo tn_envio
+function _cfGetRealExtra(rowLabel,monthKey){
+  const norm=s=>(s||'').toLowerCase().trim();
+  const nl=norm(rowLabel);
+  if(nl!=='comisiones'&&nl!=='envíos')return 0;
+  const [yr,mo]=monthKey.split('-').map(Number);
+  const txsInMonth=(S.finanzas||[]).filter(tx=>{
+    if(!tx.fecha)return false;
+    const d=new Date(tx.fecha+'T00:00:00');
+    return d.getFullYear()===yr&&d.getMonth()===mo-1&&tx.tipo==='ingreso';
+  });
+  if(nl==='comisiones'){
+    // IDs de órdenes que ya tienen gasto de comisión separado
+    const yaRegistrado=new Set((S.finanzas||[]).filter(t=>t.tn_id_ref&&String(t.tn_id_ref).endsWith('_com')).map(t=>String(t.tn_id_ref).replace(/_com$/,'')));
+    return txsInMonth.filter(tx=>tx.tn_id&&!yaRegistrado.has(String(tx.tn_id))).reduce((a,tx)=>a+calcComisionTx(tx),0);
+  }
+  if(nl==='envíos'){
+    // IDs de órdenes que ya tienen gasto de envío separado
+    const yaRegistrado=new Set((S.finanzas||[]).filter(t=>t.tn_id_ref&&String(t.tn_id_ref).endsWith('_envio')).map(t=>String(t.tn_id_ref).replace(/_envio$/,'')));
+    return txsInMonth.filter(tx=>tx.tn_id&&!yaRegistrado.has(String(tx.tn_id))&&(parseFloat(tx.tn_envio)||0)>0).reduce((a,tx)=>a+(parseFloat(tx.tn_envio)||0),0);
+  }
+  return 0;
+}
+
 function _cfGetRealTotal(tipo,monthKey){
   const [yr,mo]=monthKey.split('-').map(Number);
   return (S.finanzas||[]).filter(tx=>{
@@ -6663,7 +6689,7 @@ function _cfCalc(){
       const overridden=cf.egCells[ck]!==undefined;
       let real=null,proj=null,val=0;
       if(m.isPast){
-        real=overridden?(parseFloat(cf.egCells[ck])||0):_cfGetReal(row.label,m.key,'gasto');
+        real=overridden?(parseFloat(cf.egCells[ck])||0):(_cfGetReal(row.label,m.key,'gasto')+_cfGetRealExtra(row.label,m.key));
         val=real;
         // plan-vs-actual proj
         const pastBefore=months.slice(0,mi).filter(x=>x.isPast).slice(-3);
@@ -6671,12 +6697,12 @@ function _cfCalc(){
           const avg3vals=pastBefore.map(pm=>{
             const pk=row.id+'_'+pm.key;
             if(cf.egCells[pk]!==undefined)return parseFloat(cf.egCells[pk])||0;
-            return _cfGetReal(row.label,pm.key,'gasto');
+            return _cfGetReal(row.label,pm.key,'gasto')+_cfGetRealExtra(row.label,pm.key);
           });
           proj=Math.round(avg3vals.reduce((a,v)=>a+v,0)/avg3vals.length);
         }
       } else if(m.isCurrent){
-        real=_cfGetReal(row.label,m.key,'gasto');
+        real=_cfGetReal(row.label,m.key,'gasto')+_cfGetRealExtra(row.label,m.key);
         val=overridden?(parseFloat(cf.egCells[ck])||0):real;
       } else {
         // future: blank unless user entered
