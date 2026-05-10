@@ -863,7 +863,7 @@ tr:hover .tx-del{color:var(--muted)}
 /* Mobile: no sidebar */
 @media(max-width:768px){.sidebar{display:none!important}}
 
-/* ── CASHFLOW (rebuilt) ── */
+/* ── CASHFLOW ── */
 .cf-summary-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
 .cf-summary-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:16px 18px}
 .cf-summary-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
@@ -872,22 +872,26 @@ tr:hover .tx-del{color:var(--muted)}
 /* Sheet wrapper */
 .cf-sheet-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--border);background:var(--s1);margin-bottom:20px}
 .cf-sheet{border-collapse:collapse;width:100%;table-layout:fixed}
-.cf-sheet th{padding:10px 12px;font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);background:var(--s1);white-space:nowrap;text-align:right;min-width:110px}
-.cf-sheet th.cf-th-label{text-align:left;width:200px;min-width:200px;position:sticky;left:0;z-index:3;background:var(--s1)}
-.cf-sheet th.cf-th-past{background:var(--s1)}
+.cf-sheet th{padding:10px 12px;font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);background:var(--s1);white-space:nowrap;text-align:right;min-width:120px}
+.cf-sheet th.cf-th-label{text-align:left;width:210px;min-width:210px;position:sticky;left:0;z-index:3;background:var(--s1)}
+.cf-sheet th.cf-th-past{background:rgba(255,255,255,0.01)}
+.cf-sheet th.cf-th-current{background:rgba(41,121,255,0.06);border-left:2px solid var(--gold)}
 .cf-sheet th.cf-th-future{background:rgba(41,121,255,0.04)}
-.cf-sheet td{padding:8px 12px;font-size:12px;font-weight:300;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;vertical-align:middle}
+.cf-sheet td{padding:6px 10px;font-size:12px;font-weight:300;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;vertical-align:middle}
 .cf-sheet td.cf-td-label{text-align:left;font-size:12px;position:sticky;left:0;z-index:2;background:var(--s1);padding-left:14px}
+.cf-sheet td.cf-td-past{background:rgba(255,255,255,0.01);color:var(--muted2)}
+.cf-sheet td.cf-td-current{background:rgba(41,121,255,0.05);border-left:2px solid rgba(41,121,255,0.35)}
 .cf-sheet td.cf-td-future{background:rgba(41,121,255,0.025)}
 .cf-sheet tr:hover td{background:var(--s2)!important}
 .cf-sheet tr:hover td.cf-td-label{background:var(--s2)!important}
 /* Section header rows */
-.cf-row-section td{background:var(--s2)!important;border-top:2px solid transparent;padding-top:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.cf-row-section td{background:var(--s2)!important;padding-top:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
 .cf-row-section td.cf-td-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;padding-left:10px;background:var(--s2)!important}
 .cf-row-section-ing td.cf-td-label{border-left:3px solid var(--green)}
+.cf-row-section-aj td.cf-td-label{border-left:3px solid #f0a800}
 .cf-row-section-eg td.cf-td-label{border-left:3px solid var(--coral)}
 .cf-row-section-tot td.cf-td-label{border-left:3px solid var(--gold)}
-/* Concept rows with indent */
+/* Concept rows */
 .cf-row-concept td.cf-td-label{padding-left:20px;color:var(--muted2)}
 /* Totals rows */
 .cf-row-total td{font-weight:500;border-top:1px solid var(--border2);background:rgba(41,121,255,0.03)!important}
@@ -898,10 +902,14 @@ tr:hover .tx-del{color:var(--muted)}
 .cf-row-acumulado td.cf-td-label{color:var(--text)}
 .cf-row-saldo-inicial td{background:rgba(41,121,255,0.04)!important}
 .cf-row-saldo-inicial td.cf-td-label{color:var(--text);font-weight:500}
-/* Editable cells */
-.cf-cell-edit{background:none;border:none;border-bottom:1px dashed var(--border2);color:var(--text);font-family:var(--fb);font-size:12px;font-weight:300;text-align:right;width:88px;outline:none;padding:2px 2px;border-radius:0;transition:border-color .18s}
+/* Cells */
+.cf-cell-real{display:block;font-size:12px;color:var(--muted2);cursor:default}
+.cf-cell-proj-sub{display:block;font-size:10px;color:var(--muted);font-style:italic;margin-top:1px;opacity:.7}
+.cf-cell-edit{background:none;border:none;border-bottom:1px dashed var(--border2);color:var(--text);font-family:var(--fb);font-size:12px;font-weight:300;text-align:right;width:92px;outline:none;padding:2px 2px;border-radius:0;transition:border-color .18s}
 .cf-cell-edit:focus{border-bottom-color:var(--gold);color:var(--gold)}
 .cf-cell-edit.cf-overridden{border-bottom-color:rgba(41,121,255,0.5);color:var(--gold)}
+.cf-cell-edit.cf-aj-input{color:#f0a800;border-bottom-color:rgba(240,168,0,.35)}
+.cf-cell-edit.cf-aj-input:focus{border-bottom-color:#f0a800;color:#f0a800}
 /* Value colors */
 .cf-positive{color:var(--green)}
 .cf-negative{color:var(--coral)}
@@ -926,8 +934,10 @@ tr:hover .tx-del{color:var(--muted)}
 .cf-oblig-input:focus{border-bottom-color:var(--gold)}
 .cf-oblig-select{background:var(--s2);border:1px solid var(--border);color:var(--text);font-family:var(--fb);font-size:11px;padding:3px 6px;border-radius:6px;outline:none;cursor:pointer}
 .cf-oblig-select:focus{border-color:var(--gold)}
-/* Pencil indicator on projected override */
-.cf-pencil{font-size:9px;opacity:.6;margin-left:2px;cursor:default}
+/* Row label edit */
+.cf-label-input{background:none;border:none;color:var(--muted2);font-family:var(--fb);font-size:12px;font-weight:300;outline:none;padding:1px 2px;width:168px;border-bottom:1px dashed transparent;transition:border-color .18s}
+.cf-label-input:hover,.cf-label-input:focus{border-bottom-color:var(--border2);color:var(--text)}
+.cf-pencil{font-size:9px;opacity:.55;margin-left:2px;cursor:default}
 @media(max-width:900px){.cf-summary-bar{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.cf-summary-bar{grid-template-columns:1fr}}
 </style>
@@ -2082,8 +2092,8 @@ tr:hover .tx-del{color:var(--muted)}
  
   <!-- ── TAB: CASHFLOW ── -->
   <div class="fin-tab" id="fintab-cashflow">
-    <!-- Summary cards -->
-    <div class="cf-summary-bar" id="cf-summary-bar">
+    <!-- Summary KPI cards -->
+    <div class="cf-summary-bar">
       <div class="cf-summary-card">
         <div class="cf-summary-label">Saldo actual</div>
         <div class="cf-summary-value cf-neutral" id="cf-s-actual">$0</div>
@@ -2100,9 +2110,9 @@ tr:hover .tx-del{color:var(--muted)}
         <div class="cf-summary-sub" id="cf-s-meses-sub">consecutivos con saldo positivo</div>
       </div>
       <div class="cf-summary-card">
-        <div class="cf-summary-label">Riesgo</div>
+        <div class="cf-summary-label">Obligaciones en riesgo</div>
         <div class="cf-summary-value cf-neutral" id="cf-s-riesgo">0</div>
-        <div class="cf-summary-sub">obligaciones en riesgo o no cubiertas</div>
+        <div class="cf-summary-sub">en riesgo o no cubiertas</div>
       </div>
     </div>
 
@@ -2110,9 +2120,13 @@ tr:hover .tx-del{color:var(--muted)}
     <div class="fin-card" style="margin-bottom:20px">
       <div class="fin-card-head">
         <div class="fin-card-title">Planilla de Cashflow</div>
-        <div style="display:flex;align-items:center;gap:12px">
-          <span style="font-size:10px;color:var(--muted)"><span style="font-style:italic;color:var(--gold)">itálica/dorado</span> = proyectado &nbsp;|&nbsp; <span style="color:var(--green)">verde</span> = positivo &nbsp;|&nbsp; <span style="color:var(--coral)">coral</span> = negativo</span>
-        </div>
+        <span style="font-size:10px;color:var(--muted)">
+          <span style="color:var(--muted2)">gris</span> = real &nbsp;|&nbsp;
+          <span style="color:var(--gold);font-style:italic">dorado</span> = proyectado &nbsp;|&nbsp;
+          <span style="color:#f0a800">naranja</span> = ajuste &nbsp;|&nbsp;
+          <span style="color:var(--green)">verde</span> = positivo &nbsp;|&nbsp;
+          <span style="color:var(--coral)">coral</span> = negativo
+        </span>
       </div>
       <div class="cf-sheet-wrap">
         <table class="cf-sheet" id="cf-sheet-table">
@@ -6441,44 +6455,61 @@ function deleteProduct(ri){
 }
 
 // ══════════════════════════════════════════════════════════════
-// ── CASHFLOW (rebuilt) ────────────────────────────────────────
+// ── CASHFLOW ─────────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════
 
 const CF_DEFAULT_ING_ROWS=[
-  {id:'ing_tienda',nombre:'Tienda Online'},
-  {id:'ing_mayorista',nombre:'Mayorista'},
-  {id:'ing_otros',nombre:'Otros ingresos'}
+  {id:'ing_tienda',label:'Tienda Online'},
+  {id:'ing_mayorista',label:'Mayorista'},
+  {id:'ing_otros',label:'Otros ingresos'}
 ];
 const CF_DEFAULT_EG_ROWS=[
-  {id:'eg_meta',nombre:'Meta Ads'},
-  {id:'eg_google',nombre:'Google Ads'},
-  {id:'eg_stock',nombre:'Stock / Mercadería'},
-  {id:'eg_sueldos',nombre:'Sueldos y RRHH'},
-  {id:'eg_alq',nombre:'Alquileres y Servicios'},
-  {id:'eg_logistica',nombre:'Logística y Envíos'},
-  {id:'eg_comisiones',nombre:'Comisiones MP/TN'},
-  {id:'eg_suscripciones',nombre:'Suscripciones (software)'},
-  {id:'eg_otros',nombre:'Otros gastos'}
+  {id:'eg_meta',label:'Meta Ads'},
+  {id:'eg_google',label:'Google Ads'},
+  {id:'eg_stock',label:'Stock / Mercadería'},
+  {id:'eg_sueldos',label:'Sueldos y RRHH'},
+  {id:'eg_alq',label:'Alquileres y Servicios'},
+  {id:'eg_logistica',label:'Logística y Envíos'},
+  {id:'eg_comisiones',label:'Comisiones MP/TN'},
+  {id:'eg_suscripciones',label:'Suscripciones'},
+  {id:'eg_otros',label:'Otros gastos'}
 ];
 
 function _cfEnsure(){
   if(!S.cashflow)S.cashflow={};
   const cf=S.cashflow;
+  // Migration: old rows used `nombre`, new uses `label`
   if(!cf.saldoInicial&&cf.saldoInicial!==0)cf.saldoInicial=0;
-  if(!cf.ingRows)cf.ingRows=CF_DEFAULT_ING_ROWS.map(r=>({...r}));
-  if(!cf.egRows)cf.egRows=CF_DEFAULT_EG_ROWS.map(r=>({...r}));
-  if(!cf.cells)cf.cells={};           // key: rowId_monthKey → value (overrides/manual entries)
+  if(!cf.ingRows){
+    cf.ingRows=CF_DEFAULT_ING_ROWS.map(r=>({...r}));
+  } else {
+    // migrate nombre→label
+    cf.ingRows.forEach(r=>{if(!r.label&&r.nombre)r.label=r.nombre;});
+  }
+  if(!cf.egRows){
+    cf.egRows=CF_DEFAULT_EG_ROWS.map(r=>({...r}));
+  } else {
+    cf.egRows.forEach(r=>{if(!r.label&&r.nombre)r.label=r.nombre;});
+  }
+  if(!cf.ajRows)cf.ajRows=[];
+  else cf.ajRows.forEach(r=>{if(!r.label&&r.nombre)r.label=r.nombre;});
+  if(!cf.cells)cf.cells={};
+  if(!cf.egCells)cf.egCells={};
+  if(!cf.ajCells)cf.ajCells={};
+  if(!cf.projOverrides)cf.projOverrides={};
   if(!cf.obligaciones)cf.obligaciones=[];
 }
 
+// ── Month helpers ──────────────────────────────────────────────
 function _cfMonths(){
-  // -2, -1, 0(current), +1..+6 = 9 total
+  // offsets: -2, -1, 0(current), +1..+6 = 9 months
   const now=new Date();
   const months=[];
   for(let i=-2;i<=6;i++){
     const d=new Date(now.getFullYear(),now.getMonth()+i,1);
     const isCurrent=i===0;
-    const isPast=i<=0; // current + past months show real data
+    const isPast=i<0;
+    const isFuture=i>0;
     months.push({
       year:d.getFullYear(),
       month:d.getMonth(),
@@ -6486,149 +6517,199 @@ function _cfMonths(){
       key:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,
       isPast,
       isCurrent,
+      isFuture,
       offset:i
     });
   }
   return months;
 }
 
-// Get real finanzas amounts for a given row concept + month
-function _cfGetRealByConcepto(concepto,year,month,tipo){
-  const norm=s=>s.toLowerCase().trim();
+// ── Real data from finanzas ────────────────────────────────────
+function _cfGetReal(rowLabel,monthKey,tipo){
+  if(!rowLabel)return 0;
+  const norm=s=>(s||'').toLowerCase().trim();
+  const nl=norm(rowLabel);
+  const [yr,mo]=monthKey.split('-').map(Number);
   return (S.finanzas||[]).filter(tx=>{
     if(!tx.fecha)return false;
     const d=new Date(tx.fecha);
-    if(d.getFullYear()!==year||d.getMonth()!==month)return false;
+    if(d.getFullYear()!==yr||d.getMonth()!==mo-1)return false;
     if(tx.tipo!==tipo)return false;
-    if(concepto)return norm(tx.concepto||'')===norm(concepto)||norm(tx.categoria||'')===norm(concepto);
-    return true;
+    return norm(tx.concepto||'').includes(nl)||norm(tx.categoria||'').includes(nl)||nl.includes(norm(tx.concepto||''))||nl.includes(norm(tx.categoria||''));
   }).reduce((a,tx)=>a+(parseFloat(tx.monto)||0),0);
 }
 
-// Get total real ingresos or gastos for a month (all transactions)
-function _cfGetRealTotal(year,month,tipo){
+function _cfGetRealTotal(tipo,monthKey){
+  const [yr,mo]=monthKey.split('-').map(Number);
   return (S.finanzas||[]).filter(tx=>{
     if(!tx.fecha)return false;
     const d=new Date(tx.fecha);
-    return d.getFullYear()===year&&d.getMonth()===month&&tx.tipo===tipo;
+    return d.getFullYear()===yr&&d.getMonth()===mo-1&&tx.tipo===tipo;
   }).reduce((a,tx)=>a+(parseFloat(tx.monto)||0),0);
 }
 
-// Average of last N past months for a row
-function _cfAvg3Row(rowId,months,currentIdx,tipo){
-  const pastMs=months.slice(0,currentIdx).filter(m=>m.isPast).slice(-3);
-  if(!pastMs.length)return 0;
-  // Find row name
-  const allRows=tipo==='ingreso'?(S.cashflow.ingRows||[]):(S.cashflow.egRows||[]);
-  const row=allRows.find(r=>r.id===rowId);
+// ── Avg of last 3 real past months for a row ──────────────────
+function _cfAvg3(rowId,isEg){
+  _cfEnsure();
+  const months=_cfMonths();
+  const pastMs=months.filter(m=>m.isPast);
+  const last3=pastMs.slice(-3);
+  if(!last3.length)return 0;
+  const rows=isEg?(S.cashflow.egRows||[]):(S.cashflow.ingRows||[]);
+  const cells=isEg?S.cashflow.egCells:S.cashflow.cells;
+  const row=rows.find(r=>r.id===rowId);
   if(!row)return 0;
-  const vals=pastMs.map(m=>{
-    // Check if there's a manual cell override for this past month
-    const cellKey=rowId+'_'+m.key;
-    if(S.cashflow.cells[cellKey]!==undefined)return parseFloat(S.cashflow.cells[cellKey])||0;
-    return _cfGetRealByConcepto(row.nombre,m.year,m.month,tipo);
+  const tipo=isEg?'gasto':'ingreso';
+  const vals=last3.map(m=>{
+    const ck=rowId+'_'+m.key;
+    if(cells[ck]!==undefined)return parseFloat(cells[ck])||0;
+    return _cfGetReal(row.label,m.key,tipo);
   });
   return Math.round(vals.reduce((a,v)=>a+v,0)/vals.length);
 }
 
-function _cfCalcRows(months){
+// ── Calculate all rows and totals ─────────────────────────────
+function _cfCalc(){
   _cfEnsure();
   const cf=S.cashflow;
-  const cells=cf.cells;
+  const months=_cfMonths();
 
-  // Per-month totals: ingTotal[monthKey], egTotal[monthKey]
   const ingTotals={};
   const egTotals={};
+  const ajTotals={};
+  months.forEach(m=>{ingTotals[m.key]=0;egTotals[m.key]=0;ajTotals[m.key]=0;});
 
-  months.forEach(m=>{ingTotals[m.key]=0;egTotals[m.key]=0;});
-
-  // Build INGRESOS row data
-  const ingData=(cf.ingRows||[]).map((row,ri)=>{
+  // INGRESOS
+  const ingData=(cf.ingRows||[]).map(row=>{
     const values={};
     months.forEach((m,mi)=>{
-      const cellKey=row.id+'_'+m.key;
-      const overridden=cells[cellKey]!==undefined;
-      let val;
+      const ck=row.id+'_'+m.key;
+      const overridden=cf.cells[ck]!==undefined;
+      const projOverride=cf.projOverrides[ck]||false;
+      let real=null,proj=null,val=0;
       if(m.isPast){
-        // real data from finanzas, unless manually overridden
-        val=overridden?(parseFloat(cells[cellKey])||0):_cfGetRealByConcepto(row.nombre,m.year,m.month,'ingreso');
+        real=overridden?(parseFloat(cf.cells[ck])||0):_cfGetReal(row.label,m.key,'ingreso');
+        // show original proj for plan-vs-actual (avg of 3 months before this one)
+        const pastBefore=months.slice(0,mi).filter(x=>x.isPast).slice(-3);
+        if(pastBefore.length){
+          const avg3vals=pastBefore.map(pm=>{
+            const pk=row.id+'_'+pm.key;
+            if(cf.cells[pk]!==undefined)return parseFloat(cf.cells[pk])||0;
+            return _cfGetReal(row.label,pm.key,'ingreso');
+          });
+          proj=Math.round(avg3vals.reduce((a,v)=>a+v,0)/avg3vals.length);
+        }
+        val=real;
+      } else if(m.isCurrent){
+        real=_cfGetReal(row.label,m.key,'ingreso');
+        if(overridden){val=parseFloat(cf.cells[ck])||0;}
+        else{
+          const avg=_cfAvg3(row.id,false);
+          val=avg;
+          proj=avg;
+        }
+        if(overridden)proj=null;
       } else {
-        // future: use override if set, else avg of last 3
-        val=overridden?(parseFloat(cells[cellKey])||0):_cfAvg3Row(row.id,months,mi,'ingreso');
+        // future
+        if(overridden){val=parseFloat(cf.cells[ck])||0;proj=null;}
+        else{val=_cfAvg3(row.id,false);proj=val;}
       }
-      values[m.key]={val,overridden,projected:!m.isPast&&!overridden};
       ingTotals[m.key]+=val;
+      values[m.key]={val,real,proj,overridden,projOverride,isPast:m.isPast,isCurrent:m.isCurrent,isFuture:m.isFuture};
     });
     return{...row,values};
   });
 
-  // Build EGRESOS row data
-  const egData=(cf.egRows||[]).map((row,ri)=>{
+  // EGRESOS
+  const egData=(cf.egRows||[]).map(row=>{
     const values={};
     months.forEach((m,mi)=>{
-      const cellKey=row.id+'_'+m.key;
-      const overridden=cells[cellKey]!==undefined;
-      let val;
+      const ck=row.id+'_'+m.key;
+      const overridden=cf.egCells[ck]!==undefined;
+      let real=null,proj=null,val=0;
       if(m.isPast){
-        val=overridden?(parseFloat(cells[cellKey])||0):_cfGetRealByConcepto(row.nombre,m.year,m.month,'gasto');
+        real=overridden?(parseFloat(cf.egCells[ck])||0):_cfGetReal(row.label,m.key,'gasto');
+        val=real;
+        // plan-vs-actual proj
+        const pastBefore=months.slice(0,mi).filter(x=>x.isPast).slice(-3);
+        if(pastBefore.length){
+          const avg3vals=pastBefore.map(pm=>{
+            const pk=row.id+'_'+pm.key;
+            if(cf.egCells[pk]!==undefined)return parseFloat(cf.egCells[pk])||0;
+            return _cfGetReal(row.label,pm.key,'gasto');
+          });
+          proj=Math.round(avg3vals.reduce((a,v)=>a+v,0)/avg3vals.length);
+        }
+      } else if(m.isCurrent){
+        real=_cfGetReal(row.label,m.key,'gasto');
+        val=overridden?(parseFloat(cf.egCells[ck])||0):real;
       } else {
-        // future: fully manual — blank (0) unless user entered a value
-        val=overridden?(parseFloat(cells[cellKey])||0):0;
+        // future: blank unless user entered
+        val=overridden?(parseFloat(cf.egCells[ck])||0):0;
       }
-      values[m.key]={val,overridden,projected:false};
       egTotals[m.key]+=val;
+      values[m.key]={val,real,proj,overridden,isPast:m.isPast,isCurrent:m.isCurrent,isFuture:m.isFuture};
     });
     return{...row,values};
   });
 
-  // Compute saldo acumulado
+  // AJUSTES / IMPREVISTOS
+  const ajData=(cf.ajRows||[]).map(row=>{
+    const values={};
+    months.forEach(m=>{
+      const ck=row.id+'_'+m.key;
+      const val=cf.ajCells[ck]!==undefined?(parseFloat(cf.ajCells[ck])||0):0;
+      ajTotals[m.key]+=val;
+      values[m.key]={val,isPast:m.isPast,isCurrent:m.isCurrent,isFuture:m.isFuture};
+    });
+    return{...row,values};
+  });
+
+  // Saldo acumulado
   const saldoAcum={};
   let running=parseFloat(cf.saldoInicial)||0;
   months.forEach(m=>{
-    running+=ingTotals[m.key]-egTotals[m.key];
+    running+=ingTotals[m.key]+ajTotals[m.key]-egTotals[m.key];
     saldoAcum[m.key]=running;
   });
 
-  return{ingData,egData,ingTotals,egTotals,saldoAcum};
+  return{months,ingData,egData,ajData,ingTotals,egTotals,ajTotals,saldoAcum};
 }
 
+// ── Formatting helpers ────────────────────────────────────────
 function _fmtMoney(n){
   return'$'+Math.abs(Math.round(n)).toLocaleString('es-AR');
 }
-function _fmtCFVal(n,projected,overridden){
-  if(n===0&&!projected&&!overridden)return'<span class="cf-neutral">—</span>';
-  let cls;
-  if(projected)cls='cf-projected';
-  else cls=n>=0?'cf-positive':'cf-negative';
-  const sign=n<0?'-':'';
-  const pencil=overridden?'<span class="cf-pencil" title="Valor editado manualmente">✎</span>':'';
-  return`<span class="${cls}">${sign}${_fmtMoney(n)}${pencil}</span>`;
-}
 function _fmtBalance(n){
   if(n===0)return'<span class="cf-neutral">$0</span>';
-  const cls=n>0?'cf-positive':'cf-negative';
-  return`<span class="${cls}">${n<0?'-':''}${_fmtMoney(n)}</span>`;
+  return`<span class="${n>0?'cf-positive':'cf-negative'}">${n<0?'-':''}${_fmtMoney(n)}</span>`;
+}
+function _tdCls(m){
+  if(m.isCurrent)return'cf-td-current';
+  if(m.isPast)return'cf-td-past';
+  return'cf-td-future';
 }
 
+// ── Main render ───────────────────────────────────────────────
 function renderCashflow(){
   _cfEnsure();
-  const months=_cfMonths();
-  const {ingData,egData,ingTotals,egTotals,saldoAcum}=_cfCalcRows(months);
+  const {months,ingData,egData,ajData,ingTotals,egTotals,ajTotals,saldoAcum}=_cfCalc();
   const cf=S.cashflow;
+  const COLS=months.length;
 
-  // ── Header ──
+  // Header
   const thead=document.getElementById('cf-sheet-head');
   if(thead){
     let htr='<tr><th class="cf-th-label">Concepto</th>';
     months.forEach(m=>{
-      const cls=m.isPast?'cf-th-past':'cf-th-future';
+      const cls=m.isCurrent?'cf-th-current':m.isPast?'cf-th-past':'cf-th-future';
       const sub=m.isCurrent
-        ?'<span style="font-size:9px;display:block;color:var(--gold);font-style:italic">actual</span>'
-        :m.isPast?''
+        ?'<span style="font-size:9px;display:block;color:var(--gold);font-style:italic">mes actual</span>'
+        :m.isPast?'<span style="font-size:9px;display:block;color:var(--muted);font-style:italic">real</span>'
         :'<span style="font-size:9px;display:block;color:var(--gold);font-style:italic">proyectado</span>';
       htr+=`<th class="${cls}">${m.label}${sub}</th>`;
     });
-    htr+='</tr>';
+    htr+='<th style="width:36px"></th></tr>';
     thead.innerHTML=htr;
   }
 
@@ -6640,145 +6721,202 @@ function renderCashflow(){
   html+='<tr class="cf-row-saldo-inicial">';
   html+=`<td class="cf-td-label">Saldo inicial</td>`;
   months.forEach((m,mi)=>{
-    const tdCls=m.isPast?'':'cf-td-future';
+    const tc=_tdCls(m);
     if(mi===0){
-      html+=`<td class="${tdCls}"><input class="cf-cell-edit" type="number" data-cfkey="__saldoInicial" value="${Math.round(parseFloat(cf.saldoInicial)||0)}" onchange="cfCellChange(this)" placeholder="0"></td>`;
+      html+=`<td class="${tc}"><input class="cf-cell-edit" type="number" data-cfkey="__saldoInicial" data-cfsec="si" value="${Math.round(parseFloat(cf.saldoInicial)||0)}" onblur="cfCellChange(this)" onchange="cfCellChange(this)" placeholder="0"></td>`;
     } else {
-      html+=`<td class="${tdCls}"><span class="cf-neutral" style="font-size:11px">—</span></td>`;
+      html+=`<td class="${tc}"><span class="cf-neutral" style="font-size:11px">—</span></td>`;
     }
   });
-  html+='</tr>';
+  html+='<td></td></tr>';
 
-  // ── INGRESOS section ──
-  html+=`<tr class="cf-row-section cf-row-section-ing">`;
-  html+=`<td class="cf-td-label" colspan="${months.length+1}">INGRESOS</td>`;
-  html+='</tr>';
+  // ── INGRESOS ──
+  html+=`<tr class="cf-row-section cf-row-section-ing"><td class="cf-td-label" colspan="${COLS+2}">── INGRESOS ──</td></tr>`;
 
   ingData.forEach((row,ri)=>{
-    html+=`<tr class="cf-row-concept" data-rowtype="ing" data-ri="${ri}">`;
-    html+=`<td class="cf-td-label"><input class="cf-oblig-input" style="min-width:140px" value="${(row.nombre||'').replace(/"/g,'&quot;')}" onchange="cfRowRename('ing',${ri},this.value)" placeholder="Concepto"></td>`;
+    html+=`<tr class="cf-row-concept">`;
+    html+=`<td class="cf-td-label"><input class="cf-label-input" value="${(row.label||'').replace(/"/g,'&quot;')}" onblur="cfRowRename(this,'ing','${row.id}')" placeholder="Concepto"></td>`;
     months.forEach(m=>{
-      const {val,overridden,projected}=row.values[m.key];
-      const tdCls=m.isPast?'':'cf-td-future';
-      if(m.isPast&&!overridden){
-        // show real value as editable for correction
-        html+=`<td class="${tdCls}"><input class="cf-cell-edit${overridden?' cf-overridden':''}" type="number" data-cfkey="${row.id}_${m.key}" value="${Math.round(val)||''}" onchange="cfCellChange(this)" placeholder="0"></td>`;
+      const v=row.values[m.key];
+      const tc=_tdCls(m);
+      if(m.isPast){
+        const realFmt=v.real!==null&&v.real!==0?`<span class="cf-neutral">${_fmtMoney(v.real)}</span>`:'<span class="cf-neutral" style="opacity:.4">—</span>';
+        const projSub=v.proj!==null&&v.proj!==undefined?`<span class="cf-cell-proj-sub" title="Proyectado: ${_fmtMoney(v.proj)}">proy: ${_fmtMoney(v.proj)}</span>`:'';
+        html+=`<td class="${tc}">${realFmt}${projSub}</td>`;
       } else {
-        // future: editable; projected shows auto-calc that user can override
-        const displayVal=val||'';
-        const extraCls=overridden?' cf-overridden':projected?' cf-projected-input':'';
-        html+=`<td class="${tdCls}"><input class="cf-cell-edit${extraCls}" type="number" data-cfkey="${row.id}_${m.key}" value="${displayVal?Math.round(displayVal):''}" onchange="cfCellChange(this)" placeholder="${projected&&!overridden?Math.round(_cfAvg3Row(row.id,months,months.indexOf(m),'ingreso'))||'0':'0'}"></td>`;
+        const dispVal=v.val||'';
+        const extraCls=v.overridden?' cf-overridden':!v.isCurrent?' cf-projected-input':'';
+        const ph=(!v.overridden&&!v.isCurrent)?(_cfAvg3(row.id,false)||'0'):'0';
+        const pencil=v.overridden?'<span class="cf-pencil" title="Valor editado">✎</span>':'';
+        html+=`<td class="${tc}">${pencil}<input class="cf-cell-edit${extraCls}" type="number" data-cfkey="${row.id}_${m.key}" data-cfsec="ing" value="${dispVal?Math.round(dispVal):''}" onblur="cfCellChange(this)" onchange="cfCellChange(this)" placeholder="${ph}"></td>`;
       }
     });
-    html+=`<td style="padding:4px 6px"><button class="btn btn-xs btn-danger" onclick="cfDeleteRow('ing',${ri})" title="Eliminar fila">✕</button></td>`;
+    html+=`<td style="padding:3px 5px"><button class="btn btn-xs btn-danger" onclick="cfDeleteRow('ing','${row.id}')" title="Eliminar">✕</button></td>`;
     html+='</tr>';
   });
 
-  // Add row button (ingresos)
-  html+=`<tr class="cf-add-row-wrap"><td class="cf-td-label" colspan="${months.length+2}" style="padding:5px 14px 8px 14px!important"><button class="cf-add-row-btn" onclick="cfAddRow('ing')">+ Agregar fila de ingreso</button></td></tr>`;
+  html+=`<tr class="cf-add-row-wrap"><td colspan="${COLS+2}" style="padding:5px 14px 8px 14px!important"><button class="cf-add-row-btn" onclick="cfAddRow('ing')">+ Agregar ingreso</button></td></tr>`;
 
   // Total ingresos
-  html+=`<tr class="cf-row-total">`;
-  html+=`<td class="cf-td-label">Total Ingresos</td>`;
+  html+=`<tr class="cf-row-total"><td class="cf-td-label">Total Ingresos</td>`;
   months.forEach(m=>{
     const n=ingTotals[m.key];
-    const tdCls=m.isPast?'':'cf-td-future';
-    html+=`<td class="${tdCls}">${_fmtCFVal(n,!m.isPast,false)}</td>`;
+    const tc=_tdCls(m);
+    const cls=n>0?'cf-positive':n===0?'cf-neutral':'cf-negative';
+    const proj=!m.isPast&&!m.isCurrent;
+    html+=`<td class="${tc}"><span class="${cls}${proj?' cf-projected':''}">${n?_fmtMoney(n):'—'}</span></td>`;
   });
   html+=`<td></td></tr>`;
 
-  // ── EGRESOS section ──
-  html+=`<tr class="cf-row-section cf-row-section-eg">`;
-  html+=`<td class="cf-td-label" colspan="${months.length+1}">EGRESOS</td>`;
-  html+='</tr>';
+  // ── AJUSTES / IMPREVISTOS ──
+  html+=`<tr class="cf-row-section cf-row-section-aj"><td class="cf-td-label" colspan="${COLS+2}">── AJUSTES / IMPREVISTOS ──</td></tr>`;
 
-  egData.forEach((row,ri)=>{
-    html+=`<tr class="cf-row-concept" data-rowtype="eg" data-ri="${ri}">`;
-    html+=`<td class="cf-td-label"><input class="cf-oblig-input" style="min-width:140px" value="${(row.nombre||'').replace(/"/g,'&quot;')}" onchange="cfRowRename('eg',${ri},this.value)" placeholder="Concepto"></td>`;
+  ajData.forEach((row,ri)=>{
+    html+=`<tr class="cf-row-concept">`;
+    html+=`<td class="cf-td-label"><input class="cf-label-input" style="color:#f0a800" value="${(row.label||'').replace(/"/g,'&quot;')}" onblur="cfRowRename(this,'aj','${row.id}')" placeholder="Nombre del ajuste"></td>`;
     months.forEach(m=>{
-      const {val,overridden}=row.values[m.key];
-      const tdCls=m.isPast?'':'cf-td-future';
-      if(m.isPast&&!overridden){
-        html+=`<td class="${tdCls}"><input class="cf-cell-edit" type="number" data-cfkey="${row.id}_${m.key}" value="${Math.round(val)||''}" onchange="cfCellChange(this)" placeholder="0"></td>`;
-      } else {
-        const extraCls=overridden?' cf-overridden':'';
-        html+=`<td class="${tdCls}"><input class="cf-cell-edit${extraCls}" type="number" data-cfkey="${row.id}_${m.key}" value="${val?Math.round(val):''}" onchange="cfCellChange(this)" placeholder="0"></td>`;
-      }
+      const v=row.values[m.key];
+      const tc=_tdCls(m);
+      const val=v.val||0;
+      const cls=val>0?'cf-positive':val<0?'cf-negative':'';
+      html+=`<td class="${tc}"><input class="cf-cell-edit cf-aj-input" type="number" data-cfkey="${row.id}_${m.key}" data-cfsec="aj" value="${val||''}" onblur="cfCellChange(this)" onchange="cfCellChange(this)" placeholder="0"></td>`;
     });
-    html+=`<td style="padding:4px 6px"><button class="btn btn-xs btn-danger" onclick="cfDeleteRow('eg',${ri})" title="Eliminar fila">✕</button></td>`;
+    html+=`<td style="padding:3px 5px"><button class="btn btn-xs btn-danger" onclick="cfDeleteRow('aj','${row.id}')" title="Eliminar">✕</button></td>`;
     html+='</tr>';
   });
 
-  // Add row button (egresos)
-  html+=`<tr class="cf-add-row-wrap"><td class="cf-td-label" colspan="${months.length+2}" style="padding:5px 14px 8px 14px!important"><button class="cf-add-row-btn" onclick="cfAddRow('eg')">+ Agregar fila de egreso</button></td></tr>`;
+  html+=`<tr class="cf-add-row-wrap"><td colspan="${COLS+2}" style="padding:5px 14px 8px 14px!important"><button class="cf-add-row-btn" style="border-color:rgba(240,168,0,.3);color:#f0a800" onclick="cfAddRow('aj')">+ Agregar ajuste / imprevisto</button></td></tr>`;
 
-  // Total egresos
-  html+=`<tr class="cf-row-total">`;
-  html+=`<td class="cf-td-label">Total Egresos</td>`;
+  // Total ajustes
+  html+=`<tr class="cf-row-total"><td class="cf-td-label">Total Ajustes</td>`;
   months.forEach(m=>{
-    const n=egTotals[m.key];
-    const tdCls=m.isPast?'':'cf-td-future';
-    html+=`<td class="${tdCls}">${n?`<span class="cf-negative">-${_fmtMoney(n)}</span>`:'<span class="cf-neutral">—</span>'}</td>`;
+    const n=ajTotals[m.key];
+    const tc=_tdCls(m);
+    const cls=n>0?'cf-positive':n<0?'cf-negative':'cf-neutral';
+    html+=`<td class="${tc}"><span class="${cls}" style="${n!==0?'color:#f0a800':''}">${n?((n>0?'+':'')+_fmtMoney(n)):'—'}</span></td>`;
   });
   html+=`<td></td></tr>`;
 
-  // ── TOTALES section ──
-  html+=`<tr class="cf-row-section cf-row-section-tot">`;
-  html+=`<td class="cf-td-label" colspan="${months.length+1}">TOTALES</td>`;
-  html+='</tr>';
+  // ── EGRESOS ──
+  html+=`<tr class="cf-row-section cf-row-section-eg"><td class="cf-td-label" colspan="${COLS+2}">── EGRESOS ──</td></tr>`;
+
+  egData.forEach((row,ri)=>{
+    html+=`<tr class="cf-row-concept">`;
+    html+=`<td class="cf-td-label"><input class="cf-label-input" value="${(row.label||'').replace(/"/g,'&quot;')}" onblur="cfRowRename(this,'eg','${row.id}')" placeholder="Concepto"></td>`;
+    months.forEach(m=>{
+      const v=row.values[m.key];
+      const tc=_tdCls(m);
+      if(m.isPast){
+        const realFmt=v.real!==null&&v.real!==0?`<span class="cf-neutral cf-negative" style="opacity:.85">${_fmtMoney(v.real)}</span>`:'<span class="cf-neutral" style="opacity:.4">—</span>';
+        const projSub=v.proj!==null&&v.proj!==undefined&&v.proj!==0?`<span class="cf-cell-proj-sub" title="Proyectado: ${_fmtMoney(v.proj)}">proy: ${_fmtMoney(v.proj)}</span>`:'';
+        html+=`<td class="${tc}">${realFmt}${projSub}</td>`;
+      } else {
+        const dispVal=v.overridden?v.val:v.val||'';
+        const extraCls=v.overridden?' cf-overridden':'';
+        html+=`<td class="${tc}"><input class="cf-cell-edit${extraCls}" type="number" data-cfkey="${row.id}_${m.key}" data-cfsec="eg" value="${dispVal?Math.round(dispVal):''}" onblur="cfCellChange(this)" onchange="cfCellChange(this)" placeholder="0"></td>`;
+      }
+    });
+    html+=`<td style="padding:3px 5px"><button class="btn btn-xs btn-danger" onclick="cfDeleteRow('eg','${row.id}')" title="Eliminar">✕</button></td>`;
+    html+='</tr>';
+  });
+
+  html+=`<tr class="cf-add-row-wrap"><td colspan="${COLS+2}" style="padding:5px 14px 8px 14px!important"><button class="cf-add-row-btn" onclick="cfAddRow('eg')">+ Agregar egreso</button></td></tr>`;
+
+  // Total egresos
+  html+=`<tr class="cf-row-total"><td class="cf-td-label">Total Egresos</td>`;
+  months.forEach(m=>{
+    const n=egTotals[m.key];
+    const tc=_tdCls(m);
+    html+=`<td class="${tc}"><span class="${n?'cf-negative':'cf-neutral'}">${n?_fmtMoney(n):'—'}</span></td>`;
+  });
+  html+=`<td></td></tr>`;
+
+  // ── TOTALES ──
+  html+=`<tr class="cf-row-section cf-row-section-tot"><td class="cf-td-label" colspan="${COLS+2}">── TOTALES ──</td></tr>`;
+
+  // Total Ingresos (repeat for totals block)
+  html+=`<tr class="cf-row-total"><td class="cf-td-label" style="color:var(--green)">Total Ingresos</td>`;
+  months.forEach(m=>{
+    const n=ingTotals[m.key];
+    const tc=_tdCls(m);
+    html+=`<td class="${tc}"><span class="cf-positive">${n?_fmtMoney(n):'—'}</span></td>`;
+  });
+  html+=`<td></td></tr>`;
+
+  // Total Ajustes (repeat)
+  html+=`<tr class="cf-row-total"><td class="cf-td-label" style="color:#f0a800">Total Ajustes</td>`;
+  months.forEach(m=>{
+    const n=ajTotals[m.key];
+    const tc=_tdCls(m);
+    html+=`<td class="${tc}"><span style="${n!==0?'color:#f0a800':''}" class="${n===0?'cf-neutral':n>0?'cf-positive':'cf-negative'}">${n?((n>0?'+':'')+_fmtMoney(n)):'—'}</span></td>`;
+  });
+  html+=`<td></td></tr>`;
+
+  // Total Egresos (repeat)
+  html+=`<tr class="cf-row-total"><td class="cf-td-label" style="color:var(--coral)">Total Egresos</td>`;
+  months.forEach(m=>{
+    const n=egTotals[m.key];
+    const tc=_tdCls(m);
+    html+=`<td class="${tc}"><span class="${n?'cf-negative':'cf-neutral'}">${n?_fmtMoney(n):'—'}</span></td>`;
+  });
+  html+=`<td></td></tr>`;
 
   // Resultado del mes
-  html+=`<tr class="cf-row-resultado">`;
-  html+=`<td class="cf-td-label">Resultado del mes</td>`;
+  html+=`<tr class="cf-row-resultado"><td class="cf-td-label">Resultado del mes</td>`;
   months.forEach(m=>{
-    const n=ingTotals[m.key]-egTotals[m.key];
-    const tdCls=m.isPast?'':'cf-td-future';
+    const n=ingTotals[m.key]+ajTotals[m.key]-egTotals[m.key];
+    const tc=_tdCls(m);
     const cls=n>0?'cf-positive':n<0?'cf-negative':'cf-neutral';
     const sign=n>0?'+':n<0?'-':'';
-    html+=`<td class="${tdCls}"><span class="${cls}" style="font-weight:600">${sign}${_fmtMoney(Math.abs(n))}</span></td>`;
+    html+=`<td class="${tc}"><span class="${cls}" style="font-size:14px;font-weight:700">${sign}${_fmtMoney(Math.abs(n))}</span></td>`;
   });
   html+=`<td></td></tr>`;
 
   // Saldo acumulado
-  html+=`<tr class="cf-row-acumulado">`;
-  html+=`<td class="cf-td-label">Saldo acumulado</td>`;
+  html+=`<tr class="cf-row-acumulado"><td class="cf-td-label">Saldo acumulado</td>`;
   months.forEach(m=>{
     const n=saldoAcum[m.key];
-    const tdCls=m.isPast?'':'cf-td-future';
-    html+=`<td class="${tdCls}">${_fmtBalance(n)}</td>`;
+    const tc=_tdCls(m);
+    html+=`<td class="${tc}"><span class="${n>0?'cf-positive':n<0?'cf-negative':'cf-neutral'}" style="font-size:13px;font-weight:700">${n<0?'-':''}${_fmtMoney(Math.abs(n))}</span></td>`;
   });
   html+=`<td></td></tr>`;
 
   tbody.innerHTML=html;
 
-  // ── Obligaciones ──
   renderObligaciones(months,saldoAcum);
-
-  // ── Summary cards ──
-  _cfUpdateSummary(months,ingTotals,egTotals,saldoAcum);
+  _cfUpdateSummary(months,ingTotals,egTotals,ajTotals,saldoAcum);
 }
 
+// ── Cell change handler ───────────────────────────────────────
 function cfCellChange(input){
   _cfEnsure();
   const key=input.getAttribute('data-cfkey');
-  const val=parseFloat(input.value);
-  if(key==='__saldoInicial'){
+  const sec=input.getAttribute('data-cfsec');
+  const raw=input.value;
+  const val=parseFloat(raw);
+
+  if(sec==='si'||key==='__saldoInicial'){
     S.cashflow.saldoInicial=isNaN(val)?0:val;
+  } else if(sec==='aj'){
+    if(raw===''||raw===null){delete S.cashflow.ajCells[key];}
+    else{S.cashflow.ajCells[key]=isNaN(val)?0:val;}
+  } else if(sec==='eg'){
+    if(raw===''||raw===null){delete S.cashflow.egCells[key];}
+    else{S.cashflow.egCells[key]=isNaN(val)?0:val;}
   } else {
-    if(input.value===''||input.value===null){
-      // Clear override
+    // ing
+    if(raw===''||raw===null){
       delete S.cashflow.cells[key];
+      delete S.cashflow.projOverrides[key];
     } else {
       S.cashflow.cells[key]=isNaN(val)?0:val;
+      S.cashflow.projOverrides[key]=true;
     }
   }
   saveCashflow();
-  // defer re-render to not lose focus
-  const focused=document.activeElement;
-  const focusKey=focused&&focused.getAttribute?focused.getAttribute('data-cfkey'):null;
+  const focusKey=document.activeElement?.getAttribute?.('data-cfkey')||null;
   setTimeout(()=>{
     renderCashflow();
-    // try restore focus
     if(focusKey){
       const el=document.querySelector(`[data-cfkey="${focusKey}"]`);
       if(el)el.focus();
@@ -6786,45 +6924,55 @@ function cfCellChange(input){
   },0);
 }
 
-function cfRowRename(type,ri,val){
+// ── Row rename ────────────────────────────────────────────────
+function cfRowRename(input,sec,rowId){
   _cfEnsure();
-  const arr=type==='ing'?S.cashflow.ingRows:S.cashflow.egRows;
-  if(arr[ri])arr[ri].nombre=val;
+  const val=input.value;
+  const arr=sec==='ing'?S.cashflow.ingRows:sec==='eg'?S.cashflow.egRows:S.cashflow.ajRows;
+  const row=arr.find(r=>r.id===rowId);
+  if(row)row.label=val;
   saveCashflow();
 }
 
-function cfAddRow(type){
+// ── Add row ───────────────────────────────────────────────────
+function cfAddRow(sec){
   _cfEnsure();
-  const id=(type==='ing'?'ing':'eg')+'_'+Date.now();
-  const row={id,nombre:''};
-  if(type==='ing')S.cashflow.ingRows.push(row);
-  else S.cashflow.egRows.push(row);
+  const id=sec+'_'+Date.now();
+  const row={id,label:''};
+  if(sec==='ing')S.cashflow.ingRows.push(row);
+  else if(sec==='eg')S.cashflow.egRows.push(row);
+  else S.cashflow.ajRows.push(row);
   saveCashflow();
   renderCashflow();
 }
 
-function cfDeleteRow(type,ri){
+// ── Delete row ────────────────────────────────────────────────
+function cfDeleteRow(sec,rowId){
   _cfEnsure();
-  const arr=type==='ing'?S.cashflow.ingRows:S.cashflow.egRows;
-  if(!confirm(`¿Eliminar fila "${arr[ri]?.nombre||'esta fila'}"?`))return;
-  // Also clean up stored cells for this row
-  const rowId=arr[ri]?.id;
-  if(rowId){
-    Object.keys(S.cashflow.cells).forEach(k=>{if(k.startsWith(rowId+'_'))delete S.cashflow.cells[k];});
-  }
+  const arr=sec==='ing'?S.cashflow.ingRows:sec==='eg'?S.cashflow.egRows:S.cashflow.ajRows;
+  const ri=arr.findIndex(r=>r.id===rowId);
+  if(ri<0)return;
+  if(!confirm(`¿Eliminar fila "${arr[ri]?.label||'esta fila'}"?`))return;
+  // clean cells
+  const cellStore=sec==='ing'?S.cashflow.cells:sec==='eg'?S.cashflow.egCells:S.cashflow.ajCells;
+  Object.keys(cellStore).forEach(k=>{if(k.startsWith(rowId+'_'))delete cellStore[k];});
+  if(sec==='ing')Object.keys(S.cashflow.projOverrides).forEach(k=>{if(k.startsWith(rowId+'_'))delete S.cashflow.projOverrides[k];});
   arr.splice(ri,1);
   saveCashflow();
   renderCashflow();
 }
 
+// ── Obligaciones ──────────────────────────────────────────────
 function _cfObligStatus(oblig,saldoAcum,months){
   if(!oblig.vencimiento)return'';
   const d=new Date(oblig.vencimiento);
   const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
   const saldo=saldoAcum[key];
   if(saldo===undefined)return'';
-  if(saldo>=oblig.monto)return'covered';
-  if(saldo>0)return'risk';
+  const monto=parseFloat(oblig.monto)||0;
+  if(saldo>=monto)return'covered';
+  if(saldo>0&&saldo>=monto*0.8)return'risk';
+  if(saldo>0&&saldo<monto)return'risk';
   return'uncovered';
 }
 
@@ -6837,7 +6985,7 @@ function _cfObligLabel(status){
 
 function renderObligaciones(months,saldoAcum){
   _cfEnsure();
-  if(!months){months=_cfMonths();const r=_cfCalcRows(months);saldoAcum=r.saldoAcum;}
+  if(!months){const r=_cfCalc();months=r.months;saldoAcum=r.saldoAcum;}
   const tbody=document.getElementById('cf-oblig-tbody');
   if(!tbody)return;
   const obs=S.cashflow.obligaciones||[];
@@ -6845,13 +6993,12 @@ function renderObligaciones(months,saldoAcum){
     tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px 14px;font-size:12px">Sin obligaciones registradas. Usá "+ Agregar" para añadir pagos futuros.</td></tr>`;
     return;
   }
-  const recOpts=['única','mensual','anual'].map(v=>`<option value="${v}">`).join('');
   tbody.innerHTML=obs.map((o,i)=>{
     const status=_cfObligStatus(o,saldoAcum,months);
     return`<tr>
-      <td><input class="cf-oblig-input" value="${(o.concepto||'').replace(/"/g,'&quot;')}" onchange="cfObligEdit(${i},'concepto',this.value)" placeholder="Concepto"></td>
-      <td><input class="cf-oblig-input" value="${(o.categoria||'').replace(/"/g,'&quot;')}" onchange="cfObligEdit(${i},'categoria',this.value)" placeholder="Categoría" style="min-width:90px"></td>
-      <td><input class="cf-oblig-input" type="number" value="${o.monto||''}" onchange="cfObligEdit(${i},'monto',this.value)" style="max-width:90px" placeholder="0"></td>
+      <td><input class="cf-oblig-input" value="${(o.concepto||'').replace(/"/g,'&quot;')}" onblur="cfObligEdit(${i},'concepto',this.value)" placeholder="Concepto"></td>
+      <td><input class="cf-oblig-input" value="${(o.categoria||'').replace(/"/g,'&quot;')}" onblur="cfObligEdit(${i},'categoria',this.value)" placeholder="Categoría" style="min-width:90px"></td>
+      <td><input class="cf-oblig-input" type="number" value="${o.monto||''}" onblur="cfObligEdit(${i},'monto',this.value)" style="max-width:90px" placeholder="0"></td>
       <td><input class="cf-oblig-input" type="date" value="${o.vencimiento||''}" onchange="cfObligEdit(${i},'vencimiento',this.value)"></td>
       <td><select class="cf-oblig-select" onchange="cfObligEdit(${i},'recurrencia',this.value)">
         <option value="única"${(o.recurrencia||'única')==='única'?' selected':''}>Única</option>
@@ -6870,10 +7017,9 @@ function cfObligEdit(i,field,val){
   if(!obs[i])return;
   obs[i][field]=field==='monto'?(parseFloat(val)||0):val;
   saveCashflow();
-  const months=_cfMonths();
-  const {saldoAcum}=_cfCalcRows(months);
-  renderObligaciones(months,saldoAcum);
-  _cfUpdateSummary(months,null,null,saldoAcum);
+  const r=_cfCalc();
+  renderObligaciones(r.months,r.saldoAcum);
+  _cfUpdateSummary(r.months,r.ingTotals,r.egTotals,r.ajTotals,r.saldoAcum);
 }
 
 function addObligacion(){
@@ -6899,10 +7045,10 @@ function deleteObligacion(i){
   renderCashflow();
 }
 
-function _cfUpdateSummary(months,ingTotals,egTotals,saldoAcum){
-  if(!months){months=_cfMonths();const r=_cfCalcRows(months);ingTotals=r.ingTotals;egTotals=r.egTotals;saldoAcum=r.saldoAcum;}
+// ── Summary KPIs ──────────────────────────────────────────────
+function _cfUpdateSummary(months,ingTotals,egTotals,ajTotals,saldoAcum){
+  if(!months){const r=_cfCalc();months=r.months;ingTotals=r.ingTotals;egTotals=r.egTotals;ajTotals=r.ajTotals;saldoAcum=r.saldoAcum;}
 
-  // Saldo actual = saldo acumulado del mes en curso
   const currentM=months.find(m=>m.isCurrent)||months[2];
   const saldoActual=saldoAcum[currentM.key]||0;
   const actualEl=document.getElementById('cf-s-actual');
@@ -6913,12 +7059,11 @@ function _cfUpdateSummary(months,ingTotals,egTotals,saldoAcum){
   }
   if(actualSub)actualSub.textContent='saldo acumulado a fin de '+currentM.label;
 
-  // Próximo mes = resultado proyectado (+1)
   const nextM=months.find(m=>m.offset===1);
   const proxEl=document.getElementById('cf-s-proximo');
   const proxSub=document.getElementById('cf-s-proximo-sub');
   if(nextM&&ingTotals){
-    const res=(ingTotals[nextM.key]||0)-(egTotals[nextM.key]||0);
+    const res=(ingTotals[nextM.key]||0)+(ajTotals[nextM.key]||0)-(egTotals[nextM.key]||0);
     if(proxEl){
       proxEl.textContent=(res<0?'-':'+')+'$'+Math.abs(Math.round(res)).toLocaleString('es-AR');
       proxEl.className='cf-summary-value '+(res>0?'cf-positive':res<0?'cf-negative':'cf-neutral');
@@ -6926,18 +7071,19 @@ function _cfUpdateSummary(months,ingTotals,egTotals,saldoAcum){
     if(proxSub)proxSub.textContent='resultado proyectado '+nextM.label;
   }
 
-  // Meses en verde
+  // Meses en verde: consecutive future months where saldo > 0
   let mesesVerdes=0;
   for(const m of months){
-    if(!m.isPast&&(saldoAcum[m.key]||0)>0)mesesVerdes++;
-    else if(!m.isPast)break;
+    if(m.isFuture||(m.isCurrent)){
+      if((saldoAcum[m.key]||0)>0)mesesVerdes++;
+      else break;
+    }
   }
   const mesesEl=document.getElementById('cf-s-meses');
   const mesesSub=document.getElementById('cf-s-meses-sub');
   if(mesesEl)mesesEl.textContent=mesesVerdes;
   if(mesesSub)mesesSub.textContent=mesesVerdes===0?'ningún mes futuro positivo':'consecutivos con saldo acumulado positivo';
 
-  // Riesgo
   let enRiesgo=0;
   (S.cashflow.obligaciones||[]).forEach(o=>{
     const st=_cfObligStatus(o,saldoAcum,months);
