@@ -263,6 +263,33 @@ app.get("/api/tn/orders", async (req, res) => {
   }
 })
 
+// Debug: devuelve campos de envío del primer pedido (sin importar)
+app.get("/api/tn/debug-shipping", async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: "wsId requerido" })
+  try {
+    const ws = await getWorkspace(wsId)
+    const tn = ws?.data?.tnIntegration
+    if (!tn?.token) return res.status(400).json({ error: "TN no conectada" })
+    const r = await fetch(`https://api.tiendanube.com/2025-03/${tn.storeId}/orders?per_page=1&page=1`, {
+      headers: { "Authentication": `bearer ${tn.token}`, "User-Agent": "VELDOS (soporte@veldos.app)" }
+    })
+    const data = await r.json()
+    const o = Array.isArray(data) ? data[0] : data
+    if (!o) return res.json({ error: "Sin pedidos" })
+    res.json({
+      number: o.number,
+      total: o.total,
+      subtotal: o.subtotal,
+      shipping_cost_owner: o.shipping_cost_owner,
+      shipping_cost_customer: o.shipping_cost_customer,
+      shipping: o.shipping,
+      shipping_option: o.shipping_option,
+      shipping_pickup_type: o.shipping_pickup_type,
+    })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
 // Register TN webhook for a specific workspace
 app.post("/api/tn/activate", async (req, res) => {
   const { wsId } = req.body
