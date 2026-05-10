@@ -3918,6 +3918,18 @@ async function fetchTNOrders(){
   }
 }
 
+// Lee el costo de envío de un pedido TN independientemente del formato de API
+function _tnEnvio(o){
+  return parseFloat(
+    o.shipping_cost_customer ||
+    o.shipping?.consumer_cost?.value ||
+    o.shipping?.cost?.value ||
+    o.shipping_cost_owner ||
+    o.shipping?.merchant_cost?.value ||
+    0
+  );
+}
+
 function renderTNPreview(orders, totalFetched){
   const area=document.getElementById('tn-import-area');
   if(!area)return;
@@ -3941,7 +3953,7 @@ function renderTNPreview(orders, totalFetched){
     const descuento=Array.isArray(coupons)&&coupons.length
       ?coupons.map(c=>c.code).filter(Boolean).join(', ')
       :(typeof coupons==='string'?coupons:'');
-    const envio=parseFloat(o.shipping_cost_customer||o.shipping_cost_owner||0);
+    const envio=_tnEnvio(o);
     return`<tr id="tn-row-${i}" style="border-bottom:1px solid var(--border)">
       <td style="padding:8px 4px"><input type="checkbox" id="tn-chk-${i}" checked></td>
       <td style="padding:8px 6px;font-size:11px;color:var(--muted)">#${o.number}</td>
@@ -4043,7 +4055,7 @@ function importTNSelected(orders){
     const descuento=Array.isArray(coupons)&&coupons.length
       ?coupons.map(c=>c.code).filter(Boolean).join(', ')
       :(typeof coupons==='string'?coupons:'');
-    const envioMonto=parseFloat(o.shipping_cost_customer||o.shipping_cost_owner||0);
+    const envioMonto=_tnEnvio(o);
     const ingresoTx={
       tipo:'ingreso',
       fecha,
