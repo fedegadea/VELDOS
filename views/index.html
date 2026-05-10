@@ -3486,8 +3486,8 @@ function lockFinanzas(){
 // FINANZAS
 // ══════════════════════════════════════════
 const TX_CATS_ING=['Ventas tienda','Ventas WhatsApp','Collab pagada','Otro ingreso'];
-const TX_CATS_GAS=['Meta Ads','Producción/stock','Envíos','Sueldos/comisiones','Packaging','Herramientas/apps','Fotografía','Costos fijos','Monotributo','Otro gasto'];
-const TX_CAT_COLORS={'Meta Ads':'var(--purple)','Producción/stock':'var(--coral)','Envíos':'var(--blue)','Sueldos/comisiones':'var(--gold)','Packaging':'var(--green)','Herramientas/apps':'var(--muted2)','Fotografía':'var(--muted)','Costos fijos':'var(--muted2)','Monotributo':'var(--muted)','Otro gasto':'var(--muted)','Ventas tienda':'var(--green)','Ventas WhatsApp':'var(--green)','Collab pagada':'var(--gold)','Otro ingreso':'var(--green)'};
+const TX_CATS_GAS=['Meta Ads','Producción/stock','Envíos','Comisiones','Sueldos/comisiones','Packaging','Herramientas/apps','Fotografía','Costos fijos','Monotributo','Otro gasto'];
+const TX_CAT_COLORS={'Meta Ads':'var(--purple)','Producción/stock':'var(--coral)','Envíos':'var(--blue)','Comisiones':'#00a99d','Sueldos/comisiones':'var(--gold)','Packaging':'var(--green)','Herramientas/apps':'var(--muted2)','Fotografía':'var(--muted)','Costos fijos':'var(--muted2)','Monotributo':'var(--muted)','Otro gasto':'var(--muted)','Ventas tienda':'var(--green)','Ventas WhatsApp':'var(--green)','Collab pagada':'var(--gold)','Otro ingreso':'var(--green)'};
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const RECURRENCIAS=['Mensual','Bimestral','Trimestral','Semestral','Anual'];
  
@@ -4035,7 +4035,8 @@ function importTNSelected(orders){
     const descuento=Array.isArray(coupons)&&coupons.length
       ?coupons.map(c=>c.code).filter(Boolean).join(', ')
       :(typeof coupons==='string'?coupons:'');
-    S.finanzas.push({
+    const envioMonto=parseFloat(o.shipping_cost_owner||0);
+    const ingresoTx={
       tipo:'ingreso',
       fecha,
       concepto:`TN #${o.number} — ${cliente}`,
@@ -4046,10 +4047,20 @@ function importTNSelected(orders){
       unidades:(o.products||[]).reduce((a,p)=>a+(p.quantity||1),0),
       notas:productos,
       tn_id:o.id,
-      tn_envio:parseFloat(o.shipping_cost_owner||0),
+      tn_envio:envioMonto,
       tn_descuento:descuento||undefined,
       comisionVendedor:comisionVendedor||undefined
-    });
+    };
+    S.finanzas.push(ingresoTx);
+    // Auto-gasto: costo de envío
+    if(envioMonto>0){
+      S.finanzas.push({tipo:'gasto',fecha,concepto:`Envío TN #${o.number}`,categoria:'Envíos',monto:envioMonto,medioPago:medio,tn_id_ref:`${o.id}_envio`});
+    }
+    // Auto-gasto: comisión gateway (MP, Pago Nube, etc.)
+    const comisionMonto=calcComisionTx(ingresoTx);
+    if(comisionMonto>0){
+      S.finanzas.push({tipo:'gasto',fecha,concepto:`Comisión TN #${o.number}`,categoria:'Comisiones',monto:comisionMonto,medioPago:medio,tn_id_ref:`${o.id}_com`});
+    }
     if(o.customer)upsertCRMFromTN(o,fecha,total);
     count++;
   });
@@ -6466,16 +6477,17 @@ const CF_DEFAULT_ING_ROWS=[
   {id:'ing_otros',    label:'Otro ingreso'}
 ];
 const CF_DEFAULT_EG_ROWS=[
-  {id:'eg_meta',      label:'Meta Ads'},
-  {id:'eg_stock',     label:'Producción/stock'},
-  {id:'eg_envios',    label:'Envíos'},
-  {id:'eg_sueldos',   label:'Sueldos/comisiones'},
-  {id:'eg_packaging', label:'Packaging'},
-  {id:'eg_tools',     label:'Herramientas/apps'},
-  {id:'eg_foto',      label:'Fotografía'},
-  {id:'eg_fijos',     label:'Costos fijos'},
-  {id:'eg_mono',      label:'Monotributo'},
-  {id:'eg_otros',     label:'Otro gasto'}
+  {id:'eg_meta',        label:'Meta Ads'},
+  {id:'eg_stock',       label:'Producción/stock'},
+  {id:'eg_envios',      label:'Envíos'},
+  {id:'eg_comisiones',  label:'Comisiones'},
+  {id:'eg_sueldos',     label:'Sueldos/comisiones'},
+  {id:'eg_packaging',   label:'Packaging'},
+  {id:'eg_tools',       label:'Herramientas/apps'},
+  {id:'eg_foto',        label:'Fotografía'},
+  {id:'eg_fijos',       label:'Costos fijos'},
+  {id:'eg_mono',        label:'Monotributo'},
+  {id:'eg_otros',       label:'Otro gasto'}
 ];
 
 function _cfEnsure(){
@@ -6498,6 +6510,13 @@ function _cfEnsure(){
     // Fix rows whose IDs match defaults but have stale labels
     const defEgMap=Object.fromEntries(CF_DEFAULT_EG_ROWS.map(r=>[r.id,r.label]));
     cf.egRows.forEach(r=>{if(defEgMap[r.id])r.label=defEgMap[r.id];});
+    // Add Comisiones row if missing (new category)
+    if(!cf.egRows.find(r=>r.id==='eg_comisiones')){
+      const enviosIdx=cf.egRows.findIndex(r=>r.id==='eg_envios');
+      const newRow={id:'eg_comisiones',label:'Comisiones'};
+      if(enviosIdx>=0)cf.egRows.splice(enviosIdx+1,0,newRow);
+      else cf.egRows.push(newRow);
+    }
   }
   if(!cf.ajRows)cf.ajRows=[];
   else cf.ajRows.forEach(r=>{if(!r.label&&r.nombre)r.label=r.nombre;});
