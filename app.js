@@ -243,11 +243,20 @@ app.get("/api/tn/orders", async (req, res) => {
       return ps === "paid" || fs === "paid" || ps === "authorized" || fs === "authorized"
     })
     console.log(`[TN orders] total fetched: ${allOrders.length} | paid: ${paid.length}`)
-    // Debug: log shipping fields of first 3 paid orders
-    paid.slice(0, 3).forEach(o => {
-      console.log(`[TN shipping debug] Order #${o.number}: shipping_cost_owner=${o.shipping_cost_owner}, shipping_cost_customer=${o.shipping_cost_customer}, total=${o.total}, shipping_pickup_type=${o.shipping_pickup_type}, shipping_tracking_number=${o.shipping_tracking_number}`)
-      if (o.shipping) console.log(`  o.shipping:`, JSON.stringify(o.shipping))
-    })
+    // Attach shipping debug info to first order so client can inspect
+    if (paid[0]) {
+      const o = paid[0]
+      paid[0]._shippingDebug = {
+        shipping_cost_owner: o.shipping_cost_owner,
+        shipping_cost_customer: o.shipping_cost_customer,
+        subtotal: o.subtotal,
+        total: o.total,
+        shipping: o.shipping,
+        shipping_option: o.shipping_option,
+        shipping_pickup_type: o.shipping_pickup_type,
+        shipping_store_branch_name: o.shipping_store_branch_name,
+      }
+    }
     res.json(paid)
   } catch (e) {
     res.status(500).json({ error: e.message })

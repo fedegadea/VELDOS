@@ -3992,6 +3992,11 @@ function renderTNPreview(orders, totalFetched){
 
   // Store orders for import
   window._tnPendingOrders=orders;
+  // Debug: mostrar campos de envío del primer pedido en consola del browser
+  if(orders[0]?._shippingDebug){
+    console.log('[TN shipping debug] Campos de envío del 1er pedido:',orders[0]._shippingDebug);
+    console.log('[TN shipping debug] Pedido completo #'+orders[0].number+':',orders[0]);
+  }
 }
 
 function toggleAllTN(master){
