@@ -6458,21 +6458,24 @@ function deleteProduct(ri){
 // ── CASHFLOW ─────────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════
 
+// Labels match EXACTLY the tx.categoria values used when creating transactions
 const CF_DEFAULT_ING_ROWS=[
-  {id:'ing_tienda',label:'Tienda Online'},
-  {id:'ing_mayorista',label:'Mayorista'},
-  {id:'ing_otros',label:'Otros ingresos'}
+  {id:'ing_tienda',   label:'Ventas tienda'},
+  {id:'ing_wapp',     label:'Ventas WhatsApp'},
+  {id:'ing_collab',   label:'Collab pagada'},
+  {id:'ing_otros',    label:'Otro ingreso'}
 ];
 const CF_DEFAULT_EG_ROWS=[
-  {id:'eg_meta',label:'Meta Ads'},
-  {id:'eg_google',label:'Google Ads'},
-  {id:'eg_stock',label:'Stock / Mercadería'},
-  {id:'eg_sueldos',label:'Sueldos y RRHH'},
-  {id:'eg_alq',label:'Alquileres y Servicios'},
-  {id:'eg_logistica',label:'Logística y Envíos'},
-  {id:'eg_comisiones',label:'Comisiones MP/TN'},
-  {id:'eg_suscripciones',label:'Suscripciones'},
-  {id:'eg_otros',label:'Otros gastos'}
+  {id:'eg_meta',      label:'Meta Ads'},
+  {id:'eg_stock',     label:'Producción/stock'},
+  {id:'eg_envios',    label:'Envíos'},
+  {id:'eg_sueldos',   label:'Sueldos/comisiones'},
+  {id:'eg_packaging', label:'Packaging'},
+  {id:'eg_tools',     label:'Herramientas/apps'},
+  {id:'eg_foto',      label:'Fotografía'},
+  {id:'eg_fijos',     label:'Costos fijos'},
+  {id:'eg_mono',      label:'Monotributo'},
+  {id:'eg_otros',     label:'Otro gasto'}
 ];
 
 function _cfEnsure(){
@@ -6483,13 +6486,18 @@ function _cfEnsure(){
   if(!cf.ingRows){
     cf.ingRows=CF_DEFAULT_ING_ROWS.map(r=>({...r}));
   } else {
-    // migrate nombre→label
     cf.ingRows.forEach(r=>{if(!r.label&&r.nombre)r.label=r.nombre;});
+    // Fix rows whose IDs match defaults but have stale labels
+    const defIngMap=Object.fromEntries(CF_DEFAULT_ING_ROWS.map(r=>[r.id,r.label]));
+    cf.ingRows.forEach(r=>{if(defIngMap[r.id])r.label=defIngMap[r.id];});
   }
   if(!cf.egRows){
     cf.egRows=CF_DEFAULT_EG_ROWS.map(r=>({...r}));
   } else {
     cf.egRows.forEach(r=>{if(!r.label&&r.nombre)r.label=r.nombre;});
+    // Fix rows whose IDs match defaults but have stale labels
+    const defEgMap=Object.fromEntries(CF_DEFAULT_EG_ROWS.map(r=>[r.id,r.label]));
+    cf.egRows.forEach(r=>{if(defEgMap[r.id])r.label=defEgMap[r.id];});
   }
   if(!cf.ajRows)cf.ajRows=[];
   else cf.ajRows.forEach(r=>{if(!r.label&&r.nombre)r.label=r.nombre;});
@@ -6532,10 +6540,8 @@ function _cfGetReal(rowLabel,monthKey,tipo){
   const [yr,mo]=monthKey.split('-').map(Number);
   return (S.finanzas||[]).filter(tx=>{
     if(!tx.fecha)return false;
-    const d=new Date(tx.fecha);
-    if(d.getFullYear()!==yr||d.getMonth()!==mo-1)return false;
-    if(tx.tipo!==tipo)return false;
-    return norm(tx.concepto||'').includes(nl)||norm(tx.categoria||'').includes(nl)||nl.includes(norm(tx.concepto||''))||nl.includes(norm(tx.categoria||''));
+    const d=new Date(tx.fecha+'T00:00:00');
+    return d.getFullYear()===yr && d.getMonth()===mo-1 && tx.tipo===tipo && norm(tx.categoria)===nl;
   }).reduce((a,tx)=>a+(parseFloat(tx.monto)||0),0);
 }
 
