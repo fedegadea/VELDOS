@@ -352,8 +352,9 @@ app.post("/api/tn/webhook", async (req, res) => {
     const fecha = (o.created_at || "").slice(0, 10)
     const cliente = o.customer?.name || o.customer?.email || "Cliente TN"
     const productos = (o.products || []).map(p => p.name).join(", ") || "Venta"
-    // Prueba todos los formatos posibles de la API TN (legacy y 2025-03)
-    const envioMonto = parseFloat(o.shipping_cost_customer || o.shipping?.consumer_cost?.value || o.shipping?.cost?.value || o.shipping_cost_owner || o.shipping?.merchant_cost?.value || 0)
+    // TN 2025-03 no devuelve shipping_cost_* en listado; fallback: total - subtotal
+    const _explicit = parseFloat(o.shipping_cost_customer || o.shipping?.consumer_cost?.value || o.shipping?.cost?.value || o.shipping_cost_owner || 0)
+    const envioMonto = _explicit > 0 ? _explicit : Math.max(0, (parseFloat(o.total)||0) - (parseFloat(o.subtotal)||0))
     const ingresoTx = {
       tipo: "ingreso", fecha,
       concepto: `TN #${o.number} — ${cliente}`,
