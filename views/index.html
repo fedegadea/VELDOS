@@ -3918,23 +3918,14 @@ async function fetchTNOrders(){
   }
 }
 
-// Lee el costo de envío de un pedido TN independientemente del formato de API
-// TN API 2025-03 no devuelve campo shipping_cost_* en el listado,
-// pero total - subtotal = envío (cuando no hay descuento aparte)
+// Lee el costo de envío de un pedido TN — API v1 devuelve shipping_cost_customer
 function _tnEnvio(o){
-  const explicit = parseFloat(
+  return parseFloat(
     o.shipping_cost_customer ||
-    o.shipping?.consumer_cost?.value ||
-    o.shipping?.cost?.value ||
     o.shipping_cost_owner ||
-    o.shipping?.merchant_cost?.value ||
+    o.shipping?.consumer_cost?.value ||
     0
   );
-  if(explicit>0)return explicit;
-  // Fallback: diferencia total - subtotal
-  const total=parseFloat(o.total||0);
-  const subtotal=parseFloat(o.subtotal||0);
-  return subtotal>0?Math.max(0,total-subtotal):0;
 }
 
 function renderTNPreview(orders, totalFetched){

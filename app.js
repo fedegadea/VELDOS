@@ -153,7 +153,7 @@ app.get("/api/tn/callback", async (req, res) => {
         // Try to fetch store name from TN API
         let storeName = ""
         try {
-          const sRes = await fetch(`https://api.tiendanube.com/2025-03/${data.user_id}/store`, {
+          const sRes = await fetch(`https://api.tiendanube.com/v1/${data.user_id}/store`, {
             headers: { "Authentication": `bearer ${data.access_token}`, "User-Agent": "VELDOS (soporte@veldos.app)" }
           })
           if (sRes.ok) {
@@ -214,7 +214,7 @@ app.get("/api/tn/orders", async (req, res) => {
       if (desde) params.set("created_at_min", new Date(desde).toISOString())
       if (hasta) params.set("created_at_max", new Date(hasta + "T23:59:59").toISOString())
 
-      const url = `https://api.tiendanube.com/2025-03/${storeId}/orders?${params}`
+      const url = `https://api.tiendanube.com/v1/${storeId}/orders?${params}`
       console.log(`[TN orders] GET page ${page}`, url)
       const r = await fetch(url, { headers })
       console.log(`[TN orders] page ${page} status:`, r.status)
@@ -271,7 +271,7 @@ app.get("/api/tn/debug-shipping", async (req, res) => {
     const ws = await getWorkspace(wsId)
     const tn = ws?.data?.tnIntegration
     if (!tn?.token) return res.status(400).json({ error: "TN no conectada" })
-    const r = await fetch(`https://api.tiendanube.com/2025-03/${tn.storeId}/orders?per_page=1&page=1`, {
+    const r = await fetch(`https://api.tiendanube.com/v1/${tn.storeId}/orders?per_page=1&page=1`, {
       headers: { "Authentication": `bearer ${tn.token}`, "User-Agent": "VELDOS (soporte@veldos.app)" }
     })
     const data = await r.json()
@@ -291,7 +291,7 @@ app.post("/api/tn/activate", async (req, res) => {
     if (!tn?.token) return res.status(400).json({ error: "Tienda Nube no conectada en este proyecto" })
 
     // Register webhook with TN using workspace-specific credentials
-    await fetch(`https://api.tiendanube.com/2025-03/${tn.storeId}/webhooks`, {
+    await fetch(`https://api.tiendanube.com/v1/${tn.storeId}/webhooks`, {
       method: "POST",
       headers: {
         "Authentication": `bearer ${tn.token}`,
@@ -336,7 +336,7 @@ app.post("/api/tn/webhook", async (req, res) => {
 
     // Fetch order from TN API using workspace-specific credentials
     const oRes = await fetch(
-      `https://api.tiendanube.com/2025-03/${tn.storeId}/orders/${orderId}`,
+      `https://api.tiendanube.com/v1/${tn.storeId}/orders/${orderId}`,
       { headers: { "Authentication": `bearer ${tn.token}`, "User-Agent": "VELDOS (soporte@veldos.app)" } }
     )
     if (!oRes.ok) return
@@ -352,9 +352,7 @@ app.post("/api/tn/webhook", async (req, res) => {
     const fecha = (o.created_at || "").slice(0, 10)
     const cliente = o.customer?.name || o.customer?.email || "Cliente TN"
     const productos = (o.products || []).map(p => p.name).join(", ") || "Venta"
-    // TN 2025-03 no devuelve shipping_cost_* en listado; fallback: total - subtotal
-    const _explicit = parseFloat(o.shipping_cost_customer || o.shipping?.consumer_cost?.value || o.shipping?.cost?.value || o.shipping_cost_owner || 0)
-    const envioMonto = _explicit > 0 ? _explicit : Math.max(0, (parseFloat(o.total)||0) - (parseFloat(o.subtotal)||0))
+    const envioMonto = parseFloat(o.shipping_cost_customer || o.shipping_cost_owner || 0)
     const ingresoTx = {
       tipo: "ingreso", fecha,
       concepto: `TN #${o.number} — ${cliente}`,
