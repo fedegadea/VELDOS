@@ -277,16 +277,7 @@ app.get("/api/tn/debug-shipping", async (req, res) => {
     const data = await r.json()
     const o = Array.isArray(data) ? data[0] : data
     if (!o) return res.json({ error: "Sin pedidos" })
-    res.json({
-      number: o.number,
-      total: o.total,
-      subtotal: o.subtotal,
-      shipping_cost_owner: o.shipping_cost_owner,
-      shipping_cost_customer: o.shipping_cost_customer,
-      shipping: o.shipping,
-      shipping_option: o.shipping_option,
-      shipping_pickup_type: o.shipping_pickup_type,
-    })
+    res.json(o)
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
