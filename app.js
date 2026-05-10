@@ -263,7 +263,7 @@ app.get("/api/tn/orders", async (req, res) => {
   }
 })
 
-// Debug: devuelve campos de envío del primer pedido (sin importar)
+// Debug: estado webhooks y envío
 app.get("/api/tn/debug-shipping", async (req, res) => {
   const { wsId } = req.query
   if (!wsId) return res.status(400).json({ error: "wsId requerido" })
@@ -271,13 +271,20 @@ app.get("/api/tn/debug-shipping", async (req, res) => {
     const ws = await getWorkspace(wsId)
     const tn = ws?.data?.tnIntegration
     if (!tn?.token) return res.status(400).json({ error: "TN no conectada" })
-    const r = await fetch(`https://api.tiendanube.com/v1/${tn.storeId}/orders?per_page=1&page=1`, {
-      headers: { "Authentication": `bearer ${tn.token}`, "User-Agent": "VELDOS (soporte@veldos.app)" }
+    const headers = { "Authentication": `bearer ${tn.token}`, "User-Agent": "VELDOS (soporte@veldos.app)" }
+    const [wbRes, ordRes] = await Promise.all([
+      fetch(`https://api.tiendanube.com/v1/${tn.storeId}/webhooks`, { headers }),
+      fetch(`https://api.tiendanube.com/v1/${tn.storeId}/orders?per_page=1&page=1`, { headers })
+    ])
+    const webhooks = await wbRes.json()
+    const orders = await ordRes.json()
+    const o = Array.isArray(orders) ? orders[0] : orders
+    res.json({
+      tnWebhookActive: ws.data?.tnWebhookActive,
+      storeId: tn.storeId,
+      webhooks,
+      firstOrder: o ? { number: o.number, total: o.total, subtotal: o.subtotal, shipping_cost_customer: o.shipping_cost_customer, shipping_cost_owner: o.shipping_cost_owner } : null
     })
-    const data = await r.json()
-    const o = Array.isArray(data) ? data[0] : data
-    if (!o) return res.json({ error: "Sin pedidos" })
-    res.json(o)
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
