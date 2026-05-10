@@ -2011,7 +2011,7 @@ tr:hover .tx-del{color:var(--muted)}
           <select id="fin-filter-tipo" onchange="onFinTipoChange()" style="background:var(--s3);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:11px;padding:4px 8px;border-radius:6px;outline:none">
             <option value="">Todos</option><option value="ingreso">Ingresos</option><option value="gasto">Gastos</option>
           </select>
-          <select id="fin-filter-cat" onchange="renderFinanzas()" style="display:none;background:var(--s3);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:11px;padding:4px 8px;border-radius:6px;outline:none">
+          <select id="fin-filter-cat" onchange="renderFinanzas()" style="background:var(--s3);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:11px;padding:4px 8px;border-radius:6px;outline:none">
             <option value="">Todas las categorías</option>
           </select>
         </div>
@@ -3528,6 +3528,11 @@ function initFinPeriod(){
   const ha=document.getElementById('fin-hasta');
   if(de)de.value=fmtDate(desde);
   if(ha)ha.value=fmtDate(hasta);
+  const catSel=document.getElementById('fin-filter-cat');
+  if(catSel){
+    const allCats=[...new Set([...TX_CATS_ING,...TX_CATS_GAS])];
+    catSel.innerHTML=`<option value="">Todas las categorías</option>`+allCats.map(c=>`<option>${c}</option>`).join('');
+  }
   const mesEl=document.getElementById('pres-mes');
   const añoEl=document.getElementById('pres-año');
   if(mesEl)mesEl.innerHTML=MESES.map((m,i)=>`<option value="${i}"${i===now.getMonth()?' selected':''}>${m}</option>`).join('');
@@ -3596,14 +3601,6 @@ function onFinTipoChange(){
 function renderFinanzas(){
   if(!document.getElementById('fintab-movimientos')?.classList.contains('active'))return;
   if(!S.finanzas)S.finanzas=[];
-  // Init category filter if not yet populated
-  const catSel=document.getElementById('fin-filter-cat');
-  if(catSel&&catSel.options.length<=1){
-    const tipo=document.getElementById('fin-filter-tipo')?.value||'';
-    const cats=tipo==='ingreso'?TX_CATS_ING:[...new Set([...TX_CATS_ING,...TX_CATS_GAS])];
-    catSel.innerHTML=`<option value="">Todas las categorías</option>`+cats.map(c=>`<option>${c}</option>`).join('');
-    catSel.style.display='inline-block';
-  }
   const desde=document.getElementById('fin-desde')?.value||'';
   const hasta=document.getElementById('fin-hasta')?.value||'';
   const txs=getTxEnPeriod();
@@ -3704,8 +3701,6 @@ function renderFinanzas(){
   // desglose
   const gastosPorCat={};
   txs.filter(t=>t.tipo==='gasto').forEach(t=>{gastosPorCat[t.categoria]=(gastosPorCat[t.categoria]||0)+t.monto;});
-  // Merge historical commissions (ingresos without a commission gasto) under 'Comisiones'
-  if(comisiones>0)gastosPorCat['Comisiones']=(gastosPorCat['Comisiones']||0)+comisiones;
   if(costosFijos>0)gastosPorCat['Costos fijos']=(gastosPorCat['Costos fijos']||0)+costosFijos;
   const maxG=Math.max(...Object.values(gastosPorCat),1);
   const desg=document.getElementById('gastos-desglose');
