@@ -320,7 +320,10 @@ app.post("/api/tn/webhook", async (req, res) => {
     const fecha = (o.created_at || "").slice(0, 10)
     const cliente = o.customer?.name || o.customer?.email || "Cliente TN"
     const productos = (o.products || []).map(p => p.name).join(", ") || "Venta"
-    data.finanzas.push({
+    // shipping_cost_customer = lo que pagó el comprador por envío (ya incluido en total)
+    // shipping_cost_owner   = costo real al carrier (0 cuando TN subsidia)
+    const envioMonto = parseFloat(o.shipping_cost_customer || o.shipping_cost_owner || 0)
+    const ingresoTx = {
       tipo: "ingreso", fecha,
       concepto: `TN #${o.number} — ${cliente}`,
       categoria: "Ventas tienda",
@@ -329,8 +332,19 @@ app.post("/api/tn/webhook", async (req, res) => {
       unidades: (o.products || []).reduce((a, p) => a + (p.quantity || 1), 0),
       notas: productos,
       tn_id: o.id,
-      tn_envio: parseFloat(o.shipping_cost_owner || 0)
-    })
+      tn_envio: envioMonto
+    }
+    data.finanzas.push(ingresoTx)
+    // Gasto separado para envío
+    if (envioMonto > 0) {
+      data.finanzas.push({ tipo: "gasto", fecha, concepto: `Envío TN #${o.number}`, categoria: "Envíos", monto: envioMonto, medioPago, tn_id_ref: `${o.id}_envio` })
+    }
+    // Gasto separado para comisión gateway
+    const comisionPct = medioPago === "Mercado Pago" ? 6.29 : medioPago === "Pago Nube" ? 2.5 : 0
+    const comisionMonto = comisionPct > 0 ? Math.round((parseFloat(o.total) || 0) * comisionPct / 100) : 0
+    if (comisionMonto > 0) {
+      data.finanzas.push({ tipo: "gasto", fecha, concepto: `Comisión TN #${o.number}`, categoria: "Comisiones", monto: comisionMonto, medioPago, tn_id_ref: `${o.id}_com` })
+    }
     // CRM upsert
     if (o.customer) {
       if (!data.crm) data.crm = []
