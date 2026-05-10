@@ -297,24 +297,36 @@ app.post("/api/tn/activate", async (req, res) => {
     const tn = ws?.data?.tnIntegration
     if (!tn?.token) return res.status(400).json({ error: "Tienda Nube no conectada en este proyecto" })
 
-    // Register webhook with TN using workspace-specific credentials
+    const baseUrl = (process.env.BASE_URL || "https://veldos-bjvr.vercel.app").replace(/\/$/, '')
+    const webhookUrl = baseUrl + "/api/tn/webhook"
+    const tnHeaders = {
+      "Authentication": `bearer ${tn.token}`,
+      "User-Agent": "VELDOS (soporte@veldos.app)",
+      "Content-Type": "application/json"
+    }
+
+    // Delete existing order/paid webhooks to avoid duplicates / fix wrong URLs
+    const existingRes = await fetch(`https://api.tiendanube.com/v1/${tn.storeId}/webhooks`, { headers: tnHeaders })
+    const existing = await existingRes.json()
+    if (Array.isArray(existing)) {
+      for (const wh of existing) {
+        if (wh.event === "order/paid") {
+          await fetch(`https://api.tiendanube.com/v1/${tn.storeId}/webhooks/${wh.id}`, { method: "DELETE", headers: tnHeaders })
+        }
+      }
+    }
+
+    // Register webhook with correct URL
     await fetch(`https://api.tiendanube.com/v1/${tn.storeId}/webhooks`, {
       method: "POST",
-      headers: {
-        "Authentication": `bearer ${tn.token}`,
-        "User-Agent": "VELDOS (soporte@veldos.app)",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        event: "order/paid",
-        url: (process.env.BASE_URL || "https://veldos-bjvr.vercel.app") + "/api/tn/webhook"
-      })
+      headers: tnHeaders,
+      body: JSON.stringify({ event: "order/paid", url: webhookUrl })
     })
 
     // Save tnWebhookActive flag in workspace data
     const wsData = { ...(ws.data || {}), tnWebhookActive: true }
     await patchWorkspace(wsId, wsData)
-    res.json({ ok: true })
+    res.json({ ok: true, webhookUrl })
   } catch(e) {
     res.status(500).json({ error: e.message })
   }

@@ -2008,8 +2008,11 @@ tr:hover .tx-del{color:var(--muted)}
       <div class="fin-card">
         <div class="fin-card-head">
           <div class="fin-card-title">Movimientos</div>
-          <select id="fin-filter-tipo" onchange="renderFinanzas()" style="background:var(--s3);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:11px;padding:4px 8px;border-radius:6px;outline:none">
+          <select id="fin-filter-tipo" onchange="onFinTipoChange()" style="background:var(--s3);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:11px;padding:4px 8px;border-radius:6px;outline:none">
             <option value="">Todos</option><option value="ingreso">Ingresos</option><option value="gasto">Gastos</option>
+          </select>
+          <select id="fin-filter-cat" onchange="renderFinanzas()" style="display:none;background:var(--s3);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:11px;padding:4px 8px;border-radius:6px;outline:none">
+            <option value="">Todas las categorías</option>
           </select>
         </div>
         <div class="fin-card-body" style="overflow-x:auto">
@@ -3580,14 +3583,34 @@ function getTxEnPeriod(){
   });
 }
  
+function onFinTipoChange(){
+  const tipo=document.getElementById('fin-filter-tipo')?.value||'';
+  const catSel=document.getElementById('fin-filter-cat');
+  if(!catSel)return;
+  catSel.style.display=tipo==='ingreso'?'none':'inline-block';
+  const cats=tipo==='gasto'?TX_CATS_GAS:[...new Set([...TX_CATS_ING,...TX_CATS_GAS])];
+  catSel.innerHTML=`<option value="">Todas las categorías</option>`+cats.map(c=>`<option>${c}</option>`).join('');
+  catSel.value='';
+  renderFinanzas();
+}
 function renderFinanzas(){
   if(!document.getElementById('fintab-movimientos')?.classList.contains('active'))return;
   if(!S.finanzas)S.finanzas=[];
+  // Init category filter if not yet populated
+  const catSel=document.getElementById('fin-filter-cat');
+  if(catSel&&catSel.options.length<=1){
+    const tipo=document.getElementById('fin-filter-tipo')?.value||'';
+    const cats=tipo==='ingreso'?TX_CATS_ING:[...new Set([...TX_CATS_ING,...TX_CATS_GAS])];
+    catSel.innerHTML=`<option value="">Todas las categorías</option>`+cats.map(c=>`<option>${c}</option>`).join('');
+    catSel.style.display='inline-block';
+  }
   const desde=document.getElementById('fin-desde')?.value||'';
   const hasta=document.getElementById('fin-hasta')?.value||'';
   const txs=getTxEnPeriod();
   const ingresosBrutos=txs.filter(t=>t.tipo==='ingreso').reduce((a,t)=>a+t.monto,0);
-  const comisiones=txs.filter(t=>t.tipo==='ingreso').reduce((a,t)=>a+calcComisionTx(t),0);
+  // Only count commission from ingresos that don't already have a separate commission gasto (to avoid double counting)
+  const _comGastosIds=new Set((S.finanzas||[]).filter(t=>t.tn_id_ref&&String(t.tn_id_ref).endsWith('_com')).map(t=>String(t.tn_id_ref).replace(/_com$/,'')));
+  const comisiones=txs.filter(t=>t.tipo==='ingreso'&&!(t.tn_id&&_comGastosIds.has(String(t.tn_id)))).reduce((a,t)=>a+calcComisionTx(t),0);
   const costosFijos=getCostosFijosEnPeriodo(desde,hasta);
   const gastosDirectos=txs.filter(t=>t.tipo==='gasto').reduce((a,t)=>a+t.monto,0);
   const gastosTotal=gastosDirectos+comisiones+costosFijos;
@@ -3649,7 +3672,9 @@ function renderFinanzas(){
   const tbody=document.getElementById('tx-tbody');
   const allTxs=[...S.finanzas].filter(tx=>{
     const tipo=document.getElementById('fin-filter-tipo')?.value||'';
+    const cat=document.getElementById('fin-filter-cat')?.value||'';
     if(tipo&&tx.tipo!==tipo)return false;
+    if(cat&&(tx.categoria||'')!==cat)return false;
     if(desde&&tx.fecha<desde)return false;
     if(hasta&&tx.fecha>hasta)return false;
     return true;
@@ -3679,7 +3704,8 @@ function renderFinanzas(){
   // desglose
   const gastosPorCat={};
   txs.filter(t=>t.tipo==='gasto').forEach(t=>{gastosPorCat[t.categoria]=(gastosPorCat[t.categoria]||0)+t.monto;});
-  if(comisiones>0)gastosPorCat['Comisiones MP']=(gastosPorCat['Comisiones MP']||0)+comisiones;
+  // Merge historical commissions (ingresos without a commission gasto) under 'Comisiones'
+  if(comisiones>0)gastosPorCat['Comisiones']=(gastosPorCat['Comisiones']||0)+comisiones;
   if(costosFijos>0)gastosPorCat['Costos fijos']=(gastosPorCat['Costos fijos']||0)+costosFijos;
   const maxG=Math.max(...Object.values(gastosPorCat),1);
   const desg=document.getElementById('gastos-desglose');
@@ -3801,7 +3827,8 @@ function renderIntegraciones(){
 
   const webhookHtml=S.tnWebhookActive
     ?`<span style="color:var(--green);font-size:12px">⚡ Activo — las ventas entran automáticamente</span>
-       <button onclick="activarTNWebhook()" style="margin-left:12px;font-size:11px;color:var(--muted);background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer">Desactivar</button>`
+       <button onclick="reregistrarTNWebhook()" style="margin-left:12px;font-size:11px;color:var(--accent);background:none;border:1px solid var(--accent);border-radius:6px;padding:3px 10px;cursor:pointer">Re-registrar</button>
+       <button onclick="activarTNWebhook()" style="margin-left:6px;font-size:11px;color:var(--muted);background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer">Desactivar</button>`
     :`<span style="font-size:12px;color:var(--muted)">Cada venta pagada se importa sola sin hacer nada</span>
        <button class="btn btn-primary" style="margin-left:12px;font-size:12px;padding:6px 16px" onclick="activarTNWebhook()">Activar</button>`;
 
@@ -3876,6 +3903,18 @@ async function activarTNWebhook(){
     notify('Error: '+e.message);
   }finally{
     if(btn)btn.disabled=false;
+  }
+}
+async function reregistrarTNWebhook(){
+  if(!confirm('¿Re-registrar el webhook? Esto borra el actual y crea uno nuevo con la URL correcta.'))return;
+  try{
+    const r=await fetch('/api/tn/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId:_activeWsId})});
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    S.tnWebhookActive=true;
+    save();renderIntegraciones();notify('⚡ Webhook re-registrado correctamente');
+  }catch(e){
+    notify('Error: '+e.message);
   }
 }
 function initTNDates(){
