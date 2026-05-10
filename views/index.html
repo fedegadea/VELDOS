@@ -4379,7 +4379,11 @@ function renderReclamos(){
     </div>`).join('');
 }
 function updateReclamoEstado(i,estado){S.reclamos[i].estado=estado;save();renderReclamos();}
-function deleteReclamo(i){S.reclamos.splice(i,1);save();renderReclamos();}
+function deleteReclamo(i){
+  const r=S.reclamos[i];
+  if(!confirm(`¿Borrar reclamo de "${r.cliente} — ${r.tipo}"?`))return;
+  S.reclamos.splice(i,1);save();renderReclamos();
+}
  
 // ══════════════════════════════════════════
 // MODAL — single unified function
@@ -6673,15 +6677,10 @@ function _cfCalc(){
         }
       } else if(m.isCurrent){
         real=_cfGetReal(row.label,m.key,'gasto');
-        if(overridden){val=parseFloat(cf.egCells[ck])||0;}
-        else{
-          val=real;
-          if(row.id==='eg_fijos'){proj=_cfGetCostosFijosRec();}
-        }
+        val=overridden?(parseFloat(cf.egCells[ck])||0):real;
       } else {
-        // future: costos fijos auto-proyectados desde finCfg, resto blank salvo override
-        if(row.id==='eg_fijos'&&!overridden){val=_cfGetCostosFijosRec();proj=val;}
-        else{val=overridden?(parseFloat(cf.egCells[ck])||0):0;}
+        // future: blank unless user entered
+        val=overridden?(parseFloat(cf.egCells[ck])||0):0;
       }
       egTotals[m.key]+=val;
       values[m.key]={val,real,proj,overridden,isPast:m.isPast,isCurrent:m.isCurrent,isFuture:m.isFuture};
