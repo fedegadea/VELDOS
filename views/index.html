@@ -6551,6 +6551,12 @@ function _cfMonths(){
   return months;
 }
 
+// ── Costos fijos recurrentes (finCfg) → monto mensual proporcional ──
+function _cfGetCostosFijosRec(){
+  const freqMap={Mensual:1,Bimestral:2,Trimestral:3,Semestral:6,Anual:12};
+  return Math.round((S.finCfg?.costosFijos||[]).reduce((a,c)=>a+(c.monto/(freqMap[c.recurrencia]||1)),0));
+}
+
 // ── Real data from finanzas ────────────────────────────────────
 function _cfGetReal(rowLabel,monthKey,tipo){
   if(!rowLabel)return 0;
@@ -6667,10 +6673,15 @@ function _cfCalc(){
         }
       } else if(m.isCurrent){
         real=_cfGetReal(row.label,m.key,'gasto');
-        val=overridden?(parseFloat(cf.egCells[ck])||0):real;
+        if(overridden){val=parseFloat(cf.egCells[ck])||0;}
+        else{
+          val=real;
+          if(row.id==='eg_fijos'){proj=_cfGetCostosFijosRec();}
+        }
       } else {
-        // future: blank unless user entered
-        val=overridden?(parseFloat(cf.egCells[ck])||0):0;
+        // future: costos fijos auto-proyectados desde finCfg, resto blank salvo override
+        if(row.id==='eg_fijos'&&!overridden){val=_cfGetCostosFijosRec();proj=val;}
+        else{val=overridden?(parseFloat(cf.egCells[ck])||0):0;}
       }
       egTotals[m.key]+=val;
       values[m.key]={val,real,proj,overridden,isPast:m.isPast,isCurrent:m.isCurrent,isFuture:m.isFuture};
