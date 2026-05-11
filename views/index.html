@@ -198,10 +198,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:14px
 .collab-step.done{background:rgba(143,191,168,.1);color:var(--green);border-color:rgba(143,191,168,.25)}
  
 /* ── PLANNING ── */
-.plan-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.plan-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
 .plan-tab{padding:6px 16px;border-radius:20px;border:1px solid var(--border);background:none;color:var(--muted);font-family:var(--fb);font-size:12px;font-weight:500;cursor:pointer;transition:all .2s}
 .plan-tab:hover{color:var(--text);border-color:var(--border2)}
 .plan-tab.active{background:var(--gold);color:#000;border-color:var(--gold)}
+.plan-tab-sep{width:1px;height:18px;background:var(--border);margin:0 2px;flex-shrink:0}
+.prog-card{cursor:default;transition:border-color .15s,background .15s}
+.prog-card[onclick]{cursor:pointer}
+.prog-card[onclick]:hover{border-color:var(--border2);background:var(--s3)}
 .plan-section{display:none}.plan-section.active{display:block}
 .ed-doc{max-width:820px;padding-bottom:40px}
 .ed-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid var(--border)}
@@ -1222,9 +1226,6 @@ tr:hover .tx-del{color:var(--muted)}
   <nav class="nav-tabs" id="nav-marketing">
     <button class="nav-tab active" onclick="switchPage('checklist',this)">Checklist</button>
     <button class="nav-tab" onclick="switchPage('todo',this)">To Do</button>
-    <button class="nav-tab" onclick="switchPage('briefs',this)">Briefs</button>
-    <button class="nav-tab" onclick="switchPage('canje',this)">Canjes</button>
-    <button class="nav-tab" onclick="switchPage('collabs',this)">Collabs</button>
     <button class="nav-tab" onclick="switchPage('drive',this)">Planning</button>
     <button class="nav-tab" onclick="switchPage('marca',this)">Marca</button>
     <button class="nav-tab" onclick="switchPage('producto',this)">Producto</button>
@@ -1262,9 +1263,6 @@ tr:hover .tx-del{color:var(--muted)}
     <span class="sb-section-label">Marketing</span>
     <button class="sb-item active" id="sbi-checklist" onclick="sbNav('marketing','checklist',this)"><span class="sb-item-icon">📋</span>Checklist</button>
     <button class="sb-item" id="sbi-todo" onclick="sbNav('marketing','todo',this)"><span class="sb-item-icon">✅</span>To Do</button>
-    <button class="sb-item" id="sbi-briefs" onclick="sbNav('marketing','briefs',this)"><span class="sb-item-icon">📄</span>Briefs</button>
-    <button class="sb-item" id="sbi-canje" onclick="sbNav('marketing','canje',this)"><span class="sb-item-icon">🤝</span>Canjes</button>
-    <button class="sb-item" id="sbi-collabs" onclick="sbNav('marketing','collabs',this)"><span class="sb-item-icon">👥</span>Collabs</button>
     <button class="sb-item" id="sbi-drive" onclick="sbNav('marketing','drive',this)"><span class="sb-item-icon">📋</span>Planning</button>
     <button class="sb-item" id="sbi-marca" onclick="sbNav('marketing','marca',this)"><span class="sb-item-icon">🎨</span>Marca</button>
     <button class="sb-item" id="sbi-producto" onclick="sbNav('marketing','producto',this)"><span class="sb-item-icon">📦</span>Producto</button>
@@ -1298,22 +1296,22 @@ tr:hover .tx-del{color:var(--muted)}
     </div>
   </div>
   <div class="progress-row">
-    <div class="prog-card">
+    <div class="prog-card" onclick="goPlanning('briefs')" style="cursor:pointer" title="Ver Briefs en Planning">
       <div class="prog-label">Briefs cargados</div>
       <div class="prog-bar-wrap"><div class="prog-bar" id="pb-briefs" style="background:var(--gold);width:0%"></div></div>
       <div class="prog-count"><strong id="pc-briefs">0</strong>/7 ideas</div>
     </div>
-    <div class="prog-card">
+    <div class="prog-card" onclick="goPlanning('canjes')" style="cursor:pointer" title="Ver Canjes en Planning">
       <div class="prog-label">Canjes gestionados</div>
       <div class="prog-bar-wrap"><div class="prog-bar" id="pb-canje" style="background:var(--coral);width:0%"></div></div>
       <div class="prog-count"><strong id="pc-canje">0</strong>/7 contactadas</div>
     </div>
-    <div class="prog-card">
+    <div class="prog-card" onclick="goPlanning('collabs')" style="cursor:pointer" title="Ver Collabs en Planning">
       <div class="prog-label">Collabs marcas</div>
       <div class="prog-bar-wrap"><div class="prog-bar" id="pb-collab" style="background:var(--blue);width:0%"></div></div>
       <div class="prog-count"><strong id="pc-collab">0</strong>/4 contactadas</div>
     </div>
-    <div class="prog-card">
+    <div class="prog-card" onclick="goPlanning('calendario')" style="cursor:pointer" title="Ver Calendario en Planning">
       <div class="prog-label">Contenido calendarizado</div>
       <div class="prog-bar-wrap"><div class="prog-bar" id="pb-cal" style="background:var(--green);width:0%"></div></div>
       <div class="prog-count"><strong id="pc-cal">0</strong> piezas esta semana</div>
@@ -1342,54 +1340,6 @@ tr:hover .tx-del{color:var(--muted)}
 </div>
  
 <!-- ══ BRIEFS ══ -->
-<div class="page" id="page-briefs">
-  <div class="sec-head">
-    <div class="sec-title">Ideas de brief<small>7 ideas cargadas por la CM cada semana (sáb–mar)</small></div>
-    <button class="btn btn-primary" onclick="openModal('brief')">+ Nueva idea</button>
-  </div>
-  <div class="brief-grid" id="briefs-container"></div>
-</div>
- 
-<!-- ══ CANJES ══ -->
-<div class="page" id="page-canje">
-  <div class="sec-head">
-    <div class="sec-title">Gestión de canjes<small>Creadoras contactadas esta semana</small></div>
-    <button class="btn btn-primary" onclick="openModal('creadora')">+ Agregar creadora</button>
-  </div>
-  <div class="inner-tabs">
-    <button class="inner-tab active" onclick="switchInner('kanje','micro',this)">Micro influencers (6)</button>
-    <button class="inner-tab" onclick="switchInner('kanje','top',this)">Top creadora (1)</button>
-  </div>
-  <div class="inner-section active" id="kanje-micro">
-    <p style="font-size:11px;color:var(--muted);margin-bottom:12px;font-weight:300">Oferta: <strong style="color:var(--text)">2 reels + 5 stories en distintos días + fotos</strong> — a 6 micro influencers. Canje por producto.</p>
-    <div class="kanban" id="kanban-micro"></div>
-  </div>
-  <div class="inner-section" id="kanje-top">
-    <p style="font-size:11px;color:var(--muted);margin-bottom:12px;font-weight:300">Oferta: <strong style="color:var(--text)">1 reel + 1 story</strong> — 1 creadora top que valga la pena. Fede coordina envío.</p>
-    <div class="kanban" id="kanban-top"></div>
-  </div>
-</div>
- 
-<!-- ══ COLLABS ══ -->
-<div class="page" id="page-collabs">
-  <div class="sec-head">
-    <div class="sec-title">Collabs con marcas<small>4 activas + potenciales ilimitadas</small></div>
-    <button class="btn btn-primary" onclick="openModal('collab')">+ Agregar marca</button>
-  </div>
-  <div class="inner-tabs">
-    <button class="inner-tab active" onclick="switchInner('collabs','activas',this)">Activas (4)</button>
-    <button class="inner-tab" onclick="switchInner('collabs','potenciales',this)">Potenciales</button>
-  </div>
-  <div class="inner-section active" id="collabs-activas">
-    <p style="font-size:11px;color:var(--muted);margin-bottom:12px;font-weight:300">Tipo: <strong style="color:var(--text)">sesión de fotos en calle</strong> — etiquetándonos mutuamente, beneficios para ambas marcas.</p>
-    <div class="collabs-grid" id="collabs-activas-grid"></div>
-  </div>
-  <div class="inner-section" id="collabs-potenciales">
-    <p style="font-size:11px;color:var(--muted);margin-bottom:12px;font-weight:300">Base de marcas a futuro. Agregalas como Potencial y activá cuando estés listo.</p>
-    <div class="collabs-grid" id="collabs-potenciales-grid"></div>
-  </div>
-</div>
- 
 <!-- ══ DRIVE ══ -->
 <div class="page" id="page-drive">
   <div class="sec-head">
@@ -1402,6 +1352,10 @@ tr:hover .tx-del{color:var(--muted)}
     <button class="plan-tab" onclick="switchPlanTab('semana',this)">📋 Semana</button>
     <button class="plan-tab" onclick="switchPlanTab('ideas',this)">💡 Ideas</button>
     <button class="plan-tab" onclick="switchPlanTab('biblioteca',this)">🎬 Biblioteca</button>
+    <div class="plan-tab-sep"></div>
+    <button class="plan-tab" onclick="switchPlanTab('briefs',this)">📝 Briefs</button>
+    <button class="plan-tab" onclick="switchPlanTab('canjes',this)">🤝 Canjes</button>
+    <button class="plan-tab" onclick="switchPlanTab('collabs',this)">🔗 Collabs</button>
     <button class="plan-tab" id="plan-tab-estrategia" style="display:none" onclick="switchPlanTab('estrategia',this)">🧭 Estrategia</button>
   </div>
 
@@ -1586,8 +1540,47 @@ tr:hover .tx-del{color:var(--muted)}
     </div>
     <div id="contenido-list"></div>
   </div>
+
+  <!-- TAB: BRIEFS -->
+  <div class="plan-section" id="plantab-briefs">
+    <p style="font-size:11px;color:var(--muted);margin-bottom:14px;font-weight:300">7 ideas cargadas por la CM cada semana (sáb–mar). Hacé click en una idea para asignarla a una creadora.</p>
+    <div class="brief-grid" id="briefs-container"></div>
+  </div>
+
+  <!-- TAB: CANJES -->
+  <div class="plan-section" id="plantab-canjes">
+    <div class="inner-tabs">
+      <button class="inner-tab active" onclick="switchInner('kanje','micro',this)">Micro influencers</button>
+      <button class="inner-tab" onclick="switchInner('kanje','top',this)">Top creadora</button>
+    </div>
+    <div class="inner-section active" id="kanje-micro">
+      <p style="font-size:11px;color:var(--muted);margin-bottom:12px;font-weight:300">Oferta: <strong style="color:var(--text)">2 reels + 5 stories en distintos días + fotos</strong> — a 6 micro influencers. Canje por producto.</p>
+      <div class="kanban" id="kanban-micro"></div>
+    </div>
+    <div class="inner-section" id="kanje-top">
+      <p style="font-size:11px;color:var(--muted);margin-bottom:12px;font-weight:300">Oferta: <strong style="color:var(--text)">1 reel + 1 story</strong> — 1 creadora top que valga la pena. Fede coordina envío.</p>
+      <div class="kanban" id="kanban-top"></div>
+    </div>
+  </div>
+
+  <!-- TAB: COLLABS -->
+  <div class="plan-section" id="plantab-collabs">
+    <div class="inner-tabs">
+      <button class="inner-tab active" onclick="switchInner('collabs','activas',this)">Activas</button>
+      <button class="inner-tab" onclick="switchInner('collabs','potenciales',this)">Potenciales</button>
+    </div>
+    <div class="inner-section active" id="collabs-activas">
+      <p style="font-size:11px;color:var(--muted);margin-bottom:12px;font-weight:300">Tipo: <strong style="color:var(--text)">sesión de fotos en calle</strong> — etiquetándonos mutuamente, beneficios para ambas marcas.</p>
+      <div class="collabs-grid" id="collabs-activas-grid"></div>
+    </div>
+    <div class="inner-section" id="collabs-potenciales">
+      <p style="font-size:11px;color:var(--muted);margin-bottom:12px;font-weight:300">Base de marcas a futuro. Agregalas como Potencial y activá cuando estés listo.</p>
+      <div class="collabs-grid" id="collabs-potenciales-grid"></div>
+    </div>
+  </div>
+
 </div>
- 
+
 <!-- ══ CRM ══ -->
 <div class="page" id="page-crm">
   <div class="sec-head">
@@ -2665,6 +2658,7 @@ let _activeUser=null;
 let _pendingWsId=null;
 let _activeArea='marketing';
 let _activePage='checklist';
+let _pendingBriefId=null;
 
 function defaultData(){
   return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},ideas:[],semana:{},estrategia:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[]};
@@ -3088,7 +3082,19 @@ function defaultCheckGroups(){
 // ══════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════
+function goPlanning(tab){
+  const driveBtn=document.querySelector('.nav-tab[onclick*="drive"]')||document.getElementById('sbi-drive');
+  switchPage('drive',driveBtn);
+  setTimeout(()=>{
+    const tabBtn=document.querySelector(`.plan-tab[onclick*="'${tab}'"]`);
+    switchPlanTab(tab,tabBtn);
+  },50);
+}
+
 function switchPage(id,btn){
+  // Redirect legacy page ids into Planning tabs
+  const planningRedirects={briefs:'briefs',canje:'canjes',collabs:'collabs'};
+  if(planningRedirects[id]){goPlanning(planningRedirects[id]);return;}
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id)?.classList.add('active');
@@ -3416,11 +3422,20 @@ function renderBriefs(){
           ${b.duracion?`<span class="tag tag-b">${b.duracion}</span>`:''}
           ${b.producto?`<span class="tag tag-d">${b.producto}</span>`:''}
         </div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+          <button class="btn btn-sm" style="font-size:10px" onclick="asignarBriefACanje(${i})">🤝 Asignar a creadora</button>
+          ${(S.creadoras||[]).some(cr=>cr.briefId===(b.id||b.titulo))?`<span style="font-size:10px;color:var(--green)">✓ Asignado</span>`:''}
+        </div>
       </div>
     </div>`).join('');
 }
 function deleteBrief(i){S.briefs.splice(i,1);save();renderBriefs();notify('Brief eliminado');}
- 
+function asignarBriefACanje(i){
+  const b=S.briefs[i];if(!b)return;
+  _pendingBriefId=b.id||b.titulo;
+  openModal('creadora');
+}
+
 // ══════════════════════════════════════════
 // KANBAN CREADORAS
 // ══════════════════════════════════════════
@@ -3544,7 +3559,11 @@ function switchPlanTab(id,btn){
     if(id==='ideas'){addBtn.textContent='+ Nueva idea';addBtn.onclick=()=>openModal('planidea');addBtn.style.display='';}
     else if(id==='biblioteca'){addBtn.textContent='+ Agregar pieza';addBtn.onclick=()=>openModal('contenido');addBtn.style.display='';}
     else if(id==='calendario'){addBtn.textContent='+ Agendar';addBtn.onclick=()=>openCalModal(dateKey(new Date().getFullYear(),new Date().getMonth(),new Date().getDate()));addBtn.style.display='';}
+    else if(id==='briefs'){addBtn.textContent='+ Nuevo brief';addBtn.onclick=()=>openModal('brief');addBtn.style.display='';}
+    else if(id==='canjes'){addBtn.textContent='+ Agregar creadora';addBtn.onclick=()=>openModal('creadora');addBtn.style.display='';}
+    else if(id==='collabs'){addBtn.textContent='+ Agregar marca';addBtn.onclick=()=>openModal('collab');addBtn.style.display='';}
     else if(id==='estrategia'){addBtn.style.display='none';}
+    else if(id==='semana'){addBtn.style.display='none';}
     else{addBtn.textContent='+ Nueva idea';addBtn.onclick=()=>openModal('planidea');addBtn.style.display='';}
   }
   if(id==='semana')renderSemana();
@@ -3552,6 +3571,9 @@ function switchPlanTab(id,btn){
   if(id==='biblioteca')renderBiblioteca();
   if(id==='calendario')renderCalendario();
   if(id==='estrategia')renderEstrategia();
+  if(id==='briefs')renderBriefs();
+  if(id==='canjes'){renderKanban('micro');renderKanban('top');}
+  if(id==='collabs')renderCollabs();
 }
 
 function renderDrive(){
@@ -5256,7 +5278,16 @@ function openModal(tipo,data,idx){
   };
   document.getElementById('modal-body').innerHTML=forms[tipo]||'';
   overlay.classList.add('open');
-  if(tipo==='creadora'){setTimeout(()=>populateBriefSelect('f-brief-id'),50);}
+  if(tipo==='creadora'){
+    setTimeout(()=>{
+      populateBriefSelect('f-brief-id');
+      if(_pendingBriefId){
+        const sel=document.getElementById('f-brief-id');
+        if(sel)sel.value=_pendingBriefId;
+        _pendingBriefId=null;
+      }
+    },50);
+  }
   if(tipo==='transaccion'){
     updateTxCats();
     document.getElementById('f-color-picker')?.addEventListener('input',function(){document.getElementById('f-color-hex').value=this.value;});
