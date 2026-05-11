@@ -203,10 +203,54 @@ body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:14px
 .plan-tab:hover{color:var(--text);border-color:var(--border2)}
 .plan-tab.active{background:var(--gold);color:#000;border-color:var(--gold)}
 .plan-section{display:none}.plan-section.active{display:block}
-.estrat-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.estrat-block{display:flex;flex-direction:column;gap:6px}
-.estrat-block.full{grid-column:1/-1}
-.estrat-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.ed-doc{max-width:820px;padding-bottom:40px}
+.ed-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid var(--border)}
+.ed-brand-input{background:none;border:none;font-size:20px;font-weight:800;color:var(--white);letter-spacing:-0.5px;padding:0;width:100%;outline:none;font-family:var(--fb)}
+.ed-brand-input:focus{color:var(--green)}
+.ed-header-sub{display:block;font-size:9px;font-weight:600;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:4px}
+.ed-section{margin-bottom:28px;padding-bottom:28px;border-bottom:1px solid var(--border)}
+.ed-sec-title{font-size:9px;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+.ed-textarea{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:var(--fb);font-size:12px;color:var(--text);resize:vertical;outline:none;line-height:1.6}
+.ed-textarea:focus{border-color:rgba(0,255,135,.35)}
+.ed-prop{min-height:52px}
+.ed-pilares{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.ed-pilar{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.ed-pilar-num{font-size:9px;font-weight:700;color:var(--muted);letter-spacing:1px}
+.ed-pilar-name{background:none;border:none;border-bottom:1px solid var(--border);width:100%;font-size:13px;font-weight:700;color:var(--white);padding:0 0 7px;outline:none;font-family:var(--fb)}
+.ed-pilar-name:focus{border-bottom-color:var(--green)}
+.ed-pilar-tags{background:none;border:none;width:100%;font-size:9px;color:var(--gold);font-weight:700;letter-spacing:.8px;padding:0 0 6px;outline:none;text-transform:uppercase;font-family:var(--fb)}
+.ed-pilar-desc{background:none!important;border:1px solid transparent!important;font-size:11px!important;min-height:52px;padding:4px 0!important}
+.ed-pilar-desc:focus{border-color:rgba(0,255,135,.2)!important;padding:4px 6px!important;background:var(--s3)!important;border-radius:6px!important}
+.ed-cats{display:flex;flex-direction:column;gap:6px}
+.ed-cat-header{display:grid;grid-template-columns:130px 1fr 1fr;gap:10px;padding:0 12px 6px;font-size:9px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.ed-cat{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:grid;grid-template-columns:130px 1fr 1fr;gap:10px;align-items:start}
+.ed-cat-name{background:none;border:none;font-size:11px;font-weight:800;color:var(--white);letter-spacing:.5px;text-transform:uppercase;padding:4px 0;outline:none;width:100%;font-family:var(--fb)}
+.ed-cat-name:focus{color:var(--green)}
+.ed-cat-input{background:none!important;border:1px solid transparent!important;font-size:11px!important;padding:4px 0!important;resize:none!important;min-height:36px}
+.ed-cat-input:focus{border-color:rgba(0,255,135,.2)!important;padding:4px 8px!important;background:var(--s3)!important;border-radius:6px!important}
+.ed-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.ed-metric{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:14px 12px;text-align:center}
+.ed-metric-val{background:none;border:none;font-size:26px;font-weight:800;color:var(--white);text-align:center;width:100%;outline:none;font-family:var(--fb)}
+.ed-metric-val:focus{color:var(--green)}
+.ed-metric-label{background:none;border:none;font-size:9px;color:var(--muted);text-align:center;width:100%;outline:none;margin-top:4px;font-family:var(--fb);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.ed-semana-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.ed-dia{display:flex;flex-direction:column;gap:5px}
+.ed-dia-label{font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;text-align:center}
+.ed-dia-txt{font-size:11px!important;min-height:72px}
+.ed-quote{font-size:12px;font-style:italic;color:var(--muted);margin-bottom:16px;padding-left:12px;border-left:2px solid var(--green);line-height:1.6}
+.ed-sis{display:flex;flex-direction:column;gap:8px}
+.ed-sis-block{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.ed-sis-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.ed-sis-num{width:22px;height:22px;border-radius:50%;background:rgba(0,255,135,.1);border:1px solid rgba(0,255,135,.25);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--green);flex-shrink:0}
+.ed-sis-titulo{background:none;border:none;font-size:12px;font-weight:700;color:var(--white);padding:0;outline:none;flex:1;font-family:var(--fb)}
+.ed-sis-titulo:focus{color:var(--green)}
+.ed-sis-freq{background:rgba(0,255,135,.08);border:1px solid rgba(0,255,135,.2);border-radius:4px;padding:2px 8px;font-size:9px;font-weight:700;color:var(--green);outline:none;letter-spacing:.5px;font-family:var(--fb);text-transform:uppercase}
+.ed-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.ed-kpi-block{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px}
+.ed-ch-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ed-ch-label{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px}
+@media(max-width:700px){.ed-pilares{grid-template-columns:1fr 1fr}.ed-cat-header,.ed-cat{grid-template-columns:1fr}.ed-cat-header{display:none}.ed-metrics{grid-template-columns:1fr 1fr}.ed-semana-grid{grid-template-columns:repeat(3,1fr)}.ed-kpi-grid{grid-template-columns:1fr 1fr}.ed-ch-grid{grid-template-columns:1fr}}
+@media(max-width:480px){.ed-pilares{grid-template-columns:1fr}.ed-semana-grid{grid-template-columns:repeat(2,1fr)}}
 /* IDEAS */
 .ideas-toolbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
 .idea-filter{padding:4px 12px;border-radius:14px;border:1px solid var(--border);background:none;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--fb);transition:all .15s}
@@ -1414,62 +1458,124 @@ tr:hover .tx-del{color:var(--muted)}
 
   <!-- TAB: ESTRATEGIA -->
   <div class="plan-section" id="plantab-estrategia">
-    <div class="drive-panel" style="max-width:720px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-        <div style="font-size:13px;font-weight:600;color:var(--text)">Estrategia de contenido</div>
-        <button class="btn btn-primary btn-sm" onclick="saveEstrategia()">Guardar cambios</button>
+  <div class="ed-doc">
+
+    <!-- HEADER -->
+    <div class="ed-header">
+      <div>
+        <input class="ed-brand-input" id="est-marca" placeholder="NOMBRE DE MARCA">
+        <span class="ed-header-sub">ESTRATEGIA DE CONTENIDO — SISTEMA COMPLETO</span>
       </div>
-      <div class="estrat-grid">
-        <div class="estrat-block">
-          <div class="estrat-label">Marca / Proyecto</div>
-          <input class="form-input" id="est-marca" placeholder="Nombre de la marca o proyecto">
+      <button class="btn btn-primary btn-sm" onclick="saveEstrategia()">Guardar cambios</button>
+    </div>
+
+    <!-- 1. PROPÓSITO -->
+    <div class="ed-section">
+      <div class="ed-sec-title">PROPÓSITO</div>
+      <textarea class="ed-textarea ed-prop" id="est-proposito" rows="2" placeholder="Convertir un canal orgánico que convierta seguidores en compradores y compradores en comunidad — sin depender únicamente de Meta Ads para crecer."></textarea>
+    </div>
+
+    <!-- 2. LOS 6 PILARES -->
+    <div class="ed-section">
+      <div class="ed-sec-title">LOS 6 PILARES DE CONTENIDO</div>
+      <div class="ed-pilares">
+        <div class="ed-pilar"><div class="ed-pilar-num">01</div><input class="ed-pilar-name" id="est-p0-nombre" placeholder="Pilar 1"><input class="ed-pilar-tags" id="est-p0-tags" placeholder="SUBTAG · SUBTAG · SUBTAG"><textarea class="ed-pilar-desc ed-textarea" id="est-p0-desc" rows="3" placeholder="Descripción y objetivo de este pilar..."></textarea></div>
+        <div class="ed-pilar"><div class="ed-pilar-num">02</div><input class="ed-pilar-name" id="est-p1-nombre" placeholder="Pilar 2"><input class="ed-pilar-tags" id="est-p1-tags" placeholder="SUBTAG · SUBTAG · SUBTAG"><textarea class="ed-pilar-desc ed-textarea" id="est-p1-desc" rows="3" placeholder="Descripción y objetivo de este pilar..."></textarea></div>
+        <div class="ed-pilar"><div class="ed-pilar-num">03</div><input class="ed-pilar-name" id="est-p2-nombre" placeholder="Pilar 3"><input class="ed-pilar-tags" id="est-p2-tags" placeholder="SUBTAG · SUBTAG · SUBTAG"><textarea class="ed-pilar-desc ed-textarea" id="est-p2-desc" rows="3" placeholder="Descripción y objetivo de este pilar..."></textarea></div>
+        <div class="ed-pilar"><div class="ed-pilar-num">04</div><input class="ed-pilar-name" id="est-p3-nombre" placeholder="Pilar 4"><input class="ed-pilar-tags" id="est-p3-tags" placeholder="SUBTAG · SUBTAG · SUBTAG"><textarea class="ed-pilar-desc ed-textarea" id="est-p3-desc" rows="3" placeholder="Descripción y objetivo de este pilar..."></textarea></div>
+        <div class="ed-pilar"><div class="ed-pilar-num">05</div><input class="ed-pilar-name" id="est-p4-nombre" placeholder="Pilar 5"><input class="ed-pilar-tags" id="est-p4-tags" placeholder="SUBTAG · SUBTAG · SUBTAG"><textarea class="ed-pilar-desc ed-textarea" id="est-p4-desc" rows="3" placeholder="Descripción y objetivo de este pilar..."></textarea></div>
+        <div class="ed-pilar"><div class="ed-pilar-num">06</div><input class="ed-pilar-name" id="est-p5-nombre" placeholder="Pilar 6"><input class="ed-pilar-tags" id="est-p5-tags" placeholder="SUBTAG · SUBTAG · SUBTAG"><textarea class="ed-pilar-desc ed-textarea" id="est-p5-desc" rows="3" placeholder="Descripción y objetivo de este pilar..."></textarea></div>
+      </div>
+    </div>
+
+    <!-- 3. CATEGORÍAS DE CONTENIDO -->
+    <div class="ed-section">
+      <div class="ed-sec-title">CATEGORÍAS DE CONTENIDO ORGÁNICO</div>
+      <div class="ed-cats">
+        <div class="ed-cat-header"><span>CATEGORÍA</span><span>DESCRIPCIÓN</span><span>OBJETIVO</span></div>
+        <div class="ed-cat"><input class="ed-cat-name" id="est-c0-nombre" placeholder="CATEGORÍA"><textarea class="ed-textarea ed-cat-input" id="est-c0-desc" rows="2" placeholder="Qué tipo de contenido incluye esta categoría..."></textarea><textarea class="ed-textarea ed-cat-input" id="est-c0-obj" rows="2" placeholder="Objetivo principal..."></textarea></div>
+        <div class="ed-cat"><input class="ed-cat-name" id="est-c1-nombre" placeholder="CATEGORÍA"><textarea class="ed-textarea ed-cat-input" id="est-c1-desc" rows="2" placeholder="Qué tipo de contenido incluye esta categoría..."></textarea><textarea class="ed-textarea ed-cat-input" id="est-c1-obj" rows="2" placeholder="Objetivo principal..."></textarea></div>
+        <div class="ed-cat"><input class="ed-cat-name" id="est-c2-nombre" placeholder="CATEGORÍA"><textarea class="ed-textarea ed-cat-input" id="est-c2-desc" rows="2" placeholder="Qué tipo de contenido incluye esta categoría..."></textarea><textarea class="ed-textarea ed-cat-input" id="est-c2-obj" rows="2" placeholder="Objetivo principal..."></textarea></div>
+        <div class="ed-cat"><input class="ed-cat-name" id="est-c3-nombre" placeholder="CATEGORÍA"><textarea class="ed-textarea ed-cat-input" id="est-c3-desc" rows="2" placeholder="Qué tipo de contenido incluye esta categoría..."></textarea><textarea class="ed-textarea ed-cat-input" id="est-c3-obj" rows="2" placeholder="Objetivo principal..."></textarea></div>
+        <div class="ed-cat"><input class="ed-cat-name" id="est-c4-nombre" placeholder="CATEGORÍA"><textarea class="ed-textarea ed-cat-input" id="est-c4-desc" rows="2" placeholder="Qué tipo de contenido incluye esta categoría..."></textarea><textarea class="ed-textarea ed-cat-input" id="est-c4-obj" rows="2" placeholder="Objetivo principal..."></textarea></div>
+        <div class="ed-cat"><input class="ed-cat-name" id="est-c5-nombre" placeholder="CATEGORÍA"><textarea class="ed-textarea ed-cat-input" id="est-c5-desc" rows="2" placeholder="Qué tipo de contenido incluye esta categoría..."></textarea><textarea class="ed-textarea ed-cat-input" id="est-c5-obj" rows="2" placeholder="Objetivo principal..."></textarea></div>
+      </div>
+    </div>
+
+    <!-- 4. ESTRUCTURA SEMANAL -->
+    <div class="ed-section">
+      <div class="ed-sec-title">ESTRUCTURA SEMANAL TIPO</div>
+      <div class="ed-metrics">
+        <div class="ed-metric"><input class="ed-metric-val" id="est-m0-val" placeholder="5+"><input class="ed-metric-label" id="est-m0-label" placeholder="STORIES / SEMANA"></div>
+        <div class="ed-metric"><input class="ed-metric-val" id="est-m1-val" placeholder="5"><input class="ed-metric-label" id="est-m1-label" placeholder="REELS / SEMANA"></div>
+        <div class="ed-metric"><input class="ed-metric-val" id="est-m2-val" placeholder="3–5"><input class="ed-metric-label" id="est-m2-label" placeholder="UGC / MES"></div>
+        <div class="ed-metric"><input class="ed-metric-val" id="est-m3-val" placeholder="2+"><input class="ed-metric-label" id="est-m3-label" placeholder="COLABS / MES"></div>
+      </div>
+      <div class="ed-semana-grid">
+        <div class="ed-dia"><div class="ed-dia-label">LUNES</div><textarea class="ed-textarea ed-dia-txt" id="est-dia-lun" rows="3" placeholder="Actividades del día..."></textarea></div>
+        <div class="ed-dia"><div class="ed-dia-label">MARTES</div><textarea class="ed-textarea ed-dia-txt" id="est-dia-mar" rows="3" placeholder="Actividades del día..."></textarea></div>
+        <div class="ed-dia"><div class="ed-dia-label">MIÉRCOLES</div><textarea class="ed-textarea ed-dia-txt" id="est-dia-mie" rows="3" placeholder="Actividades del día..."></textarea></div>
+        <div class="ed-dia"><div class="ed-dia-label">JUEVES</div><textarea class="ed-textarea ed-dia-txt" id="est-dia-jue" rows="3" placeholder="Actividades del día..."></textarea></div>
+        <div class="ed-dia"><div class="ed-dia-label">VIERNES</div><textarea class="ed-textarea ed-dia-txt" id="est-dia-vie" rows="3" placeholder="Actividades del día..."></textarea></div>
+        <div class="ed-dia"><div class="ed-dia-label">FINDE</div><textarea class="ed-textarea ed-dia-txt" id="est-dia-fin" rows="3" placeholder="Actividades del día..."></textarea></div>
+      </div>
+    </div>
+
+    <!-- 5. SISTEMA OPERATIVO -->
+    <div class="ed-section">
+      <div class="ed-sec-title">SISTEMA OPERATIVO — CÓMO EJECUTAR</div>
+      <div class="ed-quote">La estrategia no existe si no hay sistema de ejecución. Lo que sigue es la lista de acciones concretas, cuándo hacerlas y quién las hace.</div>
+      <div class="ed-sis">
+        <div class="ed-sis-block">
+          <div class="ed-sis-head"><div class="ed-sis-num">1</div><input class="ed-sis-titulo" id="est-s1-titulo" placeholder="Selección de productos a impulsar"><input class="ed-sis-freq" id="est-s1-freq" placeholder="MENSUAL"></div>
+          <textarea class="ed-textarea" id="est-s1-tareas" rows="4" placeholder="- Definir qué productos son el foco del mes&#10;- Asignar creadores por producto&#10;- Preparar brief y referencias&#10;- Comunicar al equipo de producción"></textarea>
         </div>
-        <div class="estrat-block">
-          <div class="estrat-label">Plataformas activas</div>
-          <input class="form-input" id="est-plataformas" placeholder="Instagram, TikTok, YouTube Shorts...">
+        <div class="ed-sis-block">
+          <div class="ed-sis-head"><div class="ed-sis-num">2</div><input class="ed-sis-titulo" id="est-s2-titulo" placeholder="Pipeline UGC — Consignas a creadores"><input class="ed-sis-freq" id="est-s2-freq" placeholder="QUINCENAL"></div>
+          <textarea class="ed-textarea" id="est-s2-tareas" rows="4" placeholder="- Preparación de micro-influencers&#10;- Envío de brief con instrucciones&#10;- Fecha límite de entrega&#10;- Revisión y aprobación de material"></textarea>
         </div>
-        <div class="estrat-block full">
-          <div class="estrat-label">Audiencia objetivo</div>
-          <textarea class="form-textarea" id="est-audiencia" rows="3" placeholder="Quién es, edad, intereses, problemas que resuelve tu contenido..."></textarea>
+        <div class="ed-sis-block">
+          <div class="ed-sis-head"><div class="ed-sis-num">3</div><input class="ed-sis-titulo" id="est-s3-titulo" placeholder="Semana de producción propia"><input class="ed-sis-freq" id="est-s3-freq" placeholder="SEMANAL"></div>
+          <textarea class="ed-textarea" id="est-s3-tareas" rows="4" placeholder="- Jornada de grabación de contenido&#10;- Lista de tomas necesarias&#10;- Edición de videos (post-prod)&#10;- Revisión final y aprobación"></textarea>
         </div>
-        <div class="estrat-block full">
-          <div class="estrat-label">Tono y voz</div>
-          <textarea class="form-textarea" id="est-tono" rows="2" placeholder="Cercano, informal, con humor, inspiracional, educativo..."></textarea>
+        <div class="ed-sis-block">
+          <div class="ed-sis-head"><div class="ed-sis-num">4</div><input class="ed-sis-titulo" id="est-s4-titulo" placeholder="Publicación y scheduling"><input class="ed-sis-freq" id="est-s4-freq" placeholder="SEMANAL"></div>
+          <textarea class="ed-textarea" id="est-s4-tareas" rows="4" placeholder="- Agendar contenido en el calendario&#10;- Redactar copies y hashtags&#10;- Programar horarios óptimos&#10;- Publicar y monitorear primeras 24hs"></textarea>
         </div>
-        <div class="estrat-block full">
-          <div class="estrat-label">Pilares de contenido</div>
-          <textarea class="form-textarea" id="est-pilares" rows="4" placeholder="Ej:&#10;🛒 Comercial — mostrar productos/servicios (20%)&#10;🤝 Comunidad — detrás de escena, equipo (25%)&#10;✅ Confianza — casos de éxito, testimonios (20%)&#10;💡 Concepto — valores, historia de marca (15%)&#10;🎓 Educación — tips, tutoriales (20%)"></textarea>
-        </div>
-        <div class="estrat-block">
-          <div class="estrat-label">Frecuencia de publicación</div>
-          <textarea class="form-textarea" id="est-frecuencia" rows="3" placeholder="Ej:&#10;Reels: 4x semana&#10;Stories: diarias&#10;Feed: 3x semana"></textarea>
-        </div>
-        <div class="estrat-block">
-          <div class="estrat-label">Mejores horarios</div>
-          <textarea class="form-textarea" id="est-horarios" rows="3" placeholder="Ej:&#10;Lunes–Viernes: 8am, 12pm, 7pm&#10;Finde: 10am, 6pm"></textarea>
-        </div>
-        <div class="estrat-block full">
-          <div class="estrat-label">Objetivos mensuales</div>
-          <textarea class="form-textarea" id="est-objetivos" rows="3" placeholder="Seguidores, engagement rate, ventas generadas, alcance..."></textarea>
-        </div>
-        <div class="estrat-block full">
-          <div class="estrat-label">Call to action principal</div>
-          <input class="form-input" id="est-cta" placeholder="Ej: Escribime por DM, Link en bio, Guardá este post...">
-        </div>
-        <div class="estrat-block full">
-          <div class="estrat-label">Competencia / Referencias</div>
-          <textarea class="form-textarea" id="est-competencia" rows="3" placeholder="Cuentas de referencia, qué hacen bien, qué podés hacer diferente..."></textarea>
-        </div>
-        <div class="estrat-block full">
-          <div class="estrat-label">KPIs clave</div>
-          <textarea class="form-textarea" id="est-kpis" rows="2" placeholder="Métricas que seguís: views, saves, DMs, clicks al link..."></textarea>
-        </div>
-        <div class="estrat-block full">
-          <div class="estrat-label">Notas adicionales</div>
-          <textarea class="form-textarea" id="est-notas" rows="3" placeholder="Cualquier cosa extra: restricciones, colores, estilos, prohibiciones..."></textarea>
+        <div class="ed-sis-block">
+          <div class="ed-sis-head"><div class="ed-sis-num">5</div><input class="ed-sis-titulo" id="est-s5-titulo" placeholder="Reunión semanal de equipo"><input class="ed-sis-freq" id="est-s5-freq" placeholder="1 HRS"></div>
+          <textarea class="ed-textarea" id="est-s5-tareas" rows="4" placeholder="- Planning semanal — 30 minutos&#10;- Revisión de métricas de la semana anterior&#10;- Definir prioridades y asignaciones&#10;- Feedback sobre contenido publicado"></textarea>
         </div>
       </div>
     </div>
+
+    <!-- 6. MÉTRICAS CLAVE -->
+    <div class="ed-section">
+      <div class="ed-sec-title">MÉTRICAS CLAVE</div>
+      <div class="ed-kpi-grid">
+        <div class="ed-kpi-block"><div class="ed-sec-title" style="font-size:9px">ALCANCE & CRECIMIENTO</div><textarea class="ed-textarea" id="est-kpi-alcance" rows="4" placeholder="- Seguidores nuevos / mes&#10;- Alcance orgánico total&#10;- Impresiones por publicación&#10;- Cuentas nuevas alcanzadas"></textarea></div>
+        <div class="ed-kpi-block"><div class="ed-sec-title" style="font-size:9px">ENGAGEMENT</div><textarea class="ed-textarea" id="est-kpi-eng" rows="4" placeholder="- Tasa de engagement objetivo&#10;- Saves por reel&#10;- Comentarios promedio&#10;- Shares / reenvíos"></textarea></div>
+        <div class="ed-kpi-block"><div class="ed-sec-title" style="font-size:9px">CONVERSIÓN</div><textarea class="ed-textarea" id="est-kpi-conv" rows="4" placeholder="- Clicks al link en bio&#10;- DMs generados por contenido&#10;- Ventas atribuidas a orgánico&#10;- Tasa de conversión del perfil"></textarea></div>
+        <div class="ed-kpi-block"><div class="ed-sec-title" style="font-size:9px">PRODUCCIÓN</div><textarea class="ed-textarea" id="est-kpi-prod" rows="4" placeholder="- Piezas producidas / semana&#10;- Ratio UGC vs producción propia&#10;- Tiempo promedio de entrega&#10;- Piezas en pipeline"></textarea></div>
+      </div>
+    </div>
+
+    <!-- 7. CHECKLIST SEMANAL -->
+    <div class="ed-section">
+      <div class="ed-sec-title">CHECKLIST SEMANAL COMPLETO</div>
+      <div class="ed-ch-grid">
+        <div><div class="ed-ch-label">CONTENIDO</div><textarea class="ed-textarea" id="est-ch-contenido" rows="8" placeholder="- [ ] Planning de la semana definido&#10;- [ ] Brief enviado a creadores&#10;- [ ] Jornada de grabación realizada&#10;- [ ] Videos editados y aprobados&#10;- [ ] Contenido subido al calendario&#10;- [ ] Copies y hashtags redactados&#10;- [ ] Stories programadas&#10;- [ ] Reels publicados a horario"></textarea></div>
+        <div><div class="ed-ch-label">SEO & GESTIÓN</div><textarea class="ed-textarea" id="est-ch-seo" rows="8" placeholder="- [ ] Métricas de la semana revisadas&#10;- [ ] Respuestas a comentarios y DMs&#10;- [ ] Hashtags actualizados por categoría&#10;- [ ] Captions optimizados con palabras clave&#10;- [ ] Stories destacadas organizadas&#10;- [ ] Bio actualizada si es necesario&#10;- [ ] Guardados e interacciones revisados&#10;- [ ] Informe semanal completado"></textarea></div>
+      </div>
+    </div>
+
+    <!-- 8. REGLAS DE CREACIÓN -->
+    <div class="ed-section" style="border-bottom:none">
+      <div class="ed-sec-title">REGLAS DE CREACIÓN</div>
+      <textarea class="ed-textarea" id="est-reglas" rows="6" placeholder="- Todo contenido debe mostrar el producto en uso real&#10;- No publicar nada sin aprobación del cliente&#10;- Formato vertical 9:16 para reels y stories&#10;- Hook en los primeros 2 segundos obligatorio&#10;- Subtítulos en todos los videos&#10;- Paleta de colores: solo los aprobados en el brandbook&#10;- No usar música con copyright sin licencia&#10;- Siempre incluir CTA claro al final"></textarea>
+    </div>
+
+  </div>
   </div>
 
   <!-- TAB: BIBLIOTECA -->
@@ -3634,17 +3740,29 @@ function savePlanIdea(){
 }
  
 const ADMIN_EMAIL='federicosegundogadea@gmail.com';
+const EST_FIELDS=[
+  'marca','proposito',
+  'p0-nombre','p0-tags','p0-desc','p1-nombre','p1-tags','p1-desc',
+  'p2-nombre','p2-tags','p2-desc','p3-nombre','p3-tags','p3-desc',
+  'p4-nombre','p4-tags','p4-desc','p5-nombre','p5-tags','p5-desc',
+  'c0-nombre','c0-desc','c0-obj','c1-nombre','c1-desc','c1-obj',
+  'c2-nombre','c2-desc','c2-obj','c3-nombre','c3-desc','c3-obj',
+  'c4-nombre','c4-desc','c4-obj','c5-nombre','c5-desc','c5-obj',
+  'm0-val','m0-label','m1-val','m1-label','m2-val','m2-label','m3-val','m3-label',
+  'dia-lun','dia-mar','dia-mie','dia-jue','dia-vie','dia-fin',
+  's1-titulo','s1-freq','s1-tareas','s2-titulo','s2-freq','s2-tareas',
+  's3-titulo','s3-freq','s3-tareas','s4-titulo','s4-freq','s4-tareas',
+  's5-titulo','s5-freq','s5-tareas',
+  'kpi-alcance','kpi-eng','kpi-conv','kpi-prod',
+  'ch-contenido','ch-seo','reglas'
+];
 function renderEstrategia(){
   const e=S.estrategia||{};
-  const fields=['marca','plataformas','audiencia','tono','pilares','frecuencia','horarios','objetivos','cta','competencia','kpis','notas'];
-  fields.forEach(f=>{const el=document.getElementById('est-'+f);if(el)el.value=e[f]||'';});
+  EST_FIELDS.forEach(f=>{const el=document.getElementById('est-'+f);if(el)el.value=e[f]||'';});
 }
 function saveEstrategia(){
   if(!S.estrategia)S.estrategia={};
-  ['marca','plataformas','audiencia','tono','pilares','frecuencia','horarios','objetivos','cta','competencia','kpis','notas'].forEach(f=>{
-    const el=document.getElementById('est-'+f);
-    if(el)S.estrategia[f]=el.value;
-  });
+  EST_FIELDS.forEach(f=>{const el=document.getElementById('est-'+f);if(el)S.estrategia[f]=el.value;});
   save();notify('Estrategia guardada ✓');
 }
 
