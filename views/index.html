@@ -197,6 +197,59 @@ body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:14px
 .collab-step:hover{color:var(--text);border-color:var(--border2)}
 .collab-step.done{background:rgba(143,191,168,.1);color:var(--green);border-color:rgba(143,191,168,.25)}
  
+/* ── PLANNING ── */
+.plan-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.plan-tab{padding:6px 16px;border-radius:20px;border:1px solid var(--border);background:none;color:var(--muted);font-family:var(--fb);font-size:12px;font-weight:500;cursor:pointer;transition:all .2s}
+.plan-tab:hover{color:var(--text);border-color:var(--border2)}
+.plan-tab.active{background:var(--gold);color:#000;border-color:var(--gold)}
+.plan-section{display:none}.plan-section.active{display:block}
+/* IDEAS */
+.ideas-toolbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.idea-filter{padding:4px 12px;border-radius:14px;border:1px solid var(--border);background:none;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--fb);transition:all .15s}
+.idea-filter.active{border-color:var(--gold);color:var(--gold)}
+.idea-card{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;transition:border-color .2s}
+.idea-card:hover{border-color:var(--border2)}
+.idea-top{display:flex;align-items:center;gap:7px;margin-bottom:6px;flex-wrap:wrap}
+.idea-tipo{font-size:10px;font-weight:600;letter-spacing:.06em;padding:2px 8px;border-radius:8px;text-transform:uppercase}
+.tipo-story{background:rgba(122,179,255,.12);color:#7ab3ff;border:1px solid rgba(122,179,255,.2)}
+.tipo-reel{background:rgba(201,180,138,.12);color:var(--gold);border:1px solid rgba(201,180,138,.2)}
+.tipo-feed{background:rgba(143,191,168,.12);color:var(--green);border:1px solid rgba(143,191,168,.2)}
+.tipo-ads{background:rgba(184,160,212,.12);color:var(--purple);border:1px solid rgba(184,160,212,.2)}
+.idea-pillar{font-size:10px;color:var(--muted);padding:2px 8px;border-radius:8px;background:var(--s3);border:1px solid var(--border)}
+.idea-titulo{font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px}
+.idea-desc{font-size:11px;color:var(--muted);font-weight:300;line-height:1.5}
+.idea-fecha{font-size:10px;color:var(--muted2);margin-top:5px}
+.idea-pipeline{display:flex;gap:4px;margin-top:9px;flex-wrap:wrap}
+.idea-step{font-size:10px;padding:3px 9px;border-radius:6px;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:var(--fb);transition:all .15s}
+.idea-step:hover{color:var(--text);border-color:var(--border2)}
+.idea-step.current{background:rgba(201,180,138,.1);color:var(--gold);border-color:rgba(201,180,138,.3)}
+.idea-step.done{color:var(--green);border-color:rgba(143,191,168,.2);background:rgba(143,191,168,.06)}
+/* SEMANA */
+.semana-nav{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.semana-nav-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:4px 12px;cursor:pointer;font-family:var(--fb);font-size:16px;line-height:1;transition:all .15s}
+.semana-nav-btn:hover{color:var(--text);border-color:var(--border2)}
+.semana-label{font-size:13px;font-weight:500;color:var(--text);flex:1;text-align:center}
+.semana-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.semana-col{background:var(--s1);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.semana-col.hoy{border-color:var(--gold)}
+.semana-col-head{padding:8px 10px 7px;background:var(--s2);border-bottom:1px solid var(--border);text-align:center}
+.semana-col-dia{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.semana-col-fecha{font-size:18px;font-weight:700;color:var(--text);line-height:1.2}
+.semana-col.hoy .semana-col-fecha{color:var(--gold)}
+.semana-col-body{padding:8px}
+.semana-section-lbl{font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:8px 0 4px;padding-bottom:3px;border-bottom:1px solid var(--border)}
+.semana-section-lbl:first-child{margin-top:0}
+.semana-event{font-size:10px;padding:3px 6px;border-radius:5px;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.semana-event.feed{background:rgba(143,191,168,.1);color:var(--green);border-left:2px solid var(--green)}
+.semana-event.story{background:rgba(122,179,255,.1);color:#7ab3ff;border-left:2px solid #7ab3ff}
+.semana-event.reel{background:rgba(201,180,138,.1);color:var(--gold);border-left:2px solid var(--gold)}
+.semana-event.ads{background:rgba(184,160,212,.1);color:var(--purple);border-left:2px solid var(--purple)}
+.semana-task{display:flex;align-items:flex-start;gap:5px;margin-bottom:4px}
+.semana-task input[type=checkbox]{width:12px;height:12px;margin-top:1px;cursor:pointer;accent-color:var(--gold);flex-shrink:0}
+.semana-task-text{font-size:11px;color:var(--muted2);flex:1;word-break:break-word;line-height:1.4}
+.semana-task-text.done{text-decoration:line-through;color:var(--muted);opacity:.5}
+.semana-add{font-size:10px;color:var(--muted);cursor:pointer;padding:2px 0;background:none;border:none;font-family:var(--fb);transition:color .15s;display:flex;align-items:center;gap:3px}
+.semana-add:hover{color:var(--gold)}
 /* ── DRIVE ── */
 .drive-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:16px}
 .drive-panel{background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden}
@@ -1124,7 +1177,7 @@ tr:hover .tx-del{color:var(--muted)}
     <button class="nav-tab" onclick="switchPage('briefs',this)">Briefs</button>
     <button class="nav-tab" onclick="switchPage('canje',this)">Canjes</button>
     <button class="nav-tab" onclick="switchPage('collabs',this)">Collabs</button>
-    <button class="nav-tab" onclick="switchPage('drive',this)">Drive + Cal</button>
+    <button class="nav-tab" onclick="switchPage('drive',this)">Planning</button>
     <button class="nav-tab" onclick="switchPage('marca',this)">Marca</button>
     <button class="nav-tab" onclick="switchPage('producto',this)">Producto</button>
   </nav>
@@ -1164,7 +1217,7 @@ tr:hover .tx-del{color:var(--muted)}
     <button class="sb-item" id="sbi-briefs" onclick="sbNav('marketing','briefs',this)"><span class="sb-item-icon">📄</span>Briefs</button>
     <button class="sb-item" id="sbi-canje" onclick="sbNav('marketing','canje',this)"><span class="sb-item-icon">🤝</span>Canjes</button>
     <button class="sb-item" id="sbi-collabs" onclick="sbNav('marketing','collabs',this)"><span class="sb-item-icon">👥</span>Collabs</button>
-    <button class="sb-item" id="sbi-drive" onclick="sbNav('marketing','drive',this)"><span class="sb-item-icon">📅</span>Drive + Cal</button>
+    <button class="sb-item" id="sbi-drive" onclick="sbNav('marketing','drive',this)"><span class="sb-item-icon">📋</span>Planning</button>
     <button class="sb-item" id="sbi-marca" onclick="sbNav('marketing','marca',this)"><span class="sb-item-icon">🎨</span>Marca</button>
     <button class="sb-item" id="sbi-producto" onclick="sbNav('marketing','producto',this)"><span class="sb-item-icon">📦</span>Producto</button>
   </div>
@@ -1292,17 +1345,19 @@ tr:hover .tx-del{color:var(--muted)}
 <!-- ══ DRIVE ══ -->
 <div class="page" id="page-drive">
   <div class="sec-head">
-    <div class="sec-title">Contenido + Calendario<small>Piezas recibidas y planificación semanal</small></div>
-    <button class="btn btn-primary" onclick="openModal('contenido')">+ Agregar pieza</button>
+    <div class="sec-title">Planning<small>Calendario, ideas y producción de contenido</small></div>
+    <button class="btn btn-primary" id="plan-add-btn" onclick="openModal('planidea')">+ Nueva idea</button>
   </div>
-  <div class="drive-grid">
-    <div class="drive-panel">
-      <div class="panel-head">
-        <div class="panel-title">Piezas recibidas</div>
-        <span style="font-size:11px;color:var(--muted)" id="total-piezas">0 piezas</span>
-      </div>
-      <div id="contenido-list" style="padding:8px"></div>
-    </div>
+
+  <div class="plan-tabs">
+    <button class="plan-tab active" onclick="switchPlanTab('calendario',this)">📅 Calendario</button>
+    <button class="plan-tab" onclick="switchPlanTab('semana',this)">📋 Semana</button>
+    <button class="plan-tab" onclick="switchPlanTab('ideas',this)">💡 Ideas</button>
+    <button class="plan-tab" onclick="switchPlanTab('biblioteca',this)">🎬 Biblioteca</button>
+  </div>
+
+  <!-- TAB: CALENDARIO -->
+  <div class="plan-section active" id="plantab-calendario">
     <div class="drive-panel">
       <div class="cal-nav">
         <button class="cal-nav-btn" onclick="calNavMes(-1)">‹</button>
@@ -1310,16 +1365,55 @@ tr:hover .tx-del{color:var(--muted)}
         <button class="cal-nav-btn" onclick="calNavMes(1)">›</button>
       </div>
       <div style="padding:8px 16px 6px;display:flex;align-items:center;justify-content:space-between">
-        <div style="display:flex;gap:8px;font-size:10px;color:var(--muted);align-items:center">
+        <div style="display:flex;gap:10px;font-size:10px;color:var(--muted);align-items:center">
           <span style="border-left:2px solid var(--green);padding-left:5px">Feed</span>
           <span style="border-left:2px solid #7ab3ff;padding-left:5px">Story</span>
-          <span style="border-left:2px solid #c9b48a;padding-left:5px">Ads</span>
-          <span style="border-left:2px solid #a87bff;padding-left:5px">Reel</span>
+          <span style="border-left:2px solid var(--gold);padding-left:5px">Reel</span>
+          <span style="border-left:2px solid var(--purple);padding-left:5px">Ads</span>
         </div>
         <button class="btn btn-sm" onclick="irHoy()">Hoy</button>
       </div>
       <div class="cal-month-grid" id="calendario"></div>
     </div>
+  </div>
+
+  <!-- TAB: SEMANA -->
+  <div class="plan-section" id="plantab-semana">
+    <div class="semana-nav">
+      <button class="semana-nav-btn" onclick="navSemana(-1)">‹</button>
+      <div class="semana-label" id="semana-label">—</div>
+      <button class="semana-nav-btn" onclick="navSemana(1)">›</button>
+      <button class="btn btn-sm" onclick="irSemanaHoy()">Esta semana</button>
+    </div>
+    <div class="semana-grid" id="semana-grid"></div>
+  </div>
+
+  <!-- TAB: IDEAS -->
+  <div class="plan-section" id="plantab-ideas">
+    <div class="ideas-toolbar">
+      <button class="idea-filter active" data-ft="tipo" data-fv="" onclick="setIdeaFilter(this,'tipo')">Todos</button>
+      <button class="idea-filter" data-ft="tipo" data-fv="story" onclick="setIdeaFilter(this,'tipo')">💬 Story</button>
+      <button class="idea-filter" data-ft="tipo" data-fv="reel" onclick="setIdeaFilter(this,'tipo')">🎬 Reel</button>
+      <button class="idea-filter" data-ft="tipo" data-fv="feed" onclick="setIdeaFilter(this,'tipo')">📸 Feed</button>
+      <button class="idea-filter" data-ft="tipo" data-fv="ads" onclick="setIdeaFilter(this,'tipo')">📢 Ads</button>
+      <div style="width:1px;height:18px;background:var(--border);margin:0 2px"></div>
+      <button class="idea-filter active" data-ft="estado" data-fv="" onclick="setIdeaFilter(this,'estado')">Todos los estados</button>
+      <button class="idea-filter" data-ft="estado" data-fv="idea" onclick="setIdeaFilter(this,'estado')">💡 Idea</button>
+      <button class="idea-filter" data-ft="estado" data-fv="produccion" onclick="setIdeaFilter(this,'estado')">🎬 Producción</button>
+      <button class="idea-filter" data-ft="estado" data-fv="edicion" onclick="setIdeaFilter(this,'estado')">✂️ Edición</button>
+      <button class="idea-filter" data-ft="estado" data-fv="agendado" onclick="setIdeaFilter(this,'estado')">📅 Agendado</button>
+      <button class="idea-filter" data-ft="estado" data-fv="publicado" onclick="setIdeaFilter(this,'estado')">✅ Publicado</button>
+    </div>
+    <div id="ideas-list"></div>
+  </div>
+
+  <!-- TAB: BIBLIOTECA -->
+  <div class="plan-section" id="plantab-biblioteca">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:12px;color:var(--muted)" id="total-piezas">0 piezas</div>
+      <button class="btn btn-sm" onclick="openModal('contenido')">+ Agregar pieza</button>
+    </div>
+    <div id="contenido-list"></div>
   </div>
 </div>
  
@@ -2402,7 +2496,7 @@ let _activeArea='marketing';
 let _activePage='checklist';
 
 function defaultData(){
-  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[]};
+  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},ideas:[],semana:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[]};
 }
 
 function _localLoad(){
@@ -3255,10 +3349,50 @@ let _calYear=new Date().getFullYear();
 let _calMonth=new Date().getMonth(); // 0-based
 function tipoEmoji(t){return{reel:'🎬',story:'📱',foto:'📷',ugc:'🎥'}[t]||'📄';}
  
+// ── PLANNING ──
+let _planWeekOffset=0;
+let _ideaTipoFilter='';
+let _ideaEstadoFilter='';
+
+const IDEA_ESTADOS=[
+  {id:'idea',label:'💡 Idea'},
+  {id:'produccion',label:'🎬 Producción'},
+  {id:'edicion',label:'✂️ Edición'},
+  {id:'agendado',label:'📅 Agendado'},
+  {id:'publicado',label:'✅ Publicado'}
+];
+const IDEA_PILARES=['🛒 Comercial','🤝 Comunidad','✅ Confianza','👥 Equipo','💡 Concepto','🎓 Educación','🎭 Entretenimiento'];
+
+function switchPlanTab(id,btn){
+  document.querySelectorAll('.plan-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.plan-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('plantab-'+id)?.classList.add('active');
+  btn?.classList.add('active');
+  const addBtn=document.getElementById('plan-add-btn');
+  if(addBtn){
+    if(id==='ideas'){addBtn.textContent='+ Nueva idea';addBtn.onclick=()=>openModal('planidea');}
+    else if(id==='biblioteca'){addBtn.textContent='+ Agregar pieza';addBtn.onclick=()=>openModal('contenido');}
+    else if(id==='calendario'){addBtn.textContent='+ Agendar';addBtn.onclick=()=>openCalModal(dateKey(new Date().getFullYear(),new Date().getMonth(),new Date().getDate()));}
+    else{addBtn.textContent='+ Nueva idea';addBtn.onclick=()=>openModal('planidea');}
+  }
+  if(id==='semana')renderSemana();
+  if(id==='ideas')renderIdeas();
+  if(id==='biblioteca')renderBiblioteca();
+  if(id==='calendario')renderCalendario();
+}
+
 function renderDrive(){
+  if(!S.ideas)S.ideas=[];
+  if(!S.semana)S.semana={};
+  renderCalendario();
+  renderBiblioteca();
+}
+
+function renderBiblioteca(){
   const list=document.getElementById('contenido-list');
   if(!list)return;
-  document.getElementById('total-piezas').textContent=S.contenido.length+' piezas';
+  if(!S.contenido)S.contenido=[];
+  document.getElementById('total-piezas').textContent=S.contenido.length+' pieza'+(S.contenido.length!==1?'s':'');
   if(!S.contenido.length){list.innerHTML=`<div class="empty"><div class="e-icon">🎬</div><p>Sin piezas cargadas todavía.</p></div>`;return;}
   list.innerHTML=S.contenido.map((p,i)=>`
     <div class="contenido-item">
@@ -3276,10 +3410,157 @@ function renderDrive(){
         <button class="btn btn-sm btn-danger" onclick="deletePieza(${i})">×</button>
       </div>
     </div>`).join('');
-  renderCalendario();
 }
-function toggleTesteado(i){S.contenido[i].testeado=!S.contenido[i].testeado;save();renderDrive();}
-function deletePieza(i){S.contenido.splice(i,1);save();renderDrive();}
+function toggleTesteado(i){S.contenido[i].testeado=!S.contenido[i].testeado;save();renderBiblioteca();}
+function deletePieza(i){if(!confirm('¿Eliminar esta pieza?'))return;S.contenido.splice(i,1);save();renderBiblioteca();}
+
+// ── IDEAS ──
+function setIdeaFilter(btn,tipo){
+  document.querySelectorAll(`.idea-filter[data-ft="${tipo}"]`).forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(tipo==='tipo')_ideaTipoFilter=btn.dataset.fv;
+  else _ideaEstadoFilter=btn.dataset.fv;
+  renderIdeas();
+}
+function renderIdeas(){
+  if(!S.ideas)S.ideas=[];
+  const list=document.getElementById('ideas-list');
+  if(!list)return;
+  let items=[...S.ideas];
+  if(_ideaTipoFilter)items=items.filter(i=>i.tipo===_ideaTipoFilter);
+  if(_ideaEstadoFilter)items=items.filter(i=>i.estado===_ideaEstadoFilter);
+  if(!items.length){
+    list.innerHTML=`<div class="empty"><div class="e-icon">💡</div><p>${S.ideas.length?'Sin ideas con ese filtro.':'Todavía no hay ideas. ¡Agregá la primera!'}</p></div>`;
+    return;
+  }
+  const tipoLabel={story:'💬 Story',reel:'🎬 Reel',feed:'📸 Feed',ads:'📢 Ads'};
+  list.innerHTML=items.map(idea=>{
+    const ri=S.ideas.indexOf(idea);
+    const pipelineHtml=IDEA_ESTADOS.map((e,ei)=>{
+      const cur=idea.estado===e.id;
+      const done=IDEA_ESTADOS.findIndex(x=>x.id===idea.estado)>ei;
+      return`<button class="idea-step${cur?' current':done?' done':''}" onclick="setIdeaEstado(${ri},'${e.id}')" title="${e.label}">${e.label}</button>`;
+    }).join('');
+    return`<div class="idea-card">
+      <div class="idea-top">
+        <span class="idea-tipo tipo-${idea.tipo}">${tipoLabel[idea.tipo]||idea.tipo}</span>
+        ${idea.pillar?`<span class="idea-pillar">${idea.pillar}</span>`:''}
+        <div style="margin-left:auto;display:flex;gap:5px">
+          <button class="btn btn-sm" onclick="editIdea(${ri})" style="font-size:10px;padding:2px 8px">Editar</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteIdea(${ri})" style="font-size:10px;padding:2px 8px">×</button>
+        </div>
+      </div>
+      <div class="idea-titulo">${idea.titulo}</div>
+      ${idea.descripcion?`<div class="idea-desc">${idea.descripcion}</div>`:''}
+      ${idea.fechaPub?`<div class="idea-fecha">📅 Publicar: ${idea.fechaPub}</div>`:''}
+      <div class="idea-pipeline">${pipelineHtml}</div>
+    </div>`;
+  }).join('');
+}
+function setIdeaEstado(i,estado){
+  if(!S.ideas[i])return;
+  S.ideas[i].estado=estado;
+  save();renderIdeas();
+}
+function deleteIdea(i){
+  if(!confirm('¿Eliminar esta idea?'))return;
+  S.ideas.splice(i,1);save();renderIdeas();
+}
+function editIdea(i){openModal('idea',i);}
+
+// ── SEMANA ──
+function getWeekStart(offset=0){
+  const now=new Date();
+  const day=now.getDay();
+  const diff=(day===0)?-6:1-day;
+  const mon=new Date(now);
+  mon.setDate(now.getDate()+diff+(offset*7));
+  mon.setHours(0,0,0,0);
+  return mon;
+}
+function navSemana(dir){_planWeekOffset+=dir;renderSemana();}
+function irSemanaHoy(){_planWeekOffset=0;renderSemana();}
+function renderSemana(){
+  if(!S.semana)S.semana={};
+  const grid=document.getElementById('semana-grid');
+  const lbl=document.getElementById('semana-label');
+  if(!grid)return;
+  const mon=getWeekStart(_planWeekOffset);
+  const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+  const fmt=d=>`${d.getDate()}/${d.getMonth()+1}`;
+  lbl.textContent=`Semana del ${fmt(mon)} al ${fmt(sun)}`;
+  const today=new Date();today.setHours(0,0,0,0);
+  const DIAS_SEM=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  let html='';
+  for(let i=0;i<7;i++){
+    const d=new Date(mon);d.setDate(mon.getDate()+i);
+    const key=dateKey(d.getFullYear(),d.getMonth(),d.getDate());
+    const isToday=d.getTime()===today.getTime();
+    const events=(S.calendario[key]||[]);
+    const tasks=(S.semana[key]||{grabar:[],editar:[]});
+    const evHtml=events.map((ev,ei)=>`<div class="semana-event ${ev.tipo||'feed'}" onclick="removeCalPost('${key}',${ei})" title="Click para quitar">${ev.nombre}</div>`).join('');
+    const taskHtml=(tipo)=>(tasks[tipo]||[]).map((t,ti)=>`
+      <div class="semana-task">
+        <input type="checkbox" ${t.done?'checked':''} onchange="toggleSemanaTask('${key}','${tipo}',${ti})">
+        <span class="semana-task-text${t.done?' done':''}">${t.texto}</span>
+        <button onclick="deleteSemanaTask('${key}','${tipo}',${ti})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0 2px;line-height:1" title="Quitar">×</button>
+      </div>`).join('');
+    html+=`<div class="semana-col${isToday?' hoy':''}">
+      <div class="semana-col-head">
+        <div class="semana-col-dia">${DIAS_SEM[i]}</div>
+        <div class="semana-col-fecha">${d.getDate()}</div>
+      </div>
+      <div class="semana-col-body">
+        <div class="semana-section-lbl">📅 Publicar</div>
+        ${evHtml||'<div style="font-size:10px;color:var(--muted);opacity:.4;margin-bottom:4px">—</div>'}
+        <button class="semana-add" onclick="openCalModal('${key}')">+ agendar</button>
+        <div class="semana-section-lbl">🎬 Grabar</div>
+        ${taskHtml('grabar')}
+        <button class="semana-add" onclick="addSemanaTask('${key}','grabar')">+ agregar</button>
+        <div class="semana-section-lbl">✂️ Editar</div>
+        ${taskHtml('editar')}
+        <button class="semana-add" onclick="addSemanaTask('${key}','editar')">+ agregar</button>
+      </div>
+    </div>`;
+  }
+  grid.innerHTML=html;
+}
+function addSemanaTask(key,tipo){
+  const texto=prompt('¿Qué hay que '+tipo+'?');
+  if(!texto?.trim())return;
+  if(!S.semana[key])S.semana[key]={grabar:[],editar:[]};
+  if(!S.semana[key][tipo])S.semana[key][tipo]=[];
+  S.semana[key][tipo].push({texto:texto.trim(),done:false});
+  save();renderSemana();
+}
+function toggleSemanaTask(key,tipo,i){
+  if(!S.semana[key]?.[tipo]?.[i])return;
+  S.semana[key][tipo][i].done=!S.semana[key][tipo][i].done;
+  save();renderSemana();
+}
+function deleteSemanaTask(key,tipo,i){
+  if(!S.semana[key]?.[tipo])return;
+  S.semana[key][tipo].splice(i,1);
+  save();renderSemana();
+}
+function savePlanIdea(){
+  if(!S.ideas)S.ideas=[];
+  const titulo=document.getElementById('fpi-titulo')?.value.trim();
+  if(!titulo){notify('El título es obligatorio');return;}
+  const obj={
+    id:Date.now(),
+    tipo:document.getElementById('fpi-tipo')?.value||'reel',
+    pillar:document.getElementById('fpi-pillar')?.value||'',
+    titulo,
+    descripcion:document.getElementById('fpi-desc')?.value.trim()||'',
+    estado:document.getElementById('fpi-estado')?.value||'idea',
+    fechaPub:document.getElementById('fpi-fecha')?.value||'',
+    creadoEl:new Date().toISOString().slice(0,10)
+  };
+  if(_editIdx!==null&&S.ideas[_editIdx]){S.ideas[_editIdx]={...S.ideas[_editIdx],...obj};}
+  else S.ideas.unshift(obj);
+  save();closeModal();renderIdeas();notify('Idea guardada ✓');
+}
  
 function pad2(n){return String(n).padStart(2,'0');}
 function dateKey(y,m,d){return`${y}-${pad2(m+1)}-${pad2(d)}`;}
@@ -4451,7 +4732,7 @@ function openModal(tipo,data,idx){
     medioPago:'Agregar medio de pago',costoFijo:'Agregar costo fijo',
     presupuesto:'Editar presupuesto',opscheck:'Nueva tarea operativa',
     reclamo:'Nuevo reclamo',color:'Agregar color',objetivo:'Agregar objetivo',
-    idea:'Nueva idea',inspo:'Agregar referencia',
+    idea:'Nueva idea',planidea:'Nueva idea de contenido',inspo:'Agregar referencia',
     crm:data?'Editar contacto':'Nuevo contacto',
     newHoja:'Nueva hoja'
   };
@@ -4665,6 +4946,30 @@ function openModal(tipo,data,idx){
       <div class="form-group"><label class="form-label">Categoría</label>
         <select class="form-select" id="fi-cat">${IDEA_CATS.map(c=>`<option value="${c.key}">${c.label}</option>`).join('')}</select></div>
       <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveIdea()">Guardar</button></div>`,
+    planidea:(()=>{
+      const ed=(_editIdx!==null&&S.ideas)?S.ideas[_editIdx]:null;
+      const tiposOpts=[{v:'story',l:'💬 Story'},{v:'reel',l:'🎬 Reel'},{v:'feed',l:'📸 Feed'},{v:'ads',l:'📢 Ads'}].map(t=>`<option value="${t.v}"${ed?.tipo===t.v?' selected':''}>${t.l}</option>`).join('');
+      const estadosOpts=IDEA_ESTADOS.map(e=>`<option value="${e.id}"${(ed?.estado||'idea')===e.id?' selected':''}>${e.label}</option>`).join('');
+      const pilaresOpts=`<option value="">— Sin pilar —</option>`+IDEA_PILARES.map(p=>`<option${ed?.pillar===p?' selected':''}>${p}</option>`).join('');
+      return`
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Tipo</label>
+          <select class="form-select" id="fpi-tipo">${tiposOpts}</select></div>
+        <div class="form-group"><label class="form-label">Pilar</label>
+          <select class="form-select" id="fpi-pillar">${pilaresOpts}</select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Título / concepto</label>
+        <input class="form-input" id="fpi-titulo" placeholder="Ej: Hook del producto en 3 escenas..." value="${ed?.titulo?.replace(/"/g,'&quot;')||''}"></div>
+      <div class="form-group"><label class="form-label">Descripción</label>
+        <textarea class="form-textarea" id="fpi-desc" placeholder="Ideas, referencias, cómo grabarlo...">${ed?.descripcion||''}</textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Estado</label>
+          <select class="form-select" id="fpi-estado">${estadosOpts}</select></div>
+        <div class="form-group"><label class="form-label">Fecha de publicación</label>
+          <input class="form-input" id="fpi-fecha" type="date" value="${ed?.fechaPub||''}"></div>
+      </div>
+      <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="savePlanIdea()">Guardar</button></div>`;
+    })(),
     inspo:`
       <div class="form-group"><label class="form-label">Título / nombre</label>
         <input class="form-input" id="fins-titulo" placeholder="Ej: @eme.studio, Revista Apartamento..."></div>
