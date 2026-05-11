@@ -203,6 +203,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:14px
 .plan-tab:hover{color:var(--text);border-color:var(--border2)}
 .plan-tab.active{background:var(--gold);color:#000;border-color:var(--gold)}
 .plan-section{display:none}.plan-section.active{display:block}
+.estrat-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.estrat-block{display:flex;flex-direction:column;gap:6px}
+.estrat-block.full{grid-column:1/-1}
+.estrat-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
 /* IDEAS */
 .ideas-toolbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
 .idea-filter{padding:4px 12px;border-radius:14px;border:1px solid var(--border);background:none;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--fb);transition:all .15s}
@@ -1354,6 +1358,7 @@ tr:hover .tx-del{color:var(--muted)}
     <button class="plan-tab" onclick="switchPlanTab('semana',this)">📋 Semana</button>
     <button class="plan-tab" onclick="switchPlanTab('ideas',this)">💡 Ideas</button>
     <button class="plan-tab" onclick="switchPlanTab('biblioteca',this)">🎬 Biblioteca</button>
+    <button class="plan-tab" id="plan-tab-estrategia" style="display:none" onclick="switchPlanTab('estrategia',this)">🧭 Estrategia</button>
   </div>
 
   <!-- TAB: CALENDARIO -->
@@ -1405,6 +1410,66 @@ tr:hover .tx-del{color:var(--muted)}
       <button class="idea-filter" data-ft="estado" data-fv="publicado" onclick="setIdeaFilter(this,'estado')">✅ Publicado</button>
     </div>
     <div id="ideas-list"></div>
+  </div>
+
+  <!-- TAB: ESTRATEGIA -->
+  <div class="plan-section" id="plantab-estrategia">
+    <div class="drive-panel" style="max-width:720px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">Estrategia de contenido</div>
+        <button class="btn btn-primary btn-sm" onclick="saveEstrategia()">Guardar cambios</button>
+      </div>
+      <div class="estrat-grid">
+        <div class="estrat-block">
+          <div class="estrat-label">Marca / Proyecto</div>
+          <input class="form-input" id="est-marca" placeholder="Nombre de la marca o proyecto">
+        </div>
+        <div class="estrat-block">
+          <div class="estrat-label">Plataformas activas</div>
+          <input class="form-input" id="est-plataformas" placeholder="Instagram, TikTok, YouTube Shorts...">
+        </div>
+        <div class="estrat-block full">
+          <div class="estrat-label">Audiencia objetivo</div>
+          <textarea class="form-textarea" id="est-audiencia" rows="3" placeholder="Quién es, edad, intereses, problemas que resuelve tu contenido..."></textarea>
+        </div>
+        <div class="estrat-block full">
+          <div class="estrat-label">Tono y voz</div>
+          <textarea class="form-textarea" id="est-tono" rows="2" placeholder="Cercano, informal, con humor, inspiracional, educativo..."></textarea>
+        </div>
+        <div class="estrat-block full">
+          <div class="estrat-label">Pilares de contenido</div>
+          <textarea class="form-textarea" id="est-pilares" rows="4" placeholder="Ej:&#10;🛒 Comercial — mostrar productos/servicios (20%)&#10;🤝 Comunidad — detrás de escena, equipo (25%)&#10;✅ Confianza — casos de éxito, testimonios (20%)&#10;💡 Concepto — valores, historia de marca (15%)&#10;🎓 Educación — tips, tutoriales (20%)"></textarea>
+        </div>
+        <div class="estrat-block">
+          <div class="estrat-label">Frecuencia de publicación</div>
+          <textarea class="form-textarea" id="est-frecuencia" rows="3" placeholder="Ej:&#10;Reels: 4x semana&#10;Stories: diarias&#10;Feed: 3x semana"></textarea>
+        </div>
+        <div class="estrat-block">
+          <div class="estrat-label">Mejores horarios</div>
+          <textarea class="form-textarea" id="est-horarios" rows="3" placeholder="Ej:&#10;Lunes–Viernes: 8am, 12pm, 7pm&#10;Finde: 10am, 6pm"></textarea>
+        </div>
+        <div class="estrat-block full">
+          <div class="estrat-label">Objetivos mensuales</div>
+          <textarea class="form-textarea" id="est-objetivos" rows="3" placeholder="Seguidores, engagement rate, ventas generadas, alcance..."></textarea>
+        </div>
+        <div class="estrat-block full">
+          <div class="estrat-label">Call to action principal</div>
+          <input class="form-input" id="est-cta" placeholder="Ej: Escribime por DM, Link en bio, Guardá este post...">
+        </div>
+        <div class="estrat-block full">
+          <div class="estrat-label">Competencia / Referencias</div>
+          <textarea class="form-textarea" id="est-competencia" rows="3" placeholder="Cuentas de referencia, qué hacen bien, qué podés hacer diferente..."></textarea>
+        </div>
+        <div class="estrat-block full">
+          <div class="estrat-label">KPIs clave</div>
+          <textarea class="form-textarea" id="est-kpis" rows="2" placeholder="Métricas que seguís: views, saves, DMs, clicks al link..."></textarea>
+        </div>
+        <div class="estrat-block full">
+          <div class="estrat-label">Notas adicionales</div>
+          <textarea class="form-textarea" id="est-notas" rows="3" placeholder="Cualquier cosa extra: restricciones, colores, estilos, prohibiciones..."></textarea>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- TAB: BIBLIOTECA -->
@@ -2496,7 +2561,7 @@ let _activeArea='marketing';
 let _activePage='checklist';
 
 function defaultData(){
-  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},ideas:[],semana:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[]};
+  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},ideas:[],semana:{},estrategia:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[]};
 }
 
 function _localLoad(){
@@ -3370,20 +3435,26 @@ function switchPlanTab(id,btn){
   btn?.classList.add('active');
   const addBtn=document.getElementById('plan-add-btn');
   if(addBtn){
-    if(id==='ideas'){addBtn.textContent='+ Nueva idea';addBtn.onclick=()=>openModal('planidea');}
-    else if(id==='biblioteca'){addBtn.textContent='+ Agregar pieza';addBtn.onclick=()=>openModal('contenido');}
-    else if(id==='calendario'){addBtn.textContent='+ Agendar';addBtn.onclick=()=>openCalModal(dateKey(new Date().getFullYear(),new Date().getMonth(),new Date().getDate()));}
-    else{addBtn.textContent='+ Nueva idea';addBtn.onclick=()=>openModal('planidea');}
+    if(id==='ideas'){addBtn.textContent='+ Nueva idea';addBtn.onclick=()=>openModal('planidea');addBtn.style.display='';}
+    else if(id==='biblioteca'){addBtn.textContent='+ Agregar pieza';addBtn.onclick=()=>openModal('contenido');addBtn.style.display='';}
+    else if(id==='calendario'){addBtn.textContent='+ Agendar';addBtn.onclick=()=>openCalModal(dateKey(new Date().getFullYear(),new Date().getMonth(),new Date().getDate()));addBtn.style.display='';}
+    else if(id==='estrategia'){addBtn.style.display='none';}
+    else{addBtn.textContent='+ Nueva idea';addBtn.onclick=()=>openModal('planidea');addBtn.style.display='';}
   }
   if(id==='semana')renderSemana();
-  if(id==='ideas')renderIdeas();
+  if(id==='ideas')renderPlanIdeas();
   if(id==='biblioteca')renderBiblioteca();
   if(id==='calendario')renderCalendario();
+  if(id==='estrategia')renderEstrategia();
 }
 
 function renderDrive(){
   if(!S.ideas)S.ideas=[];
   if(!S.semana)S.semana={};
+  if(!S.estrategia)S.estrategia={};
+  const isAdmin=_authUser?.email===ADMIN_EMAIL;
+  const estTab=document.getElementById('plan-tab-estrategia');
+  if(estTab)estTab.style.display=isAdmin?'':'none';
   renderCalendario();
   renderBiblioteca();
 }
@@ -3420,9 +3491,9 @@ function setIdeaFilter(btn,tipo){
   btn.classList.add('active');
   if(tipo==='tipo')_ideaTipoFilter=btn.dataset.fv;
   else _ideaEstadoFilter=btn.dataset.fv;
-  renderIdeas();
+  renderPlanIdeas();
 }
-function renderIdeas(){
+function renderPlanIdeas(){
   if(!S.ideas)S.ideas=[];
   const list=document.getElementById('ideas-list');
   if(!list)return;
@@ -3439,15 +3510,15 @@ function renderIdeas(){
     const pipelineHtml=IDEA_ESTADOS.map((e,ei)=>{
       const cur=idea.estado===e.id;
       const done=IDEA_ESTADOS.findIndex(x=>x.id===idea.estado)>ei;
-      return`<button class="idea-step${cur?' current':done?' done':''}" onclick="setIdeaEstado(${ri},'${e.id}')" title="${e.label}">${e.label}</button>`;
+      return`<button class="idea-step${cur?' current':done?' done':''}" onclick="setPlanIdeaEstado(${ri},'${e.id}')" title="${e.label}">${e.label}</button>`;
     }).join('');
     return`<div class="idea-card">
       <div class="idea-top">
         <span class="idea-tipo tipo-${idea.tipo}">${tipoLabel[idea.tipo]||idea.tipo}</span>
         ${idea.pillar?`<span class="idea-pillar">${idea.pillar}</span>`:''}
         <div style="margin-left:auto;display:flex;gap:5px">
-          <button class="btn btn-sm" onclick="editIdea(${ri})" style="font-size:10px;padding:2px 8px">Editar</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteIdea(${ri})" style="font-size:10px;padding:2px 8px">×</button>
+          <button class="btn btn-sm" onclick="editPlanIdea(${ri})" style="font-size:10px;padding:2px 8px">Editar</button>
+          <button class="btn btn-sm btn-danger" onclick="deletePlanIdea(${ri})" style="font-size:10px;padding:2px 8px">×</button>
         </div>
       </div>
       <div class="idea-titulo">${idea.titulo}</div>
@@ -3457,16 +3528,16 @@ function renderIdeas(){
     </div>`;
   }).join('');
 }
-function setIdeaEstado(i,estado){
+function setPlanIdeaEstado(i,estado){
   if(!S.ideas[i])return;
   S.ideas[i].estado=estado;
-  save();renderIdeas();
+  save();renderPlanIdeas();
 }
-function deleteIdea(i){
+function deletePlanIdea(i){
   if(!confirm('¿Eliminar esta idea?'))return;
-  S.ideas.splice(i,1);save();renderIdeas();
+  S.ideas.splice(i,1);save();renderPlanIdeas();
 }
-function editIdea(i){openModal('idea',i);}
+function editPlanIdea(i){openModal('planidea',i);}
 
 // ── SEMANA ──
 function getWeekStart(offset=0){
@@ -3559,9 +3630,24 @@ function savePlanIdea(){
   };
   if(_editIdx!==null&&S.ideas[_editIdx]){S.ideas[_editIdx]={...S.ideas[_editIdx],...obj};}
   else S.ideas.unshift(obj);
-  save();closeModal();renderIdeas();notify('Idea guardada ✓');
+  save();closeModal();renderPlanIdeas();notify('Idea guardada ✓');
 }
  
+const ADMIN_EMAIL='federicosegundogadea@gmail.com';
+function renderEstrategia(){
+  const e=S.estrategia||{};
+  const fields=['marca','plataformas','audiencia','tono','pilares','frecuencia','horarios','objetivos','cta','competencia','kpis','notas'];
+  fields.forEach(f=>{const el=document.getElementById('est-'+f);if(el)el.value=e[f]||'';});
+}
+function saveEstrategia(){
+  if(!S.estrategia)S.estrategia={};
+  ['marca','plataformas','audiencia','tono','pilares','frecuencia','horarios','objetivos','cta','competencia','kpis','notas'].forEach(f=>{
+    const el=document.getElementById('est-'+f);
+    if(el)S.estrategia[f]=el.value;
+  });
+  save();notify('Estrategia guardada ✓');
+}
+
 function pad2(n){return String(n).padStart(2,'0');}
 function dateKey(y,m,d){return`${y}-${pad2(m+1)}-${pad2(d)}`;}
 function irHoy(){_calYear=new Date().getFullYear();_calMonth=new Date().getMonth();renderCalendario();}
