@@ -1126,8 +1126,12 @@ tr:hover .tx-del{color:var(--muted)}
   <div id="supa-loader-msg" style="font-size:13px;color:var(--muted)">Cargando proyectos…</div>
 </div>
 
-<!-- ══ WORKSPACE OVERLAY ══ -->
-<div class="ws-overlay hidden" id="ws-overlay">
+<!-- ══ WORKSPACE OVERLAY ══
+     IMPORTANTE: arranca VISIBLE (sin .hidden) — la app entera está bloqueada
+     detrás del selector de proyecto hasta que el usuario entre a uno.
+     _enterWorkspace() le agrega .hidden cuando se entra a un proyecto.
+     auth-screen (z-index 600) lo cubre cuando el usuario no está logueado. -->
+<div class="ws-overlay" id="ws-overlay">
   <div class="ws-logo-big">VELD <em>OS</em></div>
   <div class="ws-tagline">Sistema operativo para marcas</div>
 
@@ -1258,8 +1262,10 @@ tr:hover .tx-del{color:var(--muted)}
   🎁 <span id="trial-banner-text">Te quedan X días de prueba gratis</span> · <strong>Suscribite ahora →</strong>
 </div>
 
-<!-- ══ CHECKLIST ══ -->
-<div class="page active" id="page-checklist">
+<!-- ══ CHECKLIST ══ NOTA: NO arranca .active — todas las pages quedan ocultas
+     hasta que _enterWorkspace() → applyRoute() active la correcta.
+     Antes mostraba contenido de sección bajo el ws-overlay. -->
+<div class="page" id="page-checklist">
   <div class="sec-head">
     <div class="sec-title">Checklist semanal<small>Marcá cada paso al completarlo</small></div>
     <div class="btn-row">
@@ -3274,22 +3280,15 @@ window.addEventListener('popstate',applyRoute);
 // Limpiar cualquier estado de ruta residual de versiones anteriores (hash routing, etc.)
 try{localStorage.removeItem('veld_last_hash');localStorage.removeItem('veld_last_path');localStorage.removeItem('veld_nav');}catch(e){}
 
-// Pre-render: normaliza URL → /pathname-limpio (sin hash residual, sin pathname inválido) y muestra la sección
-// antes de que cargue el workspace. CRÍTICO: esto migra URLs legacy /checklist#/marca → /marca.
+// Pre-load: SOLO normaliza la URL (limpia hash residual y pathname inválido) y migra
+// URLs legacy /checklist#/marca → /marca. NO pre-renderea ninguna sección — el contenido
+// de la app está GATED detrás de _enterWorkspace(): hasta que entres a un proyecto, todas
+// las .page quedan ocultas y el ws-overlay (workspace selector) cubre todo.
+// applyRoute() corre después de _enterWorkspace() y activa la página correspondiente al URL.
 (function(){
   const path=getInitialPath();
-  // Siempre normalizar: reescribir pathname si difiere Y eliminar cualquier hash residual
   if(location.pathname!==path||location.hash){
     try{history.replaceState({},'',path+(location.search||''));}catch(e){}
-  }
-  const r=parseRoute(path);
-  if(r.page!=='checklist'){
-    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    document.getElementById('page-'+r.page)?.classList.add('active');
-    if(r.page==='drive'&&r.planTab){
-      document.querySelectorAll('.plan-section').forEach(s=>s.classList.remove('active'));
-      document.getElementById('plantab-'+r.planTab)?.classList.add('active');
-    }
   }
 })();
 
