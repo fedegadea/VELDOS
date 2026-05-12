@@ -3000,7 +3000,7 @@ async function _loadWorkspacesAndRender(){
   if(wsId){
     const target=WORKSPACES.workspaces.find(w=>w.id===wsId);
     if(target){
-      history.replaceState({},'',location.pathname+location.hash);
+      history.replaceState({},'',location.pathname); // strip ?ws= y cualquier hash residual
       if(!target.pin&&(!target.users||!target.users.length)){
         _enterWorkspace(target);
         applyRoute();
@@ -3140,8 +3140,9 @@ function sbNav(area,page,el){
 }
 
 // ═══════════════════════════════════════════════════════
-// HASH ROUTER — funciona garantizado en refresh
-// URL: /#/planning/briefs  /#/crm  /#/finanzas/gastos
+// PATHNAME ROUTER — URL limpia, refresh respeta la ruta actual
+// URL: /planning/briefs  /crm  /finanzas/gastos  /marca
+// Fuente de verdad: location.pathname (sin localStorage, sin hash)
 // ═══════════════════════════════════════════════════════
 
 let _activeFinTab='movimientos';
@@ -3150,8 +3151,11 @@ const _PLAN_TABS=new Set(['calendario','semana','ideas','biblioteca','briefs','c
 const _FIN_TABS =new Set(['movimientos','ingresos','gastos','comisiones','kpis','cashflow','config','presupuesto','capital']);
 const _AREA_LABELS={marketing:'Marketing',finanzas:'Finanzas',crm:'CRM',hojas:'Hojas',operaciones:'Operaciones',stock:'Stock',integraciones:'Integraciones'};
 
-function parseHash(hash){
-  const clean=(hash||'').replace(/^#\/?/,'').replace(/\/+$/,'');
+// Lista de rutas válidas — usada también para el fallback (rutas no válidas → /checklist)
+const _VALID_TOP_SEGMENTS=new Set(['checklist','todo','planning','marca','producto','finanzas','crm','hojas','operaciones','stock','integraciones']);
+
+function parseRoute(pathname){
+  const clean=(pathname||'/').replace(/^\/+|\/+$/g,'');
   const [s1,s2]=(clean||'').split('/');
   const seg=s1||'';
   if(!seg||seg==='checklist') return{area:'marketing',page:'checklist'};
@@ -3167,23 +3171,27 @@ function parseHash(hash){
   }
   const direct={crm:1,hojas:1,operaciones:1,stock:1,integraciones:1};
   if(direct[seg]) return{area:seg,page:seg};
+  // Ruta desconocida → checklist (único fallback permitido)
   return{area:'marketing',page:'checklist'};
 }
 
-function navigate(hashPath){
-  const clean='/'+hashPath.replace(/^\/+/,'').replace(/\/+$/,'');
-  const newUrl='/'+(location.search||'')+'#'+clean;
-  // pushState updates BOTH pathname (to /) and hash atomically → URL is always /#/section
+// Compat: parseHash sigue exportada por si algo legacy la llama
+function parseHash(hash){return parseRoute((hash||'').replace(/^#\/?/,'/'));}
+
+function navigate(path){
+  const clean='/'+String(path||'').replace(/^[#/]+/,'').replace(/\/+$/,'');
+  // Mismo URL → no hacer nada (evita historial inflado)
+  if(clean===location.pathname&&!location.hash) return;
   try{
-    history.pushState({},'',newUrl);
-    applyRoute(); // manual call: pushState doesn't fire hashchange/popstate
+    history.pushState({},'',clean+(location.search||''));
+    applyRoute(); // pushState no dispara popstate
   }catch(e){
-    location.hash=clean; // fallback fires hashchange → applyRoute
+    location.assign(clean);
   }
 }
 
 function applyRoute(){
-  const r=parseHash(location.hash);
+  const r=parseRoute(location.pathname);
 
   // Area label + nav
   const lblEl=document.getElementById('area-label');
@@ -3248,9 +3256,7 @@ function applyRoute(){
   // State vars
   _activeArea=r.area;
   _activePage=r.page;
-
-  // Persist hash
-  try{localStorage.setItem('veld_last_hash',location.hash||'#/checklist');}catch(e){}
+  // NO persistir ruta en localStorage — URL es la única fuente de verdad
 }
 
 function _renderPlanSection(tab){
@@ -3265,28 +3271,34 @@ function _renderPlanSection(tab){
   else if(tab==='estrategia')renderEstrategia();
 }
 
-function getInitialHash(){
-  // Priority: 1) current hash, 2) legacy pathname URL (e.g. /marca), 3) localStorage, 4) default
-  if(location.hash&&location.hash!=='#'&&location.hash!=='#/') return location.hash;
+// Resuelve la ruta inicial: SIEMPRE pathname. Hash se ignora (legacy). localStorage de ruta NO se usa.
+function getInitialPath(){
+  // /sistema y /landing son redirects históricos → checklist
   const p=location.pathname;
-  if(p&&p!=='/'&&p!=='/sistema'&&p!=='/landing') return '#'+p;
-  try{return localStorage.getItem('veld_last_hash')||'#/checklist';}catch(e){}
-  return'#/checklist';
+  if(!p||p==='/'||p==='/sistema'||p==='/landing') return '/checklist';
+  // Validar contra rutas conocidas; si no, fallback a /checklist
+  const seg=p.replace(/^\/+|\/+$/g,'').split('/')[0];
+  if(_VALID_TOP_SEGMENTS.has(seg)||_PLAN_TABS.has(seg)) return p;
+  return '/checklist';
 }
 
-// All nav events → applyRoute
-window.addEventListener('hashchange',applyRoute);
+// Compat: alias por si algo legacy llama getInitialHash
+function getInitialHash(){return getInitialPath();}
+
+// Back/forward del browser → applyRoute (popstate dispara en navegación de historial)
 window.addEventListener('popstate',applyRoute);
 
-// Pre-render: normaliza URL a /#/section y muestra la sección antes de que cargue el workspace
+// Limpiar cualquier veld_last_hash residual de versiones anteriores
+try{localStorage.removeItem('veld_last_hash');localStorage.removeItem('veld_last_path');localStorage.removeItem('veld_nav');}catch(e){}
+
+// Pre-render: normaliza URL a /pathname-limpio (sin hash, sin pathname inválido) y muestra la sección antes de que cargue el workspace
 (function(){
-  const hash=getInitialHash();
-  const targetUrl='/'+(location.search||'')+hash;
-  // SIEMPRE normalizar: pathname=/, hash=resolved. Esto borra restos de URLs viejas tipo /marca
-  if(location.pathname!=='/'||location.hash!==hash){
-    try{history.replaceState({},'',targetUrl);}catch(e){}
+  const path=getInitialPath();
+  // Si la URL actual difiere (pathname inválido, hash residual, etc.), reescribir SIN agregar entrada al history
+  if(location.pathname!==path||location.hash){
+    try{history.replaceState({},'',path+(location.search||''));}catch(e){}
   }
-  const r=parseHash(hash);
+  const r=parseRoute(path);
   if(r.page!=='checklist'){
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.getElementById('page-'+r.page)?.classList.add('active');
