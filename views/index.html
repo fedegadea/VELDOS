@@ -2675,7 +2675,6 @@ function _enterWorkspace(ws){
   WORKSPACES.active=ws.id;
   _localSave();
   document.getElementById('week-label').textContent=ws.name;
-  // Sidebar
   const sbEl=document.getElementById('sb-emoji');
   const sbNm=document.getElementById('sb-name');
   if(sbEl)sbEl.textContent=ws.emoji||'🏷️';
@@ -2685,6 +2684,17 @@ function _enterWorkspace(ws){
   document.getElementById('ws-overlay')?.classList.add('hidden');
   render();
   updateTNBadge();
+  // CRÍTICO: activar la página correspondiente a la URL actual (sin esto, ninguna .page
+  // queda visible porque removí el class="active" default del HTML)
+  if(typeof applyRoute==='function')applyRoute();
+}
+
+// ── Cache de unlock por sesión: skip de PIN/usuario al refrescar dentro de la misma pestaña ──
+function _wsUnlockCacheGet(wsId){
+  try{const d=sessionStorage.getItem('veld_unlocked_'+wsId);return d?JSON.parse(d):null;}catch(e){return null;}
+}
+function _wsUnlockCacheSet(wsId,user){
+  try{sessionStorage.setItem('veld_unlocked_'+wsId,JSON.stringify({user:user||null,ts:Date.now()}));}catch(e){}
 }
 
 // ── AUTH HELPERS ──
@@ -2757,6 +2767,8 @@ async function authRegister(){
 async function authLogout(){
   await supabaseClient.auth.signOut();
   _authUser=null;
+  try{sessionStorage.clear();}catch(e){} // limpiar caches de unlock de workspaces
+  try{history.replaceState({},'','/login');}catch(e){}
   document.getElementById('paywall-screen').style.display='none';
   document.getElementById('auth-screen').style.display='flex';
   showAuthTab('login');
@@ -2921,6 +2933,17 @@ async function initState(){
     }
   });
 
+  // Ruta /login: forzar pantalla de login independiente del estado de sesión
+  // (permite compartir el link y que abra el form de login)
+  if(location.pathname==='/login'){
+    document.getElementById('auth-screen').style.display='flex';
+    _proceedAfterAuth=()=>{
+      // Tras login exitoso, ir al selector de proyectos
+      try{history.replaceState({},'','/projects');}catch(e){}
+      _loadWorkspacesAndRender();
+    };
+    return;
+  }
   // Check Supabase auth session first
   const{data:{session}}=await supabaseClient.auth.getSession();
   if(session){
@@ -2981,7 +3004,6 @@ async function _loadWorkspacesAndRender(){
       history.replaceState({},'',location.pathname); // strip ?ws= y cualquier hash residual
       if(!target.pin&&(!target.users||!target.users.length)){
         _enterWorkspace(target);
-        applyRoute();
       } else {
         _pendingWsId=target.id;
         selectWs(target.id);
@@ -2990,17 +3012,34 @@ async function _loadWorkspacesAndRender(){
     }
   }
 
+  // Ruta /projects: forzar selector de proyecto (NO auto-entrar)
+  if(location.pathname==='/projects'){
+    openWorkspaceSelector();
+    return;
+  }
+
   _restoreActiveWorkspace();
 }
 
 function _restoreActiveWorkspace(){
   const ws=WORKSPACES.workspaces.find(w=>w.id===WORKSPACES.active)||WORKSPACES.workspaces[0];
-  if(ws&&!ws.pin&&(!ws.users||!ws.users.length)){
-    _enterWorkspace(ws);
-    applyRoute(); // URL ya fue normalizada por la IIFE
+  if(!ws){openWorkspaceSelector();return;}
+  // Si el workspace ya fue desbloqueado en esta sesión (refresh en la misma pestaña),
+  // entrar directo sin pedir PIN/usuario otra vez.
+  const cached=_wsUnlockCacheGet(ws.id);
+  if(cached){
+    if(cached.user)_activeUser=cached.user;
+    _enterWorkspace(ws); // _enterWorkspace ahora llama applyRoute() al final
     window._urlNav=null;
-  } else if(ws){selectWs(ws.id);}
-  else{openWorkspaceSelector();}
+    return;
+  }
+  if(!ws.pin&&(!ws.users||!ws.users.length)){
+    _wsUnlockCacheSet(ws.id,null); // workspace sin protección: marcar como unlocked
+    _enterWorkspace(ws);
+    window._urlNav=null;
+  } else {
+    selectWs(ws.id);
+  }
 }
 
 // ─── kept as shim so old call-sites still compile ───────
@@ -3130,7 +3169,7 @@ const _FIN_TABS =new Set(['movimientos','ingresos','gastos','comisiones','kpis',
 const _AREA_LABELS={marketing:'Marketing',finanzas:'Finanzas',crm:'CRM',hojas:'Hojas',operaciones:'Operaciones',stock:'Stock',integraciones:'Integraciones'};
 
 // Lista de rutas válidas — usada también para el fallback (rutas no válidas → /checklist)
-const _VALID_TOP_SEGMENTS=new Set(['checklist','todo','planning','marca','producto','finanzas','crm','hojas','operaciones','stock','integraciones']);
+const _VALID_TOP_SEGMENTS=new Set(['checklist','todo','planning','marca','producto','finanzas','crm','hojas','operaciones','stock','integraciones','login','projects']);
 
 function parseRoute(pathname){
   const clean=(pathname||'/').replace(/^\/+|\/+$/g,'');
@@ -6330,11 +6369,13 @@ function wsAuthSubmit(){
     if(!user){errEl.textContent='Usuario no encontrado';return;}
     if(user.password&&inp!==user.password){errEl.textContent='Contraseña incorrecta';return;}
     _activeUser={id:user.id,name:user.name,role:user.role,permissions:user.permissions};
+    _wsUnlockCacheSet(_pendingWsId,_activeUser); // recordar unlock para refresh
     switchWorkspace(_pendingWsId);
     return;
   }
   // PIN auth
   if(ws.pin&&inp!==ws.pin){errEl.textContent='PIN incorrecto';return;}
+  _wsUnlockCacheSet(_pendingWsId,null); // recordar unlock para refresh
   switchWorkspace(_pendingWsId);
   if(window._pendingUrlNav){
     const nav=window._pendingUrlNav;
