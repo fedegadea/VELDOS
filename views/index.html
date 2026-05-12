@@ -1192,36 +1192,8 @@ tr:hover .tx-del{color:var(--muted)}
 <div class="topbar">
   <div class="os-brand">
     <div class="os-name" onclick="openWorkspaceSelector()" title="Cambiar proyecto" style="cursor:pointer;user-select:none;font-size:24px;font-weight:700;letter-spacing:-.02em">VELD <em>OS</em></div>
-    <div class="os-sep">·</div>
-    <div class="area-dropdown" id="area-dropdown">
-      <button class="area-btn" id="area-btn" onclick="toggleAreaDropdown()">
-        <span id="area-label">Marketing</span>
-        <span class="area-chevron" id="area-chevron">▾</span>
-      </button>
-      <div class="area-menu" id="area-menu">
-        <div class="area-menu-item active" onclick="selectArea('marketing','Marketing',this)">
-          <span class="area-dot" style="background:var(--gold)"></span>Marketing
-        </div>
-        <div class="area-menu-item" onclick="selectArea('finanzas','Finanzas',this)">
-          <span class="area-dot" style="background:var(--green)"></span>Finanzas
-        </div>
-        <div class="area-menu-item" onclick="selectArea('operaciones','Operaciones',this)">
-          <span class="area-dot" style="background:var(--blue)"></span>Operaciones
-        </div>
-        <div class="area-menu-item" onclick="selectArea('crm','CRM',this)">
-          <span class="area-dot" style="background:var(--purple)"></span>CRM
-        </div>
-        <div class="area-menu-item" onclick="selectArea('hojas','Hojas',this)">
-          <span class="area-dot" style="background:var(--coral)"></span>Hojas
-        </div>
-        <div class="area-menu-item" onclick="selectArea('stock','Stock',this)">
-          <span class="area-dot" style="background:#e8b84b"></span>Stock
-        </div>
-        <div class="area-menu-item" style="border-top:1px solid var(--border);margin-top:4px;padding-top:8px" onclick="openWorkspaceSettings()">
-          <span style="font-size:12px;margin-right:2px">⚙️</span>Proyectos y usuarios
-        </div>
-      </div>
-    </div>
+    <!-- area-dropdown eliminado: navegación va por la sidebar -->
+    <span id="area-label" style="display:none"></span>
   </div>
   <nav class="nav-tabs" id="nav-marketing">
     <button class="nav-tab active" onclick="switchPage('checklist',this)">Checklist</button>
