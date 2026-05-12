@@ -3313,6 +3313,18 @@ function copyShareUrl(){
   const wsId=new URLSearchParams(location.search).get('ws');
   const t=window._navTarget;
   if(wsId) window._urlNav={wsId,area:t.area,page:t.page,plantab:t.planTab,fintab:t.finTab};
+  // Apply page visibility IMMEDIATELY from URL (synchronous, before any async workspace load)
+  // This ensures correct section shows even if the async restore chain has any delay
+  if(t&&t.page&&t.page!=='checklist'){
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    const pg=document.getElementById('page-'+t.page);
+    if(pg)pg.classList.add('active');
+    if(t.page==='drive'&&t.planTab){
+      document.querySelectorAll('.plan-section').forEach(s=>s.classList.remove('active'));
+      const pt=document.getElementById('plantab-'+t.planTab);
+      if(pt)pt.classList.add('active');
+    }
+  }
 })();
 function readUrlParams(){
   if(window._urlNav)return;
