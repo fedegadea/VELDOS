@@ -2995,21 +2995,19 @@ async function _loadWorkspacesAndRender(){
     return;
   }
 
-  // Restore from URL params (refresh / shared link — ?ws=ID)
-  if(window._urlNav){
-    const nav=window._urlNav;
-    const target=nav.wsId?WORKSPACES.workspaces.find(w=>w.id===nav.wsId):null;
+  // Shared workspace link: ?ws=ID  — load that specific workspace
+  const wsId=new URLSearchParams(location.search).get('ws');
+  if(wsId){
+    const target=WORKSPACES.workspaces.find(w=>w.id===wsId);
     if(target){
+      history.replaceState({},'',location.pathname); // strip ?ws= from URL
       if(!target.pin&&(!target.users||!target.users.length)){
         _enterWorkspace(target);
-        _applyNavDirect(nav.area||'marketing',nav.page||'checklist',nav.plantab||'calendario',nav.fintab||'movimientos');
+        applyRoute();
       } else {
         _pendingWsId=target.id;
-        window._pendingUrlNav=nav;
         selectWs(target.id);
       }
-      window._urlNav=null;
-      window._navTarget=null;
       return;
     }
   }
@@ -3021,72 +3019,23 @@ function _restoreActiveWorkspace(){
   const ws=WORKSPACES.workspaces.find(w=>w.id===WORKSPACES.active)||WORKSPACES.workspaces[0];
   if(ws&&!ws.pin&&(!ws.users||!ws.users.length)){
     _enterWorkspace(ws);
-    const urlWsNav=window._urlNav;
-    const nav=urlWsNav||readNavTarget();
-    _applyNavDirect(
-      nav.area||'marketing',
-      nav.page||'checklist',
-      nav.planTab||nav.plantab||'calendario',
-      nav.finTab||nav.fintab||'movimientos'
-    );
-    saveNavState(); // sync localStorage with resolved URL nav so stale data doesn't persist
+    const path=getInitialPath();
+    if(path!==location.pathname) history.replaceState({},'',path);
+    applyRoute();
     window._urlNav=null;
-    window._navTarget=null;
   } else if(ws){selectWs(ws.id);}
   else{openWorkspaceSelector();}
 }
 
+// ─── kept as shim so old call-sites still compile ───────
 function _applyNavDirect(area,page,planTab,finTab){
-  // Set area nav
-  const areaLabel=document.getElementById('area-label');
-  if(areaLabel)areaLabel.textContent=area.charAt(0).toUpperCase()+area.slice(1);
-  document.querySelectorAll('[id^="nav-"]').forEach(n=>n.style.display='none');
-  const nav=document.getElementById('nav-'+area);
-  if(nav)nav.style.display='flex';
-  // Set page
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+page)?.classList.add('active');
-  // Set sidebar active
-  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
-  document.getElementById('sbi-'+page)?.classList.add('active');
-  document.getElementById('sbi-'+area)?.classList.add('active');
-  // Update state vars
-  _activeArea=area; _activePage=page;
-  // Apply planning sub-tab synchronously (no setTimeout needed)
-  if(page==='drive'&&planTab){
-    _activePlanTab=planTab;
-    document.querySelectorAll('.plan-section').forEach(s=>s.classList.remove('active'));
-    document.getElementById('plantab-'+planTab)?.classList.add('active');
-    document.querySelectorAll('.plan-tab').forEach(b=>b.classList.remove('active'));
-    // Highlight the correct tab button
-    document.querySelectorAll('.plan-tab').forEach(b=>{
-      if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+planTab+"'"))b.classList.add('active');
-    });
-    // Trigger render for that tab
-    if(planTab==='briefs')renderBriefs();
-    else if(planTab==='canjes'){renderKanban('micro');renderKanban('top');}
-    else if(planTab==='collabs')renderCollabs();
-    else if(planTab==='calendario')renderCalendario();
-    else if(planTab==='ideas')renderPlanIdeas();
-    else if(planTab==='biblioteca')renderBiblioteca();
-    else if(planTab==='semana')renderSemana();
-    else if(planTab==='estrategia')renderEstrategia();
-  }
-  // Apply fin sub-tab
-  if(area==='finanzas'&&finTab&&finTab!=='movimientos'){
-    setTimeout(()=>{
-      const tabBtn=document.querySelector(`#fin-tabs .inner-tab[data-tab="${finTab}"]`);
-      if(tabBtn)switchFinTab(finTab,tabBtn);
-    },150);
-  }
-  // Trigger necessary renders
-  if(area==='finanzas')setTimeout(initFinPeriod,50);
-  if(area==='crm'){if(!S.crm)S.crm=[];renderCRM();}
-  if(area==='hojas'){if(!S.customViews)S.customViews=[];renderHojas();}
-  if(area==='stock'){if(!S.stock)S.stock=[];renderStock();}
-  if(area==='integraciones')renderIntegraciones();
-  // Update URL once at the end
-  updateUrl();
+  const pathMap={checklist:'/checklist',todo:'/todo',drive:'/planning',marca:'/marca',producto:'/producto',crm:'/crm',hojas:'/hojas',operaciones:'/operaciones',stock:'/stock',integraciones:'/integraciones',finanzas:'/finanzas'};
+  let path=pathMap[page]||('/'+page);
+  if(page==='drive'&&planTab&&planTab!=='calendario') path='/planning/'+planTab;
+  else if(page==='drive') path='/planning';
+  if(area==='finanzas'&&finTab) path='/finanzas'+(finTab!=='movimientos'?'/'+finTab:'');
+  history.replaceState({},'',path);
+  applyRoute();
 }
 
 function switchWorkspace(wsId){
@@ -3131,30 +3080,13 @@ function defaultCheckGroups(){
 // ══════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════
-function goPlanning(tab){
-  const driveBtn=document.querySelector('.nav-tab[onclick*="drive"]')||document.getElementById('sbi-drive');
-  switchPage('drive',driveBtn);
-  setTimeout(()=>{
-    const tabBtn=document.querySelector(`.plan-tab[onclick*="'${tab}'"]`);
-    switchPlanTab(tab,tabBtn);
-  },50);
-}
+function goPlanning(tab){navigate('/planning/'+(tab||'calendario'));}
 
 function switchPage(id,btn){
-  // Redirect legacy page ids into Planning tabs
-  const planningRedirects={briefs:'briefs',canje:'canjes',collabs:'collabs'};
-  if(planningRedirects[id]){goPlanning(planningRedirects[id]);return;}
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('page-'+id)?.classList.add('active');
-  if(btn)btn.classList.add('active');
-  // Sync sidebar
-  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
-  document.getElementById('sbi-'+id)?.classList.add('active');
-  _activeArea='marketing'; // top-nav tabs are always marketing area
-  _activePage=id;
-  render();
-  saveNavState();
+  const redirect={briefs:'briefs',canje:'canjes',collabs:'collabs'};
+  if(redirect[id]){navigate('/planning/'+redirect[id]);return;}
+  const paths={checklist:'/checklist',todo:'/todo',drive:'/planning',marca:'/marca',producto:'/producto'};
+  navigate(paths[id]||'/'+id);
 }
  
 function switchInner(group,id,btn){
@@ -3176,60 +3108,30 @@ function toggleAreaDropdown(){
 }
  
 function selectArea(id,label,el){
-  document.getElementById('area-label').textContent=label;
-  document.querySelectorAll('.area-menu-item').forEach(i=>i.classList.remove('active'));
-  el.classList.add('active');
   toggleAreaDropdown();
- 
-  // Finanzas requires PIN
-  if(id==='finanzas'){
-    if(!finUnlocked){
-      pendingFinArea=el;
-      pendingFinLabel=label;
-      document.getElementById('pin-overlay')?.classList.add('open');
-      const pi=document.getElementById('pin-input');
-      if(pi){pi.value='';setTimeout(()=>pi.focus(),100);}
-      document.getElementById('pin-error').textContent='';
-      return;
-    }
+  if(id==='finanzas'&&!finUnlocked){
+    pendingFinArea=el;pendingFinLabel=label;
+    document.getElementById('pin-overlay')?.classList.add('open');
+    const pi=document.getElementById('pin-input');
+    if(pi){pi.value='';setTimeout(()=>pi.focus(),100);}
+    document.getElementById('pin-error').textContent='';
+    return;
   }
- 
-  _activateArea(id,label);
+  const defaults={marketing:'/checklist',finanzas:'/finanzas',crm:'/crm',hojas:'/hojas',operaciones:'/operaciones',stock:'/stock',integraciones:'/integraciones'};
+  navigate(defaults[id]||'/'+id);
 }
  
 function _activateArea(id,label){
-  document.getElementById('area-label').textContent=label;
-  document.querySelectorAll('[id^="nav-"]').forEach(n=>n.style.display='none');
-  const nav=document.getElementById('nav-'+id);
-  if(nav){
-    nav.style.display='flex';
-    const firstTab=nav.querySelector('.nav-tab');
-    if(firstTab){document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));firstTab.classList.add('active');}
-  }
-  const pageMap={marketing:'checklist',finanzas:'finanzas',operaciones:'operaciones',crm:'crm',hojas:'hojas'};
-  const defaultPage=pageMap[id]||id;
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+defaultPage)?.classList.add('active');
-  // Sync sidebar
-  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
-  document.getElementById('sbi-'+defaultPage)?.classList.add('active');
-  _activeArea=id; _activePage=defaultPage;
-  if(id==='finanzas')setTimeout(initFinPeriod,50);
-  if(id==='crm'){if(!S.crm)S.crm=[];renderCRM();}
-  if(id==='hojas'){if(!S.customViews)S.customViews=[];renderHojas();}
-  if(id==='stock'){if(!S.stock)S.stock=[];renderStock();}
-  render();
-  saveNavState();
+  const defaults={marketing:'/checklist',finanzas:'/finanzas',crm:'/crm',hojas:'/hojas',operaciones:'/operaciones',stock:'/stock',integraciones:'/integraciones'};
+  navigate(defaults[id]||'/'+id);
 }
  
 function comingSoon(name){toggleAreaDropdown();notify(`${name} — próximamente`);}
 
 // ── SIDEBAR NAV ──
 function sbNav(area,page,el){
-  // Close area dropdown if open
   document.getElementById('area-menu')?.classList.remove('open');
   document.getElementById('area-chevron')?.classList.remove('open');
-  // Finanzas PIN guard
   if(area==='finanzas'&&!finUnlocked){
     pendingFinArea=document.querySelector(`.area-menu-item[onclick*="'finanzas'"]`);
     pendingFinLabel='Finanzas';
@@ -3239,106 +3141,164 @@ function sbNav(area,page,el){
     document.getElementById('pin-error').textContent='';
     return;
   }
-  // Activate area (without toggling dropdown)
-  const pageMap={marketing:'checklist',finanzas:'finanzas',operaciones:'operaciones',crm:'crm',hojas:'hojas',integraciones:'integraciones'};
-  document.getElementById('area-label').textContent=area.charAt(0).toUpperCase()+area.slice(1);
-  document.querySelectorAll('[id^="nav-"]').forEach(n=>n.style.display='none');
-  const nav=document.getElementById('nav-'+area);
-  if(nav)nav.style.display='flex';
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('page-'+page)?.classList.add('active');
-  // Sidebar active
-  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
-  if(el)el.classList.add('active');
-  _activeArea=area; _activePage=page;
-  if(area==='finanzas')setTimeout(initFinPeriod,50);
-  if(area==='crm'){if(!S.crm)S.crm=[];renderCRM();}
-  if(area==='hojas'){if(!S.customViews)S.customViews=[];renderHojas();}
-  if(area==='stock'){if(!S.stock)S.stock=[];renderStock();}
-  if(area==='integraciones')renderIntegraciones();
-  render();
-  saveNavState();
+  const paths={checklist:'/checklist',todo:'/todo',drive:'/planning',marca:'/marca',producto:'/producto',crm:'/crm',hojas:'/hojas',operaciones:'/operaciones',stock:'/stock',integraciones:'/integraciones',finanzas:'/finanzas'};
+  navigate(paths[page]||'/'+page);
 }
 
-// ── NAV STATE ──────────────────────────────
+// ═══════════════════════════════════════════════════════
+// ROUTER — URL es la única fuente de verdad
+// navigate(path) → pushState → applyRoute()
+// applyRoute()   → lee location.pathname → actualiza DOM
+// popstate       → applyRoute() (back/forward del browser)
+// ═══════════════════════════════════════════════════════
+
 let _activeFinTab='movimientos';
 
-function buildPath(){
-  const page=_activePage||'checklist';
-  if(page==='drive'){
-    const tab=_activePlanTab||'calendario';
-    return '/planning'+(tab!=='calendario'?'/'+tab:'');
+const _PLAN_TABS=new Set(['calendario','semana','ideas','biblioteca','briefs','canjes','collabs','estrategia']);
+const _FIN_TABS =new Set(['movimientos','ingresos','gastos','comisiones','kpis','cashflow','config','presupuesto','capital']);
+const _AREA_LABELS={marketing:'Marketing',finanzas:'Finanzas',crm:'CRM',hojas:'Hojas',operaciones:'Operaciones',stock:'Stock',integraciones:'Integraciones'};
+
+function parseRoute(pathname){
+  const segs=(pathname||'/').replace(/^\/+|\/+$/g,'').split('/');
+  const s1=segs[0]||'';
+  const s2=segs[1]||'';
+  if(!s1||s1==='checklist') return{area:'marketing',page:'checklist'};
+  if(s1==='todo')     return{area:'marketing',page:'todo'};
+  if(s1==='marca')    return{area:'marketing',page:'marca'};
+  if(s1==='producto') return{area:'marketing',page:'producto'};
+  if(s1==='planning'||_PLAN_TABS.has(s1)){
+    const tab=(s1==='planning'?s2:s1)||'calendario';
+    return{area:'marketing',page:'drive',planTab:_PLAN_TABS.has(tab)?tab:'calendario'};
   }
-  if(_activeArea==='finanzas'){
-    const ft=_activeFinTab||'movimientos';
-    return '/finanzas'+(ft!=='movimientos'?'/'+ft:'');
+  if(s1==='finanzas'){
+    return{area:'finanzas',page:'finanzas',finTab:(_FIN_TABS.has(s2)?s2:'movimientos')};
   }
-  const names={checklist:'checklist',todo:'todo',marca:'marca',producto:'producto',crm:'crm',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones'};
-  return '/'+(names[page]||page);
+  const direct={crm:1,hojas:1,operaciones:1,stock:1,integraciones:1};
+  if(direct[s1]) return{area:s1,page:s1};
+  return{area:'marketing',page:'checklist'};
 }
 
-function updateUrl(){
-  try{history.replaceState({},'',buildPath());}catch(e){}
+function navigate(path){
+  try{history.pushState({},'',path);}catch(e){}
+  applyRoute();
 }
 
-function saveNavState(){
-  try{localStorage.setItem('veld_nav',JSON.stringify({area:_activeArea||'marketing',page:_activePage||'checklist',planTab:_activePlanTab||'calendario',finTab:_activeFinTab||'movimientos'}));}catch(e){}
-  updateUrl();
-}
+function applyRoute(){
+  const r=parseRoute(location.pathname);
 
-function readNavLS(){
-  try{const r=localStorage.getItem('veld_nav');return r?JSON.parse(r):null;}catch(e){return null;}
-}
+  // Area label + nav
+  const lblEl=document.getElementById('area-label');
+  if(lblEl) lblEl.textContent=_AREA_LABELS[r.area]||r.area;
+  document.querySelectorAll('[id^="nav-"]').forEach(n=>n.style.display='none');
+  const navEl=document.getElementById('nav-'+r.area);
+  if(navEl) navEl.style.display='flex';
 
-function readNavTarget(){
-  const parts=location.pathname.replace(/^\/+/,'').split('/');
-  const section=parts[0]||'';
-  const sub=parts[1]||null;
-  const planTabs={calendario:1,semana:1,ideas:1,biblioteca:1,briefs:1,canjes:1,collabs:1,estrategia:1};
-  const knownPages={checklist:1,todo:1,marca:1,producto:1,crm:1,hojas:1,operaciones:1,stock:1,integraciones:1};
-  if(section==='planning') return{area:'marketing',page:'drive',planTab:sub||'calendario',finTab:'movimientos'};
-  if(section==='finanzas') return{area:'finanzas',page:'finanzas',planTab:'calendario',finTab:sub||'movimientos'};
-  if(planTabs[section])    return{area:'marketing',page:'drive',planTab:section,finTab:'movimientos'};
-  if(knownPages[section]){
-    const areaMap={crm:'crm',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones'};
-    return{area:areaMap[section]||'marketing',page:section,planTab:'calendario',finTab:'movimientos'};
+  // Page
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+r.page)?.classList.add('active');
+
+  // Sidebar
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  document.getElementById('sbi-'+r.page)?.classList.add('active');
+  document.getElementById('sbi-'+r.area)?.classList.add('active');
+
+  // Area dropdown
+  document.querySelectorAll('.area-menu-item').forEach(i=>{
+    const oc=i.getAttribute('onclick')||'';
+    i.classList.toggle('active',oc.includes("'"+r.area+"'"));
+  });
+
+  // Top nav tabs
+  document.querySelectorAll('.nav-tab').forEach(t=>{
+    const oc=t.getAttribute('onclick')||'';
+    t.classList.toggle('active',oc.includes("'"+r.page+"'"));
+  });
+
+  // Planning sub-tabs
+  if(r.page==='drive'){
+    const tab=r.planTab||'calendario';
+    _activePlanTab=tab;
+    document.querySelectorAll('.plan-section').forEach(s=>s.classList.remove('active'));
+    document.getElementById('plantab-'+tab)?.classList.add('active');
+    document.querySelectorAll('.plan-tab').forEach(b=>{
+      const oc=b.getAttribute('onclick')||'';
+      b.classList.toggle('active',oc.includes("'"+tab+"'"));
+    });
+    _renderPlanSection(tab);
   }
-  // Root URL or unknown path — use localStorage if available, otherwise default
-  const ls=readNavLS();
-  return ls||{area:'marketing',page:'checklist',planTab:'calendario',finTab:'movimientos'};
+
+  // Finanzas sub-tabs
+  if(r.page==='finanzas'){
+    const tab=r.finTab||'movimientos';
+    _activeFinTab=tab;
+    setTimeout(initFinPeriod,50);
+    setTimeout(()=>{
+      const btn=document.querySelector(`#fin-tabs .inner-tab[onclick*="'${tab}'"]`);
+      if(btn) switchFinTab(tab,btn,true);
+    },60);
+  }
+
+  // Area renders (only when workspace data loaded)
+  if(S){
+    if(r.area==='crm'){if(!S.crm)S.crm=[];renderCRM();}
+    if(r.area==='hojas'){if(!S.customViews)S.customViews=[];renderHojas();}
+    if(r.area==='stock'){if(!S.stock)S.stock=[];renderStock();}
+    if(r.area==='integraciones')renderIntegraciones();
+  }
+
+  // State vars (kept for compatibility with legacy render calls)
+  _activeArea=r.area;
+  _activePage=r.page;
+
+  // Remember last path for root-URL restoration
+  try{localStorage.setItem('veld_last_path',location.pathname);}catch(e){}
 }
 
-function copyShareUrl(){
-  updateUrl();
-  const url=location.origin+buildPath();
-  navigator.clipboard.writeText(url).then(()=>notify('Link copiado: '+url)).catch(()=>prompt('Link:',url));
+function _renderPlanSection(tab){
+  if(!S) return;
+  if(tab==='briefs')renderBriefs();
+  else if(tab==='canjes'){renderKanban('micro');renderKanban('top');}
+  else if(tab==='collabs')renderCollabs();
+  else if(tab==='calendario')renderCalendario();
+  else if(tab==='ideas')renderPlanIdeas();
+  else if(tab==='biblioteca')renderBiblioteca();
+  else if(tab==='semana')renderSemana();
+  else if(tab==='estrategia')renderEstrategia();
 }
 
+function getInitialPath(){
+  const p=location.pathname;
+  if(!p||p==='/'||p==='/sistema'){
+    try{return localStorage.getItem('veld_last_path')||'/checklist';}catch(e){}
+    return'/checklist';
+  }
+  return p;
+}
+
+// Back/forward browser buttons
+window.addEventListener('popstate',applyRoute);
+
+// Pre-render synchronously: muestra la sección correcta antes de que cargue el workspace
 (function(){
-  window._navTarget=readNavTarget();
-  const wsId=new URLSearchParams(location.search).get('ws');
-  const t=window._navTarget;
-  if(wsId) window._urlNav={wsId,area:t.area,page:t.page,plantab:t.planTab,fintab:t.finTab};
-  // Apply page visibility IMMEDIATELY from URL (synchronous, before any async workspace load)
-  // This ensures correct section shows even if the async restore chain has any delay
-  if(t&&t.page&&t.page!=='checklist'){
+  const path=getInitialPath();
+  if(path!==location.pathname) history.replaceState({},'',path);
+  const r=parseRoute(path);
+  if(r.page!=='checklist'){
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    const pg=document.getElementById('page-'+t.page);
-    if(pg)pg.classList.add('active');
-    if(t.page==='drive'&&t.planTab){
+    document.getElementById('page-'+r.page)?.classList.add('active');
+    if(r.page==='drive'&&r.planTab){
       document.querySelectorAll('.plan-section').forEach(s=>s.classList.remove('active'));
-      const pt=document.getElementById('plantab-'+t.planTab);
-      if(pt)pt.classList.add('active');
+      document.getElementById('plantab-'+r.planTab)?.classList.add('active');
     }
   }
 })();
-function readUrlParams(){
-  if(window._urlNav)return;
-  const wsId=new URLSearchParams(location.search).get('ws');
-  if(wsId){const t=window._navTarget||{};window._urlNav={wsId,area:t.area||'marketing',page:t.page||'checklist',plantab:t.planTab||'calendario',fintab:t.finTab||'movimientos'};}
+
+function copyShareUrl(){
+  const url=location.origin+location.pathname;
+  navigator.clipboard.writeText(url).then(()=>notify('Link copiado: '+url)).catch(()=>prompt('Link:',url));
 }
-readUrlParams();
+
+function saveNavState(){} // no-op shim — URL is now the only nav state
  
 document.addEventListener('click',function(e){
   const dd=document.getElementById('area-dropdown');
@@ -3649,12 +3609,8 @@ const IDEA_ESTADOS=[
 const IDEA_PILARES=['🛒 Comercial','🤝 Comunidad','✅ Confianza','👥 Equipo','💡 Concepto','🎓 Educación','🎭 Entretenimiento'];
 
 function switchPlanTab(id,btn){
-  _activePlanTab=id;
-  document.querySelectorAll('.plan-section').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.plan-tab').forEach(b=>b.classList.remove('active'));
-  document.getElementById('plantab-'+id)?.classList.add('active');
-  btn?.classList.add('active');
-  saveNavState();
+  navigate('/planning/'+id);
+  // DOM updates happen in applyRoute(); keep early-return path for add-btn setup below
   const addBtn=document.getElementById('plan-add-btn');
   if(addBtn){
     if(id==='ideas'){addBtn.textContent='+ Nueva idea';addBtn.onclick=()=>openModal('planidea');addBtn.style.display='';}
@@ -4102,7 +4058,8 @@ const TX_CAT_COLORS={'Meta Ads':'var(--purple)','Producción/stock':'var(--coral
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const RECURRENCIAS=['Mensual','Bimestral','Trimestral','Semestral','Anual'];
  
-function switchFinTab(id,btn){
+function switchFinTab(id,btn,_skipNav){
+  if(!_skipNav){navigate('/finanzas/'+id);return;}
   _activeFinTab=id;
   document.querySelectorAll('.fin-tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('#fin-tabs .inner-tab').forEach(t=>t.classList.remove('active'));
@@ -4122,7 +4079,6 @@ function switchFinTab(id,btn){
   if(id==='capital')loadCapitalFields();
   if(id==='config'){renderMediosPago();renderCostosFijos();loadTaxConfig();}
   if(id==='cashflow')renderCashflow();
-  saveNavState();
 }
  
 function fmtDate(d){return d.toISOString().split('T')[0];}
