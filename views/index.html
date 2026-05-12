@@ -2995,27 +2995,23 @@ async function _loadWorkspacesAndRender(){
     return;
   }
 
-  // Restore from URL params (refresh / shared link)
+  // Restore from URL params (refresh / shared link — ?ws=ID)
   if(window._urlNav){
     const nav=window._urlNav;
     const target=nav.wsId?WORKSPACES.workspaces.find(w=>w.id===nav.wsId):null;
     if(target){
       if(!target.pin&&!target.users.length){
         _enterWorkspace(target);
-        _applyUrlNav(nav);
+        _applyStoredNav(nav.area,nav.page,nav.plantab,nav.fintab);
       } else {
         _pendingWsId=target.id;
         window._pendingUrlNav=nav;
         selectWs(target.id);
       }
+      window._urlNav=null;
+      window._navTarget=null;
       return;
     }
-    // No wsId or workspace not found — apply nav to default workspace and fall through
-    if(!nav.wsId){
-      // Hash-only nav: apply to whichever workspace loads
-      window._pendingHashNav=nav;
-    }
-    // wsId not found — fall through to _restoreActiveWorkspace which will also apply _urlNav
   }
 
   _restoreActiveWorkspace();
@@ -3025,24 +3021,18 @@ function _restoreActiveWorkspace(){
   const ws=WORKSPACES.workspaces.find(w=>w.id===WORKSPACES.active)||WORKSPACES.workspaces[0];
   if(ws&&!ws.pin&&!ws.users.length){
     _enterWorkspace(ws);
-    // Always apply nav from pathname (navTarget) or from URL ws param
-    const nav=window._urlNav||{area:window._navTarget?.area,page:window._navTarget?.page,plantab:window._navTarget?.planTab,fintab:window._navTarget?.finTab};
-    _applyUrlNav(nav);
+    // Apply nav from URL path (clean routes like /planning/briefs)
+    const t=window._navTarget;
+    if(t){_applyStoredNav(t.area,t.page,t.planTab,t.finTab);}
     window._urlNav=null;
+    window._navTarget=null;
   } else if(ws){selectWs(ws.id);}
   else{openWorkspaceSelector();}
 }
 
-function _applyUrlNav(nav){
-  if(!nav)return;
-  const target=window._navTarget||nav;
-  const area=target.area||nav.area||'marketing';
-  const page=target.page||nav.page||'checklist';
-  const planTab=target.planTab||nav.plantab||'calendario';
-  const finTab=target.finTab||nav.fintab||'movimientos';
-  // Navigate to page directly without calling updateUrl() (to avoid overwriting)
+function _applyStoredNav(area,page,planTab,finTab){
+  area=area||'marketing';page=page||'checklist';planTab=planTab||'calendario';finTab=finTab||'movimientos';
   _applyNavDirect(area,page,planTab,finTab);
-  window._navTarget=null;
 }
 
 function _applyNavDirect(area,page,planTab,finTab){
@@ -6375,7 +6365,7 @@ function wsAuthSubmit(){
   if(window._pendingUrlNav){
     const nav=window._pendingUrlNav;
     window._pendingUrlNav=null;
-    setTimeout(()=>_applyUrlNav(nav),150);
+    setTimeout(()=>_applyStoredNav(nav.area,nav.page,nav.plantab,nav.fintab),150);
   }
 }
 async function resetWorkspacePin(){
