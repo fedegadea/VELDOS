@@ -21,9 +21,16 @@ app.get("/landing", (req, res) => {
 app.get("/sistema", (req, res) => {
   res.sendFile(__dirname + "/views/index.html")
 })
-app.get("/", (req, res) => {
+const NO_CACHE = { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' } }
+
+function serveApp(req, res) {
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+  res.set('Pragma', 'no-cache')
+  res.set('Expires', '0')
   res.sendFile(__dirname + "/views/index.html")
-})
+}
+
+app.get("/", serveApp)
 
 // Rutas de sección — todas sirven el mismo index.html, el cliente lee el pathname
 const APP_ROUTES = [
@@ -35,9 +42,7 @@ const APP_ROUTES = [
   "/finanzas/comisiones", "/finanzas/kpis", "/finanzas/cashflow", "/finanzas/config",
   "/crm", "/hojas", "/operaciones", "/stock", "/integraciones"
 ]
-APP_ROUTES.forEach(route => {
-  app.get(route, (req, res) => res.sendFile(__dirname + "/views/index.html"))
-})
+APP_ROUTES.forEach(route => app.get(route, serveApp))
 
 // MP: crear preferencia de pago
 app.post("/api/mp/create-preference", async (req, res) => {
