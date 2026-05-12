@@ -2706,7 +2706,6 @@ function _enterWorkspace(ws){
   document.body.classList.add('has-sidebar');
   document.getElementById('ws-overlay')?.classList.add('hidden');
   render();
-  updateUrl();
   updateTNBadge();
 }
 
@@ -3034,29 +3033,67 @@ function _restoreActiveWorkspace(){
 
 function _applyUrlNav(nav){
   if(!nav)return;
-  const area=nav.area||'marketing';
-  const page=nav.page||'checklist';
-  const fintab=nav.fintab||null;
-  const plantab=nav.plantab||null;
-  // Handle legacy page ids (briefs/canje/collabs → drive + planning tab)
-  const legacyMap={briefs:'briefs',canje:'canjes',collabs:'collabs'};
-  const resolvedPage=legacyMap[page]?'drive':page;
-  const resolvedPlanTab=legacyMap[page]?legacyMap[page]:plantab;
-  const btn=document.getElementById('sbi-drive')||(resolvedPage!=='drive'?document.getElementById('sbi-'+resolvedPage)||document.getElementById('sbi-'+area):null);
-  const navBtn=resolvedPage==='drive'?document.getElementById('sbi-drive'):document.getElementById('sbi-'+resolvedPage)||document.getElementById('sbi-'+area);
-  sbNav(area,resolvedPage,navBtn);
-  if(fintab&&area==='finanzas'){
-    setTimeout(()=>{
-      const tabBtn=document.querySelector(`#fin-tabs .inner-tab[data-tab="${fintab}"]`);
-      switchFinTab(fintab,tabBtn);
-    },100);
+  const target=window._navTarget||nav;
+  const area=target.area||nav.area||'marketing';
+  const page=target.page||nav.page||'checklist';
+  const planTab=target.planTab||nav.plantab||'calendario';
+  const finTab=target.finTab||nav.fintab||'movimientos';
+  // Navigate to page directly without calling updateUrl() (to avoid overwriting)
+  _applyNavDirect(area,page,planTab,finTab);
+  window._navTarget=null;
+}
+
+function _applyNavDirect(area,page,planTab,finTab){
+  // Set area nav
+  const areaLabel=document.getElementById('area-label');
+  if(areaLabel)areaLabel.textContent=area.charAt(0).toUpperCase()+area.slice(1);
+  document.querySelectorAll('[id^="nav-"]').forEach(n=>n.style.display='none');
+  const nav=document.getElementById('nav-'+area);
+  if(nav)nav.style.display='flex';
+  // Set page
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page)?.classList.add('active');
+  // Set sidebar active
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  document.getElementById('sbi-'+page)?.classList.add('active');
+  document.getElementById('sbi-'+area)?.classList.add('active');
+  // Update state vars
+  _activeArea=area; _activePage=page;
+  // Apply planning sub-tab synchronously (no setTimeout needed)
+  if(page==='drive'&&planTab){
+    _activePlanTab=planTab;
+    document.querySelectorAll('.plan-section').forEach(s=>s.classList.remove('active'));
+    document.getElementById('plantab-'+planTab)?.classList.add('active');
+    document.querySelectorAll('.plan-tab').forEach(b=>b.classList.remove('active'));
+    // Highlight the correct tab button
+    document.querySelectorAll('.plan-tab').forEach(b=>{
+      if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+planTab+"'"))b.classList.add('active');
+    });
+    // Trigger render for that tab
+    if(planTab==='briefs')renderBriefs();
+    else if(planTab==='canjes'){renderKanban('micro');renderKanban('top');}
+    else if(planTab==='collabs')renderCollabs();
+    else if(planTab==='calendario')renderCalendario();
+    else if(planTab==='ideas')renderPlanIdeas();
+    else if(planTab==='biblioteca')renderBiblioteca();
+    else if(planTab==='semana')renderSemana();
+    else if(planTab==='estrategia')renderEstrategia();
   }
-  if(resolvedPage==='drive'&&resolvedPlanTab){
+  // Apply fin sub-tab
+  if(area==='finanzas'&&finTab&&finTab!=='movimientos'){
     setTimeout(()=>{
-      const tabBtn=document.querySelector(`.plan-tab[onclick*="'${resolvedPlanTab}'"]`);
-      switchPlanTab(resolvedPlanTab,tabBtn);
-    },100);
+      const tabBtn=document.querySelector(`#fin-tabs .inner-tab[data-tab="${finTab}"]`);
+      if(tabBtn)switchFinTab(finTab,tabBtn);
+    },150);
   }
+  // Trigger necessary renders
+  if(area==='finanzas')setTimeout(initFinPeriod,50);
+  if(area==='crm'){if(!S.crm)S.crm=[];renderCRM();}
+  if(area==='hojas'){if(!S.customViews)S.customViews=[];renderHojas();}
+  if(area==='stock'){if(!S.stock)S.stock=[];renderStock();}
+  if(area==='integraciones')renderIntegraciones();
+  // Update URL once at the end
+  updateUrl();
 }
 
 function switchWorkspace(wsId){
@@ -3123,7 +3160,7 @@ function switchPage(id,btn){
   document.getElementById('sbi-'+id)?.classList.add('active');
   _activePage=id;
   render();
-  updateUrl();
+  saveNavState();
 }
  
 function switchInner(group,id,btn){
@@ -3188,7 +3225,7 @@ function _activateArea(id,label){
   if(id==='hojas'){if(!S.customViews)S.customViews=[];renderHojas();}
   if(id==='stock'){if(!S.stock)S.stock=[];renderStock();}
   render();
-  updateUrl();
+  saveNavState();
 }
  
 function comingSoon(name){toggleAreaDropdown();notify(`${name} — próximamente`);}
@@ -3227,78 +3264,81 @@ function sbNav(area,page,el){
   if(area==='stock'){if(!S.stock)S.stock=[];renderStock();}
   if(area==='integraciones')renderIntegraciones();
   render();
+  saveNavState();
+}
+
+// ── NAV STATE ──────────────────────────────
+let _activeFinTab='movimientos';
+
+// Save nav to localStorage + update URL query params
+function saveNavState(){
+  const state={area:_activeArea||'marketing',page:_activePage||'checklist',planTab:_activePlanTab||'calendario',finTab:_activeFinTab||'movimientos'};
+  try{localStorage.setItem('veld_nav',JSON.stringify(state));}catch(e){}
   updateUrl();
 }
 
-// ── URL STATE ──
-let _activeFinTab='movimientos'; // track active fin-tab for URL
-// ── Hash-based routing ──────────────────────
-const _PAGE_HASH_MAP={
-  checklist:'checklist',todo:'todo',marca:'marca',producto:'producto',
-  crm:'crm',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones'
-};
-const _HASH_PAGE_MAP=Object.fromEntries(Object.entries(_PAGE_HASH_MAP).map(([k,v])=>[v,k]));
-
-function buildHash(){
-  const page=_activePage||'checklist';
-  const area=_activeArea||'marketing';
-  if(page==='drive'){
-    const tab=_activePlanTab||'calendario';
-    return '#planning'+(tab&&tab!=='calendario'?'/'+tab:'');
-  }
-  if(area==='finanzas'){
-    const ft=_activeFinTab||'movimientos';
-    return '#finanzas'+(ft&&ft!=='movimientos'?'/'+ft:'');
-  }
-  return '#'+(_PAGE_HASH_MAP[page]||page);
-}
-
-function parseHash(){
-  const raw=(location.hash||'').replace(/^#/,'').toLowerCase();
-  if(!raw)return null;
-  const [section,sub]=raw.split('/');
-  const legacyPlanTab={briefs:'briefs',canje:'canjes',collabs:'collabs'};
-  if(section==='planning')return{area:'marketing',page:'drive',plantab:sub||'calendario'};
-  if(section==='finanzas')return{area:'finanzas',page:'finanzas',fintab:sub||'movimientos'};
-  if(legacyPlanTab[section])return{area:'marketing',page:'drive',plantab:legacyPlanTab[section]};
-  const page=_HASH_PAGE_MAP[section]||section;
-  const areaMap={crm:'crm',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones'};
-  const area=areaMap[page]||'marketing';
-  return{area,page};
-}
-
+// Alias kept for backwards-compat calls
 function updateUrl(){
   if(!_activeWsId)return;
   try{
-    const hash=buildHash();
-    history.replaceState({},'',location.pathname+'?ws='+encodeURIComponent(_activeWsId)+hash);
+    const p=new URLSearchParams();
+    p.set('ws',_activeWsId);
+    p.set('p',_activePage||'checklist');
+    if(_activePage==='drive')p.set('pt',_activePlanTab||'calendario');
+    if((_activeArea||'marketing')==='finanzas')p.set('ft',_activeFinTab||'movimientos');
+    history.replaceState({},'',location.pathname+'?'+p.toString());
   }catch(e){}
+}
+
+// Read nav from URL params first, then localStorage fallback
+function readNavTarget(){
+  try{
+    const p=new URLSearchParams(location.search);
+    const wsId=p.get('ws');
+    // New-style params
+    let page=p.get('p');
+    let planTab=p.get('pt');
+    let finTab=p.get('ft');
+    // Legacy params
+    if(!page)page=p.get('page');
+    if(!planTab)planTab=p.get('plantab');
+    if(!finTab)finTab=p.get('fintab');
+    // Map legacy page ids to planning tabs
+    const legacyMap={briefs:'briefs',canje:'canjes',collabs:'collabs'};
+    if(legacyMap[page]){planTab=legacyMap[page];page='drive';}
+    // Derive area from page
+    const areaMap={finanzas:'finanzas',crm:'crm',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones'};
+    const area=areaMap[page]||p.get('area')||'marketing';
+    if(wsId&&page){return{wsId,area,page,planTab:planTab||'calendario',finTab:finTab||'movimientos'};}
+    if(wsId&&!page){
+      // ws in URL but no page — try localStorage
+      const ls=readNavLS();
+      return{wsId,area:ls?.area||'marketing',page:ls?.page||'checklist',planTab:ls?.planTab||'calendario',finTab:ls?.finTab||'movimientos'};
+    }
+  }catch(e){}
+  // No URL params — use localStorage
+  const ls=readNavLS();
+  return ls?{wsId:null,...ls}:null;
+}
+
+function readNavLS(){
+  try{const r=localStorage.getItem('veld_nav');return r?JSON.parse(r):null;}catch(e){return null;}
 }
 
 function copyShareUrl(){
   updateUrl();
   const url=location.href;
-  navigator.clipboard.writeText(url).then(()=>notify('🔗 Link copiado — abrilo en cualquier navegador')).catch(()=>{
+  navigator.clipboard.writeText(url).then(()=>notify('🔗 Link copiado — funciona para compartir y al refrescar')).catch(()=>{
     prompt('Copiá este link:',url);
   });
 }
 
+// Called once on load before readUrlParams
+(function(){window._navTarget=readNavTarget();})();
+// Keep backward-compat alias
 function readUrlParams(){
-  try{
-    const p=new URLSearchParams(location.search);
-    const wsId=p.get('ws');
-    const hashNav=parseHash();
-    // Support old-style query params as fallback
-    const area=hashNav?.area||p.get('area')||'marketing';
-    const page=hashNav?.page||p.get('page')||'checklist';
-    const fintab=hashNav?.fintab||p.get('fintab')||null;
-    const plantab=hashNav?.plantab||null;
-    if(wsId){
-      window._urlNav={wsId,area,page,fintab,plantab};
-    } else if(hashNav){
-      window._urlNav={wsId:null,area,page,fintab,plantab};
-    }
-  }catch(e){}
+  const t=window._navTarget;
+  if(t&&t.wsId)window._urlNav={wsId:t.wsId,area:t.area,page:t.page,plantab:t.planTab,fintab:t.finTab};
 }
 readUrlParams();
  
@@ -3616,7 +3656,7 @@ function switchPlanTab(id,btn){
   document.querySelectorAll('.plan-tab').forEach(b=>b.classList.remove('active'));
   document.getElementById('plantab-'+id)?.classList.add('active');
   btn?.classList.add('active');
-  updateUrl();
+  saveNavState();
   const addBtn=document.getElementById('plan-add-btn');
   if(addBtn){
     if(id==='ideas'){addBtn.textContent='+ Nueva idea';addBtn.onclick=()=>openModal('planidea');addBtn.style.display='';}
@@ -4084,7 +4124,7 @@ function switchFinTab(id,btn){
   if(id==='capital')loadCapitalFields();
   if(id==='config'){renderMediosPago();renderCostosFijos();loadTaxConfig();}
   if(id==='cashflow')renderCashflow();
-  updateUrl();
+  saveNavState();
 }
  
 function fmtDate(d){return d.toISOString().split('T')[0];}
