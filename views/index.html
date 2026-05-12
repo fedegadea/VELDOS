@@ -3000,9 +3000,9 @@ async function _loadWorkspacesAndRender(){
     const nav=window._urlNav;
     const target=nav.wsId?WORKSPACES.workspaces.find(w=>w.id===nav.wsId):null;
     if(target){
-      if(!target.pin&&!target.users.length){
+      if(!target.pin&&(!target.users||!target.users.length)){
         _enterWorkspace(target);
-        _applyStoredNav(nav.area,nav.page,nav.plantab,nav.fintab);
+        _applyNavDirect(nav.area||'marketing',nav.page||'checklist',nav.plantab||'calendario',nav.fintab||'movimientos');
       } else {
         _pendingWsId=target.id;
         window._pendingUrlNav=nav;
@@ -3019,20 +3019,21 @@ async function _loadWorkspacesAndRender(){
 
 function _restoreActiveWorkspace(){
   const ws=WORKSPACES.workspaces.find(w=>w.id===WORKSPACES.active)||WORKSPACES.workspaces[0];
-  if(ws&&!ws.pin&&!ws.users.length){
+  if(ws&&!ws.pin&&(!ws.users||!ws.users.length)){
     _enterWorkspace(ws);
-    // Apply nav from URL path (clean routes like /planning/briefs)
-    const t=window._navTarget;
-    if(t){_applyStoredNav(t.area,t.page,t.planTab,t.finTab);}
+    // Always read pathname fresh — don't rely on window._navTarget being intact
+    const urlWsNav=window._urlNav;
+    const nav=urlWsNav||readNavTarget();
+    _applyNavDirect(
+      nav.area||'marketing',
+      nav.page||'checklist',
+      nav.planTab||nav.plantab||'calendario',
+      nav.finTab||nav.fintab||'movimientos'
+    );
     window._urlNav=null;
     window._navTarget=null;
   } else if(ws){selectWs(ws.id);}
   else{openWorkspaceSelector();}
-}
-
-function _applyStoredNav(area,page,planTab,finTab){
-  area=area||'marketing';page=page||'checklist';planTab=planTab||'calendario';finTab=finTab||'movimientos';
-  _applyNavDirect(area,page,planTab,finTab);
 }
 
 function _applyNavDirect(area,page,planTab,finTab){
