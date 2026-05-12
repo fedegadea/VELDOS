@@ -3271,30 +3271,42 @@ function _renderPlanSection(tab){
   else if(tab==='estrategia')renderEstrategia();
 }
 
-// Resuelve la ruta inicial: SIEMPRE pathname. Hash se ignora (legacy). localStorage de ruta NO se usa.
+// Resuelve la ruta inicial.
+// PRIORIDAD: 1) hash legacy (#/algo) si es ruta válida — para migrar URLs viejas como /checklist#/marca
+//            2) pathname si es ruta válida
+//            3) fallback /checklist
+// localStorage NO se usa NUNCA como fallback de ruta (era la causa de redirects a tabs viejas).
 function getInitialPath(){
-  // /sistema y /landing son redirects históricos → checklist
+  // 1) Hash legacy: navegadores con JS viejo cacheado seteaban location.hash.
+  //    Si vemos #/algo y "algo" es ruta válida, ESA es la intención del usuario.
+  if(location.hash&&location.hash.startsWith('#/')){
+    const hashPath='/'+location.hash.slice(2).replace(/^\/+/,'');
+    const hSeg=hashPath.replace(/^\/+|\/+$/g,'').split('/')[0];
+    if(_VALID_TOP_SEGMENTS.has(hSeg)||_PLAN_TABS.has(hSeg)) return hashPath;
+  }
+  // 2) Pathname: única fuente de verdad para la URL "limpia"
   const p=location.pathname;
   if(!p||p==='/'||p==='/sistema'||p==='/landing') return '/checklist';
-  // Validar contra rutas conocidas; si no, fallback a /checklist
   const seg=p.replace(/^\/+|\/+$/g,'').split('/')[0];
   if(_VALID_TOP_SEGMENTS.has(seg)||_PLAN_TABS.has(seg)) return p;
+  // 3) Ruta desconocida → checklist (único fallback permitido)
   return '/checklist';
 }
 
 // Compat: alias por si algo legacy llama getInitialHash
 function getInitialHash(){return getInitialPath();}
 
-// Back/forward del browser → applyRoute (popstate dispara en navegación de historial)
+// Back/forward del browser → applyRoute
 window.addEventListener('popstate',applyRoute);
 
-// Limpiar cualquier veld_last_hash residual de versiones anteriores
+// Limpiar cualquier estado de ruta residual de versiones anteriores (hash routing, etc.)
 try{localStorage.removeItem('veld_last_hash');localStorage.removeItem('veld_last_path');localStorage.removeItem('veld_nav');}catch(e){}
 
-// Pre-render: normaliza URL a /pathname-limpio (sin hash, sin pathname inválido) y muestra la sección antes de que cargue el workspace
+// Pre-render: normaliza URL → /pathname-limpio (sin hash residual, sin pathname inválido) y muestra la sección
+// antes de que cargue el workspace. CRÍTICO: esto migra URLs legacy /checklist#/marca → /marca.
 (function(){
   const path=getInitialPath();
-  // Si la URL actual difiere (pathname inválido, hash residual, etc.), reescribir SIN agregar entrada al history
+  // Siempre normalizar: reescribir pathname si difiere Y eliminar cualquier hash residual
   if(location.pathname!==path||location.hash){
     try{history.replaceState({},'',path+(location.search||''));}catch(e){}
   }
