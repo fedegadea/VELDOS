@@ -32,17 +32,6 @@ function serveApp(req, res) {
 
 app.get("/", serveApp)
 
-// Rutas de sección — todas sirven el mismo index.html, el cliente lee el pathname
-const APP_ROUTES = [
-  "/planning", "/planning/calendario", "/planning/semana", "/planning/ideas",
-  "/planning/biblioteca", "/planning/briefs", "/planning/canjes", "/planning/collabs",
-  "/planning/estrategia",
-  "/checklist", "/todo", "/marca", "/producto",
-  "/finanzas", "/finanzas/movimientos", "/finanzas/ingresos", "/finanzas/gastos",
-  "/finanzas/comisiones", "/finanzas/kpis", "/finanzas/cashflow", "/finanzas/config",
-  "/crm", "/hojas", "/operaciones", "/stock", "/integraciones"
-]
-APP_ROUTES.forEach(route => app.get(route, serveApp))
 
 // MP: crear preferencia de pago
 app.post("/api/mp/create-preference", async (req, res) => {
@@ -492,6 +481,9 @@ app.post("/api/tn/webhooks/customers-data-request", (req, res) => {
   console.log("TN customers/data_request:", req.body?.customer?.id)
   res.sendStatus(200)
 })
+
+// SPA catch-all: any unmatched GET serves the app (hash router handles client routing)
+app.get('*', serveApp)
 
 if (require.main === module) {
   app.listen(process.env.PORT || 3000, function(){

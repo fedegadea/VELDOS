@@ -2995,12 +2995,12 @@ async function _loadWorkspacesAndRender(){
     return;
   }
 
-  // Shared workspace link: ?ws=ID  — load that specific workspace
+  // Shared workspace link: ?ws=ID
   const wsId=new URLSearchParams(location.search).get('ws');
   if(wsId){
     const target=WORKSPACES.workspaces.find(w=>w.id===wsId);
     if(target){
-      history.replaceState({},'',location.pathname); // strip ?ws= from URL
+      history.replaceState({},'',location.pathname+location.hash);
       if(!target.pin&&(!target.users||!target.users.length)){
         _enterWorkspace(target);
         applyRoute();
@@ -3019,9 +3019,12 @@ function _restoreActiveWorkspace(){
   const ws=WORKSPACES.workspaces.find(w=>w.id===WORKSPACES.active)||WORKSPACES.workspaces[0];
   if(ws&&!ws.pin&&(!ws.users||!ws.users.length)){
     _enterWorkspace(ws);
-    const path=getInitialPath();
-    if(path!==location.pathname) history.replaceState({},'',path);
-    applyRoute();
+    const hash=getInitialHash();
+    if(hash!==location.hash){
+      location.replace(location.pathname+location.search+hash);
+    } else {
+      applyRoute();
+    }
     window._urlNav=null;
   } else if(ws){selectWs(ws.id);}
   else{openWorkspaceSelector();}
@@ -3029,13 +3032,9 @@ function _restoreActiveWorkspace(){
 
 // ─── kept as shim so old call-sites still compile ───────
 function _applyNavDirect(area,page,planTab,finTab){
-  const pathMap={checklist:'/checklist',todo:'/todo',drive:'/planning',marca:'/marca',producto:'/producto',crm:'/crm',hojas:'/hojas',operaciones:'/operaciones',stock:'/stock',integraciones:'/integraciones',finanzas:'/finanzas'};
-  let path=pathMap[page]||('/'+page);
-  if(page==='drive'&&planTab&&planTab!=='calendario') path='/planning/'+planTab;
-  else if(page==='drive') path='/planning';
-  if(area==='finanzas'&&finTab) path='/finanzas'+(finTab!=='movimientos'?'/'+finTab:'');
-  history.replaceState({},'',path);
-  applyRoute();
+  let path=page==='drive'?('planning'+(planTab&&planTab!=='calendario'?'/'+planTab:'')):page;
+  if(area==='finanzas') path='finanzas'+(finTab&&finTab!=='movimientos'?'/'+finTab:'');
+  navigate(path);
 }
 
 function switchWorkspace(wsId){
@@ -3080,13 +3079,13 @@ function defaultCheckGroups(){
 // ══════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════
-function goPlanning(tab){navigate('/planning/'+(tab||'calendario'));}
+function goPlanning(tab){navigate('planning/'+(tab||'calendario'));}
 
 function switchPage(id,btn){
   const redirect={briefs:'briefs',canje:'canjes',collabs:'collabs'};
-  if(redirect[id]){navigate('/planning/'+redirect[id]);return;}
-  const paths={checklist:'/checklist',todo:'/todo',drive:'/planning',marca:'/marca',producto:'/producto'};
-  navigate(paths[id]||'/'+id);
+  if(redirect[id]){navigate('planning/'+redirect[id]);return;}
+  const paths={checklist:'checklist',todo:'todo',drive:'planning',marca:'marca',producto:'producto'};
+  navigate(paths[id]||id);
 }
  
 function switchInner(group,id,btn){
@@ -3117,13 +3116,13 @@ function selectArea(id,label,el){
     document.getElementById('pin-error').textContent='';
     return;
   }
-  const defaults={marketing:'/checklist',finanzas:'/finanzas',crm:'/crm',hojas:'/hojas',operaciones:'/operaciones',stock:'/stock',integraciones:'/integraciones'};
-  navigate(defaults[id]||'/'+id);
+  const defaults={marketing:'checklist',finanzas:'finanzas',crm:'crm',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones'};
+  navigate(defaults[id]||id);
 }
- 
+
 function _activateArea(id,label){
-  const defaults={marketing:'/checklist',finanzas:'/finanzas',crm:'/crm',hojas:'/hojas',operaciones:'/operaciones',stock:'/stock',integraciones:'/integraciones'};
-  navigate(defaults[id]||'/'+id);
+  const defaults={marketing:'checklist',finanzas:'finanzas',crm:'crm',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones'};
+  navigate(defaults[id]||id);
 }
  
 function comingSoon(name){toggleAreaDropdown();notify(`${name} — próximamente`);}
@@ -3141,15 +3140,13 @@ function sbNav(area,page,el){
     document.getElementById('pin-error').textContent='';
     return;
   }
-  const paths={checklist:'/checklist',todo:'/todo',drive:'/planning',marca:'/marca',producto:'/producto',crm:'/crm',hojas:'/hojas',operaciones:'/operaciones',stock:'/stock',integraciones:'/integraciones',finanzas:'/finanzas'};
-  navigate(paths[page]||'/'+page);
+  const paths={checklist:'checklist',todo:'todo',drive:'planning',marca:'marca',producto:'producto',crm:'crm',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones',finanzas:'finanzas'};
+  navigate(paths[page]||page);
 }
 
 // ═══════════════════════════════════════════════════════
-// ROUTER — URL es la única fuente de verdad
-// navigate(path) → pushState → applyRoute()
-// applyRoute()   → lee location.pathname → actualiza DOM
-// popstate       → applyRoute() (back/forward del browser)
+// HASH ROUTER — funciona garantizado en refresh
+// URL: /#/planning/briefs  /#/crm  /#/finanzas/gastos
 // ═══════════════════════════════════════════════════════
 
 let _activeFinTab='movimientos';
@@ -3158,33 +3155,33 @@ const _PLAN_TABS=new Set(['calendario','semana','ideas','biblioteca','briefs','c
 const _FIN_TABS =new Set(['movimientos','ingresos','gastos','comisiones','kpis','cashflow','config','presupuesto','capital']);
 const _AREA_LABELS={marketing:'Marketing',finanzas:'Finanzas',crm:'CRM',hojas:'Hojas',operaciones:'Operaciones',stock:'Stock',integraciones:'Integraciones'};
 
-function parseRoute(pathname){
-  const segs=(pathname||'/').replace(/^\/+|\/+$/g,'').split('/');
-  const s1=segs[0]||'';
-  const s2=segs[1]||'';
-  if(!s1||s1==='checklist') return{area:'marketing',page:'checklist'};
-  if(s1==='todo')     return{area:'marketing',page:'todo'};
-  if(s1==='marca')    return{area:'marketing',page:'marca'};
-  if(s1==='producto') return{area:'marketing',page:'producto'};
-  if(s1==='planning'||_PLAN_TABS.has(s1)){
-    const tab=(s1==='planning'?s2:s1)||'calendario';
+function parseHash(hash){
+  const clean=(hash||'').replace(/^#\/?/,'').replace(/\/+$/,'');
+  const [s1,s2]=(clean||'').split('/');
+  const seg=s1||'';
+  if(!seg||seg==='checklist') return{area:'marketing',page:'checklist'};
+  if(seg==='todo')      return{area:'marketing',page:'todo'};
+  if(seg==='marca')     return{area:'marketing',page:'marca'};
+  if(seg==='producto')  return{area:'marketing',page:'producto'};
+  if(seg==='planning'||_PLAN_TABS.has(seg)){
+    const tab=(seg==='planning'?s2:seg)||'calendario';
     return{area:'marketing',page:'drive',planTab:_PLAN_TABS.has(tab)?tab:'calendario'};
   }
-  if(s1==='finanzas'){
+  if(seg==='finanzas'){
     return{area:'finanzas',page:'finanzas',finTab:(_FIN_TABS.has(s2)?s2:'movimientos')};
   }
   const direct={crm:1,hojas:1,operaciones:1,stock:1,integraciones:1};
-  if(direct[s1]) return{area:s1,page:s1};
+  if(direct[seg]) return{area:seg,page:seg};
   return{area:'marketing',page:'checklist'};
 }
 
-function navigate(path){
-  try{history.pushState({},'',path);}catch(e){}
-  applyRoute();
+function navigate(hashPath){
+  location.hash='/'+hashPath.replace(/^\//,'');
+  // hashchange event fires automatically → applyRoute()
 }
 
 function applyRoute(){
-  const r=parseRoute(location.pathname);
+  const r=parseHash(location.hash);
 
   // Area label + nav
   const lblEl=document.getElementById('area-label');
@@ -3238,7 +3235,7 @@ function applyRoute(){
     },60);
   }
 
-  // Area renders (only when workspace data loaded)
+  // Area renders
   if(S){
     if(r.area==='crm'){if(!S.crm)S.crm=[];renderCRM();}
     if(r.area==='hojas'){if(!S.customViews)S.customViews=[];renderHojas();}
@@ -3246,12 +3243,12 @@ function applyRoute(){
     if(r.area==='integraciones')renderIntegraciones();
   }
 
-  // State vars (kept for compatibility with legacy render calls)
+  // State vars
   _activeArea=r.area;
   _activePage=r.page;
 
-  // Remember last path for root-URL restoration
-  try{localStorage.setItem('veld_last_path',location.pathname);}catch(e){}
+  // Persist hash
+  try{localStorage.setItem('veld_last_hash',location.hash||'#/checklist');}catch(e){}
 }
 
 function _renderPlanSection(tab){
@@ -3266,23 +3263,22 @@ function _renderPlanSection(tab){
   else if(tab==='estrategia')renderEstrategia();
 }
 
-function getInitialPath(){
-  const p=location.pathname;
-  if(!p||p==='/'||p==='/sistema'){
-    try{return localStorage.getItem('veld_last_path')||'/checklist';}catch(e){}
-    return'/checklist';
+function getInitialHash(){
+  if(!location.hash||location.hash==='#'||location.hash==='#/'){
+    try{return localStorage.getItem('veld_last_hash')||'#/checklist';}catch(e){}
+    return'#/checklist';
   }
-  return p;
+  return location.hash;
 }
 
-// Back/forward browser buttons
-window.addEventListener('popstate',applyRoute);
+// Hash change = navigate (back/forward + navigate() calls)
+window.addEventListener('hashchange',applyRoute);
 
-// Pre-render synchronously: muestra la sección correcta antes de que cargue el workspace
+// Pre-render: muestra sección correcta antes de cargar workspace
 (function(){
-  const path=getInitialPath();
-  if(path!==location.pathname) history.replaceState({},'',path);
-  const r=parseRoute(path);
+  const hash=getInitialHash();
+  if(hash!==location.hash) location.replace(location.pathname+location.search+hash);
+  const r=parseHash(hash);
   if(r.page!=='checklist'){
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.getElementById('page-'+r.page)?.classList.add('active');
@@ -3294,11 +3290,11 @@ window.addEventListener('popstate',applyRoute);
 })();
 
 function copyShareUrl(){
-  const url=location.origin+location.pathname;
+  const url=location.origin+location.pathname+getInitialHash();
   navigator.clipboard.writeText(url).then(()=>notify('Link copiado: '+url)).catch(()=>prompt('Link:',url));
 }
 
-function saveNavState(){} // no-op shim — URL is now the only nav state
+function saveNavState(){} // no-op — hash IS the state
  
 document.addEventListener('click',function(e){
   const dd=document.getElementById('area-dropdown');
@@ -3609,7 +3605,7 @@ const IDEA_ESTADOS=[
 const IDEA_PILARES=['🛒 Comercial','🤝 Comunidad','✅ Confianza','👥 Equipo','💡 Concepto','🎓 Educación','🎭 Entretenimiento'];
 
 function switchPlanTab(id,btn){
-  navigate('/planning/'+id);
+  navigate('planning/'+id);
   // DOM updates happen in applyRoute(); keep early-return path for add-btn setup below
   const addBtn=document.getElementById('plan-add-btn');
   if(addBtn){
@@ -4059,7 +4055,7 @@ const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','
 const RECURRENCIAS=['Mensual','Bimestral','Trimestral','Semestral','Anual'];
  
 function switchFinTab(id,btn,_skipNav){
-  if(!_skipNav){navigate('/finanzas/'+id);return;}
+  if(!_skipNav){navigate('finanzas/'+id);return;}
   _activeFinTab=id;
   document.querySelectorAll('.fin-tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('#fin-tabs .inner-tab').forEach(t=>t.classList.remove('active'));
