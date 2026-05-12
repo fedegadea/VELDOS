@@ -25,6 +25,20 @@ app.get("/", (req, res) => {
   res.sendFile(__dirname + "/views/index.html")
 })
 
+// Rutas de sección — todas sirven el mismo index.html, el cliente lee el pathname
+const APP_ROUTES = [
+  "/planning", "/planning/calendario", "/planning/semana", "/planning/ideas",
+  "/planning/biblioteca", "/planning/briefs", "/planning/canjes", "/planning/collabs",
+  "/planning/estrategia",
+  "/checklist", "/todo", "/marca", "/producto",
+  "/finanzas", "/finanzas/movimientos", "/finanzas/ingresos", "/finanzas/gastos",
+  "/finanzas/comisiones", "/finanzas/kpis", "/finanzas/cashflow", "/finanzas/config",
+  "/crm", "/hojas", "/operaciones", "/stock", "/integraciones"
+]
+APP_ROUTES.forEach(route => {
+  app.get(route, (req, res) => res.sendFile(__dirname + "/views/index.html"))
+})
+
 // MP: crear preferencia de pago
 app.post("/api/mp/create-preference", async (req, res) => {
   const { email, userId } = req.body

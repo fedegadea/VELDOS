@@ -3025,8 +3025,10 @@ function _restoreActiveWorkspace(){
   const ws=WORKSPACES.workspaces.find(w=>w.id===WORKSPACES.active)||WORKSPACES.workspaces[0];
   if(ws&&!ws.pin&&!ws.users.length){
     _enterWorkspace(ws);
-    const nav=window._urlNav||window._pendingHashNav;
-    if(nav){window._urlNav=null;window._pendingHashNav=null;_applyUrlNav(nav);}
+    // Always apply nav from pathname (navTarget) or from URL ws param
+    const nav=window._urlNav||{area:window._navTarget?.area,page:window._navTarget?.page,plantab:window._navTarget?.planTab,fintab:window._navTarget?.finTab};
+    _applyUrlNav(nav);
+    window._urlNav=null;
   } else if(ws){selectWs(ws.id);}
   else{openWorkspaceSelector();}
 }
@@ -3270,75 +3272,62 @@ function sbNav(area,page,el){
 // ── NAV STATE ──────────────────────────────
 let _activeFinTab='movimientos';
 
-// Save nav to localStorage + update URL query params
-function saveNavState(){
-  const state={area:_activeArea||'marketing',page:_activePage||'checklist',planTab:_activePlanTab||'calendario',finTab:_activeFinTab||'movimientos'};
-  try{localStorage.setItem('veld_nav',JSON.stringify(state));}catch(e){}
-  updateUrl();
+function buildPath(){
+  const page=_activePage||'checklist';
+  if(page==='drive'){
+    const tab=_activePlanTab||'calendario';
+    return '/planning'+(tab!=='calendario'?'/'+tab:'');
+  }
+  if(_activeArea==='finanzas'){
+    const ft=_activeFinTab||'movimientos';
+    return '/finanzas'+(ft!=='movimientos'?'/'+ft:'');
+  }
+  const names={checklist:'checklist',todo:'todo',marca:'marca',producto:'producto',crm:'crm',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones'};
+  return '/'+(names[page]||page);
 }
 
-// Alias kept for backwards-compat calls
 function updateUrl(){
-  if(!_activeWsId)return;
-  try{
-    const p=new URLSearchParams();
-    p.set('ws',_activeWsId);
-    p.set('p',_activePage||'checklist');
-    if(_activePage==='drive')p.set('pt',_activePlanTab||'calendario');
-    if((_activeArea||'marketing')==='finanzas')p.set('ft',_activeFinTab||'movimientos');
-    history.replaceState({},'',location.pathname+'?'+p.toString());
-  }catch(e){}
+  try{history.replaceState({},'',buildPath());}catch(e){}
 }
 
-// Read nav from URL params first, then localStorage fallback
-function readNavTarget(){
-  try{
-    const p=new URLSearchParams(location.search);
-    const wsId=p.get('ws');
-    // New-style params
-    let page=p.get('p');
-    let planTab=p.get('pt');
-    let finTab=p.get('ft');
-    // Legacy params
-    if(!page)page=p.get('page');
-    if(!planTab)planTab=p.get('plantab');
-    if(!finTab)finTab=p.get('fintab');
-    // Map legacy page ids to planning tabs
-    const legacyMap={briefs:'briefs',canje:'canjes',collabs:'collabs'};
-    if(legacyMap[page]){planTab=legacyMap[page];page='drive';}
-    // Derive area from page
-    const areaMap={finanzas:'finanzas',crm:'crm',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones'};
-    const area=areaMap[page]||p.get('area')||'marketing';
-    if(wsId&&page){return{wsId,area,page,planTab:planTab||'calendario',finTab:finTab||'movimientos'};}
-    if(wsId&&!page){
-      // ws in URL but no page — try localStorage
-      const ls=readNavLS();
-      return{wsId,area:ls?.area||'marketing',page:ls?.page||'checklist',planTab:ls?.planTab||'calendario',finTab:ls?.finTab||'movimientos'};
-    }
-  }catch(e){}
-  // No URL params — use localStorage
-  const ls=readNavLS();
-  return ls?{wsId:null,...ls}:null;
+function saveNavState(){
+  try{localStorage.setItem('veld_nav',JSON.stringify({area:_activeArea||'marketing',page:_activePage||'checklist',planTab:_activePlanTab||'calendario',finTab:_activeFinTab||'movimientos'}));}catch(e){}
+  updateUrl();
 }
 
 function readNavLS(){
   try{const r=localStorage.getItem('veld_nav');return r?JSON.parse(r):null;}catch(e){return null;}
 }
 
-function copyShareUrl(){
-  updateUrl();
-  const url=location.href;
-  navigator.clipboard.writeText(url).then(()=>notify('🔗 Link copiado — funciona para compartir y al refrescar')).catch(()=>{
-    prompt('Copiá este link:',url);
-  });
+function readNavTarget(){
+  const parts=location.pathname.replace(/^\/+/,'').split('/');
+  const section=parts[0]||'';
+  const sub=parts[1]||null;
+  const planTabs={calendario:1,semana:1,ideas:1,biblioteca:1,briefs:1,canjes:1,collabs:1,estrategia:1};
+  if(section==='planning') return{area:'marketing',page:'drive',planTab:sub||'calendario',finTab:'movimientos'};
+  if(section==='finanzas') return{area:'finanzas',page:'finanzas',planTab:'calendario',finTab:sub||'movimientos'};
+  if(planTabs[section])    return{area:'marketing',page:'drive',planTab:section,finTab:'movimientos'};
+  if(!section){const ls=readNavLS();return ls||{area:'marketing',page:'checklist',planTab:'calendario',finTab:'movimientos'};}
+  const areaMap={crm:'crm',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones'};
+  return{area:areaMap[section]||'marketing',page:section,planTab:'calendario',finTab:'movimientos'};
 }
 
-// Called once on load before readUrlParams
-(function(){window._navTarget=readNavTarget();})();
-// Keep backward-compat alias
-function readUrlParams(){
+function copyShareUrl(){
+  updateUrl();
+  const url=location.origin+buildPath();
+  navigator.clipboard.writeText(url).then(()=>notify('Link copiado: '+url)).catch(()=>prompt('Link:',url));
+}
+
+(function(){
+  window._navTarget=readNavTarget();
+  const wsId=new URLSearchParams(location.search).get('ws');
   const t=window._navTarget;
-  if(t&&t.wsId)window._urlNav={wsId:t.wsId,area:t.area,page:t.page,plantab:t.planTab,fintab:t.finTab};
+  if(wsId) window._urlNav={wsId,area:t.area,page:t.page,plantab:t.planTab,fintab:t.finTab};
+})();
+function readUrlParams(){
+  if(window._urlNav)return;
+  const wsId=new URLSearchParams(location.search).get('ws');
+  if(wsId){const t=window._navTarget||{};window._urlNav={wsId,area:t.area||'marketing',page:t.page||'checklist',plantab:t.planTab||'calendario',fintab:t.finTab||'movimientos'};}
 }
 readUrlParams();
  
