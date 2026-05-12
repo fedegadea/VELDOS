@@ -3295,10 +3295,11 @@ function readNavTarget(){
   const section=parts[0]||'';
   const sub=parts[1]||null;
   const planTabs={calendario:1,semana:1,ideas:1,biblioteca:1,briefs:1,canjes:1,collabs:1,estrategia:1};
+  const knownPages={checklist:1,todo:1,marca:1,producto:1,crm:1,hojas:1,operaciones:1,stock:1,integraciones:1};
   if(section==='planning') return{area:'marketing',page:'drive',planTab:sub||'calendario',finTab:'movimientos'};
   if(section==='finanzas') return{area:'finanzas',page:'finanzas',planTab:'calendario',finTab:sub||'movimientos'};
   if(planTabs[section])    return{area:'marketing',page:'drive',planTab:section,finTab:'movimientos'};
-  if(!section){const ls=readNavLS();return ls||{area:'marketing',page:'checklist',planTab:'calendario',finTab:'movimientos'};}
+  if(!section||!knownPages[section]){const ls=readNavLS();return ls||{area:'marketing',page:'checklist',planTab:'calendario',finTab:'movimientos'};}
   const areaMap={crm:'crm',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones'};
   return{area:areaMap[section]||'marketing',page:section,planTab:'calendario',finTab:'movimientos'};
 }

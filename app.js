@@ -17,9 +17,9 @@ app.get("/landing", (req, res) => {
   res.sendFile(__dirname + "/views/landing.html")
 })
 
-// Sistema principal
+// Sistema principal — redirect legacy /sistema to root
 app.get("/sistema", (req, res) => {
-  res.sendFile(__dirname + "/views/index.html")
+  res.redirect(301, "/")
 })
 const NO_CACHE = { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' } }
 
