@@ -3019,12 +3019,7 @@ function _restoreActiveWorkspace(){
   const ws=WORKSPACES.workspaces.find(w=>w.id===WORKSPACES.active)||WORKSPACES.workspaces[0];
   if(ws&&!ws.pin&&(!ws.users||!ws.users.length)){
     _enterWorkspace(ws);
-    const hash=getInitialHash();
-    if(hash!==location.hash){
-      location.replace(location.pathname+location.search+hash);
-    } else {
-      applyRoute();
-    }
+    applyRoute(); // URL ya fue normalizada por la IIFE
     window._urlNav=null;
   } else if(ws){selectWs(ws.id);}
   else{openWorkspaceSelector();}
@@ -3176,8 +3171,15 @@ function parseHash(hash){
 }
 
 function navigate(hashPath){
-  location.hash='/'+hashPath.replace(/^\//,'');
-  // hashchange event fires automatically → applyRoute()
+  const clean='/'+hashPath.replace(/^\/+/,'').replace(/\/+$/,'');
+  const newUrl='/'+(location.search||'')+'#'+clean;
+  // pushState updates BOTH pathname (to /) and hash atomically → URL is always /#/section
+  try{
+    history.pushState({},'',newUrl);
+    applyRoute(); // manual call: pushState doesn't fire hashchange/popstate
+  }catch(e){
+    location.hash=clean; // fallback fires hashchange → applyRoute
+  }
 }
 
 function applyRoute(){
@@ -3264,20 +3266,26 @@ function _renderPlanSection(tab){
 }
 
 function getInitialHash(){
-  if(!location.hash||location.hash==='#'||location.hash==='#/'){
-    try{return localStorage.getItem('veld_last_hash')||'#/checklist';}catch(e){}
-    return'#/checklist';
-  }
-  return location.hash;
+  // Priority: 1) current hash, 2) legacy pathname URL (e.g. /marca), 3) localStorage, 4) default
+  if(location.hash&&location.hash!=='#'&&location.hash!=='#/') return location.hash;
+  const p=location.pathname;
+  if(p&&p!=='/'&&p!=='/sistema'&&p!=='/landing') return '#'+p;
+  try{return localStorage.getItem('veld_last_hash')||'#/checklist';}catch(e){}
+  return'#/checklist';
 }
 
-// Hash change = navigate (back/forward + navigate() calls)
+// All nav events → applyRoute
 window.addEventListener('hashchange',applyRoute);
+window.addEventListener('popstate',applyRoute);
 
-// Pre-render: muestra sección correcta antes de cargar workspace
+// Pre-render: normaliza URL a /#/section y muestra la sección antes de que cargue el workspace
 (function(){
   const hash=getInitialHash();
-  if(hash!==location.hash) location.replace(location.pathname+location.search+hash);
+  const targetUrl='/'+(location.search||'')+hash;
+  // SIEMPRE normalizar: pathname=/, hash=resolved. Esto borra restos de URLs viejas tipo /marca
+  if(location.pathname!=='/'||location.hash!==hash){
+    try{history.replaceState({},'',targetUrl);}catch(e){}
+  }
   const r=parseHash(hash);
   if(r.page!=='checklist'){
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
