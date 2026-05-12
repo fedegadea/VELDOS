@@ -2684,9 +2684,15 @@ function _enterWorkspace(ws){
   document.getElementById('ws-overlay')?.classList.add('hidden');
   render();
   updateTNBadge();
-  // CRÍTICO: activar la página correspondiente a la URL actual (sin esto, ninguna .page
-  // queda visible porque removí el class="active" default del HTML)
-  if(typeof applyRoute==='function')applyRoute();
+  // Si la URL es una ruta "no-sección" (/, /projects, /login), navegar al default
+  // (/checklist) ahora que ya estamos dentro del workspace.
+  if(typeof navigate==='function'&&(location.pathname==='/'||location.pathname==='/projects'||location.pathname==='/login')){
+    navigate('checklist'); // navigate llama applyRoute internamente
+  } else if(typeof applyRoute==='function'){
+    // CRÍTICO: activar la .page correspondiente a la URL actual (sin esto ninguna .page
+    // queda visible porque removí el class="active" default del HTML)
+    applyRoute();
+  }
 }
 
 // ── Cache de unlock por sesión: skip de PIN/usuario al refrescar dentro de la misma pestaña ──
@@ -2934,11 +2940,9 @@ async function initState(){
   });
 
   // Ruta /login: forzar pantalla de login independiente del estado de sesión
-  // (permite compartir el link y que abra el form de login)
   if(location.pathname==='/login'){
     document.getElementById('auth-screen').style.display='flex';
     _proceedAfterAuth=()=>{
-      // Tras login exitoso, ir al selector de proyectos
       try{history.replaceState({},'','/projects');}catch(e){}
       _loadWorkspacesAndRender();
     };
@@ -2950,9 +2954,20 @@ async function initState(){
     _authUser=session.user;
     _authToken=session.access_token;
   } else {
+    // Sin sesión: si están en / o ruta de sección, mandar a /login
+    if(location.pathname!=='/login'){
+      try{history.replaceState({},'','/login');}catch(e){}
+    }
     document.getElementById('auth-screen').style.display='flex';
-    _proceedAfterAuth=_loadWorkspacesAndRender;
+    _proceedAfterAuth=()=>{
+      try{history.replaceState({},'','/projects');}catch(e){}
+      _loadWorkspacesAndRender();
+    };
     return;
+  }
+  // Con sesión: si están en raíz, mandar a /projects (selector de proyecto)
+  if(location.pathname==='/'){
+    try{history.replaceState({},'','/projects');}catch(e){}
   }
   await checkSubscriptionAndProceed();
 }
@@ -3295,7 +3310,6 @@ function _renderPlanSection(tab){
 // localStorage NO se usa NUNCA como fallback de ruta (era la causa de redirects a tabs viejas).
 function getInitialPath(){
   // 1) Hash legacy: navegadores con JS viejo cacheado seteaban location.hash.
-  //    Si vemos #/algo y "algo" es ruta válida, ESA es la intención del usuario.
   if(location.hash&&location.hash.startsWith('#/')){
     const hashPath='/'+location.hash.slice(2).replace(/^\/+/,'');
     const hSeg=hashPath.replace(/^\/+|\/+$/g,'').split('/')[0];
@@ -3303,11 +3317,14 @@ function getInitialPath(){
   }
   // 2) Pathname: única fuente de verdad para la URL "limpia"
   const p=location.pathname;
-  if(!p||p==='/'||p==='/sistema'||p==='/landing') return '/checklist';
+  // / es válido por sí mismo — initState decide si redirige a /projects o /login
+  if(!p||p==='/') return '/';
+  // /sistema y /landing son redirects históricos → /
+  if(p==='/sistema'||p==='/landing') return '/';
   const seg=p.replace(/^\/+|\/+$/g,'').split('/')[0];
   if(_VALID_TOP_SEGMENTS.has(seg)||_PLAN_TABS.has(seg)) return p;
-  // 3) Ruta desconocida → checklist (único fallback permitido)
-  return '/checklist';
+  // 3) Ruta desconocida → / (initState la enruta según sesión)
+  return '/';
 }
 
 // Compat: alias por si algo legacy llama getInitialHash
