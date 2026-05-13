@@ -2176,10 +2176,21 @@ tr:hover .tx-del{color:var(--muted)}
         <div class="kpi-minibar"><div class="kpi-minibar-fill" id="kpi-gas-bar" style="width:0%;background:var(--coral);opacity:.5"></div></div>
       </div>
       <div class="kpi-card kpi-gan">
-        <div class="kpi-label">Ganancia neta</div>
+        <div class="kpi-label">Caja (cash)</div>
         <div class="kpi-value" id="kpi-gan" style="color:var(--gold)">$0</div>
-        <div class="kpi-sub" id="kpi-margen-sub">margen: 0%</div>
+        <div class="kpi-sub" id="kpi-margen-sub" title="Ingresos − gastos del período (sin contar costos de productos vendidos)">margen: 0%</div>
         <div class="kpi-minibar"><div class="kpi-minibar-fill" id="kpi-gan-bar" style="width:0%;background:var(--gold)"></div></div>
+      </div>
+      <div class="kpi-card kpi-cogs">
+        <div class="kpi-label" title="Costo de los productos vendidos en el período (solo ventas con producto vinculado)">COGS</div>
+        <div class="kpi-value" id="kpi-cogs" style="color:#d57c50">$0</div>
+        <div class="kpi-sub" id="kpi-cogs-sub">costo de productos vendidos</div>
+      </div>
+      <div class="kpi-card kpi-pnl">
+        <div class="kpi-label" title="Ingresos − COGS − comisiones − gastos OPEX (sin contar compras de mercadería)">Ganancia real (P&amp;L)</div>
+        <div class="kpi-value" id="kpi-pnl" style="color:var(--green)">$0</div>
+        <div class="kpi-sub" id="kpi-pnl-sub">margen real: 0%</div>
+        <div class="kpi-minibar"><div class="kpi-minibar-fill" id="kpi-pnl-bar" style="width:0%;background:var(--green)"></div></div>
       </div>
       <div class="kpi-card kpi-ventas">
         <div class="kpi-label">Ventas</div>
@@ -4630,6 +4641,15 @@ function renderFinanzas(){
   const gastosTotal=gastosDirectos+comisiones+costosFijos;
   const ganancia=ingresosBrutos-gastosTotal;
   const margen=ingresosBrutos>0?Math.round(ganancia/ingresosBrutos*100):0;
+  // ─── COGS y P&L (devengado) ───
+  // COGS: suma de costoTotal de cada venta con producto vinculado en el período.
+  // No miramos cuándo se pagó la mercadería — eso es cash flow. Acá es por VENTA.
+  const cogs=txs.filter(t=>t.tipo==='ingreso').reduce((a,t)=>a+(parseFloat(t.costoTotal)||0),0);
+  // Gastos OPEX: gastos del período EXCLUYENDO los de compra de mercadería (para no doble-contar con COGS).
+  const _cogsCats=new Set(['Producción/stock','Mercadería','Compra mercadería']);
+  const gastosOpex=txs.filter(t=>t.tipo==='gasto'&&!_cogsCats.has(t.categoria)).reduce((a,t)=>a+t.monto,0);
+  const gananciaReal=ingresosBrutos-cogs-comisiones-gastosOpex-costosFijos;
+  const margenReal=ingresosBrutos>0?Math.round(gananciaReal/ingresosBrutos*100):0;
   const adsGasto=txs.filter(t=>t.categoria==='Meta Ads').reduce((a,t)=>a+t.monto,0);
   const ventas=txs.filter(t=>t.tipo==='ingreso').reduce((a,t)=>a+(t.unidades||0),0);
   const ticket=ingresosBrutos>0&&ventas>0?Math.round(ingresosBrutos/ventas):0;
@@ -4647,7 +4667,21 @@ function renderFinanzas(){
   document.getElementById('kpi-gas').textContent=fmtMoney(gastosTotal);
   document.getElementById('kpi-gan').textContent=fmtMoney(ganancia);
   document.getElementById('kpi-gan').style.color=ganancia>=0?'var(--gold)':'var(--red)';
-  document.getElementById('kpi-margen-sub').textContent='margen '+margen+'%';
+  document.getElementById('kpi-margen-sub').textContent='margen '+margen+'% · solo cash';
+  // COGS card
+  const cogsEl=document.getElementById('kpi-cogs');
+  if(cogsEl)cogsEl.textContent=fmtMoney(cogs);
+  const cogsSubEl=document.getElementById('kpi-cogs-sub');
+  if(cogsSubEl){
+    const ventasConCosto=txs.filter(t=>t.tipo==='ingreso'&&parseFloat(t.costoTotal)>0).length;
+    const ventasTotales=txs.filter(t=>t.tipo==='ingreso').length;
+    cogsSubEl.textContent=ventasTotales?`${ventasConCosto} de ${ventasTotales} ventas con costo`:'sin ventas en el período';
+  }
+  // P&L (Ganancia real)
+  const pnlEl=document.getElementById('kpi-pnl');
+  if(pnlEl){pnlEl.textContent=fmtMoney(gananciaReal);pnlEl.style.color=gananciaReal>=0?'var(--green)':'var(--red)';}
+  const pnlSubEl=document.getElementById('kpi-pnl-sub');
+  if(pnlSubEl)pnlSubEl.textContent='margen real: '+margenReal+'%';
   document.getElementById('kpi-ads').textContent=fmtMoney(adsGasto);
   document.getElementById('kpi-ads-sub').textContent='del gasto: '+(gastosTotal>0?Math.round(adsGasto/gastosTotal*100):0)+'%';
   document.getElementById('kpi-ventas').textContent=ventas||'—';
@@ -4659,6 +4693,7 @@ function renderFinanzas(){
   setBar('kpi-ing-bar',ingresosBrutos,'var(--green)');
   setBar('kpi-gas-bar',gastosTotal,'var(--coral)');
   setBar('kpi-gan-bar',Math.max(0,ganancia),ganancia>=0?'var(--gold)':'var(--red)');
+  setBar('kpi-pnl-bar',Math.max(0,gananciaReal),gananciaReal>=0?'var(--green)':'var(--red)');
 
   // TN card
   const tnCard=document.getElementById('kpi-tn-card');
@@ -5105,7 +5140,31 @@ function importTNSelected(orders){
       ?coupons.map(c=>c.code).filter(Boolean).join(', ')
       :(typeof coupons==='string'?coupons:'');
     const envioMonto=_tnEnvio(o);
+    // ── COGS: matchear cada line item con S.stock por SKU o nombre y sumar costo*qty ──
+    let costoTotal=0;
+    let matchedProductoId=null;
+    const stockArr=S.stock||[];
+    const cogsDetails=[];
+    (o.products||[]).forEach(p=>{
+      const qty=parseInt(p.quantity)||1;
+      const sku=(p.sku||'').toString().trim();
+      const name=(p.name||'').toString().trim().toLowerCase();
+      // 1) match por SKU si existe, 2) por nombre exacto
+      let prod=sku?stockArr.find(s=>(s.sku||'').toString().trim()===sku):null;
+      if(!prod&&name)prod=stockArr.find(s=>(s.nombre||'').toLowerCase().trim()===name);
+      if(prod){
+        if(!prod.id)prod.id='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+        const costoUnit=parseFloat(prod.costo)||0;
+        costoTotal+=Math.round(costoUnit*qty);
+        if(!matchedProductoId)matchedProductoId=prod.id; // tomamos el primero como referencia
+        cogsDetails.push(`${qty}×${prod.nombre}@$${costoUnit}`);
+      } else {
+        cogsDetails.push(`${qty}×${p.name} (sin match en stock)`);
+      }
+    });
+    const tnTxId='tn_'+o.id+'_'+Date.now().toString(36);
     const ingresoTx={
+      id:tnTxId,
       tipo:'ingreso',
       fecha,
       concepto:`TN #${o.number} — ${cliente}`,
@@ -5118,7 +5177,11 @@ function importTNSelected(orders){
       tn_id:o.id,
       tn_envio:envioMonto,
       tn_descuento:descuento||undefined,
-      comisionVendedor:comisionVendedor||undefined
+      comisionVendedor:comisionVendedor||undefined,
+      // COGS tracking (solo si se matchearon productos en S.stock con costo > 0)
+      productoId:matchedProductoId||undefined,
+      costoTotal:costoTotal>0?costoTotal:undefined,
+      cogsDetalle:costoTotal>0?cogsDetails.join(' · '):undefined
     };
     S.finanzas.push(ingresoTx);
     // Auto-gasto: costo de envío
@@ -5586,12 +5649,23 @@ function openModal(tipo,data,idx){
         <input class="form-input" id="ftx-cliente" list="ftx-cliente-list" placeholder="Buscar cliente o escribir uno nuevo..." autocomplete="off">
         <datalist id="ftx-cliente-list">${(S?.crm||[]).map(c=>`<option value="${(c.nombre||'').replace(/"/g,'&quot;')}">${c.ig?'@'+c.ig:''}${c.email?' · '+c.email:''}</option>`).join('')}</datalist>
       </div>
+      <div class="form-group" id="ftx-producto-wrap">
+        <label class="form-label">Producto <span style="font-weight:300;color:var(--muted);text-transform:none;letter-spacing:0">(opcional — trae costo y descuenta stock)</span></label>
+        <input class="form-input" id="ftx-producto" list="ftx-producto-list" placeholder="Buscar producto del stock..." autocomplete="off" oninput="onTxProductPicked()">
+        <datalist id="ftx-producto-list">${(S?.stock||[]).map(p=>`<option value="${(p.nombre||'').replace(/"/g,'&quot;')}">${p.sku?'SKU '+p.sku+' · ':''}stock ${p.stock||0} · costo $${parseFloat(p.costo||0).toLocaleString('es-AR')}${p.precio?' · sugerido $'+parseFloat(p.precio).toLocaleString('es-AR'):''}</option>`).join('')}</datalist>
+        <input type="hidden" id="ftx-producto-id">
+        <input type="hidden" id="ftx-producto-costo-unit">
+        <div id="ftx-producto-info" style="display:none;font-size:11px;margin-top:6px;background:var(--s3);padding:8px 11px;border-radius:6px;line-height:1.5"></div>
+        <label id="ftx-stock-toggle-wrap" style="display:none;align-items:center;gap:6px;margin-top:6px;font-size:11px;color:var(--muted2);cursor:pointer">
+          <input type="checkbox" id="ftx-descontar-stock" checked> Descontar del stock al guardar
+        </label>
+      </div>
       <div class="form-group"><label class="form-label">Concepto</label>
         <input class="form-input" id="ftx-concepto" placeholder="Ej: Venta jean negro, Meta Ads semana 1..."></div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Categoría</label><select class="form-select" id="ftx-cat"></select></div>
         <div class="form-group"><label class="form-label">Monto bruto ($)</label>
-          <input class="form-input" id="ftx-monto" type="number" placeholder="0" oninput="calcPreviewComision();calcVendorPreview()"></div>
+          <input class="form-input" id="ftx-monto" type="number" placeholder="0" oninput="calcPreviewComision();calcVendorPreview();renderTxMarginPreview()"></div>
       </div>
       <div class="form-row" id="ftx-medio-wrap">
         <div class="form-group"><label class="form-label">Medio de pago</label>
@@ -5604,7 +5678,7 @@ function openModal(tipo,data,idx){
       <div id="ftx-comision-preview" style="font-size:11px;color:var(--muted2);margin-bottom:8px;padding:7px 10px;background:var(--s3);border-radius:6px;display:none"></div>
       <div class="form-group" id="ftx-unidades-wrap">
         <label class="form-label">Unidades vendidas</label>
-        <input class="form-input" id="ftx-unidades" type="number" placeholder="0"></div>
+        <input class="form-input" id="ftx-unidades" type="number" placeholder="0" oninput="renderTxMarginPreview()"></div>
       <div id="ftx-vendor-wrap" style="display:none;border:1px solid var(--border2);border-radius:8px;padding:10px 12px;margin-bottom:8px">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--muted2);margin-bottom:0">
           <input type="checkbox" id="ftx-vendor-check" onchange="toggleVendorSection()">
@@ -5964,10 +6038,77 @@ function updateTxCats(){
   const mWrap=document.getElementById('ftx-medio-wrap');
   const vWrap=document.getElementById('ftx-vendor-wrap');
   const cWrap=document.getElementById('ftx-cliente-wrap');
+  const pWrap=document.getElementById('ftx-producto-wrap');
   if(uWrap)uWrap.style.display=tipo==='ingreso'?'block':'none';
   if(mWrap)mWrap.style.display=tipo==='ingreso'?'grid':'none';
   if(vWrap)vWrap.style.display=tipo==='ingreso'?'block':'none';
   if(cWrap)cWrap.style.display=tipo==='ingreso'?'block':'none';
+  if(pWrap)pWrap.style.display=tipo==='ingreso'?'block':'none';
+}
+
+// Cuando se elige un producto del datalist: matchear por nombre, traer costo + precio sugerido,
+// y mostrar preview de margen
+function onTxProductPicked(){
+  const inp=document.getElementById('ftx-producto');
+  const name=(inp?.value||'').trim();
+  const idHidden=document.getElementById('ftx-producto-id');
+  const costHidden=document.getElementById('ftx-producto-costo-unit');
+  const info=document.getElementById('ftx-producto-info');
+  const toggle=document.getElementById('ftx-stock-toggle-wrap');
+  const productos=(S?.stock||[]);
+  const match=name?productos.find(p=>(p.nombre||'').trim().toLowerCase()===name.toLowerCase()):null;
+  if(!match){
+    if(idHidden)idHidden.value='';
+    if(costHidden)costHidden.value='';
+    if(info){info.style.display='none';info.innerHTML='';}
+    if(toggle)toggle.style.display='none';
+    return;
+  }
+  // Asegurar id en el producto del stock
+  if(!match.id)match.id='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+  if(idHidden)idHidden.value=match.id;
+  if(costHidden)costHidden.value=match.costo||0;
+  if(toggle)toggle.style.display='flex';
+
+  // Pre-llenar concepto, precio sugerido y unidades si están vacíos
+  const conc=document.getElementById('ftx-concepto');
+  if(conc&&!conc.value)conc.value=`Venta — ${match.nombre}`;
+  const ud=document.getElementById('ftx-unidades');
+  if(ud&&!ud.value)ud.value=1;
+  const monto=document.getElementById('ftx-monto');
+  if(monto&&!parseFloat(monto.value)&&match.precio){
+    const uds=parseInt(ud?.value)||1;
+    monto.value=Math.round(parseFloat(match.precio)*uds);
+    calcPreviewComision();
+    calcVendorPreview();
+  }
+  renderTxMarginPreview();
+}
+
+function renderTxMarginPreview(){
+  const info=document.getElementById('ftx-producto-info');
+  const costHidden=document.getElementById('ftx-producto-costo-unit');
+  const idHidden=document.getElementById('ftx-producto-id');
+  if(!info||!idHidden?.value){if(info){info.style.display='none';}return;}
+  const costoUnit=parseFloat(costHidden?.value)||0;
+  const unidades=parseInt(document.getElementById('ftx-unidades')?.value)||1;
+  const monto=parseFloat(document.getElementById('ftx-monto')?.value)||0;
+  const costoTotal=Math.round(costoUnit*unidades);
+  const margenBruto=monto-costoTotal;
+  const margenPct=monto>0?Math.round((margenBruto/monto)*100):0;
+  const producto=(S?.stock||[]).find(p=>p.id===idHidden.value);
+  const stockActual=producto?(parseInt(producto.stock)||0):0;
+  const stockTras=stockActual-unidades;
+  info.style.display='block';
+  info.innerHTML=`
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <span>Costo por unidad: <strong>$${costoUnit.toLocaleString('es-AR')}</strong></span>
+      <span>Costo total: <strong style="color:var(--coral)">$${costoTotal.toLocaleString('es-AR')}</strong></span>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:4px">
+      <span>Margen bruto: <strong style="color:${margenBruto>=0?'var(--green)':'var(--red)'}">$${margenBruto.toLocaleString('es-AR')}</strong> <span style="color:var(--muted)">(${margenPct}%)</span></span>
+      <span style="color:${stockTras<0?'var(--red)':'var(--muted2)'}">Stock: ${stockActual} → ${stockTras}${stockTras<0?' ⚠ insuficiente':''}</span>
+    </div>`;
 }
 function calcPreviewComision(){
   const monto=parseFloat(document.getElementById('ftx-monto')?.value)||0;
@@ -6019,10 +6160,48 @@ function saveTx(){
     clienteNombre=(document.getElementById('ftx-cliente')?.value||'').trim();
     if(clienteNombre) clienteId=upsertCRMFromManual(clienteNombre,monto,fecha,concepto);
   }
+  // Link a Producto/Stock para tracking de COGS — solo en ingresos
+  let productoId=null,costoUnit=0,costoTotal=0,stockMsg='';
+  if(tipo==='ingreso'){
+    productoId=(document.getElementById('ftx-producto-id')?.value||'').trim()||null;
+    if(productoId){
+      const producto=(S.stock||[]).find(p=>p.id===productoId);
+      const uds=parseInt(document.getElementById('ftx-unidades')?.value)||0;
+      if(producto){
+        costoUnit=parseFloat(producto.costo)||0;
+        costoTotal=Math.round(costoUnit*uds);
+        // descontar stock si el checkbox está marcado
+        const descontar=document.getElementById('ftx-descontar-stock')?.checked;
+        if(descontar&&uds>0){
+          const stockAntes=parseInt(producto.stock)||0;
+          producto.stock=Math.max(0,stockAntes-uds);
+          if(stockAntes-uds<0){
+            stockMsg=` ⚠ Stock insuficiente — ajustado a 0 (faltaron ${uds-stockAntes} uds)`;
+          } else {
+            stockMsg=` · -${uds} stock (queda ${producto.stock})`;
+          }
+        }
+      }
+    }
+  }
   const txId='tx_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
-  S.finanzas.push({id:txId,tipo,fecha,concepto,categoria:document.getElementById('ftx-cat').value,monto,medioPago:tipo==='ingreso'?document.getElementById('ftx-medio')?.value:'',cuotas:tipo==='ingreso'?parseInt(document.getElementById('ftx-cuotas')?.value)||1:1,unidades:parseInt(document.getElementById('ftx-unidades')?.value)||0,notas:document.getElementById('ftx-notas')?.value||'',comisionVendedor:comisionVendedor||undefined,clienteId:clienteId||undefined});
+  S.finanzas.push({
+    id:txId,tipo,fecha,concepto,
+    categoria:document.getElementById('ftx-cat').value,
+    monto,
+    medioPago:tipo==='ingreso'?document.getElementById('ftx-medio')?.value:'',
+    cuotas:tipo==='ingreso'?parseInt(document.getElementById('ftx-cuotas')?.value)||1:1,
+    unidades:parseInt(document.getElementById('ftx-unidades')?.value)||0,
+    notas:document.getElementById('ftx-notas')?.value||'',
+    comisionVendedor:comisionVendedor||undefined,
+    clienteId:clienteId||undefined,
+    productoId:productoId||undefined,
+    costoUnit:productoId?costoUnit:undefined,
+    costoTotal:productoId?costoTotal:undefined
+  });
   save();closeModal();renderFinanzas();
-  notify(clienteId?`Movimiento guardado ✓ (cliente "${clienteNombre}" actualizado en CRM)`:'Movimiento guardado ✓');
+  const extras=[clienteId?`cliente "${clienteNombre}" en CRM`:'',productoId?`COGS $${costoTotal.toLocaleString('es-AR')}${stockMsg}`:''].filter(Boolean).join(' · ');
+  notify('Movimiento guardado ✓'+(extras?` (${extras})`:''));
 }
 
 // Upsert CRM desde venta manual (similar a upsertCRMFromTN).
