@@ -2687,7 +2687,7 @@ let _activePlanTab='calendario';
 let _pendingBriefId=null;
 
 function defaultData(){
-  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},ideas:[],semana:{},estrategia:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[],flows:[],flowDone:{}};
+  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},ideas:[],semana:{},estrategia:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[],flows:[],flowDone:{},tnProductCost:{}};
 }
 
 function _localLoad(){
@@ -4973,6 +4973,77 @@ function initTNDates(){
   if(d&&!d.value)d.value=fmtDate(ini);
   if(h&&!h.value)h.value=fmtDate(fin);
 }
+// Sincroniza productos de TN para construir un cache de costos local.
+// Cache: S.tnProductCost = { byVariantId, bySku, byProductId, lastSync }
+async function syncTNProductsCost(force){
+  const now=Date.now();
+  const cache=S.tnProductCost||{};
+  // Si hay cache reciente (<24h) y no es forzado, no resincronizar
+  if(!force&&cache.lastSync&&(now-cache.lastSync)<24*60*60*1000) return cache;
+  try{
+    const r=await fetch(`/api/tn/products?wsId=${encodeURIComponent(_activeWsId)}`);
+    const data=await r.json();
+    if(!r.ok||data.error){
+      console.warn('[TN sync products] error:',data.error||r.status);
+      return cache;
+    }
+    const byVariantId={},bySku={},byProductId={};
+    (data||[]).forEach(p=>{
+      const pid=String(p.id);
+      let totalCost=0,count=0;
+      (p.variants||[]).forEach(v=>{
+        const cost=v.cost!=null?Number(v.cost):null;
+        const vid=String(v.id);
+        if(cost!=null){
+          byVariantId[vid]=cost;
+          totalCost+=cost;count++;
+          if(v.sku)bySku[String(v.sku).trim()]=cost;
+        }
+      });
+      // costo "representativo" del producto = promedio de variantes (fallback si no hay variant_id)
+      if(count>0) byProductId[pid]=totalCost/count;
+    });
+    S.tnProductCost={byVariantId,bySku,byProductId,lastSync:now};
+    save();
+    return S.tnProductCost;
+  }catch(e){
+    console.warn('[TN sync products] exception:',e);
+    return cache;
+  }
+}
+
+// Lookup del costo de una línea de pedido. Prioridad: variant_id > sku > product_id > stock local.
+function _tnLookupCost(lineItem){
+  const cache=S.tnProductCost||{};
+  const vid=lineItem.variant_id!=null?String(lineItem.variant_id):'';
+  const pid=lineItem.product_id!=null?String(lineItem.product_id):'';
+  const sku=(lineItem.sku||'').toString().trim();
+  if(vid&&cache.byVariantId&&cache.byVariantId[vid]!=null) return{cost:cache.byVariantId[vid],source:'TN variant'};
+  if(sku&&cache.bySku&&cache.bySku[sku]!=null) return{cost:cache.bySku[sku],source:'TN sku'};
+  if(pid&&cache.byProductId&&cache.byProductId[pid]!=null) return{cost:cache.byProductId[pid],source:'TN product'};
+  // Fallback: matchear contra S.stock local (lo que ya teníamos)
+  const stockArr=S.stock||[];
+  const name=(lineItem.name||'').toString().toLowerCase().trim();
+  let p=sku?stockArr.find(s=>(s.sku||'').toString().trim()===sku):null;
+  if(!p&&name)p=stockArr.find(s=>(s.nombre||'').toLowerCase().trim()===name);
+  if(p&&p.costo!=null){return{cost:Number(p.costo)||0,source:'stock local'};}
+  return{cost:0,source:null};
+}
+
+async function resyncTNCosts(){
+  const btn=event?.target;
+  if(btn){btn.disabled=true;btn.textContent='Sincronizando…';}
+  try{
+    await syncTNProductsCost(true);
+    showToast('Costos sincronizados desde Tienda Nube ✓');
+    fetchTNOrders();
+  }catch(e){
+    showToast('Error al sincronizar costos: '+e.message,'error');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='↻ Sincronizar costos';}
+  }
+}
+
 async function fetchTNOrders(){
   const desde=document.getElementById('tn-desde')?.value;
   const hasta=document.getElementById('tn-hasta')?.value;
@@ -4980,10 +5051,13 @@ async function fetchTNOrders(){
   const btn=document.getElementById('tn-import-btn');
   const area=document.getElementById('tn-import-area');
   if(btn)btn.disabled=true;
-  if(area)area.innerHTML=`<div style="font-size:12px;color:var(--muted);padding:12px 0">Buscando órdenes…</div>`;
+  if(area)area.innerHTML=`<div style="font-size:12px;color:var(--muted);padding:12px 0">Buscando órdenes y sincronizando costos de productos…</div>`;
+  // Sincronizar costos en paralelo (no bloqueante para órdenes)
+  const syncPromise=syncTNProductsCost(false);
   try{
     const r=await fetch(`/api/tn/orders?desde=${desde}&hasta=${hasta}&wsId=${encodeURIComponent(_activeWsId)}`);
     const orders=await r.json();
+    await syncPromise; // esperar costos antes de renderizar la preview con margen
     if(!r.ok||orders.error){area.innerHTML=`<div style="color:var(--coral);font-size:12px;padding:8px 0">Error: ${orders.error||'no se pudo conectar'}</div>`;return;}
     if(!orders.length){
       area.innerHTML=`<div style="font-size:12px;color:var(--muted);padding:8px 0">No se encontraron ventas pagadas en ese período. Probá ampliar el rango de fechas.</div>`;
@@ -5017,7 +5091,6 @@ function _tnEnvio(o){
 function renderTNPreview(orders, totalFetched){
   const area=document.getElementById('tn-import-area');
   if(!area)return;
-  // Map TN gateway names to local medio de pago
   function mapGateway(o){
     const g=(o.gateway||'').toLowerCase();
     if(g.includes('mercado'))return'Mercado Pago';
@@ -5026,67 +5099,102 @@ function renderTNPreview(orders, totalFetched){
     if(g.includes('cash')||g.includes('efectivo'))return'Efectivo';
     return o.gateway||'Otro';
   }
-  const rows=orders.map((o,i)=>{
+
+  const cache=S.tnProductCost||{};
+  const cacheReady=cache.lastSync&&(Object.keys(cache.byVariantId||{}).length>0||Object.keys(cache.bySku||{}).length>0);
+  const cacheSyncAgo=cache.lastSync?Math.floor((Date.now()-cache.lastSync)/(1000*60)):null;
+
+  const cards=orders.map((o,i)=>{
     const fecha=(o.created_at||'').slice(0,10);
     const cliente=o.customer?.name||o.customer?.email||'Cliente';
     const total=parseFloat(o.total)||0;
     const medio=mapGateway(o);
-    const productos=(o.products||[]).map(p=>p.name).slice(0,2).join(', ')+(o.products?.length>2?'…':'');
-    // Discount / coupon code
     const coupons=o.coupon||o.coupons||[];
     const descuento=Array.isArray(coupons)&&coupons.length
       ?coupons.map(c=>c.code).filter(Boolean).join(', ')
       :(typeof coupons==='string'?coupons:'');
     const envio=_tnEnvio(o);
-    return`<tr id="tn-row-${i}" style="border-bottom:1px solid var(--border)">
-      <td style="padding:8px 4px"><input type="checkbox" id="tn-chk-${i}" checked></td>
-      <td style="padding:8px 6px;font-size:11px;color:var(--muted)">#${o.number}</td>
-      <td style="padding:8px 6px;font-size:12px">${fecha}</td>
-      <td style="padding:8px 6px;font-size:12px;color:var(--muted2)">${cliente}</td>
-      <td style="padding:8px 6px;font-size:11px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${productos}">${productos}</td>
-      <td style="padding:8px 6px;font-size:12px;color:var(--green);font-weight:500">${fmtMoney(total)}</td>
-      <td style="padding:8px 6px;font-size:11px;color:var(--muted)">${medio}</td>
-      <td style="padding:8px 6px;font-size:11px;color:${envio>0?'var(--blue)':'var(--border2)'}">${envio>0?fmtMoney(envio):'—'}</td>
-      <td style="padding:8px 6px;font-size:11px">${descuento?`<span style="background:rgba(215,185,95,.15);color:var(--gold);border-radius:5px;padding:2px 6px;font-weight:500;font-size:10px">🏷️ ${descuento}</span>`:'<span style="color:var(--border2)">—</span>'}</td>
-      <td style="padding:8px 6px">
-        <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;white-space:nowrap">
-          <input type="checkbox" id="tn-vchk-${i}" onchange="toggleTNVendor(${i})"> Comisión
+    // Calcular COGS preview por línea
+    let cogs=0,cogsLines=[],sinMatch=0;
+    (o.products||[]).forEach(p=>{
+      const qty=parseInt(p.quantity)||1;
+      const look=_tnLookupCost(p);
+      if(look.cost>0){
+        cogs+=look.cost*qty;
+        cogsLines.push(`${qty}×${p.name||'?'} @$${look.cost.toLocaleString('es-AR')} <span style="color:var(--muted);font-size:9px">(${look.source})</span>`);
+      } else {
+        sinMatch++;
+        cogsLines.push(`${qty}×${p.name||'?'} <span style="color:var(--coral);font-size:9px">⚠ sin costo</span>`);
+      }
+    });
+    cogs=Math.round(cogs);
+    const margenBruto=total-cogs;
+    const margenPct=total>0?Math.round((margenBruto/total)*100):0;
+
+    return`<div id="tn-row-${i}" style="border:1px solid var(--border2);border-radius:10px;padding:14px 16px;margin-bottom:10px;background:var(--s2)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600">
+          <input type="checkbox" id="tn-chk-${i}" checked style="width:16px;height:16px">
+          <span style="color:var(--muted)">#${o.number}</span>
+          <span style="color:var(--text)">${cliente}</span>
         </label>
-        <div id="tn-vfields-${i}" style="display:none;margin-top:4px">
-          <input class="form-input" id="tn-vnombre-${i}" placeholder="Vendedor" style="margin-bottom:3px;font-size:11px;padding:4px 6px">
-          <input class="form-input" id="tn-vpct-${i}" type="number" placeholder="%" min="0" max="100" style="font-size:11px;padding:4px 6px;width:60px">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:11px">
+          <span style="color:var(--muted)">📅 ${fecha}</span>
+          <span style="color:var(--muted)">💳 ${medio}</span>
+          ${envio>0?`<span style="color:var(--blue)">🚚 ${fmtMoney(envio)}</span>`:''}
+          ${descuento?`<span style="background:rgba(215,185,95,.15);color:var(--gold);border-radius:5px;padding:2px 7px;font-weight:500">🏷️ ${descuento}</span>`:''}
         </div>
-      </td>
-    </tr>`;
+      </div>
+
+      <!-- Resumen financiero de la orden -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;padding:8px 10px;background:var(--s3);border-radius:8px;margin-bottom:8px">
+        <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Total</div><div style="font-size:14px;color:var(--green);font-weight:700">${fmtMoney(total)}</div></div>
+        <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">COGS</div><div style="font-size:14px;color:${cogs>0?'#d57c50':'var(--muted)'};font-weight:700">${cogs>0?'-'+fmtMoney(cogs):'—'}</div></div>
+        <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Margen bruto</div><div style="font-size:14px;color:${margenBruto>=0?'var(--green)':'var(--red)'};font-weight:700">${fmtMoney(margenBruto)} <span style="font-size:10px;color:var(--muted);font-weight:400">(${margenPct}%)</span></div></div>
+        <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Unidades</div><div style="font-size:14px;font-weight:700">${(o.products||[]).reduce((a,p)=>a+(parseInt(p.quantity)||1),0)}</div></div>
+      </div>
+
+      <!-- Productos + desglose COGS -->
+      <details style="margin-bottom:8px">
+        <summary style="cursor:pointer;font-size:11px;color:var(--muted2);user-select:none">Ver productos (${(o.products||[]).length}${sinMatch?` · ${sinMatch} sin costo`:''})</summary>
+        <div style="margin-top:6px;font-size:11px;color:var(--muted2);padding-left:12px;line-height:1.6">${cogsLines.map(l=>`<div>• ${l}</div>`).join('')}</div>
+      </details>
+
+      <!-- Comisión vendedor (siempre visible) -->
+      <div style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--muted2)">
+          <input type="checkbox" id="tn-vchk-${i}" onchange="toggleTNVendor(${i})" style="width:14px;height:14px">
+          <span>💼 Esta venta tiene comisión de vendedor</span>
+        </label>
+        <div id="tn-vfields-${i}" style="display:none;margin-top:8px;display:none;gap:8px;flex-wrap:wrap;align-items:center">
+          <input class="form-input" id="tn-vnombre-${i}" placeholder="Nombre del vendedor" style="font-size:12px;padding:6px 10px;flex:1;min-width:160px">
+          <input class="form-input" id="tn-vpct-${i}" type="number" placeholder="% comisión" min="0" max="100" step="0.5" style="font-size:12px;padding:6px 10px;width:110px">
+        </div>
+      </div>
+    </div>`;
   }).join('');
 
   area.innerHTML=`
-    <div style="font-size:12px;color:var(--muted2);margin-bottom:10px">
-      Se encontraron <strong style="color:var(--text)">${orders.length}</strong> órdenes nuevas
-      ${totalFetched>orders.length?`(${totalFetched-orders.length} ya importadas)`:''}
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <div style="font-size:12px;color:var(--muted2)">
+        Se encontraron <strong style="color:var(--text)">${orders.length}</strong> órdenes nuevas
+        ${totalFetched>orders.length?`<span style="color:var(--muted)">(${totalFetched-orders.length} ya importadas)</span>`:''}
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:var(--muted)">
+          <input type="checkbox" id="tn-chk-all" checked onchange="toggleAllTN(this)" style="width:14px;height:14px"> Seleccionar todas
+        </label>
+        <button class="btn btn-sm" onclick="resyncTNCosts()" title="Forzar resincronización de costos desde TN">
+          ↻ Sincronizar costos ${cacheReady?`<span style="color:var(--muted);font-size:10px">(hace ${cacheSyncAgo}m)</span>`:''}
+        </button>
+      </div>
     </div>
-    <div style="overflow-x:auto;margin-bottom:12px;border:1px solid var(--border2);border-radius:8px">
-      <table style="width:100%;border-collapse:collapse">
-        <thead><tr style="background:var(--s3)">
-          <th style="padding:6px 4px"><input type="checkbox" id="tn-chk-all" checked onchange="toggleAllTN(this)"></th>
-          <th style="padding:6px;font-size:10px;color:var(--muted);text-align:left">Nro</th>
-          <th style="padding:6px;font-size:10px;color:var(--muted);text-align:left">Fecha</th>
-          <th style="padding:6px;font-size:10px;color:var(--muted);text-align:left">Cliente</th>
-          <th style="padding:6px;font-size:10px;color:var(--muted);text-align:left">Productos</th>
-          <th style="padding:6px;font-size:10px;color:var(--muted);text-align:left">Total</th>
-          <th style="padding:6px;font-size:10px;color:var(--muted);text-align:left">Medio</th>
-          <th style="padding:6px;font-size:10px;color:var(--muted);text-align:left">Envío</th>
-          <th style="padding:6px;font-size:10px;color:var(--muted);text-align:left">Descuento</th>
-          <th style="padding:6px;font-size:10px;color:var(--muted);text-align:left">Vendedor</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-    <button class="btn btn-primary" style="padding:10px 24px;font-size:13px" onclick="importTNSelected(window._tnPendingOrders)">
+    ${!cacheReady?`<div style="background:rgba(215,185,95,.1);border:1px solid rgba(215,185,95,.3);color:var(--gold);font-size:11px;padding:8px 12px;border-radius:8px;margin-bottom:10px">⚠ Aún no se sincronizaron los costos desde TN — el COGS puede aparecer en 0. Click "Sincronizar costos" arriba.</div>`:''}
+    <div style="margin-bottom:12px">${cards}</div>
+    <button class="btn btn-primary" style="padding:10px 24px;font-size:13px;width:100%" onclick="importTNSelected(window._tnPendingOrders)">
       ✓ Importar seleccionadas a Finanzas
     </button>`;
 
-  // Store orders for import
   window._tnPendingOrders=orders;
   // Debug: mostrar campos de envío del primer pedido en consola del browser
   if(orders[0]?._shippingDebug){

@@ -271,6 +271,58 @@ app.get("/api/tn/orders", async (req, res) => {
   }
 })
 
+// Traer todos los productos de TN con sus variantes (incluye cost) — usado para mapear
+// COGS al importar órdenes. Pagina hasta agotar.
+// Devuelve array compacto: [{ id, name, sku, variants:[{id, sku, cost, price}] }]
+app.get("/api/tn/products", async (req, res) => {
+  const { wsId } = req.query
+  try {
+    if (!wsId) return res.status(400).json({ error: "wsId requerido" })
+    const ws = await getWorkspace(wsId)
+    const tn = ws?.data?.tnIntegration
+    if (!tn?.token) return res.status(400).json({ error: "Tienda Nube no conectada en este proyecto" })
+    const { storeId, token } = tn
+
+    const headers = {
+      "Authentication": `bearer ${token}`,
+      "User-Agent": "VELDOS (soporte@veldos.app)"
+    }
+    const PER_PAGE = 200
+    let all = []
+    let page = 1
+    while (true) {
+      const url = `https://api.tiendanube.com/v1/${storeId}/products?per_page=${PER_PAGE}&page=${page}&fields=id,name,variants`
+      const r = await fetch(url, { headers })
+      if (r.status === 404) break
+      if (!r.ok) {
+        const txt = await r.text()
+        return res.status(r.status).json({ error: txt })
+      }
+      const data = await r.json()
+      const batch = Array.isArray(data) ? data : []
+      all = all.concat(batch)
+      if (batch.length < PER_PAGE) break
+      page++
+      if (page > 100) break // safety: hasta 20 000 productos
+    }
+    // Compactar payload: solo lo necesario para el cost-mapping
+    const compact = all.map(p => ({
+      id: p.id,
+      name: typeof p.name === "object" ? (p.name.es || p.name.pt || Object.values(p.name||{})[0] || "") : (p.name || ""),
+      variants: (p.variants || []).map(v => ({
+        id: v.id,
+        sku: v.sku || "",
+        cost: v.cost != null ? Number(v.cost) : null,
+        price: v.price != null ? Number(v.price) : null,
+        stock: v.stock != null ? Number(v.stock) : null
+      }))
+    }))
+    res.json(compact)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
 // Debug: estado webhooks y envío
 app.get("/api/tn/debug-shipping", async (req, res) => {
   const { wsId } = req.query
