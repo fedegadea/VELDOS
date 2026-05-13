@@ -1215,6 +1215,9 @@ tr:hover .tx-del{color:var(--muted)}
   <nav class="nav-tabs" id="nav-crm" style="display:none">
     <button class="nav-tab active" onclick="switchPage('crm',this)">CRM</button>
   </nav>
+  <nav class="nav-tabs" id="nav-flows" style="display:none">
+    <button class="nav-tab active" onclick="switchPage('flows',this)">Flows</button>
+  </nav>
   <nav class="nav-tabs" id="nav-hojas" style="display:none">
     <button class="nav-tab active" onclick="switchPage('hojas',this)" id="hojas-nav-default">Todas las hojas</button>
   </nav>
@@ -1249,6 +1252,7 @@ tr:hover .tx-del{color:var(--muted)}
     <button class="sb-item" id="sbi-finanzas" onclick="sbNav('finanzas','finanzas',this)"><span class="sb-item-icon">💰</span>Finanzas</button>
     <button class="sb-item" id="sbi-operaciones" onclick="sbNav('operaciones','operaciones',this)"><span class="sb-item-icon">⚙️</span>Operaciones</button>
     <button class="sb-item" id="sbi-crm" onclick="sbNav('crm','crm',this)"><span class="sb-item-icon">👤</span>CRM</button>
+    <button class="sb-item" id="sbi-flows" onclick="sbNav('flows','flows',this)"><span class="sb-item-icon">⚡</span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Flows<span id="flows-nav-badge" style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Automatizaciones</span></span></button>
     <button class="sb-item" id="sbi-stock" onclick="sbNav('stock','stock',this)"><span class="sb-item-icon">📦</span>Stock</button>
     <button class="sb-item" id="sbi-integraciones" onclick="sbNav('integraciones','integraciones',this)"><span class="sb-item-icon">🔗</span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Integraciones<span id="tn-nav-badge" style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">🛍️ Tienda Nube</span></span></button>
     <button class="sb-item" id="sbi-hojas" onclick="sbNav('hojas','hojas',this)"><span class="sb-item-icon">📁</span>Hojas</button>
@@ -2526,6 +2530,38 @@ tr:hover .tx-del{color:var(--muted)}
  
   </div>
 </div>
+<!-- ══ FLOWS ══ -->
+<div class="page" id="page-flows">
+  <div class="sec-head">
+    <div class="sec-title">Flows<small>Automatizaciones de seguimiento — tareas diarias y reglas</small></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="openFlowModal()">+ Nueva automatización</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="plan-tabs">
+    <button class="plan-tab active" id="flow-tab-hoy" onclick="switchFlowTab('hoy',this)">📋 Tareas de hoy <span id="flow-today-count" style="background:var(--accent,#a87bff);color:#fff;font-size:10px;padding:1px 7px;border-radius:9px;margin-left:4px">0</span></button>
+    <button class="plan-tab" id="flow-tab-flows" onclick="switchFlowTab('flows',this)">⚙️ Automatizaciones</button>
+    <button class="plan-tab" id="flow-tab-historial" onclick="switchFlowTab('historial',this)">🗂 Historial</button>
+  </div>
+
+  <!-- Tab: Tareas de hoy -->
+  <div class="plan-section active" id="flowtab-hoy">
+    <div id="flow-today-list" style="margin-top:14px"></div>
+  </div>
+
+  <!-- Tab: Automatizaciones -->
+  <div class="plan-section" id="flowtab-flows">
+    <div id="flow-rules-list" style="margin-top:14px"></div>
+  </div>
+
+  <!-- Tab: Historial -->
+  <div class="plan-section" id="flowtab-historial">
+    <div id="flow-history-list" style="margin-top:14px"></div>
+  </div>
+</div>
+
 <!-- ══ STOCK ══ -->
 <div class="page" id="page-stock">
   <div class="sec-head">
@@ -2640,7 +2676,7 @@ let _activePlanTab='calendario';
 let _pendingBriefId=null;
 
 function defaultData(){
-  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},ideas:[],semana:{},estrategia:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[]};
+  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},ideas:[],semana:{},estrategia:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[],flows:[],flowDone:{}};
 }
 
 function _localLoad(){
@@ -3167,7 +3203,7 @@ function sbNav(area,page,el){
     document.getElementById('pin-error').textContent='';
     return;
   }
-  const paths={checklist:'checklist',todo:'todo',drive:'planning',marca:'marca',producto:'producto',crm:'crm',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones',finanzas:'finanzas'};
+  const paths={checklist:'checklist',todo:'todo',drive:'planning',marca:'marca',producto:'producto',crm:'crm',flows:'flows',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones',finanzas:'finanzas'};
   navigate(paths[page]||page);
 }
 
@@ -3181,10 +3217,10 @@ let _activeFinTab='movimientos';
 
 const _PLAN_TABS=new Set(['calendario','semana','ideas','biblioteca','briefs','canjes','collabs','estrategia']);
 const _FIN_TABS =new Set(['movimientos','ingresos','gastos','comisiones','kpis','cashflow','config','presupuesto','capital']);
-const _AREA_LABELS={marketing:'Marketing',finanzas:'Finanzas',crm:'CRM',hojas:'Hojas',operaciones:'Operaciones',stock:'Stock',integraciones:'Integraciones'};
+const _AREA_LABELS={marketing:'Marketing',finanzas:'Finanzas',crm:'CRM',flows:'Flows',hojas:'Hojas',operaciones:'Operaciones',stock:'Stock',integraciones:'Integraciones'};
 
 // Lista de rutas válidas — usada también para el fallback (rutas no válidas → /checklist)
-const _VALID_TOP_SEGMENTS=new Set(['checklist','todo','planning','marca','producto','finanzas','crm','hojas','operaciones','stock','integraciones','login','projects']);
+const _VALID_TOP_SEGMENTS=new Set(['checklist','todo','planning','marca','producto','finanzas','crm','flows','hojas','operaciones','stock','integraciones','login','projects']);
 
 function parseRoute(pathname){
   const clean=(pathname||'/').replace(/^\/+|\/+$/g,'');
@@ -3201,7 +3237,7 @@ function parseRoute(pathname){
   if(seg==='finanzas'){
     return{area:'finanzas',page:'finanzas',finTab:(_FIN_TABS.has(s2)?s2:'movimientos')};
   }
-  const direct={crm:1,hojas:1,operaciones:1,stock:1,integraciones:1};
+  const direct={crm:1,flows:1,hojas:1,operaciones:1,stock:1,integraciones:1};
   if(direct[seg]) return{area:seg,page:seg};
   // Ruta desconocida → checklist (único fallback permitido)
   return{area:'marketing',page:'checklist'};
@@ -3280,6 +3316,7 @@ function applyRoute(){
   // Area renders
   if(S){
     if(r.area==='crm'){if(!S.crm)S.crm=[];renderCRM();}
+    if(r.area==='flows'){if(!S.flows)S.flows=[];renderFlowsPage();}
     if(r.area==='hojas'){if(!S.customViews)S.customViews=[];renderHojas();}
     if(r.area==='stock'){if(!S.stock)S.stock=[];renderStock();}
     if(r.area==='integraciones')renderIntegraciones();
@@ -3301,6 +3338,367 @@ function _renderPlanSection(tab){
   else if(tab==='biblioteca')renderBiblioteca();
   else if(tab==='semana')renderSemana();
   else if(tab==='estrategia')renderEstrategia();
+}
+
+// ═══════════════════════════════════════════════════════
+// FLOWS — Automatizaciones de seguimiento
+// ═══════════════════════════════════════════════════════
+// Modelo:
+//   S.flows[]    = [{id, name, enabled, trigger:{type, days}, action:{type, template}, filter:{estados}}]
+//   S.flowDone{} = { 'flowId|contactId|YYYY-MM-DD': true } — para no repetir tareas ya resueltas
+// Tipos de trigger:
+//   after_purchase  → días después de c.ultimaCompra
+//   after_creation  → días después de c.creado
+//   no_contact      → días desde c.ultimoContacto (≥ N días sin contactar)
+//   reminder_due    → cuando un recordatorio vence (hoy o atrás)
+// Acciones: whatsapp (abre WA con template renderizado) | task (sólo marca pendiente)
+
+let _flowEditId=null;
+let _flowTab='hoy';
+
+function _flowsInit(){
+  if(!S)return;
+  if(!S.flows)S.flows=[];
+  if(!S.flowDone)S.flowDone={};
+}
+
+function _fmtVar(c){
+  return{
+    nombre:c.nombre||'',
+    ultimaCompra:c.ultimaCompra?c.ultimaCompra.split('-').reverse().join('/'):'',
+    cantCompras:c.cantidadCompras||c.cantCompras||0,
+    valor:c.valor?'$'+parseFloat(c.valor).toLocaleString('es-AR'):'$0',
+    ig:c.ig||'',
+    email:c.email||''
+  };
+}
+
+function _applyTemplate(tpl,c,extra={}){
+  const vars={..._fmtVar(c),...extra};
+  return String(tpl||'').replace(/\{(\w+)\}/g,(_,k)=>vars[k]!==undefined?vars[k]:'{'+k+'}');
+}
+
+function _daysBetween(a,b){
+  if(!a||!b)return null;
+  const da=new Date(a),db=new Date(b);
+  if(isNaN(da)||isNaN(db))return null;
+  return Math.floor((db-da)/(1000*60*60*24));
+}
+
+// Devuelve array de tareas pendientes para HOY (computadas en tiempo real)
+function computeFlowTasks(){
+  _flowsInit();
+  const today=fmtDate(new Date());
+  const out=[];
+  (S.flows||[]).forEach(f=>{
+    if(!f.enabled)return;
+    const trig=f.trigger||{};
+    const days=parseInt(trig.days)||0;
+    (S.crm||[]).forEach(c=>{
+      // filtro por estado si está configurado
+      if(f.filter&&f.filter.estados&&f.filter.estados.length){
+        if(!f.filter.estados.includes(c.estado||'Nuevo'))return;
+      }
+      let triggerKey=null;
+      let dueDate=null;
+      if(trig.type==='after_purchase'&&c.ultimaCompra){
+        const diff=_daysBetween(c.ultimaCompra,today);
+        if(diff===days){triggerKey=c.ultimaCompra;dueDate=today;}
+      } else if(trig.type==='after_creation'&&c.creado){
+        const diff=_daysBetween(c.creado,today);
+        if(diff===days){triggerKey=c.creado;dueDate=today;}
+      } else if(trig.type==='no_contact'){
+        const ref=c.ultimoContacto||c.creado;
+        if(ref){
+          const diff=_daysBetween(ref,today);
+          // dispara cuando alcanza N días o cada N días después (mientras no haya contacto nuevo)
+          if(diff!==null&&diff>=days&&days>0){triggerKey='nc_'+ref;dueDate=today;}
+        }
+      } else if(trig.type==='reminder_due'){
+        (c.reminders||[]).forEach(r=>{
+          if(r.hecho)return;
+          if(r.fecha&&r.fecha<=today){
+            const cid=c.id||'';
+            const k=f.id+'|'+cid+'|reminder_'+(r.id||r.fecha);
+            if(!S.flowDone[k]){
+              out.push({
+                flow:f, contact:c, key:k,
+                triggerType:'reminder_due',
+                triggerDate:r.fecha,
+                dueDate:today,
+                message:r.nota||'',
+                reminderId:r.id||r.fecha
+              });
+            }
+          }
+        });
+        return; // reminder_due iterates over reminders, skip default add below
+      }
+      if(triggerKey&&dueDate){
+        const cid=c.id||'';
+        const k=f.id+'|'+cid+'|'+triggerKey;
+        if(S.flowDone[k])return;
+        out.push({
+          flow:f, contact:c, key:k,
+          triggerType:trig.type,
+          triggerDate:triggerKey,
+          dueDate,
+          message:_applyTemplate(f.action?.template||'',c,{dias:days})
+        });
+      }
+    });
+  });
+  return out;
+}
+
+function renderFlowsPage(){
+  _flowsInit();
+  // Asegurarse que solo una tab esté visible (la actual)
+  document.querySelectorAll('#page-flows .plan-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('#page-flows .plan-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('flowtab-'+_flowTab)?.classList.add('active');
+  document.getElementById('flow-tab-'+_flowTab)?.classList.add('active');
+  renderFlowsToday();
+  renderFlowsList();
+  renderFlowsHistory();
+  // update badge
+  const tasks=computeFlowTasks();
+  const badge=document.getElementById('flow-today-count');
+  if(badge)badge.textContent=tasks.length;
+  const navBadge=document.getElementById('flows-nav-badge');
+  if(navBadge)navBadge.textContent=tasks.length?tasks.length+' tarea'+(tasks.length===1?'':'s')+' hoy':'Automatizaciones';
+}
+
+function switchFlowTab(tab,btn){
+  _flowTab=tab;
+  document.querySelectorAll('#page-flows .plan-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('#page-flows .plan-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('flowtab-'+tab)?.classList.add('active');
+  btn?.classList.add('active');
+}
+
+function renderFlowsToday(){
+  const cont=document.getElementById('flow-today-list');
+  if(!cont)return;
+  const tasks=computeFlowTasks();
+  if(!tasks.length){
+    cont.innerHTML=`<div style="text-align:center;padding:50px 20px;color:var(--muted)">
+      <div style="font-size:48px;margin-bottom:12px">✨</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text)">Sin tareas pendientes hoy</div>
+      <div style="font-size:12px;margin-top:6px">Las automatizaciones se dispararán a medida que se cumplan las condiciones.</div>
+      ${(!S.flows||!S.flows.length)?'<button class="btn btn-primary" style="margin-top:14px" onclick="openFlowModal()">+ Crear mi primera automatización</button>':''}
+    </div>`;
+    return;
+  }
+  // Agrupar por flow
+  const byFlow={};
+  tasks.forEach(t=>{
+    if(!byFlow[t.flow.id])byFlow[t.flow.id]={flow:t.flow,tasks:[]};
+    byFlow[t.flow.id].tasks.push(t);
+  });
+  cont.innerHTML=Object.values(byFlow).map(g=>`
+    <div style="background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-size:14px;font-weight:700">${g.flow.name||'Sin nombre'}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${_triggerLabel(g.flow.trigger)} · ${g.tasks.length} cliente${g.tasks.length===1?'':'s'}</div>
+        </div>
+      </div>
+      ${g.tasks.map(t=>{
+        const wapp=buildWappUrl(t.contact.tel);
+        const wappLink=wapp?`${wapp}?text=${encodeURIComponent(t.message)}`:'';
+        const msgEsc=t.message.replace(/'/g,"\\'");
+        return`<div style="background:var(--s3);padding:10px 12px;border-radius:8px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <div style="font-size:13px;font-weight:600">${t.contact.nombre||'Sin nombre'} ${t.contact.ig?`<span style="color:var(--muted);font-weight:400">@${t.contact.ig}</span>`:''}</div>
+            ${t.message?`<div style="font-size:11px;color:var(--muted2);margin-top:5px;background:var(--s1);padding:8px 10px;border-radius:6px;line-height:1.4">${t.message}</div>`:''}
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${t.flow.action?.type==='whatsapp'&&wappLink?`<a class="btn btn-sm" href="${wappLink}" target="_blank" onclick="markFlowDone('${t.key}',${S.crm.indexOf(t.contact)},'${msgEsc}')" style="background:#25d366;color:#fff;border-color:#25d366">💬 Enviar WhatsApp</a>`:''}
+            <button class="btn btn-sm" onclick="markFlowDone('${t.key}',${S.crm.indexOf(t.contact)},'${msgEsc}')">✓ Marcar hecho</button>
+            <button class="btn btn-sm" onclick="snoozeFlow('${t.key}')" title="Posponer 1 día">⏰</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `).join('');
+}
+
+function _triggerLabel(t){
+  if(!t)return'';
+  const d=t.days||0;
+  if(t.type==='after_purchase')return`${d} días después de la compra`;
+  if(t.type==='after_creation')return`${d} días después de crear el contacto`;
+  if(t.type==='no_contact')return`${d}+ días sin contactar`;
+  if(t.type==='reminder_due')return'Cuando vence un recordatorio';
+  return t.type;
+}
+
+function renderFlowsList(){
+  const cont=document.getElementById('flow-rules-list');
+  if(!cont)return;
+  if(!S.flows||!S.flows.length){
+    cont.innerHTML=`<div style="text-align:center;padding:40px 20px;color:var(--muted)">
+      <div style="font-size:13px;margin-bottom:14px">Aún no tenés automatizaciones configuradas.</div>
+      <button class="btn btn-primary" onclick="openFlowModal()">+ Crear mi primera automatización</button>
+      <div style="margin-top:24px;font-size:11px;color:var(--muted2);max-width:540px;margin-left:auto;margin-right:auto;text-align:left;background:var(--s3);padding:14px 16px;border-radius:10px">
+        <div style="font-weight:600;color:var(--text);margin-bottom:6px">Ejemplos típicos:</div>
+        • Mensaje 10 días después de una compra para pedir feedback<br>
+        • Re-enganche al cliente que lleva 30 días sin contacto<br>
+        • Bienvenida 1 día después de crear el contacto<br>
+        • Alerta cuando vence un recordatorio
+      </div>
+    </div>`;
+    return;
+  }
+  cont.innerHTML=S.flows.map(f=>`
+    <div style="background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="position:relative;display:inline-flex;align-items:center;cursor:pointer" title="${f.enabled?'Activado':'Desactivado'}">
+        <input type="checkbox" ${f.enabled?'checked':''} onchange="toggleFlow('${f.id}',this.checked)" style="width:18px;height:18px;cursor:pointer">
+      </label>
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:14px;font-weight:700;${f.enabled?'':'opacity:.5'}">${f.name||'Sin nombre'}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${_triggerLabel(f.trigger)} → ${f.action?.type==='whatsapp'?'💬 WhatsApp':'📋 Tarea'}</div>
+        ${f.action?.template?`<div style="font-size:11px;color:var(--muted2);margin-top:6px;background:var(--s3);padding:6px 10px;border-radius:6px;line-height:1.4">${f.action.template.slice(0,140)}${f.action.template.length>140?'…':''}</div>`:''}
+        ${f.filter&&f.filter.estados&&f.filter.estados.length?`<div style="font-size:10px;color:var(--muted);margin-top:6px">Filtro: ${f.filter.estados.join(' · ')}</div>`:''}
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-sm" onclick="openFlowModal('${f.id}')">✎ Editar</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteFlow('${f.id}')">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderFlowsHistory(){
+  const cont=document.getElementById('flow-history-list');
+  if(!cont)return;
+  const done=Object.entries(S.flowDone||{}).map(([k,v])=>({key:k,ts:v}));
+  if(!done.length){cont.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">Sin historial todavía. Acá vas a ver las tareas que fuiste marcando como hechas.</div>';return;}
+  // Sort descending by timestamp
+  done.sort((a,b)=>(typeof b.ts==='number'?b.ts:0)-(typeof a.ts==='number'?a.ts:0));
+  cont.innerHTML=`<div style="background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:8px 4px">${
+    done.slice(0,100).map(d=>{
+      const [flowId,contactId,trig]=d.key.split('|');
+      const flow=(S.flows||[]).find(f=>f.id===flowId);
+      const contact=(S.crm||[]).find(c=>c.id===contactId);
+      const date=typeof d.ts==='number'?new Date(d.ts).toLocaleDateString('es-AR'):'';
+      return`<div style="padding:8px 14px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--muted);min-width:80px">${date}</span>
+        <span style="font-size:13px;font-weight:600;flex:1">${contact?.nombre||'(cliente eliminado)'}</span>
+        <span style="font-size:11px;color:var(--muted2)">${flow?.name||'(flow eliminado)'}</span>
+        <button class="btn btn-sm" style="font-size:10px;padding:3px 8px" onclick="undoFlowDone('${d.key}')" title="Volver a marcar pendiente">↩</button>
+      </div>`;
+    }).join('')
+  }</div>`;
+}
+
+function markFlowDone(key,ri,msgRendered){
+  _flowsInit();
+  S.flowDone[key]=Date.now();
+  // Auto-log al timeline del cliente
+  const c=S.crm?.[ri];
+  if(c){
+    if(!c.contactos)c.contactos=[];
+    if(!c.id)c.id='c_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+    c.contactos.push({fecha:fmtDate(new Date()),nota:'⚡ Flow: '+(msgRendered||'tarea ejecutada').slice(0,100),tipo:'wapp'});
+    c.ultimoContacto=fmtDate(new Date());
+  }
+  // Si es de reminder_due, marcar el recordatorio como hecho
+  if(key.includes('|reminder_')){
+    const [,cid,rfull]=key.split('|');
+    const ridStr=rfull.replace(/^reminder_/,'');
+    const cc=(S.crm||[]).find(x=>x.id===cid);
+    if(cc&&cc.reminders){
+      const r=cc.reminders.find(x=>(x.id||x.fecha)===ridStr);
+      if(r)r.hecho=true;
+    }
+  }
+  save();
+  renderFlowsPage();
+}
+
+function snoozeFlow(key){
+  _flowsInit();
+  // Posponer = marcar como hecho hoy, pero con marca de snooze para visibilidad histórica
+  S.flowDone[key+'|snooze'+Date.now()]=Date.now();
+  S.flowDone[key]=Date.now();
+  save();renderFlowsPage();
+  notify('⏰ Pospuesto');
+}
+
+function undoFlowDone(key){
+  _flowsInit();
+  delete S.flowDone[key];
+  save();renderFlowsPage();
+}
+
+function openFlowModal(flowId){
+  _flowEditId=flowId||null;
+  const f=flowId?(S.flows||[]).find(x=>x.id===flowId):null;
+  openModal('flow');
+  document.getElementById('modal-title').textContent=f?'Editar automatización':'Nueva automatización';
+  setTimeout(()=>{
+    if(f){
+      document.getElementById('fflow-name').value=f.name||'';
+      document.getElementById('fflow-trigger').value=f.trigger?.type||'after_purchase';
+      document.getElementById('fflow-days').value=f.trigger?.days||10;
+      document.getElementById('fflow-action').value=f.action?.type||'whatsapp';
+      document.getElementById('fflow-template').value=f.action?.template||'';
+      document.getElementById('fflow-enabled').checked=f.enabled!==false;
+      (f.filter?.estados||[]).forEach(est=>{
+        const cb=document.querySelector(`.fflow-estado-cb[value="${est}"]`);
+        if(cb)cb.checked=true;
+      });
+    }
+    onFlowTriggerChange();
+  },50);
+}
+
+function onFlowTriggerChange(){
+  const t=document.getElementById('fflow-trigger')?.value;
+  const w=document.getElementById('fflow-days-wrap');
+  if(w)w.style.display=t==='reminder_due'?'none':'block';
+}
+
+function saveFlow(){
+  _flowsInit();
+  const name=document.getElementById('fflow-name')?.value?.trim();
+  if(!name){notify('Poné un nombre');return;}
+  const trigger={
+    type:document.getElementById('fflow-trigger').value,
+    days:parseInt(document.getElementById('fflow-days').value)||0
+  };
+  const action={
+    type:document.getElementById('fflow-action').value,
+    template:document.getElementById('fflow-template').value||''
+  };
+  const estados=Array.from(document.querySelectorAll('.fflow-estado-cb:checked')).map(cb=>cb.value);
+  const enabled=document.getElementById('fflow-enabled').checked;
+  if(_flowEditId){
+    const f=S.flows.find(x=>x.id===_flowEditId);
+    if(f){f.name=name;f.trigger=trigger;f.action=action;f.filter={estados};f.enabled=enabled;}
+  } else {
+    S.flows.push({
+      id:'f_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+      name,trigger,action,filter:{estados},enabled
+    });
+  }
+  _flowEditId=null;
+  save();closeModal();renderFlowsPage();
+  notify('⚡ Automatización guardada');
+}
+
+function deleteFlow(flowId){
+  if(!confirm('¿Eliminar esta automatización? Las tareas marcadas como hechas se mantienen en historial.'))return;
+  S.flows=(S.flows||[]).filter(f=>f.id!==flowId);
+  save();renderFlowsPage();
+  notify('Automatización eliminada');
+}
+
+function toggleFlow(flowId,enabled){
+  const f=(S.flows||[]).find(x=>x.id===flowId);
+  if(f){f.enabled=enabled;save();renderFlowsPage();}
 }
 
 // Resuelve la ruta inicial.
@@ -4749,38 +5147,49 @@ function importTNSelected(orders){
 }
 
 function upsertCRMFromTN(order,fecha,total){
-  if(!order.customer)return;
+  if(!order.customer)return null;
   if(!S.crm)S.crm=[];
   const email=order.customer.email||'';
-  const existing=email?S.crm.find(c=>c.email===email||c.tn_customer_id===order.customer.id):null;
+  const existing=S.crm.find(c=>c.tn_customer_id===order.customer.id||(email&&c.email===email));
+  const nota=`🛍 Compra TN #${order.number||''} — $${(parseFloat(total)||0).toLocaleString('es-AR')}`;
   if(existing){
     existing.valor=(parseFloat(existing.valor)||0)+total;
-    existing.cantCompras=(parseInt(existing.cantCompras)||0)+1;
-    existing.compra=fecha;
+    existing.cantidadCompras=(parseInt(existing.cantidadCompras)||parseInt(existing.cantCompras)||0)+1;
+    existing.ultimaCompra=fecha;
+    existing.ultimoContacto=fecha;
     existing.tn_customer_id=order.customer.id;
-  } else {
-    S.crm.push({
-      nombre:order.customer.name||'Cliente TN',
-      email,
-      tel:order.customer.phone||'',
-      ig:'',
-      estado:'Cliente',
-      tipo:'cliente',
-      valor:total,
-      ultContacto:fecha,
-      compra:fecha,
-      cantCompras:1,
-      canal:'Tienda Nube',
-      ciudad:order.shipping_address?.city||'',
-      provincia:order.shipping_address?.province||'',
-      marketing:'',
-      newsletter:'no',
-      tags:'tiendanube',
-      notas:'Importado automáticamente desde Tienda Nube',
-      creado:fmtDate(new Date()),
-      tn_customer_id:order.customer.id
-    });
+    if(existing.estado==='Nuevo'||existing.estado==='Contactado'||existing.estado==='Interesado') existing.estado='Cliente';
+    else if(existing.estado==='Cliente'&&existing.cantidadCompras>=2) existing.estado='Recurrente';
+    if(!existing.id)existing.id='c_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+    if(!existing.contactos)existing.contactos=[];
+    existing.contactos.push({fecha,nota,tipo:'compra'});
+    return existing.id;
   }
+  const nuevo={
+    id:'c_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    nombre:order.customer.name||'Cliente TN',
+    email,
+    tel:order.customer.phone||'',
+    ig:'',
+    estado:'Cliente',
+    tipo:'cliente',
+    valor:total,
+    ultimoContacto:fecha,
+    ultimaCompra:fecha,
+    cantidadCompras:1,
+    canal:'Tienda Nube',
+    ciudad:order.shipping_address?.city||'',
+    provincia:order.shipping_address?.province||'',
+    marketing:'',
+    newsletter:'no',
+    tags:['tiendanube'],
+    notas:'Importado automáticamente desde Tienda Nube',
+    creado:fmtDate(new Date()),
+    tn_customer_id:order.customer.id,
+    contactos:[{fecha,nota,tipo:'compra'}]
+  };
+  S.crm.push(nuevo);
+  return nuevo.id;
 }
 
 function renderFinChart(desde,hasta){
@@ -5172,6 +5581,11 @@ function openModal(tipo,data,idx){
         <div class="form-group"><label class="form-label">Fecha</label>
           <input class="form-input" id="ftx-fecha" type="date" value="${fmtDate(new Date())}"></div>
       </div>
+      <div class="form-group" id="ftx-cliente-wrap">
+        <label class="form-label">Cliente <span style="font-weight:300;color:var(--muted);text-transform:none;letter-spacing:0">(opcional — se agrega/actualiza en CRM)</span></label>
+        <input class="form-input" id="ftx-cliente" list="ftx-cliente-list" placeholder="Buscar cliente o escribir uno nuevo..." autocomplete="off">
+        <datalist id="ftx-cliente-list">${(S?.crm||[]).map(c=>`<option value="${(c.nombre||'').replace(/"/g,'&quot;')}">${c.ig?'@'+c.ig:''}${c.email?' · '+c.email:''}</option>`).join('')}</datalist>
+      </div>
       <div class="form-group"><label class="form-label">Concepto</label>
         <input class="form-input" id="ftx-concepto" placeholder="Ej: Venta jean negro, Meta Ads semana 1..."></div>
       <div class="form-row">
@@ -5387,6 +5801,38 @@ function openModal(tipo,data,idx){
         <textarea class="form-textarea" id="fcrm-notas" placeholder="Preferencias, talle, observaciones..." rows="2"></textarea></div>
       <div id="crm-hist-container"></div>
       <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveCRM()">Guardar contacto</button></div>`,
+    flow:`
+      <div class="form-group"><label class="form-label">Nombre de la automatización</label>
+        <input class="form-input" id="fflow-name" placeholder="Ej: Seguimiento post-compra 10 días"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Disparador</label>
+          <select class="form-select" id="fflow-trigger" onchange="onFlowTriggerChange()">
+            <option value="after_purchase">X días después de una compra</option>
+            <option value="after_creation">X días después de crear el contacto</option>
+            <option value="no_contact">X días sin contactar al cliente</option>
+            <option value="reminder_due">Cuando vence un recordatorio</option>
+          </select></div>
+        <div class="form-group" id="fflow-days-wrap"><label class="form-label">Días</label>
+          <input class="form-input" id="fflow-days" type="number" min="0" step="1" value="10"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Acción</label>
+        <select class="form-select" id="fflow-action">
+          <option value="whatsapp">💬 Enviar WhatsApp</option>
+          <option value="task">📋 Marcar tarea pendiente</option>
+        </select></div>
+      <div class="form-group"><label class="form-label">Mensaje / template <span style="font-weight:300;color:var(--muted);text-transform:none;letter-spacing:0">— variables: {nombre} {ultimaCompra} {cantCompras} {valor} {dias}</span></label>
+        <textarea class="form-textarea" id="fflow-template" rows="3" placeholder="Hola {nombre}! Pasaron {dias} días desde tu compra del {ultimaCompra}, ¿cómo te fue?"></textarea></div>
+      <div class="form-group"><label class="form-label">Filtrar por estado <span style="font-weight:300;color:var(--muted);text-transform:none;letter-spacing:0">— dejar vacío para todos</span></label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap" id="fflow-estados">
+          ${['Nuevo','Contactado','Interesado','Cliente','Recurrente','Inactivo'].map(e=>`<label style="display:flex;align-items:center;gap:4px;font-size:11px;background:var(--s3);padding:5px 10px;border-radius:14px;cursor:pointer"><input type="checkbox" value="${e}" class="fflow-estado-cb"> ${e}</label>`).join('')}
+        </div></div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="fflow-enabled" checked> Activar automatización</label>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveFlow()">Guardar automatización</button>
+      </div>`,
   };
   document.getElementById('modal-body').innerHTML=forms[tipo]||'';
   overlay.classList.add('open');
@@ -5517,9 +5963,11 @@ function updateTxCats(){
   const uWrap=document.getElementById('ftx-unidades-wrap');
   const mWrap=document.getElementById('ftx-medio-wrap');
   const vWrap=document.getElementById('ftx-vendor-wrap');
+  const cWrap=document.getElementById('ftx-cliente-wrap');
   if(uWrap)uWrap.style.display=tipo==='ingreso'?'block':'none';
   if(mWrap)mWrap.style.display=tipo==='ingreso'?'grid':'none';
   if(vWrap)vWrap.style.display=tipo==='ingreso'?'block':'none';
+  if(cWrap)cWrap.style.display=tipo==='ingreso'?'block':'none';
 }
 function calcPreviewComision(){
   const monto=parseFloat(document.getElementById('ftx-monto')?.value)||0;
@@ -5558,14 +6006,58 @@ function saveTx(){
   if(!monto||monto<=0){notify('Ingresá un monto válido');return;}
   if(!S.finanzas)S.finanzas=[];
   const tipo=document.getElementById('ftx-tipo').value;
+  const fecha=document.getElementById('ftx-fecha').value;
   const vendorCheck=document.getElementById('ftx-vendor-check');
   const vendorNombre=(document.getElementById('ftx-vendor-nombre')?.value||'').trim();
   const vendorPct=parseFloat(document.getElementById('ftx-vendor-pct')?.value)||0;
   const comisionVendedor=(tipo==='ingreso'&&vendorCheck?.checked&&vendorNombre&&vendorPct>0)
     ?{nombre:vendorNombre,pct:vendorPct,monto:Math.round(monto*(vendorPct/100)),retirada:false}
     :null;
-  S.finanzas.push({tipo,fecha:document.getElementById('ftx-fecha').value,concepto,categoria:document.getElementById('ftx-cat').value,monto,medioPago:tipo==='ingreso'?document.getElementById('ftx-medio')?.value:'',cuotas:tipo==='ingreso'?parseInt(document.getElementById('ftx-cuotas')?.value)||1:1,unidades:parseInt(document.getElementById('ftx-unidades')?.value)||0,notas:document.getElementById('ftx-notas')?.value||'',comisionVendedor:comisionVendedor||undefined});
-  save();closeModal();renderFinanzas();notify('Movimiento guardado ✓');
+  // Link a CRM si es ingreso y se indicó un cliente
+  let clienteId=null,clienteNombre='';
+  if(tipo==='ingreso'){
+    clienteNombre=(document.getElementById('ftx-cliente')?.value||'').trim();
+    if(clienteNombre) clienteId=upsertCRMFromManual(clienteNombre,monto,fecha,concepto);
+  }
+  const txId='tx_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+  S.finanzas.push({id:txId,tipo,fecha,concepto,categoria:document.getElementById('ftx-cat').value,monto,medioPago:tipo==='ingreso'?document.getElementById('ftx-medio')?.value:'',cuotas:tipo==='ingreso'?parseInt(document.getElementById('ftx-cuotas')?.value)||1:1,unidades:parseInt(document.getElementById('ftx-unidades')?.value)||0,notas:document.getElementById('ftx-notas')?.value||'',comisionVendedor:comisionVendedor||undefined,clienteId:clienteId||undefined});
+  save();closeModal();renderFinanzas();
+  notify(clienteId?`Movimiento guardado ✓ (cliente "${clienteNombre}" actualizado en CRM)`:'Movimiento guardado ✓');
+}
+
+// Upsert CRM desde venta manual (similar a upsertCRMFromTN).
+// Match por nombre exacto (case-insensitive). Si no existe, crea cliente.
+// Devuelve el id del cliente (usa nombre+timestamp como id si es nuevo).
+function upsertCRMFromManual(nombre,monto,fecha,concepto){
+  if(!S.crm)S.crm=[];
+  const nLower=nombre.toLowerCase();
+  let existing=S.crm.find(c=>(c.nombre||'').toLowerCase()===nLower);
+  if(existing){
+    existing.valor=(parseFloat(existing.valor)||0)+monto;
+    existing.cantidadCompras=(parseInt(existing.cantidadCompras)||0)+1;
+    existing.ultimaCompra=fecha;
+    existing.ultimoContacto=fecha;
+    if(existing.estado==='Nuevo'||existing.estado==='Contactado'||existing.estado==='Interesado') existing.estado='Cliente';
+    else if(existing.estado==='Cliente'&&existing.cantidadCompras>=2) existing.estado='Recurrente';
+    if(!existing.contactos)existing.contactos=[];
+    existing.contactos.push({fecha,nota:`🛍 Compra: ${concepto} — $${monto.toLocaleString('es-AR')}`,tipo:'compra'});
+    if(!existing.id)existing.id='c_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+    return existing.id;
+  }
+  const nuevo={
+    id:'c_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    nombre,email:'',tel:'',ig:'',
+    estado:'Cliente',tipo:'cliente',
+    valor:monto,cantidadCompras:1,
+    ultimaCompra:fecha,ultimoContacto:fecha,
+    canal:'Manual',ciudad:'',provincia:'',
+    marketing:'',newsletter:'no',tags:['manual'],
+    notas:'Creado automáticamente desde venta manual',
+    creado:fmtDate(new Date()),
+    contactos:[{fecha,nota:`🛍 Compra: ${concepto} — $${monto.toLocaleString('es-AR')}`,tipo:'compra'}]
+  };
+  S.crm.push(nuevo);
+  return nuevo.id;
 }
 function saveMedioPago(){
   if(!S.finCfg)S.finCfg={};
@@ -5734,7 +6226,9 @@ function crmFiltered(){
       (c.provincia||'').toLowerCase().includes(q)||
       (c.ciudad||'').toLowerCase().includes(q)||
       (c.localidad||'').toLowerCase().includes(q)||
-      (c.tags||[]).join(' ').toLowerCase().includes(q);
+      (c.tags||[]).join(' ').toLowerCase().includes(q)||
+      (c.notas||'').toLowerCase().includes(q)||
+      (c.contactos||[]).some(e=>(e.nota||'').toLowerCase().includes(q));
     const matchProv=!_crmFilterProvincia||normalizeStr(c.provincia||'').includes(normalizeStr(_crmFilterProvincia));
     const compras=parseInt(c.cantidadCompras||0);
     const matchCompras=!_crmFilterCompras||
@@ -5876,21 +6370,26 @@ function renderCRM(){
 }
 
 function renderCRMCard(c,ri){
-      const wappUrl=buildWappUrl(c.tel);
-
+  const wappUrl=buildWappUrl(c.tel);
   const diasUlt=c.ultimoContacto?Math.floor((new Date()-new Date(c.ultimoContacto))/(1000*60*60*24)):-1;
   const ultLabel=diasUlt<0?'Sin reg.':diasUlt===0?'Hoy':diasUlt===1?'Ayer':`${diasUlt}d atrás`;
   const estIdx=CRM_ESTADOS.indexOf(c.estado||'Nuevo');
   const prevEst=estIdx>0?CRM_ESTADOS[estIdx-1]:null;
-  const nextEst=estIdx<CRM_ESTADOS.length-2?CRM_ESTADOS[estIdx+1]:null; // max Recurrente
+  const nextEst=estIdx<CRM_ESTADOS.length-2?CRM_ESTADOS[estIdx+1]:null;
+  const tags=(Array.isArray(c.tags)?c.tags:(c.tags?String(c.tags).split(',').map(t=>t.trim()):[])).filter(Boolean);
+  const pendingRems=(c.reminders||[]).filter(r=>!r.hecho);
+  const today=fmtDate(new Date());
+  const dueToday=pendingRems.filter(r=>r.fecha&&r.fecha<=today).length;
   return`<div class="crm-card"
     draggable="true"
     ondragstart="crmDragStart(event,${ri})"
     ondragend="this.classList.remove('dragging')"
     onclick="editCRM(${ri})">
     <button class="crm-card-del" onclick="event.stopPropagation();deleteCRM(${ri})">×</button>
+    ${dueToday?`<div style="position:absolute;top:6px;right:24px;background:#e07070;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px">🔔 ${dueToday}</div>`:''}
     <div class="crm-card-name">${c.nombre||'Sin nombre'}</div>
     <div class="crm-card-ig">${c.ig||''}</div>
+    ${tags.length?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px">${tags.slice(0,3).map(t=>`<span style="font-size:9px;background:rgba(124,77,255,.15);color:var(--accent-light,#a87bff);padding:1px 6px;border-radius:8px;font-weight:500">${t}</span>`).join('')}${tags.length>3?`<span style="font-size:9px;color:var(--muted)">+${tags.length-3}</span>`:''}</div>`:''}
     <div class="crm-card-foot">
       ${c.valor?`<span class="crm-valor-badge">$${parseFloat(c.valor).toLocaleString('es-AR')}</span>`:''}
       <span class="crm-last-contact">🕐 ${ultLabel}</span>
@@ -5899,9 +6398,10 @@ function renderCRMCard(c,ri){
     ${c.ultimaCompra?`<div style="font-size:10px;color:var(--green);margin-top:3px">🛍 ${c.ultimaCompra.split('-').reverse().join('/')}${c.cantidadCompras?' · '+c.cantidadCompras+' compra'+(c.cantidadCompras==1?'':'s'):''}</div>`:''}
     ${c.notas?`<div style="font-size:10px;color:var(--muted2);margin-top:6px;padding-top:5px;border-top:1px solid var(--border);font-weight:300;line-height:1.3">${c.notas.slice(0,70)}${c.notas.length>70?'…':''}</div>`:''}
     <div class="crm-card-move" onclick="event.stopPropagation()">
-      ${wappUrl?`<a class="crm-wapp" href="${wappUrl}" target="_blank" style="flex:1.4;justify-content:center" onclick="logContact(${ri})">💬 WA</a>`:'<span style="flex:1.4"></span>'}
-      ${prevEst?`<button class="crm-move-btn" onclick="moveCRM(${ri},-1)" title="${prevEst}">◀ ${prevEst}</button>`:'<span style="flex:1"></span>'}
-      ${nextEst?`<button class="crm-move-btn primary" onclick="moveCRM(${ri},1)" title="${nextEst}">${nextEst} ▶</button>`:'<span style="flex:1"></span>'}
+      <button class="crm-move-btn" title="Registrar contacto hoy" onclick="logContact(${ri},'','nota')" style="flex:0.6;padding:3px 6px">✓ Hoy</button>
+      ${wappUrl?`<a class="crm-wapp" href="${wappUrl}" target="_blank" style="flex:1;justify-content:center" onclick="logContact(${ri},'','wapp')">💬 WA</a>`:'<span style="flex:1"></span>'}
+      ${prevEst?`<button class="crm-move-btn" onclick="moveCRM(${ri},-1)" title="${prevEst}">◀</button>`:'<span style="flex:.5"></span>'}
+      ${nextEst?`<button class="crm-move-btn primary" onclick="moveCRM(${ri},1)" title="${nextEst}">▶</button>`:'<span style="flex:.5"></span>'}
     </div>
   </div>`;
 }
@@ -5927,44 +6427,155 @@ function urgencyLabel(d){
   return`hace ${d}d`;
 }
 
-function logContact(ri,nota=''){
+function logContact(ri,nota='',tipo='wapp'){
   const c=S.crm?.[ri];
   if(!c)return;
   if(!c.contactos)c.contactos=[];
-  c.contactos.push({fecha:fmtDate(new Date()),nota});
+  if(!c.id)c.id='c_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+  c.contactos.push({fecha:fmtDate(new Date()),nota,tipo});
   c.ultimoContacto=fmtDate(new Date());
   save();renderCRM();
   notify('💬 Contacto registrado');
 }
 
+const _CONTACT_TYPE_ICON={wapp:'💬',compra:'🛍',nota:'📝',llamada:'📞',reunion:'🤝',email:'✉️'};
+const _CONTACT_TYPE_LABEL={wapp:'WhatsApp',compra:'Compra',nota:'Nota',llamada:'Llamada',reunion:'Reunión',email:'Email'};
+
 function renderContactHistory(ri){
   const hist=document.getElementById('crm-hist-container');
   if(!hist||!S.crm?.[ri])return;
   const c=S.crm[ri];
-  const entries=(c.contactos||[]).slice().reverse();
-  hist.innerHTML=`<div class="crm-hist-section">
-    <div class="crm-hist-label">
-      <span>Historial de contactos</span>
-      <span style="font-size:10px;color:var(--muted);font-style:normal;text-transform:none;letter-spacing:0">${(c.contactos||[]).length} entrada${(c.contactos||[]).length===1?'':'s'}</span>
-    </div>
-    ${entries.length?entries.map(e=>`<div class="crm-hist-entry">
-      <span class="crm-hist-date">${e.fecha?e.fecha.split('-').reverse().join('/'):''}</span>
-      <span class="crm-hist-nota${e.nota?'':' empty'}">${e.nota||'— sin nota —'}</span>
-    </div>`).join(''):'<div style="font-size:11px;color:var(--muted);padding:5px 0 8px">Sin contactos registrados aún. Se auto-registra al hacer click en 💬 WA.</div>'}
-    <div style="margin-top:10px;display:flex;gap:8px">
-      <input class="form-input" id="crm-nota-input" placeholder="Agregar nota o registro manual..." style="flex:1;font-size:12px;padding:7px 12px">
-      <button class="btn btn-sm btn-primary" onclick="addContactNote(${ri})">+ Registrar</button>
-    </div>
-  </div>`;
+  if(!c.id)c.id='c_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+  // Combine contactos + transacciones linked al cliente en una timeline única
+  const entries=(c.contactos||[]).map(e=>({
+    fecha:e.fecha||'',nota:e.nota||'',tipo:e.tipo||'nota',source:'contacto'
+  }));
+  // Buscar transacciones de S.finanzas con clienteId === c.id
+  const txs=(S.finanzas||[]).filter(t=>t.clienteId===c.id);
+  // No duplicar las que ya están en contactos (compra ya registrada): merge
+  // Mejor: pintar transacciones como entries adicionales solo si no hay 'compra' ese mismo día
+  txs.forEach(t=>{
+    const already=(c.contactos||[]).some(x=>x.tipo==='compra'&&x.fecha===t.fecha);
+    if(!already){
+      entries.push({fecha:t.fecha,nota:`${t.concepto} — $${(parseFloat(t.monto)||0).toLocaleString('es-AR')}`,tipo:'compra',source:'tx'});
+    }
+  });
+  // ordenar por fecha desc
+  entries.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+
+  // Métricas LTV
+  const valor=parseFloat(c.valor||0)||0;
+  const cant=parseInt(c.cantidadCompras||0)||0;
+  const ticketProm=cant>0?Math.round(valor/cant):0;
+  const compras=(c.contactos||[]).filter(e=>e.tipo==='compra').concat(txs.map(t=>({fecha:t.fecha})));
+  let diasEntre='—';
+  if(compras.length>=2){
+    const fechas=compras.map(x=>x.fecha).filter(Boolean).sort();
+    const diffs=[];for(let i=1;i<fechas.length;i++){const d=Math.floor((new Date(fechas[i])-new Date(fechas[i-1]))/(1000*60*60*24));if(d>=0)diffs.push(d);}
+    if(diffs.length)diasEntre=Math.round(diffs.reduce((a,b)=>a+b,0)/diffs.length)+'d';
+  }
+
+  // Recordatorios
+  const reminders=(c.reminders||[]).slice().sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+  const today=fmtDate(new Date());
+
+  hist.innerHTML=`
+    <div class="crm-hist-section">
+      <div class="crm-hist-label" style="margin-bottom:8px">
+        <span>Métricas del cliente</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+        <div style="background:var(--s3);padding:8px 10px;border-radius:8px"><div style="font-size:10px;color:var(--muted)">LTV total</div><div style="font-size:16px;font-weight:700;color:var(--green)">$${valor.toLocaleString('es-AR')}</div></div>
+        <div style="background:var(--s3);padding:8px 10px;border-radius:8px"><div style="font-size:10px;color:var(--muted)">Ticket prom.</div><div style="font-size:16px;font-weight:700">${ticketProm?'$'+ticketProm.toLocaleString('es-AR'):'—'}</div></div>
+        <div style="background:var(--s3);padding:8px 10px;border-radius:8px"><div style="font-size:10px;color:var(--muted)">Compras / cada</div><div style="font-size:16px;font-weight:700">${cant} <span style="font-size:11px;color:var(--muted2);font-weight:400">/ ${diasEntre}</span></div></div>
+      </div>
+
+      <div class="crm-hist-label">
+        <span>Recordatorios</span>
+        <span style="font-size:10px;color:var(--muted);font-style:normal;text-transform:none;letter-spacing:0">${reminders.filter(r=>!r.hecho).length} pendientes</span>
+      </div>
+      ${reminders.length?reminders.map((r,i)=>{
+        const dueIn=r.fecha?Math.floor((new Date(r.fecha)-new Date(today))/(1000*60*60*24)):null;
+        const urgClass=r.hecho?'opacity:.5;text-decoration:line-through':(dueIn!==null&&dueIn<0?'color:#e07070':(dueIn===0?'color:#e8b84b':''));
+        return`<div class="crm-hist-entry" style="${urgClass}">
+          <input type="checkbox" ${r.hecho?'checked':''} onchange="toggleReminder('${c.id}',${i},this.checked)" style="margin-right:6px">
+          <span class="crm-hist-date">${r.fecha?r.fecha.split('-').reverse().join('/'):''}${dueIn!==null&&!r.hecho?` <span style="font-size:9px;color:var(--muted)">(${dueIn===0?'hoy':dueIn<0?Math.abs(dueIn)+'d tarde':'en '+dueIn+'d'})</span>`:''}</span>
+          <span class="crm-hist-nota">${r.nota||'—'}</span>
+          <button class="btn-link" style="margin-left:auto;font-size:10px;color:var(--muted);background:none;border:none;cursor:pointer" onclick="deleteReminder('${c.id}',${i})">✕</button>
+        </div>`;
+      }).join(''):'<div style="font-size:11px;color:var(--muted);padding:5px 0 8px">Sin recordatorios.</div>'}
+      <div style="margin-top:6px;display:flex;gap:6px;margin-bottom:14px">
+        <input class="form-input" id="crm-rem-fecha" type="date" value="${today}" style="flex:0 0 130px;font-size:12px;padding:7px 10px">
+        <input class="form-input" id="crm-rem-nota" placeholder="Volver a contactar, enviar muestra..." style="flex:1;font-size:12px;padding:7px 12px">
+        <button class="btn btn-sm" onclick="addReminder(${ri})">+ Recordatorio</button>
+      </div>
+
+      <div class="crm-hist-label">
+        <span>Timeline de interacciones</span>
+        <span style="font-size:10px;color:var(--muted);font-style:normal;text-transform:none;letter-spacing:0">${entries.length} entrada${entries.length===1?'':'s'}</span>
+      </div>
+      ${entries.length?entries.map((e,i)=>`<div class="crm-hist-entry">
+        <span style="font-size:14px;margin-right:4px">${_CONTACT_TYPE_ICON[e.tipo]||'📝'}</span>
+        <span class="crm-hist-date">${e.fecha?e.fecha.split('-').reverse().join('/'):''}</span>
+        <span class="crm-hist-nota${e.nota?'':' empty'}">${e.nota||'— '+_CONTACT_TYPE_LABEL[e.tipo]||'sin nota'+' —'}</span>
+      </div>`).join(''):'<div style="font-size:11px;color:var(--muted);padding:5px 0 8px">Sin interacciones aún. Se auto-registran al hacer click en 💬 WA o al cargar una venta vinculada.</div>'}
+      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+        <select class="form-select" id="crm-nota-tipo" style="flex:0 0 110px;font-size:12px;padding:7px 10px">
+          <option value="nota">📝 Nota</option>
+          <option value="llamada">📞 Llamada</option>
+          <option value="reunion">🤝 Reunión</option>
+          <option value="email">✉️ Email</option>
+          <option value="wapp">💬 WhatsApp</option>
+        </select>
+        <input class="form-input" id="crm-nota-input" placeholder="Agregar registro manual..." style="flex:1;min-width:160px;font-size:12px;padding:7px 12px" onkeydown="if(event.key==='Enter')addContactNoteFromUI(${ri})">
+        <button class="btn btn-sm btn-primary" onclick="addContactNoteFromUI(${ri})">+ Registrar</button>
+      </div>
+    </div>`;
 }
 
-function addContactNote(ri){
+function addContactNoteFromUI(ri){
+  const tipo=document.getElementById('crm-nota-tipo')?.value||'nota';
+  addContactNote(ri,tipo);
+}
+
+function addReminder(ri){
+  const fecha=document.getElementById('crm-rem-fecha')?.value;
+  const nota=(document.getElementById('crm-rem-nota')?.value||'').trim();
+  const c=S.crm?.[ri];
+  if(!c||!fecha){notify('Poné fecha del recordatorio');return;}
+  if(!c.id)c.id='c_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+  if(!c.reminders)c.reminders=[];
+  c.reminders.push({id:'r_'+Date.now(),fecha,nota,hecho:false,creado:fmtDate(new Date())});
+  const ne=document.getElementById('crm-rem-nota');if(ne)ne.value='';
+  save();renderContactHistory(ri);renderCRM();
+  notify('🔔 Recordatorio agregado');
+}
+
+function toggleReminder(clienteId,idx,done){
+  const c=(S.crm||[]).find(x=>x.id===clienteId);
+  if(!c||!c.reminders||!c.reminders[idx])return;
+  c.reminders[idx].hecho=done;
+  save();
+  const ri=S.crm.indexOf(c);renderContactHistory(ri);renderCRM();
+}
+
+function deleteReminder(clienteId,idx){
+  const c=(S.crm||[]).find(x=>x.id===clienteId);
+  if(!c||!c.reminders)return;
+  c.reminders.splice(idx,1);
+  save();
+  const ri=S.crm.indexOf(c);renderContactHistory(ri);renderCRM();
+}
+
+function addContactNote(ri,tipo='nota'){
   const nota=(document.getElementById('crm-nota-input')?.value||'').trim();
   const c=S.crm?.[ri];
   if(!c)return;
   if(!c.contactos)c.contactos=[];
-  c.contactos.push({fecha:fmtDate(new Date()),nota});
+  if(!c.id)c.id='c_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+  c.contactos.push({fecha:fmtDate(new Date()),nota,tipo});
   c.ultimoContacto=fmtDate(new Date());
+  const inp=document.getElementById('crm-nota-input');if(inp)inp.value='';
   save();renderCRM();renderContactHistory(ri);
   notify('Nota guardada ✓');
 }
@@ -6028,7 +6639,12 @@ function renderCRMSeg(){
 function saveCRM(){
   const nombre=document.getElementById('fcrm-nombre')?.value?.trim();
   if(!nombre){notify('Escribí un nombre');return;}
+  if(!S.crm)S.crm=[];
+  // Preservar campos del contacto existente al editar: id, contactos, reminders, tn_customer_id, etc.
+  const prev=_editIdx!==null?(S.crm[_editIdx]||{}):{};
   const obj={
+    ...prev, // mantener campos no editables desde el modal (contactos, reminders, id, tn_customer_id...)
+    id:prev.id||('c_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)),
     nombre,
     ig:document.getElementById('fcrm-ig')?.value?.trim()||'',
     tel:document.getElementById('fcrm-tel')?.value?.trim()||'',
@@ -6046,9 +6662,8 @@ function saveCRM(){
     newsletter:document.getElementById('fcrm-newsletter')?.value||'',
     tags:(document.getElementById('fcrm-tags')?.value||'').split(',').map(t=>t.trim()).filter(Boolean),
     notas:document.getElementById('fcrm-notas')?.value?.trim()||'',
-    creado:_editIdx!==null?(S.crm[_editIdx]?.creado||fmtDate(new Date())):fmtDate(new Date())
+    creado:prev.creado||fmtDate(new Date())
   };
-  if(!S.crm)S.crm=[];
   if(_editIdx!==null)S.crm[_editIdx]=obj;else S.crm.push(obj);
   save();closeModal();renderCRM();notify(_editIdx!==null?'Contacto actualizado ✓':'Contacto guardado ✓');
 }
