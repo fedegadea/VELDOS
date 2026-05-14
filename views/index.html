@@ -1065,8 +1065,20 @@ tr:hover .tx-del{color:var(--muted)}
 <!-- ══ AUTH SCREEN ══ -->
 <div id="auth-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:600;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px">
   <div style="width:100%;max-width:380px">
-    <div style="font-size:28px;font-weight:800;letter-spacing:2px;color:var(--gold);margin-bottom:4px;text-align:center">VELD <em style="font-style:normal;color:#fff">OS</em></div>
+    <div style="font-size:24px;font-weight:800;letter-spacing:1px;color:var(--gold);margin-bottom:4px;text-align:center">Soul <em style="font-style:normal;color:#fff">eCommlab</em></div>
     <div style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:32px">El sistema operativo de tu marca</div>
+
+    <!-- Google OAuth button -->
+    <button onclick="authGoogle()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:11px;background:#fff;color:#3c4043;border:1px solid #dadce0;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:16px;transition:box-shadow .2s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.2)'" onmouseout="this.style.boxShadow='none'">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
+      Continuar con Google
+    </button>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+      <span style="font-size:11px;color:var(--muted)">o con email</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>
 
     <div id="auth-tabs" style="display:flex;gap:0;margin-bottom:24px;border-radius:10px;overflow:hidden;border:1px solid var(--border)">
       <button onclick="showAuthTab('login')" id="tab-login" style="flex:1;padding:10px;background:var(--gold);color:#fff;border:none;cursor:pointer;font-weight:600;font-size:13px">Ingresar</button>
@@ -1133,7 +1145,7 @@ tr:hover .tx-del{color:var(--muted)}
 
 <!-- ══ SUPABASE LOADER ══ -->
 <div id="supa-loader" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:18px">
-  <div style="font-size:22px;font-weight:700;letter-spacing:2px;color:var(--gold)">VELD <em style="font-style:normal;color:var(--muted)">OS</em></div>
+  <div style="font-size:22px;font-weight:700;letter-spacing:1px;color:var(--gold)">Soul <em style="font-style:normal;color:var(--muted)">eCommlab</em></div>
   <div style="width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite"></div>
   <div id="supa-loader-msg" style="font-size:13px;color:var(--muted)">Cargando proyectos…</div>
 </div>
@@ -2832,6 +2844,15 @@ async function authRegister(){
   }finally{if(btn){btn.textContent='Empezar 3 días gratis';btn.disabled=false;}}
 }
 
+async function authGoogle(){
+  hideAuthError();
+  const{error}=await supabaseClient.auth.signInWithOAuth({
+    provider:'google',
+    options:{redirectTo:window.location.origin}
+  });
+  if(error)showAuthError('Error al conectar con Google: '+error.message);
+}
+
 async function authLogout(){
   await supabaseClient.auth.signOut();
   _authUser=null;
@@ -2991,6 +3012,19 @@ async function initState(){
       if(!_authUser)_authUser=session.user;
     }
     if(event==='SIGNED_OUT'){_authUser=null;_authToken=null;}
+    // OAuth callback (Google): si la auth-screen está visible, proceder
+    if(event==='SIGNED_IN'&&session){
+      const authScreen=document.getElementById('auth-screen');
+      if(authScreen&&authScreen.style.display!=='none'){
+        authScreen.style.display='none';
+        if(typeof _proceedAfterAuth==='function'){
+          _proceedAfterAuth();
+          _proceedAfterAuth=null;
+        } else {
+          await checkSubscriptionAndProceed();
+        }
+      }
+    }
     if(event==='PASSWORD_RECOVERY'){
       document.getElementById('auth-screen').style.display='flex';
       document.getElementById('auth-login-form').style.display='none';
