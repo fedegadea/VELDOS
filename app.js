@@ -45,7 +45,7 @@ app.post("/api/mp/create-preference", async (req, res) => {
       },
       body: JSON.stringify({
         items: [{
-          title: "VELD OS — Suscripción mensual",
+          title: "Soul eCommlab — Suscripción mensual",
           quantity: 1,
           unit_price: 49000,
           currency_id: "ARS"
@@ -162,7 +162,7 @@ app.get("/api/tn/callback", async (req, res) => {
         let storeName = ""
         try {
           const sRes = await fetch(`https://api.tiendanube.com/v1/${data.user_id}/store`, {
-            headers: { "Authentication": `bearer ${data.access_token}`, "User-Agent": "VELDOS (soporte@veldos.app)" }
+            headers: { "Authentication": `bearer ${data.access_token}`, "User-Agent": "Soul eCommlab (soporte@veldos.app)" }
           })
           if (sRes.ok) {
             const sData = await sRes.json()
@@ -191,7 +191,7 @@ app.get("/api/tn/callback", async (req, res) => {
       <p>Store ID: <strong>${data.user_id}</strong></p>
       <p>Access token:</p>
       <div class="token">${data.access_token}</div>
-      <p style="margin-top:24px"><a href="/">← Volver a VELDOS</a></p>
+      <p style="margin-top:24px"><a href="/">← Volver a Soul eCommlab</a></p>
     </body></html>`)
   } catch(e) {
     res.send(`<h2>Error: ${e.message}</h2>`)
@@ -210,7 +210,7 @@ app.get("/api/tn/orders", async (req, res) => {
 
     const headers = {
       "Authentication": `bearer ${token}`,
-      "User-Agent": "VELDOS (soporte@veldos.app)"
+      "User-Agent": "Soul eCommlab (soporte@veldos.app)"
     }
 
     // Fetch ALL pages until TN returns fewer than per_page results
@@ -285,7 +285,7 @@ app.get("/api/tn/products", async (req, res) => {
 
     const headers = {
       "Authentication": `bearer ${token}`,
-      "User-Agent": "VELDOS (soporte@veldos.app)"
+      "User-Agent": "Soul eCommlab (soporte@veldos.app)"
     }
     const PER_PAGE = 200
     let all = []
@@ -331,7 +331,7 @@ app.get("/api/tn/debug-shipping", async (req, res) => {
     const ws = await getWorkspace(wsId)
     const tn = ws?.data?.tnIntegration
     if (!tn?.token) return res.status(400).json({ error: "TN no conectada" })
-    const headers = { "Authentication": `bearer ${tn.token}`, "User-Agent": "VELDOS (soporte@veldos.app)" }
+    const headers = { "Authentication": `bearer ${tn.token}`, "User-Agent": "Soul eCommlab (soporte@veldos.app)" }
     const [wbRes, ordRes] = await Promise.all([
       fetch(`https://api.tiendanube.com/v1/${tn.storeId}/webhooks`, { headers }),
       fetch(`https://api.tiendanube.com/v1/${tn.storeId}/orders?per_page=1&page=1`, { headers })
@@ -361,7 +361,7 @@ app.post("/api/tn/activate", async (req, res) => {
     const webhookUrl = baseUrl + "/api/tn/webhook"
     const tnHeaders = {
       "Authentication": `bearer ${tn.token}`,
-      "User-Agent": "VELDOS (soporte@veldos.app)",
+      "User-Agent": "Soul eCommlab (soporte@veldos.app)",
       "Content-Type": "application/json"
     }
 
@@ -416,7 +416,7 @@ app.post("/api/tn/webhook", async (req, res) => {
     // Fetch order from TN API using workspace-specific credentials
     const oRes = await fetch(
       `https://api.tiendanube.com/v1/${tn.storeId}/orders/${orderId}`,
-      { headers: { "Authentication": `bearer ${tn.token}`, "User-Agent": "VELDOS (soporte@veldos.app)" } }
+      { headers: { "Authentication": `bearer ${tn.token}`, "User-Agent": "Soul eCommlab (soporte@veldos.app)" } }
     )
     if (!oRes.ok) return
     const o = await oRes.json()
@@ -489,24 +489,24 @@ app.post("/api/tn/webhook", async (req, res) => {
 
 // ── Páginas públicas (requeridas por Tienda Nube) ────────────────────────────
 app.get("/privacidad", (req, res) => {
-  res.send(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Política de privacidad — VELDOS</title><style>body{font-family:system-ui,sans-serif;max-width:700px;margin:60px auto;padding:0 24px;color:#222;line-height:1.7}h1{font-size:24px;margin-bottom:8px}h2{font-size:16px;margin-top:32px}p,li{font-size:14px;color:#444}a{color:#2979ff}</style></head><body>
+  res.send(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Política de privacidad — Soul eCommlab</title><style>body{font-family:system-ui,sans-serif;max-width:700px;margin:60px auto;padding:0 24px;color:#222;line-height:1.7}h1{font-size:24px;margin-bottom:8px}h2{font-size:16px;margin-top:32px}p,li{font-size:14px;color:#444}a{color:#2979ff}</style></head><body>
   <h1>Política de privacidad</h1>
   <p>Última actualización: ${new Date().toLocaleDateString('es-AR')}</p>
   <h2>Datos que recopilamos</h2>
-  <p>VELDOS accede a los datos de órdenes de tu tienda Tiendanube (número de orden, fecha, monto total y medio de pago) únicamente para mostrarlos dentro de tu espacio de trabajo. No almacenamos datos personales de tus clientes.</p>
+  <p>Soul eCommlab accede a los datos de órdenes de tu tienda Tiendanube (número de orden, fecha, monto total y medio de pago) únicamente para mostrarlos dentro de tu espacio de trabajo. No almacenamos datos personales de tus clientes.</p>
   <h2>Uso de los datos</h2>
-  <p>Los datos de órdenes se importan a tu espacio de trabajo en VELDOS para que puedas visualizar tus finanzas. Nunca se comparten con terceros.</p>
+  <p>Los datos de órdenes se importan a tu espacio de trabajo en Soul eCommlab para que puedas visualizar tus finanzas. Nunca se comparten con terceros.</p>
   <h2>Eliminación de datos</h2>
-  <p>Al desinstalar la aplicación, podés eliminar todos los datos importados desde tu panel de VELDOS. También podés escribirnos a <a href="mailto:soporte@veldos.app">soporte@veldos.app</a>.</p>
+  <p>Al desinstalar la aplicación, podés eliminar todos los datos importados desde tu panel de Soul eCommlab. También podés escribirnos a <a href="mailto:soporte@veldos.app">soporte@veldos.app</a>.</p>
   <h2>Contacto</h2>
   <p><a href="mailto:soporte@veldos.app">soporte@veldos.app</a></p>
   </body></html>`)
 })
 
 app.get("/soporte", (req, res) => {
-  res.send(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Soporte — VELDOS</title><style>body{font-family:system-ui,sans-serif;max-width:700px;margin:60px auto;padding:0 24px;color:#222;line-height:1.7}h1{font-size:24px;margin-bottom:8px}p{font-size:14px;color:#444}a{color:#2979ff}</style></head><body>
+  res.send(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Soporte — Soul eCommlab</title><style>body{font-family:system-ui,sans-serif;max-width:700px;margin:60px auto;padding:0 24px;color:#222;line-height:1.7}h1{font-size:24px;margin-bottom:8px}p{font-size:14px;color:#444}a{color:#2979ff}</style></head><body>
   <h1>Soporte</h1>
-  <p>Para consultas o problemas con la integración de VELDOS con Tiendanube, escribinos a:</p>
+  <p>Para consultas o problemas con la integración de Soul eCommlab con Tiendanube, escribinos a:</p>
   <p><strong><a href="mailto:soporte@veldos.app">soporte@veldos.app</a></strong></p>
   <p>Respondemos dentro de las 48 horas hábiles.</p>
   </body></html>`)
@@ -515,21 +515,21 @@ app.get("/soporte", (req, res) => {
 // ── Tienda Nube — Privacy webhooks (obligatorios) ────────────────────────────
 app.post("/api/tn/webhooks/store-redact", (req, res) => {
   // Called when a store uninstalls the app and requests data deletion
-  // VELDOS stores order data inside user workspaces in Supabase — no separate store records to delete
+  // Soul eCommlab stores order data inside user workspaces in Supabase — no separate store records to delete
   console.log("TN store/redact:", req.body?.store_id)
   res.sendStatus(200)
 })
 
 app.post("/api/tn/webhooks/customers-redact", (req, res) => {
   // Called when a customer requests their data to be deleted
-  // VELDOS only stores order totals/dates, no personal customer data
+  // Soul eCommlab only stores order totals/dates, no personal customer data
   console.log("TN customers/redact:", req.body?.customer?.id)
   res.sendStatus(200)
 })
 
 app.post("/api/tn/webhooks/customers-data-request", (req, res) => {
   // Called when a customer requests to see what data the app holds about them
-  // VELDOS holds no personal customer data — respond with empty set
+  // Soul eCommlab holds no personal customer data — respond with empty set
   console.log("TN customers/data_request:", req.body?.customer?.id)
   res.sendStatus(200)
 })
@@ -539,7 +539,7 @@ app.get('*', serveApp)
 
 if (require.main === module) {
   app.listen(process.env.PORT || 3000, function(){
-    console.log("VELD OS — servidor iniciado en puerto " + (process.env.PORT || 3000))
+    console.log("Soul eCommlab — servidor iniciado en puerto " + (process.env.PORT || 3000))
   })
 }
 module.exports = app
