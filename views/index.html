@@ -1417,6 +1417,15 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <div style="font-size:12px;font-weight:600;color:#fff;background:linear-gradient(135deg,#0071e3,#2979ff);padding:8px 16px;border-radius:8px;white-space:nowrap;flex-shrink:0">Ir a Crealo →</div>
   </a>
 
+  <!-- ── RECOMENDACIONES DEL MES ── -->
+  <div id="recom-card" style="display:none;background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-bottom:18px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:13px;font-weight:700;color:var(--text)">💡 Recomendaciones del mes</div>
+      <a href="#" onclick="navigate('finanzas/config');return false" style="font-size:10px;color:var(--muted);text-decoration:none">⚙️ configurar parámetros</a>
+    </div>
+    <div id="recom-list" style="display:flex;flex-direction:column;gap:9px"></div>
+  </div>
+
   <div class="inicio-sections">
     <div class="card">
       <div class="inicio-sec-title">Acciones rápidas</div>
@@ -2586,6 +2595,58 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
   <!-- ── TAB: CONFIGURACIÓN ── -->
   <div class="fin-tab" id="fintab-config">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+
+      <!-- Parámetros de negocio -->
+      <div class="fin-card" style="grid-column:1/-1">
+        <div class="fin-card-head">
+          <div class="fin-card-title">💡 Parámetros de negocio</div>
+          <div style="font-size:11px;color:var(--muted)">Definí tus objetivos y recibí recomendaciones automáticas en el Dashboard</div>
+        </div>
+        <div class="fin-card-body">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px">
+            <div class="cap-field">
+              <label class="cap-label">% facturación para marketing</label>
+              <div class="cap-input-wrap">
+                <input class="cap-input" id="param-pct-mkt" type="number" min="0" max="100" step="0.5" placeholder="Ej: 15" oninput="saveParams()">
+                <span style="margin-left:6px;color:var(--muted);font-size:13px">%</span>
+              </div>
+              <div style="font-size:10px;color:var(--muted);margin-top:4px">Meta Ads, influencers, etc.</div>
+            </div>
+            <div class="cap-field">
+              <label class="cap-label">% facturación para reinversión en stock</label>
+              <div class="cap-input-wrap">
+                <input class="cap-input" id="param-pct-stock" type="number" min="0" max="100" step="0.5" placeholder="Ej: 30" oninput="saveParams()">
+                <span style="margin-left:6px;color:var(--muted);font-size:13px">%</span>
+              </div>
+              <div style="font-size:10px;color:var(--muted);margin-top:4px">Compra de mercadería</div>
+            </div>
+            <div class="cap-field">
+              <label class="cap-label">Margen real mínimo aceptable</label>
+              <div class="cap-input-wrap">
+                <input class="cap-input" id="param-margen-min" type="number" min="0" max="100" step="0.5" placeholder="Ej: 20" oninput="saveParams()">
+                <span style="margin-left:6px;color:var(--muted);font-size:13px">%</span>
+              </div>
+              <div style="font-size:10px;color:var(--muted);margin-top:4px">P&amp;L después de COGS y gastos</div>
+            </div>
+            <div class="cap-field">
+              <label class="cap-label">Colchón de caja mínimo</label>
+              <div class="cap-input-wrap">
+                <span class="cap-prefix">$</span>
+                <input class="cap-input" id="param-colchon" type="number" min="0" step="1000" placeholder="Ej: 500000" oninput="saveParams()">
+              </div>
+              <div style="font-size:10px;color:var(--muted);margin-top:4px">Reserva operativa mínima</div>
+            </div>
+            <div class="cap-field">
+              <label class="cap-label">Objetivo de ticket promedio</label>
+              <div class="cap-input-wrap">
+                <span class="cap-prefix">$</span>
+                <input class="cap-input" id="param-ticket-obj" type="number" min="0" step="100" placeholder="Ej: 25000" oninput="saveParams()">
+              </div>
+              <div style="font-size:10px;color:var(--muted);margin-top:4px">Ticket promedio deseado por venta</div>
+            </div>
+          </div>
+        </div>
+      </div>
  
       <!-- Medios de pago y comisiones -->
       <div class="fin-card">
@@ -4754,7 +4815,7 @@ function switchFinTab(id,btn,_skipNav){
   if(id==='movimientos')renderFinanzas();
   if(id==='presupuesto')renderPresupuesto();
   if(id==='capital')loadCapitalFields();
-  if(id==='config'){renderMediosPago();renderCostosFijos();loadTaxConfig();}
+  if(id==='config'){renderMediosPago();renderCostosFijos();loadTaxConfig();loadParams();}
   if(id==='cashflow')renderCashflow();
 }
  
@@ -9196,6 +9257,132 @@ function renderInicio(){
         </div>`).join('');
     }
   }
+
+  renderRecomendaciones();
+}
+
+// ══════════════════════════════════════════
+// PARÁMETROS DE NEGOCIO + RECOMENDACIONES
+// ══════════════════════════════════════════
+const _PARAM_IDS=['param-pct-mkt','param-pct-stock','param-margen-min','param-colchon','param-ticket-obj'];
+
+function saveParams(){
+  if(!S)return;
+  if(!S.params)S.params={};
+  _PARAM_IDS.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)S.params[id]=parseFloat(el.value)||0;
+  });
+  save();
+  renderRecomendaciones();
+}
+
+function loadParams(){
+  if(!S||!S.params)return;
+  _PARAM_IDS.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&S.params[id])el.value=S.params[id];
+  });
+}
+
+function renderRecomendaciones(){
+  const card=document.getElementById('recom-card');
+  const list=document.getElementById('recom-list');
+  if(!card||!list||!S)return;
+
+  const p=S.params||{};
+  const pctMkt   =p['param-pct-mkt']||0;
+  const pctStock =p['param-pct-stock']||0;
+  const margenMin=p['param-margen-min']||0;
+  const colchon  =p['param-colchon']||0;
+  const ticketObj=p['param-ticket-obj']||0;
+
+  if(![pctMkt,pctStock,margenMin,colchon,ticketObj].some(v=>v>0)){card.style.display='none';return;}
+
+  // Calcular métricas del mes actual desde S.finanzas
+  const now=new Date();
+  const mk=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const txs=(S.finanzas||[]).filter(t=>(t.fecha||'').startsWith(mk));
+  const ingresos=txs.filter(t=>t.tipo==='ingreso').reduce((a,t)=>a+t.monto,0);
+  const gastos  =txs.filter(t=>t.tipo==='gasto').reduce((a,t)=>a+t.monto,0);
+  const adsGasto=txs.filter(t=>t.categoria==='Meta Ads').reduce((a,t)=>a+t.monto,0);
+  const cogs    =txs.filter(t=>t.tipo==='ingreso').reduce((a,t)=>a+(parseFloat(t.costoTotal)||0),0);
+  const opex    =txs.filter(t=>t.tipo==='gasto'&&!['Producción/stock','Mercadería','Compra mercadería'].includes(t.categoria)).reduce((a,t)=>a+t.monto,0);
+  const ganReal =ingresos-cogs-opex;
+  const margenR =ingresos>0?(ganReal/ingresos*100):0;
+  const ventas  =txs.filter(t=>t.tipo==='ingreso').reduce((a,t)=>a+(t.unidades||0),0);
+  const ticket  =ingresos>0&&ventas>0?Math.round(ingresos/ventas):0;
+  // Caja total histórica
+  const allIng  =(S.finanzas||[]).filter(t=>t.tipo==='ingreso').reduce((a,t)=>a+t.monto,0);
+  const allGas  =(S.finanzas||[]).filter(t=>t.tipo==='gasto').reduce((a,t)=>a+t.monto,0);
+  const cajaTotal=allIng-allGas;
+
+  const fmt=n=>'$'+Math.round(n).toLocaleString('es-AR');
+  const recs=[];
+
+  // 1. Marketing
+  if(pctMkt>0&&ingresos>0){
+    const budget=ingresos*pctMkt/100;
+    if(adsGasto>budget*1.15){
+      recs.push({t:'warn',msg:`Ads: invertiste ${fmt(adsGasto)} (${((adsGasto/ingresos)*100).toFixed(1)}% de facturación) — ${((adsGasto/ingresos)*100-pctMkt).toFixed(1)}pp sobre tu parámetro de ${pctMkt}%.`});
+    } else if(adsGasto<budget*0.55){
+      recs.push({t:'info',msg:`Podés invertir hasta ${fmt(budget)} en marketing este mes (${pctMkt}% de ${fmt(ingresos)}). Llevas ${fmt(adsGasto)} — disponibles: ${fmt(budget-adsGasto)}.`});
+    } else {
+      recs.push({t:'ok',msg:`Marketing en línea: ${fmt(adsGasto)} de ${fmt(budget)} usados (${pctMkt}% objetivo).`});
+    }
+  } else if(pctMkt>0&&ingresos===0){
+    recs.push({t:'neutral',msg:`Sin ingresos este mes aún — tu presupuesto de marketing se calculará cuando registres ventas.`});
+  }
+
+  // 2. Stock
+  if(pctStock>0&&ingresos>0){
+    recs.push({t:'info',msg:`Reinversión en stock: ${fmt(ingresos*pctStock/100)} disponibles este mes (${pctStock}% de ${fmt(ingresos)}).`});
+  }
+
+  // 3. Margen real
+  if(margenMin>0&&ingresos>0){
+    if(margenR<margenMin){
+      recs.push({t:'danger',msg:`Margen real ${margenR.toFixed(1)}% — por debajo de tu objetivo de ${margenMin}%. Revisá COGS, precios o gastos fijos.`});
+    } else {
+      recs.push({t:'ok',msg:`Margen real ${margenR.toFixed(1)}% — sobre tu objetivo de ${margenMin}%.`});
+    }
+  }
+
+  // 4. Colchón caja
+  if(colchon>0){
+    if(cajaTotal<colchon){
+      recs.push({t:'danger',msg:`Caja (${fmt(cajaTotal)}) por debajo del colchón mínimo de ${fmt(colchon)}. Cuidado con comprometer más gastos variables.`});
+    } else {
+      recs.push({t:'ok',msg:`Caja sana: ${fmt(cajaTotal)} — ${fmt(cajaTotal-colchon)} libres sobre tu colchón de seguridad de ${fmt(colchon)}.`});
+    }
+  }
+
+  // 5. Ticket promedio
+  if(ticketObj>0&&ticket>0){
+    if(ticket<ticketObj*0.85){
+      recs.push({t:'warn',msg:`Ticket promedio este mes: ${fmt(ticket)} — por debajo de tu objetivo de ${fmt(ticketObj)}. ¿Podés aumentar el AOV con bundles o upsells?`});
+    } else if(ticket>=ticketObj){
+      recs.push({t:'ok',msg:`Ticket promedio ${fmt(ticket)} — sobre tu objetivo de ${fmt(ticketObj)}.`});
+    } else {
+      recs.push({t:'neutral',msg:`Ticket promedio: ${fmt(ticket)} (objetivo: ${fmt(ticketObj)}).`});
+    }
+  }
+
+  const cfg={
+    ok:     {bg:'rgba(52,199,123,.08)',border:'rgba(52,199,123,.22)',icon:'✅'},
+    warn:   {bg:'rgba(255,160,0,.08)',border:'rgba(255,160,0,.28)',icon:'⚠️'},
+    info:   {bg:'rgba(41,121,255,.08)',border:'rgba(41,121,255,.22)',icon:'💡'},
+    danger: {bg:'rgba(255,107,107,.08)',border:'rgba(255,107,107,.28)',icon:'🔴'},
+    neutral:{bg:'rgba(255,255,255,.04)',border:'var(--border)',icon:'📊'},
+  };
+  list.innerHTML=recs.map(r=>{
+    const s=cfg[r.t]||cfg.neutral;
+    return `<div style="display:flex;align-items:flex-start;gap:10px;background:${s.bg};border:1px solid ${s.border};border-radius:10px;padding:11px 14px">
+      <span style="font-size:14px;flex-shrink:0;margin-top:1px">${s.icon}</span>
+      <span style="font-size:12.5px;color:var(--text);line-height:1.55">${r.msg}</span>
+    </div>`;
+  }).join('');
+  card.style.display='block';
 }
 
 // ══════════════════════════════════════════
