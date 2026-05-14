@@ -455,6 +455,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:14px
 @media(max-width:1100px){.marca-layout{grid-template-columns:1fr}.marca-nav{position:static}}
 @media(max-width:700px){.inspo-grid{grid-template-columns:repeat(2,1fr)}.obj-grid{grid-template-columns:1fr}}
  
+/* ── TOUR ── */
+.tour-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:500;pointer-events:none;display:none}
+.tour-tooltip{position:fixed;z-index:501;background:var(--s1,#1a1a2e);border:1px solid var(--border2,#2a2a4a);border-radius:16px;padding:22px 24px 18px;width:300px;box-shadow:0 12px 40px rgba(0,0,0,.55);pointer-events:all;display:none}
+.tour-step-badge{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--muted,#888);text-transform:uppercase;margin-bottom:6px}
+.tour-title{font-size:15px;font-weight:700;color:var(--text,#eee);margin-bottom:6px;line-height:1.3}
+.tour-desc{font-size:12px;color:var(--muted2,#aaa);line-height:1.6;margin-bottom:16px}
+.tour-actions{display:flex;gap:8px;justify-content:flex-end}
+.tour-btn-skip{background:none;border:none;color:var(--muted,#888);font-size:12px;cursor:pointer;padding:6px 10px;border-radius:8px}
+.tour-btn-skip:hover{color:var(--text,#eee)}
+.tour-btn-next{background:var(--gold,#2979ff);border:none;color:#fff;font-size:12px;font-weight:600;padding:7px 18px;border-radius:8px;cursor:pointer}
+.tour-btn-next:hover{opacity:.88}
+.tour-highlight{outline:2px solid var(--gold,#2979ff)!important;outline-offset:3px;border-radius:8px!important;background:rgba(41,121,255,.12)!important}
 /* ── PIN LOCK ── */
 .pin-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:150;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
 .pin-overlay.open{display:flex}
@@ -2135,6 +2147,7 @@ tr:hover .tx-del{color:var(--muted)}
   <div class="sec-head">
     <div class="sec-title">Finanzas<small>Ingresos, gastos y rentabilidad · $ARS</small></div>
     <div class="btn-row">
+      <button class="btn btn-sm" onclick="setFinPin()">🔑 PIN</button>
       <button class="btn btn-sm" onclick="lockFinanzas()">🔒 Bloquear</button>
       <button class="btn btn-primary" id="fin-main-btn" onclick="openModal('transaccion')">+ Cargar movimiento</button>
     </div>
@@ -2740,6 +2753,8 @@ function _enterWorkspace(ws){
     // queda visible porque removí el class="active" default del HTML)
     applyRoute();
   }
+  // Tour de primera sesión — solo la primera vez
+  setTimeout(startTour, 700);
 }
 
 // ── Cache de unlock por sesión: skip de PIN/usuario al refrescar dentro de la misma pestaña ──
@@ -3119,35 +3134,8 @@ function switchWorkspace(wsId){
 }
  
 function defaultCheckGroups(){
-  return[
-    {id:'g1',title:'CM — Sábado a martes',range:'Sáb → Mar',items:[
-      {id:'c1',text:'Cargar 7 ideas de brief en la base de datos',owner:'CM',done:false},
-      {id:'c2',text:'Cargar 7 opciones de canje con descripción del deliverable',owner:'CM',done:false},
-      {id:'c3',text:'Identificar 4 marcas para collab (pueden ser Potenciales)',owner:'CM',done:false},
-      {id:'c4',text:'Contactar 6 micro influencers por Instagram con oferta (2 reels + 5 stories + fotos)',owner:'CM',done:false},
-      {id:'c5',text:'Contactar 1 creadora top con oferta especial (1 reel + 1 story)',owner:'CM',done:false},
-      {id:'c6',text:'Dejar WA y datos de cada confirmación listos para Fede',owner:'CM',done:false},
-    ]},
-    {id:'g2',title:'CM — Gestión continua',range:'Toda la semana',items:[
-      {id:'c7',text:'Subir contenido recibido al Drive: [creadora]_[tipo]_[fecha]',owner:'CM',done:false},
-      {id:'c8',text:'Calendarizar piezas recibidas (feed, story, ads)',owner:'CM',done:false},
-      {id:'c9',text:'Contactar 4 marcas para collab sesión de fotos en calle',owner:'CM',done:false},
-      {id:'c10',text:'Responder DMs y comentarios del feed',owner:'CM',done:false},
-      {id:'c11',text:'Reporte al final de semana: contactadas, confirmadas, piezas recibidas',owner:'CM',done:false},
-    ]},
-    {id:'g3',title:'Fede — Coordinación',range:'Mié → Vie',items:[
-      {id:'c12',text:'Revisar WA y datos de CM — coordinar envíos de canje',owner:'Fede',done:false},
-      {id:'c13',text:'Seleccionar piezas del Drive para testear en Meta Ads',owner:'Fede',done:false},
-      {id:'c14',text:'Seleccionar piezas para orgánico — pasar a CM',owner:'Fede',done:false},
-      {id:'c15',text:'Aprobar o rechazar cada creadora confirmada antes del envío',owner:'Fede',done:false},
-    ]},
-    {id:'g4',title:'Fede — Ads',range:'Lunes',items:[
-      {id:'c16',text:'Revisar métricas: ventas, CPV, ROAS de la semana anterior',owner:'Fede',done:false},
-      {id:'c17',text:'Pausar creativos con CPV > 12 USD',owner:'Fede',done:false},
-      {id:'c18',text:'Subir 2–3 creativos nuevos seleccionados del Drive',owner:'Fede',done:false},
-      {id:'c19',text:'Definir hipótesis de ángulo/copy para la semana',owner:'Fede',done:false},
-    ]},
-  ];
+  // Sin grupos por defecto — cada organización crea los suyos
+  return [];
 }
  
 // ══════════════════════════════════════════
@@ -3182,7 +3170,7 @@ function toggleAreaDropdown(){
  
 function selectArea(id,label,el){
   toggleAreaDropdown();
-  if(id==='finanzas'&&!finUnlocked){
+  if(id==='finanzas'&&!finUnlocked&&_finHasPin()){
     pendingFinArea=el;pendingFinLabel=label;
     document.getElementById('pin-overlay')?.classList.add('open');
     const pi=document.getElementById('pin-input');
@@ -3190,6 +3178,7 @@ function selectArea(id,label,el){
     document.getElementById('pin-error').textContent='';
     return;
   }
+  if(id==='finanzas'){finUnlocked=true;}
   const defaults={marketing:'checklist',finanzas:'finanzas',crm:'crm',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones'};
   navigate(defaults[id]||id);
 }
@@ -3205,7 +3194,7 @@ function comingSoon(name){toggleAreaDropdown();notify(`${name} — próximamente
 function sbNav(area,page,el){
   document.getElementById('area-menu')?.classList.remove('open');
   document.getElementById('area-chevron')?.classList.remove('open');
-  if(area==='finanzas'&&!finUnlocked){
+  if(area==='finanzas'&&!finUnlocked&&_finHasPin()){
     pendingFinArea=document.querySelector(`.area-menu-item[onclick*="'finanzas'"]`);
     pendingFinLabel='Finanzas';
     document.getElementById('pin-overlay')?.classList.add('open');
@@ -4474,14 +4463,22 @@ function deleteInspo(i){S.marca.inspo.splice(i,1);save();renderInspo();}
 // ══════════════════════════════════════════
 // PIN / FINANZAS LOCK
 // ══════════════════════════════════════════
-const FIN_PIN='Fede123';
+// PIN ya no es hardcodeado — se guarda en S.finCfg.finPin
+// Si no hay PIN, Finanzas abre sin contraseña.
 let finUnlocked=false;
 let pendingFinArea=null;
 let pendingFinLabel='Finanzas';
- 
+
+function _finHasPin(){return !!(S.finCfg?.finPin);}
+
 function tryOpenFinanzas(btn){
   pendingFinArea=btn;
-  if(finUnlocked){if(btn)switchPage('finanzas',btn);return;}
+  if(finUnlocked||!_finHasPin()){
+    finUnlocked=true;
+    if(btn)switchPage('finanzas',btn);
+    else _activateArea('finanzas','Finanzas');
+    return;
+  }
   document.getElementById('pin-overlay')?.classList.add('open');
   const pi=document.getElementById('pin-input');
   if(pi){pi.value='';setTimeout(()=>pi.focus(),100);}
@@ -4489,7 +4486,7 @@ function tryOpenFinanzas(btn){
 }
 function checkPin(){
   const val=document.getElementById('pin-input').value;
-  if(val===FIN_PIN){
+  if(val===S.finCfg?.finPin){
     finUnlocked=true;
     document.getElementById('pin-overlay').classList.remove('open');
     _activateArea('finanzas','Finanzas');
@@ -4504,13 +4501,30 @@ function checkPin(){
 }
 function closePinOverlay(){document.getElementById('pin-overlay')?.classList.remove('open');}
 function lockFinanzas(){
+  if(!_finHasPin()){notify('Finanzas no tiene PIN — configuralo con 🔑 PIN');return;}
   finUnlocked=false;
-  // go back to marketing
   _activateArea('marketing','Marketing');
   document.getElementById('area-label').textContent='Marketing';
   document.querySelectorAll('.area-menu-item').forEach(i=>i.classList.remove('active'));
   document.querySelector('.area-menu-item')?.classList.add('active');
   notify('Finanzas bloqueado 🔒');
+}
+function setFinPin(){
+  const cur=S.finCfg?.finPin||'';
+  const msg=cur
+    ?'PIN actual configurado. Ingresá uno nuevo o dejá vacío para eliminarlo:'
+    :'Establecé un PIN para proteger Finanzas (vacío = acceso libre):';
+  const newPin=prompt(msg);
+  if(newPin===null)return;
+  if(!S.finCfg)S.finCfg={};
+  S.finCfg.finPin=newPin.trim();
+  save();
+  if(S.finCfg.finPin){
+    notify('PIN de Finanzas configurado 🔒');
+  } else {
+    finUnlocked=true;
+    notify('PIN eliminado — Finanzas ahora es de acceso libre');
+  }
 }
  
 // ══════════════════════════════════════════
@@ -8773,6 +8787,79 @@ function initCashflow(){
   _cfEnsure();
 }
 
+// ══════════════════════════════════════════
+// TOUR — PRIMERA SESIÓN
+// ══════════════════════════════════════════
+const TOUR_STEPS=[
+  {target:null,title:'¡Bienvenido a VELDOS! 👋',desc:'Te mostramos cada sección en un minuto. Podés saltar el tour cuando quieras.',pos:'center'},
+  {target:'sbi-checklist',title:'📋 Checklist',desc:'Creá grupos de tareas semanales para tu equipo con rango de días, responsable e ítems personalizados.',pos:'right'},
+  {target:'sbi-todo',title:'✅ To Do',desc:'Tareas puntuales sin fecha fija. Ideal para pendientes rápidos y seguimiento individual.',pos:'right'},
+  {target:'sbi-briefs',title:'📄 Briefs',desc:'Guardá los briefings de contenido para creadoras o equipo interno con todos los detalles.',pos:'right'},
+  {target:'sbi-canje',title:'🤝 Canjes',desc:'Registrá acuerdos de canje: producto, deliverable y estado de seguimiento.',pos:'right'},
+  {target:'sbi-collabs',title:'👥 Collabs',desc:'Gestioná colaboraciones con marcas: tipo, estado, contacto y notas.',pos:'right'},
+  {target:'sbi-drive',title:'📅 Drive + Cal',desc:'Organizá el contenido producido y planificá publicaciones en el calendario.',pos:'right'},
+  {target:'sbi-marca',title:'🎨 Marca',desc:'Guardá la identidad de tu marca: colores, tipografías, referencias e inspiración.',pos:'right'},
+  {target:'sbi-finanzas',title:'💰 Finanzas',desc:'Ingresos, gastos, presupuesto y rentabilidad. Podés protegerla con un PIN propio desde el botón 🔑 PIN.',pos:'right'},
+  {target:'sbi-operaciones',title:'⚙️ Operaciones',desc:'Conectá Tienda Nube e importá pedidos en tiempo real.',pos:'right'},
+  {target:'sbi-crm',title:'👤 CRM',desc:'Base de contactos: clientes, proveedores y creadoras con notas y estado.',pos:'right'},
+  {target:'sbi-stock',title:'📦 Stock',desc:'Inventario de productos con entradas, salidas e historial de movimientos.',pos:'right'},
+  {target:'sbi-hojas',title:'📁 Hojas',desc:'Documentos, tablas o checklists libres — para cualquier cosa que necesites organizar.',pos:'right'},
+];
+let _tourIdx=0;
+
+function startTour(){
+  if(localStorage.getItem('veld_tour_v1'))return;
+  _tourIdx=0;
+  document.getElementById('tour-backdrop').style.display='block';
+  _showTourStep(0);
+}
+function _showTourStep(idx){
+  const step=TOUR_STEPS[idx];
+  if(!step){endTour();return;}
+  document.querySelectorAll('.tour-highlight').forEach(e=>e.classList.remove('tour-highlight'));
+  const tt=document.getElementById('tour-tooltip');
+  document.getElementById('tour-badge').textContent=`Paso ${idx+1} de ${TOUR_STEPS.length}`;
+  document.getElementById('tour-title').textContent=step.title;
+  document.getElementById('tour-desc').textContent=step.desc;
+  document.getElementById('tour-next').textContent=idx===TOUR_STEPS.length-1?'¡Listo! ✓':'Siguiente →';
+  tt.style.display='block';
+  if(step.pos==='center'||!step.target){
+    tt.style.top='50%';tt.style.left='50%';tt.style.transform='translate(-50%,-50%)';
+    return;
+  }
+  const el=document.getElementById(step.target);
+  if(!el){_showTourStep(idx+1);return;}
+  el.classList.add('tour-highlight');
+  const r=el.getBoundingClientRect();
+  const tw=300,th=190;
+  let top=r.top+r.height/2-th/2;
+  let left=r.right+14;
+  if(top<8)top=8;
+  if(top+th>window.innerHeight-8)top=window.innerHeight-th-8;
+  if(left+tw>window.innerWidth-8)left=r.left-tw-14;
+  tt.style.transform='none';tt.style.top=top+'px';tt.style.left=left+'px';
+}
+function tourNext(){_tourIdx++;if(_tourIdx>=TOUR_STEPS.length){endTour();return;}_showTourStep(_tourIdx);}
+function tourSkip(){endTour();}
+function endTour(){
+  document.querySelectorAll('.tour-highlight').forEach(e=>e.classList.remove('tour-highlight'));
+  document.getElementById('tour-backdrop').style.display='none';
+  document.getElementById('tour-tooltip').style.display='none';
+  localStorage.setItem('veld_tour_v1','1');
+}
 </script>
+
+<!-- ══ TOUR PRIMERA SESIÓN ══ -->
+<div id="tour-backdrop" class="tour-backdrop"></div>
+<div id="tour-tooltip" class="tour-tooltip" style="display:none">
+  <div class="tour-step-badge" id="tour-badge"></div>
+  <div class="tour-title" id="tour-title"></div>
+  <div class="tour-desc" id="tour-desc"></div>
+  <div class="tour-actions">
+    <button class="tour-btn-skip" onclick="tourSkip()">Saltar tour</button>
+    <button class="tour-btn-next" id="tour-next" onclick="tourNext()">Siguiente →</button>
+  </div>
+</div>
+
 </body>
 </html>
