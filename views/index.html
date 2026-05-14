@@ -1227,7 +1227,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <div style="color:var(--muted);font-size:14px;margin-bottom:32px;line-height:1.6">Suscribite para seguir usando Soul eCommlab y mantener todos tus datos.</div>
     <div style="background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:24px">
       <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Suscripción mensual</div>
-      <div style="font-size:36px;font-weight:800;color:var(--gold);margin-bottom:4px">$49.000</div>
+      <div style="font-size:36px;font-weight:800;color:var(--gold);margin-bottom:4px">$19.999</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:20px">por mes · cancelá cuando quieras</div>
       <ul style="text-align:left;list-style:none;padding:0;margin:0 0 20px;font-size:13px;display:flex;flex-direction:column;gap:8px">
         <li>✅ Marcas ilimitadas</li>
@@ -2994,7 +2994,7 @@ async function authLogout(){
 }
 
 // Emails con acceso permanente gratuito (dueños / founders)
-const FREE_FOREVER=['federicosegundogadea@gmail.com'];
+const FREE_FOREVER=['federicosegundogadea@gmail.com','federico222quarin@gmail.com'];
 
 async function checkSubscriptionAndProceed(){
   if(!_authUser)return;
@@ -3168,9 +3168,9 @@ async function initState(){
   // Ruta /login: forzar pantalla de login independiente del estado de sesión
   if(location.pathname==='/login'){
     document.getElementById('auth-screen').style.display='flex';
-    _proceedAfterAuth=()=>{
+    _proceedAfterAuth=async()=>{
       try{history.replaceState({},'','/projects');}catch(e){}
-      _loadWorkspacesAndRender();
+      await checkSubscriptionAndProceed();
     };
     return;
   }
@@ -3185,9 +3185,9 @@ async function initState(){
       try{history.replaceState({},'','/login');}catch(e){}
     }
     document.getElementById('auth-screen').style.display='flex';
-    _proceedAfterAuth=()=>{
+    _proceedAfterAuth=async()=>{
       try{history.replaceState({},'','/projects');}catch(e){}
-      _loadWorkspacesAndRender();
+      await checkSubscriptionAndProceed();
     };
     return;
   }
@@ -4036,16 +4036,24 @@ function updateProgress(){
 const TODO_ESTADOS=['pendiente','en curso','revisión','listo'];
 const TODO_ESTADO_LABEL={pendiente:'Pendiente','en curso':'En curso','revisión':'Revisión',listo:'Listo'};
 const TODO_ESTADO_COLOR={pendiente:'var(--muted)','en curso':'var(--gold)','revisión':'var(--blue)',listo:'var(--green)'};
-const RESPONSABLES=['Todos','Fede','CM','Diseñadora','Vendedora WA'];
+// RESPONSABLES: dinámico — se deriva de las tareas existentes, sin valores hardcodeados
 let todoFilter='Todos';
- 
+
+function _getTodoResponsables(){
+  const set=new Set(S.todos.map(t=>t.responsable).filter(Boolean));
+  return['Todos',...Array.from(set).sort()];
+}
+
 function renderTodo(){renderTodoFilters();renderTodoKanban();}
 function renderTodoFilters(){
   const el=document.getElementById('todo-filters');
   if(!el)return;
+  const responsables=_getTodoResponsables();
   const counts={Todos:S.todos.length};
-  RESPONSABLES.slice(1).forEach(r=>{counts[r]=S.todos.filter(t=>t.responsable===r).length;});
-  el.innerHTML=RESPONSABLES.map(r=>`
+  responsables.slice(1).forEach(r=>{counts[r]=S.todos.filter(t=>t.responsable===r).length;});
+  // Si el filtro activo ya no existe, resetearlo
+  if(!responsables.includes(todoFilter))todoFilter='Todos';
+  el.innerHTML=responsables.map(r=>`
     <div class="tf-item${todoFilter===r?' active':''}" onclick="setTodoFilter('${r}')">
       <span>${r}</span><span class="tf-count">${counts[r]||0}</span>
     </div>`).join('');
@@ -5438,26 +5446,30 @@ function importTNSelected(orders){
       ?coupons.map(c=>c.code).filter(Boolean).join(', ')
       :(typeof coupons==='string'?coupons:'');
     const envioMonto=_tnEnvio(o);
-    // ── COGS: matchear cada line item con S.stock por SKU o nombre y sumar costo*qty ──
+    // ── COGS: usar _tnLookupCost (TN cache variant/sku/product + S.stock fallback) ──
     let costoTotal=0;
     let matchedProductoId=null;
     const stockArr=S.stock||[];
     const cogsDetails=[];
     (o.products||[]).forEach(p=>{
       const qty=parseInt(p.quantity)||1;
-      const sku=(p.sku||'').toString().trim();
-      const name=(p.name||'').toString().trim().toLowerCase();
-      // 1) match por SKU si existe, 2) por nombre exacto
-      let prod=sku?stockArr.find(s=>(s.sku||'').toString().trim()===sku):null;
-      if(!prod&&name)prod=stockArr.find(s=>(s.nombre||'').toLowerCase().trim()===name);
-      if(prod){
-        if(!prod.id)prod.id='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
-        const costoUnit=parseFloat(prod.costo)||0;
-        costoTotal+=Math.round(costoUnit*qty);
-        if(!matchedProductoId)matchedProductoId=prod.id; // tomamos el primero como referencia
-        cogsDetails.push(`${qty}×${prod.nombre}@$${costoUnit}`);
+      const look=_tnLookupCost(p); // usa TN cache primero, luego stock local
+      if(look.cost>0){
+        costoTotal+=Math.round(look.cost*qty);
+        // intentar asociar productoId desde stock local por sku/nombre
+        if(!matchedProductoId){
+          const sku=(p.sku||'').toString().trim();
+          const name=(p.name||'').toString().toLowerCase().trim();
+          let prod=sku?stockArr.find(s=>(s.sku||'').toString().trim()===sku):null;
+          if(!prod&&name)prod=stockArr.find(s=>(s.nombre||'').toLowerCase().trim()===name);
+          if(prod){
+            if(!prod.id)prod.id='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+            matchedProductoId=prod.id;
+          }
+        }
+        cogsDetails.push(`${qty}×${p.name||'?'}@$${look.cost} (${look.source})`);
       } else {
-        cogsDetails.push(`${qty}×${p.name} (sin match en stock)`);
+        cogsDetails.push(`${qty}×${p.name||'?'} (sin costo)`);
       }
     });
     const tnTxId='tn_'+o.id+'_'+Date.now().toString(36);
@@ -5861,7 +5873,8 @@ function openModal(tipo,data,idx){
       <div class="form-group"><label class="form-label">Descripción</label><textarea class="form-textarea" id="ft-desc" placeholder="Detalle opcional...">${data?data.desc:''}</textarea></div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Responsable</label>
-          <select class="form-select" id="ft-resp">${['Fede','CM','Diseñadora','Vendedora WA','Todos'].map(r=>`<option${data&&data.responsable===r?' selected':''}>${r}</option>`).join('')}</select></div>
+          <input class="form-input" id="ft-resp" list="ft-resp-list" value="${data?data.responsable:''}" placeholder="Nombre del responsable">
+          <datalist id="ft-resp-list">${_getTodoResponsables().slice(1).map(r=>`<option value="${r}">`).join('')}</datalist></div>
         <div class="form-group"><label class="form-label">Estado</label>
           <select class="form-select" id="ft-estado">${TODO_ESTADOS.map(e=>`<option value="${e}"${data&&data.estado===e?' selected':''}>${TODO_ESTADO_LABEL[e]}</option>`).join('')}</select></div>
       </div>
