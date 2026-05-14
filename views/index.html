@@ -1057,6 +1057,103 @@ tr:hover .tx-del{color:var(--muted)}
 .cf-pencil{font-size:9px;opacity:.55;margin-left:2px;cursor:default}
 @media(max-width:900px){.cf-summary-bar{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.cf-summary-bar{grid-template-columns:1fr}}
+
+/* ── DESIGN SYSTEM ADDITIONS ── */
+*{transition:background 0.15s ease,color 0.15s ease,border-color 0.15s ease,opacity 0.15s ease}
+input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s ease,background 0.15s ease,color 0.15s ease,opacity 0.15s ease}
+*:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:4px}
+
+/* Improved scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+
+/* Card + KPI card */
+.card{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px}
+.card:hover{border-color:var(--border2)}
+
+.kpi-dash-card{background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:24px 20px;display:flex;flex-direction:column;gap:8px;cursor:default}
+.kpi-dash-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.kpi-dash-value{font-size:32px;font-weight:800;color:var(--text);line-height:1;letter-spacing:-0.03em}
+.kpi-dash-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em}
+.kpi-dash-sub{font-size:12px;color:var(--muted2)}
+
+/* Quick action button */
+.quick-action{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s1);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;color:var(--text);text-align:left;width:100%;font-family:var(--fb)}
+.quick-action:hover{background:var(--s2);border-color:var(--border2);transform:translateY(-1px)}
+.quick-action-icon{font-size:18px;flex-shrink:0}
+
+/* Dashboard inicio page */
+.inicio-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
+.inicio-sections{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.inicio-quick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.inicio-sec-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+.inicio-activity-item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.inicio-activity-item:last-child{border-bottom:none}
+.inicio-act-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.inicio-act-text{font-size:12px;color:var(--muted2);font-weight:300;flex:1;line-height:1.4}
+.inicio-act-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.inicio-greeting{font-family:var(--fd);font-size:28px;letter-spacing:-.02em;margin-bottom:6px;line-height:1.2}
+.inicio-greeting-sub{font-size:13px;color:var(--muted);margin-bottom:28px;font-weight:300}
+@media(max-width:1100px){.inicio-grid{grid-template-columns:1fr 1fr}.inicio-sections{grid-template-columns:1fr}}
+@media(max-width:700px){.inicio-grid{grid-template-columns:1fr 1fr}}
+
+/* Sidebar search button */
+.sb-search-btn{display:flex;align-items:center;gap:8px;width:calc(100% - 16px);margin:10px 8px 2px;padding:8px 12px;background:var(--s2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--muted);font-family:var(--fb);text-align:left}
+.sb-search-btn:hover{border-color:var(--border2);color:var(--muted2)}
+.sb-search-btn kbd{margin-left:auto;background:var(--s3);border:1px solid var(--border2);border-radius:4px;padding:1px 6px;font-size:10px;font-family:monospace;color:var(--muted)}
+
+/* Command palette */
+.cmd-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:900;display:none;align-items:flex-start;justify-content:center;padding-top:15vh;backdrop-filter:blur(4px)}
+.cmd-overlay.open{display:flex}
+.cmd-box{background:var(--s1);border:1px solid var(--border2);border-radius:16px;width:100%;max-width:560px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.6)}
+.cmd-input-wrap{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border)}
+.cmd-input{background:none;border:none;outline:none;font-size:16px;color:var(--text);flex:1;font-family:var(--fb)}
+.cmd-input::placeholder{color:var(--muted)}
+.cmd-results{max-height:380px;overflow-y:auto}
+.cmd-group-label{padding:10px 20px 4px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.cmd-result{display:flex;align-items:center;gap:12px;padding:10px 20px;cursor:pointer}
+.cmd-result:hover,.cmd-result.active{background:var(--s2)}
+.cmd-result-icon{font-size:16px;flex-shrink:0}
+.cmd-result-text{font-size:13px;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmd-result-section{font-size:11px;color:var(--muted);flex-shrink:0}
+.cmd-empty{padding:32px 20px;text-align:center;color:var(--muted);font-size:13px}
+.cmd-hint{padding:10px 20px;border-top:1px solid var(--border);display:flex;gap:16px}
+.cmd-hint-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.cmd-key{background:var(--s2);border:1px solid var(--border2);border-radius:4px;padding:1px 6px;font-size:10px;font-family:monospace}
+
+/* Mobile bottom nav */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--s1);border-top:1px solid var(--border);padding:8px 0 max(8px, env(safe-area-inset-bottom));z-index:100}
+@media(max-width:768px){
+  .mobile-nav{display:flex;justify-content:space-around}
+  body.has-sidebar .page{margin-left:0 !important;padding-bottom:80px}
+  #sidebar{display:none !important}
+}
+.mob-nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 8px;border:none;background:none;cursor:pointer;color:var(--muted);font-size:9px;font-weight:600;letter-spacing:.05em;min-width:48px;border-radius:8px;font-family:var(--fb)}
+.mob-nav-item.active{color:var(--gold)}
+.mob-nav-item-icon{font-size:20px}
+
+/* Notification stack */
+.notif-stack{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none}
+.notif-item{background:var(--s2);border:1px solid var(--border2);border-radius:10px;padding:11px 18px;font-size:12px;color:var(--text);opacity:0;transform:translateY(8px);transition:all .22s;pointer-events:none;display:flex;align-items:center;gap:8px;max-width:320px}
+.notif-item.show{opacity:1;transform:translateY(0)}
+.notif-item.type-success{border-color:rgba(77,184,138,.4);background:rgba(77,184,138,.08)}
+.notif-item.type-error{border-color:rgba(224,112,112,.4);background:rgba(224,112,112,.08)}
+.notif-item.type-warning{border-color:rgba(240,168,0,.4);background:rgba(240,168,0,.08)}
+.notif-item.type-info{border-color:var(--border2)}
+
+/* Page fade-in transition */
+.page.active{animation:pageFadeIn .18s ease}
+@keyframes pageFadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* Rich empty states */
+.empty-rich{text-align:center;padding:48px 24px;color:var(--muted)}
+.empty-rich-icon{font-size:48px;margin-bottom:14px;display:block;opacity:.7}
+.empty-rich-title{font-size:15px;font-weight:500;color:var(--muted2);margin-bottom:6px}
+.empty-rich-sub{font-size:12px;font-weight:300;margin-bottom:20px;line-height:1.5}
+.empty-rich-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:12px;cursor:pointer;font-family:var(--fb)}
+.empty-rich-btn:hover{border-color:var(--gold);color:var(--gold)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -1223,6 +1320,9 @@ tr:hover .tx-del{color:var(--muted)}
     <!-- area-dropdown eliminado: navegación va por la sidebar -->
     <span id="area-label" style="display:none"></span>
   </div>
+  <nav class="nav-tabs" id="nav-inicio" style="display:none">
+    <button class="nav-tab active" onclick="switchPage('inicio',this)">Inicio</button>
+  </nav>
   <nav class="nav-tabs" id="nav-marketing">
     <button class="nav-tab active" onclick="switchPage('checklist',this)">Checklist</button>
     <button class="nav-tab" onclick="switchPage('todo',this)">To Do</button>
@@ -1262,9 +1362,14 @@ tr:hover .tx-del{color:var(--muted)}
     <div class="sb-ws-name" id="sb-name">—</div>
     <button class="sb-ws-change" onclick="openWorkspaceSelector()">↗ Cambiar proyecto</button>
   </div>
+  <button class="sb-search-btn" onclick="openCmdK()"><span>🔍</span> Buscar... <kbd>⌘K</kbd></button>
+  <div class="sb-section">
+    <span class="sb-section-label">General</span>
+    <button class="sb-item" id="sbi-inicio" onclick="sbNav('inicio','inicio',this)"><span class="sb-item-icon">🏠</span>Inicio</button>
+  </div>
   <div class="sb-section">
     <span class="sb-section-label">Marketing</span>
-    <button class="sb-item active" id="sbi-checklist" onclick="sbNav('marketing','checklist',this)"><span class="sb-item-icon">📋</span>Checklist</button>
+    <button class="sb-item" id="sbi-checklist" onclick="sbNav('marketing','checklist',this)"><span class="sb-item-icon">📋</span>Checklist</button>
     <button class="sb-item" id="sbi-todo" onclick="sbNav('marketing','todo',this)"><span class="sb-item-icon">✅</span>To Do</button>
     <button class="sb-item" id="sbi-drive" onclick="sbNav('marketing','drive',this)"><span class="sb-item-icon">📋</span>Planning</button>
     <button class="sb-item" id="sbi-marca" onclick="sbNav('marketing','marca',this)"><span class="sb-item-icon">🎨</span>Marca</button>
@@ -1288,6 +1393,29 @@ tr:hover .tx-del{color:var(--muted)}
 
 <div id="trial-banner" style="display:none;background:linear-gradient(90deg,rgba(41,121,255,.15),rgba(41,121,255,.05));border-bottom:1px solid rgba(41,121,255,.2);padding:8px 20px;font-size:12px;color:var(--gold);text-align:center;cursor:pointer" onclick="document.getElementById('paywall-screen').style.display='flex'">
   🎁 <span id="trial-banner-text">Te quedan X días de prueba gratis</span> · <strong>Suscribite ahora →</strong>
+</div>
+
+<!-- ══ INICIO (DASHBOARD) ══ -->
+<div class="page" id="page-inicio">
+  <div class="inicio-greeting" id="inicio-greeting">Buenos días</div>
+  <div class="inicio-greeting-sub" id="inicio-greeting-sub">¿En qué trabajamos hoy?</div>
+  <div class="inicio-grid" id="inicio-kpis"></div>
+  <div class="inicio-sections">
+    <div class="card">
+      <div class="inicio-sec-title">Acciones rápidas</div>
+      <div class="inicio-quick-grid" id="inicio-quick"></div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="inicio-sec-title">Últimos movimientos</div>
+        <div id="inicio-movimientos"></div>
+      </div>
+      <div class="card">
+        <div class="inicio-sec-title">Checklist reciente</div>
+        <div id="inicio-checklist"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ══ CHECKLIST ══ NOTA: NO arranca .active — todas las pages quedan ocultas
@@ -2757,9 +2885,9 @@ function _enterWorkspace(ws){
   render();
   updateTNBadge();
   // Si la URL es una ruta "no-sección" (/, /projects, /login), navegar al default
-  // (/checklist) ahora que ya estamos dentro del workspace.
+  // (/inicio) ahora que ya estamos dentro del workspace.
   if(typeof navigate==='function'&&(location.pathname==='/'||location.pathname==='/projects'||location.pathname==='/login')){
-    navigate('checklist'); // navigate llama applyRoute internamente
+    navigate('inicio'); // navigate llama applyRoute internamente
   } else if(typeof applyRoute==='function'){
     // CRÍTICO: activar la .page correspondiente a la URL actual (sin esto ninguna .page
     // queda visible porque removí el class="active" default del HTML)
@@ -3180,7 +3308,7 @@ function goPlanning(tab){navigate('planning/'+(tab||'calendario'));}
 function switchPage(id,btn){
   const redirect={briefs:'briefs',canje:'canjes',collabs:'collabs'};
   if(redirect[id]){navigate('planning/'+redirect[id]);return;}
-  const paths={checklist:'checklist',todo:'todo',drive:'planning',marca:'marca',producto:'producto'};
+  const paths={inicio:'inicio',checklist:'checklist',todo:'todo',drive:'planning',marca:'marca',producto:'producto'};
   navigate(paths[id]||id);
 }
  
@@ -3237,7 +3365,7 @@ function sbNav(area,page,el){
     document.getElementById('pin-error').textContent='';
     return;
   }
-  const paths={checklist:'checklist',todo:'todo',drive:'planning',marca:'marca',producto:'producto',crm:'crm',flows:'flows',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones',finanzas:'finanzas'};
+  const paths={inicio:'inicio',checklist:'checklist',todo:'todo',drive:'planning',marca:'marca',producto:'producto',crm:'crm',flows:'flows',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones',finanzas:'finanzas'};
   navigate(paths[page]||page);
 }
 
@@ -3251,15 +3379,16 @@ let _activeFinTab='movimientos';
 
 const _PLAN_TABS=new Set(['calendario','semana','ideas','biblioteca','briefs','canjes','collabs','estrategia']);
 const _FIN_TABS =new Set(['movimientos','ingresos','gastos','comisiones','kpis','cashflow','config','presupuesto','capital']);
-const _AREA_LABELS={marketing:'Marketing',finanzas:'Finanzas',crm:'CRM',flows:'Flows',hojas:'Hojas',operaciones:'Operaciones',stock:'Stock',integraciones:'Integraciones'};
+const _AREA_LABELS={inicio:'Inicio',marketing:'Marketing',finanzas:'Finanzas',crm:'CRM',flows:'Flows',hojas:'Hojas',operaciones:'Operaciones',stock:'Stock',integraciones:'Integraciones'};
 
 // Lista de rutas válidas — usada también para el fallback (rutas no válidas → /checklist)
-const _VALID_TOP_SEGMENTS=new Set(['checklist','todo','planning','marca','producto','finanzas','crm','flows','hojas','operaciones','stock','integraciones','login','projects']);
+const _VALID_TOP_SEGMENTS=new Set(['inicio','checklist','todo','planning','marca','producto','finanzas','crm','flows','hojas','operaciones','stock','integraciones','login','projects']);
 
 function parseRoute(pathname){
   const clean=(pathname||'/').replace(/^\/+|\/+$/g,'');
   const [s1,s2]=(clean||'').split('/');
   const seg=s1||'';
+  if(seg==='inicio') return{area:'inicio',page:'inicio'};
   if(!seg||seg==='checklist') return{area:'marketing',page:'checklist'};
   if(seg==='todo')      return{area:'marketing',page:'todo'};
   if(seg==='marca')     return{area:'marketing',page:'marca'};
@@ -3349,12 +3478,19 @@ function applyRoute(){
 
   // Area renders
   if(S){
+    if(r.area==='inicio')renderInicio();
     if(r.area==='crm'){if(!S.crm)S.crm=[];renderCRM();}
     if(r.area==='flows'){if(!S.flows)S.flows=[];renderFlowsPage();}
     if(r.area==='hojas'){if(!S.customViews)S.customViews=[];renderHojas();}
     if(r.area==='stock'){if(!S.stock)S.stock=[];renderStock();}
     if(r.area==='integraciones')renderIntegraciones();
   }
+
+  // Mobile nav active state
+  const _mobMap={inicio:'mob-inicio',checklist:'mob-checklist',finanzas:'mob-finanzas',crm:'mob-crm'};
+  document.querySelectorAll('.mob-nav-item').forEach(b=>b.classList.remove('active'));
+  const mobActive=_mobMap[r.page]||_mobMap[r.area];
+  if(mobActive)document.getElementById(mobActive)?.classList.add('active');
 
   // State vars
   _activeArea=r.area;
@@ -3811,6 +3947,10 @@ function renderChecklist(){
   if(!S.checkGroups?.length)S.checkGroups=defaultCheckGroups();
   const grid=document.getElementById('checklist-grid');
   if(!grid)return;
+  if(!S.checkGroups.length){
+    grid.innerHTML=emptyState('📋','Sin listas todavía','Creá tu primera lista de tareas semanales para organizar el trabajo de tu equipo.','+ Nueva lista',"addCheckGroup()");
+    updateProgress();return;
+  }
   grid.innerHTML=S.checkGroups.map((g,gi)=>`
     <div class="check-group">
       <div class="cg-head">
@@ -6668,7 +6808,7 @@ function renderCRM(){
           ondrop="crmDrop(event,'${est}');this.classList.remove('drag-over')">
           ${cards.length
             ? cards.map(c=>renderCRMCard(c,S.crm.indexOf(c))).join('')
-            : `<div class="empty" style="padding:20px 12px"><p style="font-size:11px">Sin contactos</p></div>`}
+            : `<div class="empty" style="padding:20px 12px;text-align:center"><p style="font-size:11px;color:var(--muted)">—</p></div>`}
         </div>
       </div>`;
     }).join('');
@@ -6698,7 +6838,7 @@ function renderCRM(){
           <button class="btn btn-xs btn-danger" onclick="deleteCRM(${ri})">×</button>
         </div>
       </div>`;
-    }).join(''):`<div class="empty"><div class="e-icon">👥</div><p>No hay contactos que coincidan</p></div>`;
+    }).join(''):emptyState('👤','Sin contactos todavía','Agregá clientes, leads y prospectos para gestionar tu embudo de ventas.','+ Nuevo contacto',"openModal('crm')");
   } else if(_crmView==='seg'){
     renderCRMSeg();
   }
@@ -7629,13 +7769,34 @@ function delChecklistItem(i){
 // ══════════════════════════════════════════
 // NOTIFY + RENDER MASTER
 // ══════════════════════════════════════════
-function notify(msg){
-  const el=document.getElementById('notif');
-  el.textContent=msg;el.classList.add('show');
-  setTimeout(()=>el.classList.remove('show'),2200);
+const _notifQueue=[];
+let _notifActive=0;
+function notify(msg,type='info'){
+  // type: 'success' | 'error' | 'warning' | 'info'
+  const icons={success:'✅',error:'❌',warning:'⚠️',info:'ℹ️'};
+  const icon=icons[type]||icons.info;
+  const stack=document.getElementById('notif-stack');
+  if(!stack){
+    // Fallback: legacy single notif
+    const el=document.getElementById('notif');
+    if(el){el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2200);}
+    return;
+  }
+  if(_notifActive>=3)return; // max 3 stacked
+  _notifActive++;
+  const el=document.createElement('div');
+  el.className=`notif-item type-${type}`;
+  el.innerHTML=`<span>${icon}</span><span>${msg}</span>`;
+  stack.appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('show'));
+  setTimeout(()=>{
+    el.classList.remove('show');
+    setTimeout(()=>{el.remove();_notifActive=Math.max(0,_notifActive-1);},250);
+  },2400);
 }
 
 function render(){
+  renderInicio();
   renderChecklist();
   renderTodo();
   renderBriefs();
@@ -8881,7 +9042,310 @@ function endTour(){
   document.getElementById('tour-tooltip').style.display='none';
   localStorage.setItem('veld_tour_v1','1');
 }
+
+// ══════════════════════════════════════════
+// EMPTY STATE HELPER
+// ══════════════════════════════════════════
+function emptyState(icon,title,sub,btnLabel,btnAction){
+  return`<div class="empty-rich">
+    <span class="empty-rich-icon">${icon}</span>
+    <div class="empty-rich-title">${title}</div>
+    <div class="empty-rich-sub">${sub}</div>
+    ${btnLabel?`<button class="empty-rich-btn" onclick="${btnAction}">${btnLabel}</button>`:''}
+  </div>`;
+}
+
+// ══════════════════════════════════════════
+// DASHBOARD — INICIO
+// ══════════════════════════════════════════
+function renderInicio(){
+  if(!S)return;
+  // Greeting
+  const h=new Date().getHours();
+  const greeting=h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches';
+  const wsName=document.getElementById('sb-name')?.textContent||'';
+  const grEl=document.getElementById('inicio-greeting');
+  if(grEl)grEl.textContent=`${greeting}${wsName&&wsName!=='—'?' — '+wsName:''}`;
+  const grSub=document.getElementById('inicio-greeting-sub');
+  if(grSub){
+    const day=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+    grSub.textContent=day.charAt(0).toUpperCase()+day.slice(1);
+  }
+
+  // KPI cards
+  const kpiEl=document.getElementById('inicio-kpis');
+  if(kpiEl){
+    // 1. Checklist items done this week
+    let checkDone=0,checkTotal=0;
+    (S.checkGroups||[]).forEach(g=>(g.items||[]).forEach(i=>{checkTotal++;if(i.done)checkDone++;}));
+    // 2. Pending To-Dos
+    const todoPending=(S.todos||[]).filter(t=>t.estado!=='done').length;
+    // 3. Monthly revenue (this month)
+    const now=new Date();
+    const monthKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const monthRev=(S.finanzas||[])
+      .filter(t=>t.tipo==='ingreso'&&(t.fecha||'').startsWith(monthKey))
+      .reduce((a,t)=>a+t.monto,0);
+    // 4. Active collabs
+    const activeCollabs=(S.collabs||[]).filter(c=>c.estado==='activa').length;
+
+    kpiEl.innerHTML=`
+      <div class="kpi-dash-card">
+        <div class="kpi-dash-label">Checklist semana</div>
+        <div class="kpi-dash-value">${checkDone}<span style="font-size:18px;color:var(--muted)">/${checkTotal}</span></div>
+        <div class="kpi-dash-sub">${checkTotal>0?Math.round(checkDone/checkTotal*100):0}% completado</div>
+      </div>
+      <div class="kpi-dash-card">
+        <div class="kpi-dash-label">Tareas pendientes</div>
+        <div class="kpi-dash-value" style="color:${todoPending>5?'var(--coral)':'var(--text)'}">${todoPending}</div>
+        <div class="kpi-dash-sub">en el tablero To Do</div>
+      </div>
+      <div class="kpi-dash-card">
+        <div class="kpi-dash-label">Ingresos del mes</div>
+        <div class="kpi-dash-value" style="color:var(--green)">${monthRev>0?'$'+Math.round(monthRev).toLocaleString('es-AR'):'$0'}</div>
+        <div class="kpi-dash-sub">${now.toLocaleString('es-AR',{month:'long',year:'numeric'})}</div>
+      </div>
+      <div class="kpi-dash-card">
+        <div class="kpi-dash-label">Collabs activas</div>
+        <div class="kpi-dash-value">${activeCollabs}</div>
+        <div class="kpi-dash-sub">de ${(S.collabs||[]).length} totales</div>
+      </div>`;
+  }
+
+  // Quick actions
+  const quickEl=document.getElementById('inicio-quick');
+  if(quickEl){
+    const actions=[
+      {icon:'📋',label:'Nueva lista',action:"addCheckGroup()"},
+      {icon:'✅',label:'Nueva tarea',action:"openModal('todo')"},
+      {icon:'📝',label:'Nuevo brief',action:"navigate('planning/briefs');setTimeout(()=>openModal('brief'),200)"},
+      {icon:'💰',label:'Nuevo movimiento',action:"navigate('finanzas');setTimeout(()=>openModal('finanza'),300)"},
+      {icon:'🤝',label:'Nueva collab',action:"navigate('planning/collabs');setTimeout(()=>openModal('collab'),200)"},
+      {icon:'👤',label:'Nuevo contacto',action:"navigate('crm');setTimeout(()=>openModal('crm'),200)"},
+    ];
+    quickEl.innerHTML=actions.map(a=>`
+      <button class="quick-action" onclick="${a.action}">
+        <span class="quick-action-icon">${a.icon}</span>${a.label}
+      </button>`).join('');
+  }
+
+  // Recent financial movements
+  const movEl=document.getElementById('inicio-movimientos');
+  if(movEl){
+    const sorted=(S.finanzas||[]).slice().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).slice(0,5);
+    if(!sorted.length){
+      movEl.innerHTML=`<div style="font-size:12px;color:var(--muted);padding:8px 0">Sin movimientos registrados</div>`;
+    } else {
+      movEl.innerHTML=sorted.map(t=>`
+        <div class="inicio-activity-item">
+          <span class="inicio-act-icon">${t.tipo==='ingreso'?'💚':'🔴'}</span>
+          <div>
+            <div class="inicio-act-text">${t.descripcion||t.categoria||t.tipo}</div>
+            <div class="inicio-act-sub">${t.fecha||''} · <span style="color:${t.tipo==='ingreso'?'var(--green)':'var(--coral)'}">${t.tipo==='ingreso'?'+':'-'}$${(t.monto||0).toLocaleString('es-AR')}</span></div>
+          </div>
+        </div>`).join('');
+    }
+  }
+
+  // Recent checklist done items
+  const clEl=document.getElementById('inicio-checklist');
+  if(clEl){
+    const doneItems=[];
+    (S.checkGroups||[]).forEach(g=>(g.items||[]).filter(i=>i.done).forEach(i=>doneItems.push({text:i.text,group:g.title})));
+    const last5=doneItems.slice(-5).reverse();
+    if(!last5.length){
+      clEl.innerHTML=`<div style="font-size:12px;color:var(--muted);padding:8px 0">Sin ítems completados esta semana</div>`;
+    } else {
+      clEl.innerHTML=last5.map(i=>`
+        <div class="inicio-activity-item">
+          <span class="inicio-act-icon">✅</span>
+          <div>
+            <div class="inicio-act-text">${i.text}</div>
+            <div class="inicio-act-sub">${i.group}</div>
+          </div>
+        </div>`).join('');
+    }
+  }
+}
+
+// ══════════════════════════════════════════
+// COMMAND PALETTE — CMD+K
+// ══════════════════════════════════════════
+let _cmdActiveIdx=-1;
+
+function openCmdK(){
+  const ov=document.getElementById('cmd-overlay');
+  if(!ov)return;
+  ov.classList.add('open');
+  const inp=document.getElementById('cmd-input');
+  if(inp){inp.value='';inp.focus();}
+  _cmdActiveIdx=-1;
+  cmdSearch('');
+}
+
+function closeCmdK(){
+  document.getElementById('cmd-overlay')?.classList.remove('open');
+  _cmdActiveIdx=-1;
+}
+
+function searchAll(query){
+  if(!S)return[];
+  const q=(query||'').toLowerCase().trim();
+  const results=[];
+
+  // To-Dos
+  (S.todos||[]).slice(0,q?999:5).forEach(t=>{
+    if(!q||t.titulo?.toLowerCase().includes(q)||t.desc?.toLowerCase().includes(q)){
+      results.push({icon:'✅',text:t.titulo||'Tarea sin título',section:'To Do',action:"navigate('todo')"});
+    }
+  });
+
+  // Checklist items
+  (S.checkGroups||[]).forEach(g=>{
+    (g.items||[]).forEach(i=>{
+      if(!q||i.text?.toLowerCase().includes(q)){
+        results.push({icon:'📋',text:i.text,section:'Checklist',action:"navigate('checklist')"});
+      }
+    });
+  });
+
+  // Briefs
+  (S.briefs||[]).forEach(b=>{
+    if(!q||b.titulo?.toLowerCase().includes(q)||b.tipo?.toLowerCase().includes(q)){
+      results.push({icon:'📝',text:b.titulo||'Brief',section:'Brief',action:"navigate('planning/briefs')"});
+    }
+  });
+
+  // Canjes (creadoras)
+  (S.creadoras||[]).forEach(c=>{
+    if(!q||c.nombre?.toLowerCase().includes(q)||c.handle?.toLowerCase().includes(q)){
+      results.push({icon:'🤝',text:c.nombre+(c.handle?' ('+c.handle+')':''),section:'Canjes',action:"navigate('planning/canjes')"});
+    }
+  });
+
+  // Collabs
+  (S.collabs||[]).forEach(c=>{
+    if(!q||c.marca?.toLowerCase().includes(q)){
+      results.push({icon:'🔗',text:c.marca,section:'Collabs',action:"navigate('planning/collabs')"});
+    }
+  });
+
+  // CRM contacts
+  (S.crm||[]).forEach(c=>{
+    if(!q||c.nombre?.toLowerCase().includes(q)||c.ig?.toLowerCase().includes(q)||c.email?.toLowerCase().includes(q)){
+      results.push({icon:'👤',text:c.nombre+(c.ig?' @'+c.ig:''),section:'CRM',action:"navigate('crm')"});
+    }
+  });
+
+  // Finanzas movements
+  (S.finanzas||[]).forEach(t=>{
+    if(!q||t.descripcion?.toLowerCase().includes(q)||t.categoria?.toLowerCase().includes(q)){
+      results.push({icon:t.tipo==='ingreso'?'💚':'🔴',text:(t.descripcion||t.categoria||t.tipo)+' · $'+(t.monto||0).toLocaleString('es-AR'),section:'Finanzas',action:"navigate('finanzas')"});
+    }
+  });
+
+  // Limit results
+  return results.slice(0,20);
+}
+
+function cmdSearch(query){
+  const el=document.getElementById('cmd-results');
+  if(!el)return;
+  _cmdActiveIdx=-1;
+  const results=searchAll(query);
+  if(!results.length){
+    el.innerHTML=`<div class="cmd-empty">${query?'Sin resultados para "'+query+'"':'Escribí para buscar...'}</div>`;
+    return;
+  }
+  // Group by section
+  const grouped={};
+  results.forEach(r=>{if(!grouped[r.section])grouped[r.section]=[];grouped[r.section].push(r);});
+  let html='';
+  let idx=0;
+  Object.entries(grouped).forEach(([sec,items])=>{
+    html+=`<div class="cmd-group-label">${sec}</div>`;
+    items.forEach(r=>{
+      html+=`<div class="cmd-result" data-action="${r.action.replace(/"/g,'&quot;')}" data-idx="${idx}" onmouseover="cmdSetActive(${idx})" onclick="cmdGo(${idx})">
+        <span class="cmd-result-icon">${r.icon}</span>
+        <span class="cmd-result-text">${r.text}</span>
+        <span class="cmd-result-section">${sec}</span>
+      </div>`;
+      idx++;
+    });
+  });
+  el.innerHTML=html;
+  el._results=results;
+}
+
+function cmdSetActive(idx){
+  _cmdActiveIdx=idx;
+  document.querySelectorAll('#cmd-results .cmd-result').forEach((el,i)=>el.classList.toggle('active',i===idx));
+}
+
+function cmdGo(idx){
+  const el=document.getElementById('cmd-results');
+  const results=el?._results||[];
+  const r=results[idx];
+  if(!r)return;
+  closeCmdK();
+  try{eval(r.action);}catch(e){console.warn('cmdGo error:',e);}
+}
+
+function cmdKeydown(e){
+  const el=document.getElementById('cmd-results');
+  const results=el?._results||[];
+  if(e.key==='Escape'){closeCmdK();e.preventDefault();return;}
+  if(e.key==='ArrowDown'){e.preventDefault();_cmdActiveIdx=Math.min(_cmdActiveIdx+1,results.length-1);cmdSetActive(_cmdActiveIdx);return;}
+  if(e.key==='ArrowUp'){e.preventDefault();_cmdActiveIdx=Math.max(_cmdActiveIdx-1,0);cmdSetActive(_cmdActiveIdx);return;}
+  if(e.key==='Enter'){e.preventDefault();if(_cmdActiveIdx>=0)cmdGo(_cmdActiveIdx);else if(results.length)cmdGo(0);return;}
+}
+
+// Global keyboard shortcut
+document.addEventListener('keydown',function(e){
+  if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();openCmdK();}
+  if(e.key==='Escape'){closeCmdK();}
+});
+
 </script>
+
+<!-- ══ COMMAND PALETTE ══ -->
+<div class="cmd-overlay" id="cmd-overlay" onclick="if(event.target===this)closeCmdK()">
+  <div class="cmd-box">
+    <div class="cmd-input-wrap">
+      <span style="font-size:16px">🔍</span>
+      <input class="cmd-input" id="cmd-input" placeholder="Buscar tareas, contactos, movimientos..." oninput="cmdSearch(this.value)" onkeydown="cmdKeydown(event)" autocomplete="off">
+      <span style="font-size:11px;color:var(--muted)">ESC</span>
+    </div>
+    <div class="cmd-results" id="cmd-results"></div>
+    <div class="cmd-hint">
+      <div class="cmd-hint-item"><span class="cmd-key">↑↓</span> Navegar</div>
+      <div class="cmd-hint-item"><span class="cmd-key">↵</span> Ir</div>
+      <div class="cmd-hint-item"><span class="cmd-key">ESC</span> Cerrar</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MOBILE NAV ══ -->
+<nav id="mobile-nav" class="mobile-nav">
+  <button class="mob-nav-item" id="mob-inicio" onclick="sbNav('inicio','inicio',this)">
+    <span class="mob-nav-item-icon">🏠</span>Inicio
+  </button>
+  <button class="mob-nav-item" id="mob-checklist" onclick="sbNav('marketing','checklist',this)">
+    <span class="mob-nav-item-icon">📋</span>Checklist
+  </button>
+  <button class="mob-nav-item" id="mob-finanzas" onclick="sbNav('finanzas','finanzas',this)">
+    <span class="mob-nav-item-icon">💰</span>Finanzas
+  </button>
+  <button class="mob-nav-item" id="mob-crm" onclick="sbNav('crm','crm',this)">
+    <span class="mob-nav-item-icon">👤</span>CRM
+  </button>
+  <button class="mob-nav-item" id="mob-more" onclick="openCmdK()">
+    <span class="mob-nav-item-icon">···</span>Más
+  </button>
+</nav>
+
+<!-- ══ NOTIF STACK ══ -->
+<div class="notif-stack" id="notif-stack"></div>
 
 <!-- ══ TOUR PRIMERA SESIÓN ══ -->
 <div id="tour-backdrop" class="tour-backdrop"></div>
