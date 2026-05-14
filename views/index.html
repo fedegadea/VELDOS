@@ -967,6 +967,12 @@ tr:hover .tx-del{color:var(--muted)}
 .sb-item.active{background:rgba(41,121,255,.10);color:var(--text);font-weight:500}
 .sb-item-icon{font-size:14px;flex-shrink:0;width:18px;text-align:center;line-height:1}
 .sb-divider{height:1px;background:var(--border);margin:6px 12px}
+.sb-crealo-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;margin:0 8px 8px;border-radius:8px;font-size:11px;font-weight:600;color:#fff;cursor:pointer;transition:all .2s;border:none;background:linear-gradient(135deg,#0071e3,#2979ff);font-family:var(--fb);width:calc(100% - 16px);text-decoration:none;justify-content:flex-start;box-shadow:0 2px 8px rgba(41,121,255,.25)}
+.sb-crealo-btn:hover{background:linear-gradient(135deg,#0058b0,#147ce5);box-shadow:0 4px 16px rgba(41,121,255,.4);transform:translateY(-1px)}
+.sb-crealo-btn-icon{font-size:15px;flex-shrink:0}
+.sb-crealo-btn-text{display:flex;flex-direction:column;align-items:flex-start;gap:0}
+.sb-crealo-btn-title{font-size:11px;font-weight:700;color:#fff;line-height:1.2}
+.sb-crealo-btn-sub{font-size:9px;font-weight:400;color:rgba(255,255,255,.7);letter-spacing:.03em}
 .sb-bottom{margin-top:auto;padding:12px 8px;border-top:1px solid var(--border)}
 .sb-share-btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 10px;border-radius:8px;font-size:11px;color:var(--muted2);cursor:pointer;transition:all .15s;border:1px solid var(--border);background:none;font-family:var(--fb);width:100%;letter-spacing:.01em}
 .sb-share-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(41,121,255,.06)}
@@ -1376,6 +1382,13 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button class="sb-item" id="sbi-integraciones" onclick="sbNav('integraciones','integraciones',this)"><span class="sb-item-icon">🔗</span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Integraciones<span id="tn-nav-badge" style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">🛍️ Tienda Nube</span></span></button>
     <button class="sb-item" id="sbi-hojas" onclick="sbNav('hojas','hojas',this)"><span class="sb-item-icon">📁</span>Hojas</button>
   </div>
+  <a href="https://crealo.solutions/" target="_blank" rel="noopener" class="sb-crealo-btn">
+    <span class="sb-crealo-btn-icon">🎬</span>
+    <span class="sb-crealo-btn-text">
+      <span class="sb-crealo-btn-title">Conseguir creators</span>
+      <span class="sb-crealo-btn-sub">Briefs virales con IA → crealo.solutions</span>
+    </span>
+  </a>
   <div class="sb-bottom">
     <button class="sb-share-btn" onclick="copyShareUrl()">🔗 Copiar link de este espacio</button>
   </div>
@@ -1390,6 +1403,19 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
   <div class="inicio-greeting" id="inicio-greeting">Buenos días</div>
   <div class="inicio-greeting-sub" id="inicio-greeting-sub">¿En qué trabajamos hoy?</div>
   <div class="inicio-grid" id="inicio-kpis"></div>
+
+  <!-- CTA CREALO -->
+  <a href="https://crealo.solutions/" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;gap:16px;background:linear-gradient(135deg,rgba(0,113,227,.15) 0%,rgba(41,121,255,.08) 100%);border:1px solid rgba(41,121,255,.25);border-radius:12px;padding:16px 20px;margin-bottom:18px;text-decoration:none;transition:all .2s;cursor:pointer" onmouseover="this.style.borderColor='rgba(41,121,255,.5)';this.style.background='linear-gradient(135deg,rgba(0,113,227,.2) 0%,rgba(41,121,255,.12) 100%)'" onmouseout="this.style.borderColor='rgba(41,121,255,.25)';this.style.background='linear-gradient(135deg,rgba(0,113,227,.15) 0%,rgba(41,121,255,.08) 100%)'">
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="font-size:28px;line-height:1">🎬</div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px">¿Necesitás creadores de contenido?</div>
+        <div style="font-size:11px;color:var(--muted)">Generá briefs virales con IA y conectá con creators en 48h · <span style="color:var(--gold)">crealo.solutions</span></div>
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:600;color:#fff;background:linear-gradient(135deg,#0071e3,#2979ff);padding:8px 16px;border-radius:8px;white-space:nowrap;flex-shrink:0">Ir a Crealo →</div>
+  </a>
+
   <div class="inicio-sections">
     <div class="card">
       <div class="inicio-sec-title">Acciones rápidas</div>
