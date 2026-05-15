@@ -2388,6 +2388,57 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
       </div>
     </div>
 
+    <!-- ── CAJA REAL widget ── -->
+    <div id="caja-widget" style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;color:var(--text)">💰 Caja &amp; Cuentas</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-sm" style="font-size:10px;padding:3px 10px;border-radius:20px" onclick="openCajaAddModal()">+ Agregar cuenta</button>
+          <button class="btn btn-sm" style="font-size:10px;padding:3px 10px;border-radius:20px;background:var(--s3)" onclick="toggleCajaDetail()" id="caja-toggle-btn">Ver detalle ▾</button>
+        </div>
+      </div>
+      <!-- Summary row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+        <div style="background:var(--s2);border-radius:10px;padding:12px 14px">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Caja calculada</div>
+          <div style="font-size:18px;font-weight:700" id="caja-calculada">$0</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px">ingresos − gastos (todo el tiempo)</div>
+        </div>
+        <div style="background:var(--s2);border-radius:10px;padding:12px 14px">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Caja real</div>
+          <div style="font-size:18px;font-weight:700" id="caja-real">$0</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px">suma de saldos registrados</div>
+        </div>
+        <div style="background:var(--s2);border-radius:10px;padding:12px 14px">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Diferencia</div>
+          <div style="font-size:18px;font-weight:700" id="caja-diff">—</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px" id="caja-diff-label">sin cuentas registradas</div>
+        </div>
+      </div>
+      <!-- Accounts detail (collapsible) -->
+      <div id="caja-detail" style="display:none">
+        <div style="height:1px;background:var(--border);margin-bottom:12px"></div>
+        <div id="caja-cuentas-list" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div id="caja-empty" style="font-size:12px;color:var(--muted);text-align:center;padding:10px 0;display:none">No hay cuentas registradas. Agregá una para empezar.</div>
+        <!-- Ajuste manual -->
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600">Registrar ajuste / diferencia</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input id="caja-ajuste-concepto" class="form-input" placeholder="Concepto del ajuste" style="flex:1;min-width:160px;font-size:12px;padding:7px 10px">
+            <div style="display:flex;align-items:center;background:var(--s3);border:1px solid var(--border2);border-radius:8px;padding:0 10px">
+              <span style="color:var(--muted);font-size:12px">$</span>
+              <input id="caja-ajuste-monto" type="number" placeholder="0" style="background:none;border:none;color:var(--text);font-size:12px;padding:7px 6px;width:110px;outline:none">
+            </div>
+            <select id="caja-ajuste-tipo" style="background:var(--s3);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:12px;padding:7px 10px;border-radius:8px;outline:none">
+              <option value="ingreso">Ingreso (ajuste positivo)</option>
+              <option value="gasto">Gasto (ajuste negativo)</option>
+            </select>
+            <button class="btn btn-primary btn-sm" style="padding:7px 16px" onclick="registrarAjusteCaja()">Registrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- TN Pulse row (hidden until TN data exists) -->
     <div id="tn-pulse-row" class="tn-pulse-row" style="display:none">
       <div class="tn-pulse-item">
@@ -2495,8 +2546,14 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
         <div class="fin-card-body">
           <div class="cap-field"><label class="cap-label">Caja (efectivo disponible)</label><div class="cap-input-wrap"><span class="cap-prefix">$</span><input class="cap-input" id="cap-caja" type="number" placeholder="0" oninput="calcCapital()"></div></div>
           <div class="cap-field"><label class="cap-label">Saldo en cuentas bancarias / MP / Tienda</label><div class="cap-input-wrap"><span class="cap-prefix">$</span><input class="cap-input" id="cap-cuentas" type="number" placeholder="0" oninput="calcCapital()"></div></div>
-          <div class="cap-field"><label class="cap-label">Valor del stock (costo)</label><div class="cap-input-wrap"><span class="cap-prefix">$</span><input class="cap-input" id="cap-stock" type="number" placeholder="0" oninput="calcCapital()"></div></div>
-          <div class="cap-field"><label class="cap-label">Valor del stock (precio de venta)</label><div class="cap-input-wrap"><span class="cap-prefix">$</span><input class="cap-input" id="cap-stock-venta" type="number" placeholder="0" oninput="calcCapital()"></div></div>
+          <div class="cap-field">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <label class="cap-label" style="margin-bottom:0">Valor del stock (costo)</label>
+              <button class="btn btn-sm" style="font-size:10px;padding:3px 9px;border-radius:20px" onclick="syncStockToCapital()" title="Calcular desde el inventario">↻ Sincronizar inventario</button>
+            </div>
+            <div class="cap-input-wrap"><span class="cap-prefix">$</span><input class="cap-input" id="cap-stock" type="number" placeholder="0" oninput="calcCapital()" readonly style="opacity:.75;cursor:default"></div>
+          </div>
+          <div class="cap-field"><label class="cap-label">Valor del stock (precio de venta)</label><div class="cap-input-wrap"><span class="cap-prefix">$</span><input class="cap-input" id="cap-stock-venta" type="number" placeholder="0" oninput="calcCapital()" readonly style="opacity:.75;cursor:default"></div></div>
           <div class="cap-field"><label class="cap-label">Otros activos</label><div class="cap-input-wrap"><span class="cap-prefix">$</span><input class="cap-input" id="cap-otros-activos" type="number" placeholder="0" oninput="calcCapital()"></div></div>
         </div>
       </div>
@@ -4814,7 +4871,7 @@ function switchFinTab(id,btn,_skipNav){
   }
   if(id==='movimientos')renderFinanzas();
   if(id==='presupuesto')renderPresupuesto();
-  if(id==='capital')loadCapitalFields();
+  if(id==='capital'){loadCapitalFields();syncStockToCapital(true);}
   if(id==='config'){renderMediosPago();renderCostosFijos();loadTaxConfig();loadParams();}
   if(id==='cashflow')renderCashflow();
 }
@@ -5055,6 +5112,7 @@ function renderFinanzas(){
  
   renderFinChart(desde,hasta);
   renderVendorComisiones();
+  renderCajaWidget();
 }
 
 function renderVendorComisiones(){
@@ -5836,6 +5894,165 @@ function saveCapital(){
   notify('Capital guardado ✓');
 }
  
+// ── Sync stock values → Capital tab
+function syncStockToCapital(silent){
+  if(!S||!S.stock)return;
+  const costo=S.stock.reduce((s,p)=>s+(parseFloat(p.costo||0)*parseInt(p.stock||0)),0);
+  const venta=S.stock.reduce((s,p)=>s+(parseFloat(p.precio||0)*parseInt(p.stock||0)),0);
+  const elC=document.getElementById('cap-stock');
+  const elV=document.getElementById('cap-stock-venta');
+  if(elC)elC.value=Math.round(costo);
+  if(elV)elV.value=Math.round(venta);
+  calcCapital();
+  if(!silent)notify(`Stock sincronizado: costo ${fmtMoney(costo)} · precio venta ${fmtMoney(venta)}`);
+}
+
+// ── Caja widget (Movimientos tab)
+function renderCajaWidget(){
+  if(!S)return;
+  // Caja calculada = ALL-TIME ingresos − gastos (not filtered by period)
+  const fin=S.finanzas||[];
+  const allIng=fin.filter(t=>t.tipo==='ingreso').reduce((s,t)=>s+(parseFloat(t.bruto||t.monto||0)),0);
+  const allGas=fin.filter(t=>t.tipo==='gasto').reduce((s,t)=>s+(parseFloat(t.bruto||t.monto||0)),0);
+  const calculada=allIng-allGas;
+  // Caja real = sum of account balances
+  if(!S.finCfg)S.finCfg={};
+  if(!S.finCfg.cuentas)S.finCfg.cuentas=[];
+  const cuentas=S.finCfg.cuentas;
+  const real=cuentas.reduce((s,c)=>s+(parseFloat(c.saldo||0)),0);
+  const diff=real-calculada;
+  const hasCuentas=cuentas.length>0;
+  const setEl=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  const setStyle=(id,v)=>{const e=document.getElementById(id);if(e)e.style.color=v;};
+  setEl('caja-calculada',fmtMoney(calculada));
+  setStyle('caja-calculada',calculada>=0?'var(--green)':'var(--coral)');
+  setEl('caja-real',hasCuentas?fmtMoney(real):'—');
+  setStyle('caja-real',hasCuentas?(real>=0?'var(--green)':'var(--coral)'):'var(--muted)');
+  if(hasCuentas){
+    setEl('caja-diff',fmtMoney(diff));
+    setStyle('caja-diff',Math.abs(diff)<1?'var(--muted)':(diff>=0?'var(--green)':'var(--coral)'));
+    setEl('caja-diff-label',Math.abs(diff)<1?'✓ cuadra perfecto':(diff>0?'sobrante vs transacciones':'faltante vs transacciones'));
+  } else {
+    setEl('caja-diff','—');
+    setEl('caja-diff-label','sin cuentas registradas');
+  }
+  // Render accounts list
+  const list=document.getElementById('caja-cuentas-list');
+  const empty=document.getElementById('caja-empty');
+  if(!list)return;
+  if(!hasCuentas){
+    list.innerHTML='';
+    if(empty)empty.style.display='block';
+  } else {
+    if(empty)empty.style.display='none';
+    list.innerHTML=cuentas.map((c,i)=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--s2);border-radius:9px;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+          <span style="font-size:16px">${c.tipo==='banco'?'🏦':c.tipo==='mp'?'💙':c.tipo==='efectivo'?'💵':'💳'}</span>
+          <div>
+            <div style="font-weight:600;font-size:12px">${c.nombre||'Cuenta'}</div>
+            <div style="font-size:10px;color:var(--muted)">${c.tipo||''} · actualizado ${c.fecha||'—'}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="text-align:right">
+            <div style="font-weight:700;font-size:14px;color:${parseFloat(c.saldo||0)>=0?'var(--green)':'var(--coral)'}">${fmtMoney(parseFloat(c.saldo||0))}</div>
+          </div>
+          <button class="btn btn-sm" style="font-size:10px;padding:3px 9px;border-radius:20px" onclick="editCuenta(${i})">Editar</button>
+          <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 4px" onclick="deleteCuenta(${i})" title="Eliminar">×</button>
+        </div>
+      </div>`).join('');
+  }
+}
+function toggleCajaDetail(){
+  const det=document.getElementById('caja-detail');
+  const btn=document.getElementById('caja-toggle-btn');
+  if(!det)return;
+  const open=det.style.display==='none';
+  det.style.display=open?'block':'none';
+  if(btn)btn.textContent=open?'Ocultar detalle ▴':'Ver detalle ▾';
+  if(open)renderCajaWidget();
+}
+function openCajaAddModal(idx){
+  // reuse a simple prompt-style inline form approach via a small floating modal
+  const editing=idx!==undefined;
+  const c=editing?(S.finCfg.cuentas[idx]||{}):{};
+  const html=`<div id="caja-modal" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)" onclick="if(event.target===this)closeCajaModal()">
+    <div style="background:var(--s1);border:1px solid var(--border2);border-radius:16px;padding:28px;width:360px;max-width:95vw">
+      <div style="font-size:14px;font-weight:700;margin-bottom:18px">${editing?'Editar cuenta':'Nueva cuenta'}</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Nombre</label>
+          <input id="cm-nombre" class="form-input" placeholder="Ej: Mercado Pago, BBVA, Efectivo" value="${c.nombre||''}" style="width:100%"></div>
+        <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Tipo</label>
+          <select id="cm-tipo" class="form-select" style="width:100%">
+            <option value="banco"${(c.tipo||'banco')==='banco'?' selected':''}>🏦 Banco</option>
+            <option value="mp"${c.tipo==='mp'?' selected':''}>💙 Mercado Pago</option>
+            <option value="efectivo"${c.tipo==='efectivo'?' selected':''}>💵 Efectivo</option>
+            <option value="otro"${c.tipo==='otro'?' selected':''}>💳 Otro</option>
+          </select></div>
+        <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Saldo actual ($)</label>
+          <div style="display:flex;align-items:center;background:var(--s3);border:1px solid var(--border2);border-radius:8px;padding:0 10px">
+            <span style="color:var(--muted)">$</span>
+            <input id="cm-saldo" type="number" placeholder="0" value="${c.saldo||''}" style="background:none;border:none;color:var(--text);font-family:var(--fb);font-size:13px;padding:8px 6px;flex:1;outline:none">
+          </div></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:20px;justify-content:flex-end">
+        <button class="btn btn-sm" onclick="closeCajaModal()">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="saveCuenta(${editing?idx:'undefined'})">Guardar</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend',html);
+  setTimeout(()=>document.getElementById('cm-nombre')?.focus(),50);
+}
+function closeCajaModal(){
+  document.getElementById('caja-modal')?.remove();
+}
+function saveCuenta(idx){
+  if(!S.finCfg)S.finCfg={};
+  if(!S.finCfg.cuentas)S.finCfg.cuentas=[];
+  const nombre=document.getElementById('cm-nombre')?.value.trim()||'Cuenta';
+  const tipo=document.getElementById('cm-tipo')?.value||'banco';
+  const saldo=parseFloat(document.getElementById('cm-saldo')?.value)||0;
+  const fecha=new Date().toLocaleDateString('es-AR');
+  const entry={nombre,tipo,saldo,fecha};
+  if(idx!==undefined&&idx!=='undefined'&&S.finCfg.cuentas[idx]){
+    S.finCfg.cuentas[idx]=entry;
+  } else {
+    S.finCfg.cuentas.push(entry);
+  }
+  save();closeCajaModal();
+  // show detail open
+  const det=document.getElementById('caja-detail');
+  if(det&&det.style.display==='none'){
+    det.style.display='block';
+    const btn=document.getElementById('caja-toggle-btn');
+    if(btn)btn.textContent='Ocultar detalle ▴';
+  }
+  renderCajaWidget();
+  notify('Cuenta guardada ✓');
+}
+function editCuenta(i){openCajaAddModal(i);}
+function deleteCuenta(i){
+  if(!confirm('¿Eliminar esta cuenta?'))return;
+  S.finCfg.cuentas.splice(i,1);
+  save();renderCajaWidget();
+}
+function registrarAjusteCaja(){
+  const concepto=document.getElementById('caja-ajuste-concepto')?.value.trim();
+  const monto=parseFloat(document.getElementById('caja-ajuste-monto')?.value)||0;
+  const tipo=document.getElementById('caja-ajuste-tipo')?.value||'ingreso';
+  if(!concepto||!monto){notify('Completá concepto y monto');return;}
+  if(!S.finanzas)S.finanzas=[];
+  const today=new Date().toISOString().slice(0,10);
+  S.finanzas.unshift({fecha:today,concepto:'[Ajuste] '+concepto,categoria:'Ajuste caja',tipo,bruto:monto,monto,fee:0,medio:'Ajuste'});
+  save();
+  document.getElementById('caja-ajuste-concepto').value='';
+  document.getElementById('caja-ajuste-monto').value='';
+  renderFinanzas();renderCajaWidget();
+  notify('Ajuste registrado ✓');
+}
+
 // ══════════════════════════════════════════
 // OPERACIONES
 // ══════════════════════════════════════════
