@@ -2556,7 +2556,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
             </div>
             <div class="cap-input-wrap"><span class="cap-prefix">$</span><input class="cap-input" id="cap-stock" type="number" placeholder="0" oninput="calcCapital()" readonly style="opacity:.75;cursor:default"></div>
           </div>
-          <div class="cap-field"><label class="cap-label">Valor del stock (precio de venta)</label><div class="cap-input-wrap"><span class="cap-prefix">$</span><input class="cap-input" id="cap-stock-venta" type="number" placeholder="0" oninput="calcCapital()" readonly style="opacity:.75;cursor:default"></div></div>
+          <div class="cap-field"><label class="cap-label" style="display:flex;align-items:center;gap:6px">Valor del stock (precio de venta) <span style="font-size:10px;color:var(--muted);font-weight:400;background:var(--s3);padding:1px 7px;border-radius:10px">referencial, no suma a activos</span></label><div class="cap-input-wrap"><span class="cap-prefix">$</span><input class="cap-input" id="cap-stock-venta" type="number" placeholder="0" oninput="calcCapital()" readonly style="opacity:.65;cursor:default"></div></div>
           <div class="cap-field"><label class="cap-label">Otros activos</label><div class="cap-input-wrap"><span class="cap-prefix">$</span><input class="cap-input" id="cap-otros-activos" type="number" placeholder="0" oninput="calcCapital()"></div></div>
         </div>
       </div>
@@ -5949,7 +5949,7 @@ function renderPresupuesto(){
  
 const CAP_FIELDS=['caja','cuentas','stock','stock-venta','otros-activos','deuda-prov','deuda-fin','otras-deudas'];
 function calcCapital(){
-  const activos=['caja','cuentas','stock','stock-venta','otros-activos'].reduce((a,f)=>a+(parseFloat(document.getElementById('cap-'+f)?.value)||0),0);
+  const activos=['caja','cuentas','stock','otros-activos'].reduce((a,f)=>a+(parseFloat(document.getElementById('cap-'+f)?.value)||0),0);
   const pasivos=['deuda-prov','deuda-fin','otras-deudas'].reduce((a,f)=>a+(parseFloat(document.getElementById('cap-'+f)?.value)||0),0);
   const neto=activos-pasivos;
   const sc=parseFloat(document.getElementById('cap-stock')?.value)||0;
