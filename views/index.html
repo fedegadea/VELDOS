@@ -2524,7 +2524,10 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
         <select id="pres-mes" onchange="renderPresupuesto()" style="background:var(--s2);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:13px;padding:8px 12px;border-radius:8px;outline:none"></select>
         <select id="pres-año" onchange="renderPresupuesto()" style="background:var(--s2);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:13px;padding:8px 12px;border-radius:8px;outline:none"></select>
       </div>
-      <button class="btn btn-primary" onclick="openModal('presupuesto')">Editar presupuesto</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" style="border-radius:20px;font-size:11px" onclick="openPresupCatsModal()">⚙️ Personalizar categorías</button>
+        <button class="btn btn-primary" onclick="openModal('presupuesto')">Editar presupuesto</button>
+      </div>
     </div>
     <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
       <div class="kpi-card"><div class="kpi-label">Presupuesto total</div><div class="kpi-value" id="pres-total" style="color:var(--text)">$0</div><div class="kpi-sub">para el mes</div></div>
@@ -5818,6 +5821,89 @@ function calcTaxAlerta(){
   else{al.style.background='rgba(143,191,168,.08)';al.style.color='var(--green)';al.style.border='1px solid rgba(143,191,168,.2)';al.textContent=`Facturaste el ${pct}% del límite. Todo en orden.`;}
 }
  
+// ── Categorías personalizadas del presupuesto
+function getPresupCats(){
+  return(S?.finCfg?.presupCats&&S.finCfg.presupCats.length>0)
+    ?S.finCfg.presupCats
+    :[...TX_CATS_GAS];
+}
+function _renderPCatList(cats){
+  const list=document.getElementById('pres-cats-list');
+  if(!list)return;
+  list.innerHTML=cats.map((c,i)=>`
+    <div id="pcat-row-${i}" style="display:flex;align-items:center;gap:8px;background:var(--s2);border-radius:8px;padding:7px 10px">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;line-height:1;padding:0 3px" onclick="movePCat(${i},-1)" ${i===0?'disabled':''}>▲</button>
+        <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;line-height:1;padding:0 3px" onclick="movePCat(${i},1)" ${i===cats.length-1?'disabled':''}>▼</button>
+      </div>
+      <input value="${c.replace(/"/g,'&quot;')}" id="pcat-inp-${i}" style="background:var(--s3);border:1px solid var(--border2);border-radius:7px;color:var(--text);font-family:var(--fb);font-size:12px;padding:5px 9px;flex:1;outline:none" onkeydown="if(event.key==='Enter')document.getElementById('pcat-add-inp')?.focus()">
+      <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:0 4px;line-height:1" onclick="deletePCatRow(${i})" title="Eliminar">×</button>
+    </div>`).join('');
+}
+function _getPCatRows(){
+  const list=document.getElementById('pres-cats-list');
+  if(!list)return[];
+  return[...list.querySelectorAll('[id^="pcat-row-"]')]
+    .map(row=>(row.querySelector('input')?.value||'').trim())
+    .filter(Boolean);
+}
+function openPresupCatsModal(){
+  document.getElementById('pres-cats-modal')?.remove();
+  const cats=getPresupCats();
+  const html=`<div id="pres-cats-modal" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)" onclick="if(event.target===this)closePresupCatsModal()">
+    <div style="background:var(--s1);border:1px solid var(--border2);border-radius:16px;padding:28px;width:440px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column">
+      <div style="font-size:14px;font-weight:700;margin-bottom:5px">Categorías del presupuesto</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:16px">Agregá, renombrá o reordenás las categorías. Los montos ya guardados en meses anteriores no se pierden.</div>
+      <div id="pres-cats-list" style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex:1;margin-bottom:14px"></div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <input id="pcat-add-inp" class="form-input" placeholder="Nueva categoría..." style="flex:1;font-size:12px;padding:7px 10px" onkeydown="if(event.key==='Enter')addPCatRow()">
+        <button class="btn btn-sm" style="white-space:nowrap" onclick="addPCatRow()">+ Agregar</button>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--border);padding-top:14px">
+        <button class="btn btn-sm" onclick="closePresupCatsModal()">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="savePresupCats()">Guardar categorías</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend',html);
+  _renderPCatList(cats);
+  setTimeout(()=>document.getElementById('pcat-add-inp')?.focus(),50);
+}
+function closePresupCatsModal(){document.getElementById('pres-cats-modal')?.remove();}
+function movePCat(i,dir){
+  const cats=_getPCatRows();
+  const j=i+dir;
+  if(j<0||j>=cats.length)return;
+  [cats[i],cats[j]]=[cats[j],cats[i]];
+  _renderPCatList(cats);
+}
+function addPCatRow(){
+  const inp=document.getElementById('pcat-add-inp');
+  if(!inp)return;
+  const val=inp.value.trim();
+  if(!val)return;
+  inp.value='';
+  const cats=_getPCatRows();
+  cats.push(val);
+  _renderPCatList(cats);
+  inp.focus();
+}
+function deletePCatRow(i){
+  const cats=_getPCatRows();
+  cats.splice(i,1);
+  _renderPCatList(cats);
+}
+function savePresupCats(){
+  const cats=_getPCatRows();
+  if(!cats.length){notify('Necesitás al menos una categoría');return;}
+  if(!S.finCfg)S.finCfg={};
+  S.finCfg.presupCats=cats;
+  save();
+  closePresupCatsModal();
+  notify('Categorías guardadas ✓');
+  if(document.getElementById('fintab-presupuesto')?.classList.contains('active'))renderPresupuesto();
+}
+
 function renderPresupuesto(){
   const mesEl=document.getElementById('pres-mes');
   const añoEl=document.getElementById('pres-año');
@@ -6327,8 +6413,8 @@ function openModal(tipo,data,idx){
     presupuesto:`
       <div class="form-group"><label class="form-label">Total del mes ($)</label>
         <input class="form-input" id="fpres-total" type="number" placeholder="0" value="${pres.total||''}" oninput="distribuirPres()"></div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Distribuí por categoría. Lo que no asignés queda sin asignar.</div>
-      ${TX_CATS_GAS.map(cat=>`
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Distribuí por categoría. Lo que no asignés queda sin asignar. <a href="#" onclick="closeModal();openPresupCatsModal();return false" style="color:var(--gold);text-decoration:none">Personalizar categorías →</a></div>
+      ${getPresupCats().map(cat=>`
         <div class="form-row" style="margin-bottom:8px;align-items:center">
           <div style="font-size:12px;color:var(--muted2);padding-top:22px">${cat}</div>
           <div class="form-group" style="margin-bottom:0"><label class="form-label">$ asignado</label>
@@ -6859,7 +6945,7 @@ function saveCostoFijo(){
 }
 function distribuirPres(){
   const total=parseFloat(document.getElementById('fpres-total')?.value)||0;
-  const asignado=TX_CATS_GAS.reduce((a,cat)=>a+(parseFloat(document.getElementById('fpres-cat-'+cat.replace(/[^a-z0-9]/gi,'_'))?.value)||0),0);
+  const asignado=getPresupCats().reduce((a,cat)=>a+(parseFloat(document.getElementById('fpres-cat-'+cat.replace(/[^a-z0-9]/gi,'_'))?.value)||0),0);
   const resto=total-asignado;
   const el=document.getElementById('fpres-resto');
   if(el)el.textContent=`Sin asignar: ${fmtMoney(Math.max(resto,0))}${resto<0?' ⚠️ Excedés el total':''}`;
@@ -6872,7 +6958,7 @@ function savePresupuesto(){
   const key=`${año}-${String(mes+1).padStart(2,'0')}`;
   if(!S.presupuestos)S.presupuestos={};
   const cats={};
-  TX_CATS_GAS.forEach(cat=>{const v=parseFloat(document.getElementById('fpres-cat-'+cat.replace(/[^a-z0-9]/gi,'_'))?.value)||0;if(v>0)cats[cat]=v;});
+  getPresupCats().forEach(cat=>{const v=parseFloat(document.getElementById('fpres-cat-'+cat.replace(/[^a-z0-9]/gi,'_'))?.value)||0;if(v>0)cats[cat]=v;});
   S.presupuestos[key]={total:parseFloat(document.getElementById('fpres-total').value)||0,cats};
   save();closeModal();renderPresupuesto();notify('Presupuesto guardado ✓');
 }
