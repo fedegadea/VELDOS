@@ -2416,27 +2416,6 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
           <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Diferencia</div>
           <div style="font-size:18px;font-weight:700" id="caja-diff">—</div>
           <div style="font-size:10px;color:var(--muted);margin-top:3px" id="caja-diff-label">sin cuentas registradas</div>
-          <button id="caja-cerrar-btn" onclick="abrirAjusteDesdeDiff()" style="display:none;margin-top:8px;background:var(--s3);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:10px;padding:4px 10px;border-radius:12px;cursor:pointer;width:100%">Registrar ajuste →</button>
-        </div>
-      </div>
-      <!-- Panel de ajuste inline (aparece cuando hay diferencia) -->
-      <div id="caja-ajuste-inline" style="display:none;background:var(--s2);border-radius:10px;padding:14px 16px;margin-top:12px">
-        <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:10px">Registrar ajuste de caja</div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:12px" id="caja-ajuste-hint"></div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <input id="caja-ajuste-concepto" class="form-input" placeholder="Concepto (ej: 'Gastos no registrados mayo')" style="font-size:12px;padding:7px 10px">
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <div style="display:flex;align-items:center;background:var(--s3);border:1px solid var(--border2);border-radius:8px;padding:0 10px;flex:1;min-width:120px">
-              <span style="color:var(--muted);font-size:12px">$</span>
-              <input id="caja-ajuste-monto" type="number" placeholder="0" style="background:none;border:none;color:var(--text);font-size:12px;padding:7px 6px;flex:1;outline:none;width:100%">
-            </div>
-            <select id="caja-ajuste-tipo" style="background:var(--s3);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:12px;padding:7px 10px;border-radius:8px;outline:none">
-              <option value="gasto">Gasto no registrado (reduce calculada)</option>
-              <option value="ingreso">Ingreso no registrado (sube calculada)</option>
-            </select>
-            <button class="btn btn-primary btn-sm" style="padding:7px 16px;white-space:nowrap" onclick="registrarAjusteCaja()">Registrar</button>
-            <button class="btn btn-sm" style="padding:7px 12px" onclick="cerrarAjusteInline()">Cancelar</button>
-          </div>
         </div>
       </div>
       <!-- Accounts detail (collapsible) -->
@@ -2444,7 +2423,22 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
         <div style="height:1px;background:var(--border);margin-bottom:12px"></div>
         <div id="caja-cuentas-list" style="display:flex;flex-direction:column;gap:8px"></div>
         <div id="caja-empty" style="font-size:12px;color:var(--muted);text-align:center;padding:10px 0;display:none">No hay cuentas registradas. Agregá una para empezar.</div>
-        <!-- El ajuste ahora aparece arriba cuando hay diferencia -->
+        <!-- Ajuste manual -->
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600">Registrar ajuste / diferencia</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input id="caja-ajuste-concepto" class="form-input" placeholder="Concepto del ajuste" style="flex:1;min-width:160px;font-size:12px;padding:7px 10px">
+            <div style="display:flex;align-items:center;background:var(--s3);border:1px solid var(--border2);border-radius:8px;padding:0 10px">
+              <span style="color:var(--muted);font-size:12px">$</span>
+              <input id="caja-ajuste-monto" type="number" placeholder="0" style="background:none;border:none;color:var(--text);font-size:12px;padding:7px 6px;width:110px;outline:none">
+            </div>
+            <select id="caja-ajuste-tipo" style="background:var(--s3);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:12px;padding:7px 10px;border-radius:8px;outline:none">
+              <option value="ingreso">Ingreso (ajuste positivo)</option>
+              <option value="gasto">Gasto (ajuste negativo)</option>
+            </select>
+            <button class="btn btn-primary btn-sm" style="padding:7px 16px" onclick="registrarAjusteCaja()">Registrar</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -6081,22 +6075,13 @@ function renderCajaWidget(){
   setStyle('caja-calculada',calculada>=0?'var(--green)':'var(--coral)');
   setEl('caja-real',hasCuentas?fmtMoney(real):'—');
   setStyle('caja-real',hasCuentas?(real>=0?'var(--green)':'var(--coral)'):'var(--muted)');
-  const hasDiff=hasCuentas&&Math.abs(diff)>=1;
   if(hasCuentas){
     setEl('caja-diff',fmtMoney(diff));
     setStyle('caja-diff',Math.abs(diff)<1?'var(--muted)':(diff>=0?'var(--green)':'var(--coral)'));
-    setEl('caja-diff-label',Math.abs(diff)<1?'✓ cuadra perfecto':(diff>0?'sobrante sin registrar':'gastos sin registrar'));
+    setEl('caja-diff-label',Math.abs(diff)<1?'✓ cuadra perfecto':(diff>0?'sobrante vs transacciones':'faltante vs transacciones'));
   } else {
     setEl('caja-diff','—');
     setEl('caja-diff-label','sin cuentas registradas');
-  }
-  // Mostrar/ocultar botón de ajuste
-  const cajaCerrarBtn=document.getElementById('caja-cerrar-btn');
-  if(cajaCerrarBtn)cajaCerrarBtn.style.display=hasDiff?'block':'none';
-  // Si el panel inline está abierto, actualizarlo con el nuevo diff
-  const inlinePanel=document.getElementById('caja-ajuste-inline');
-  if(inlinePanel&&inlinePanel.style.display!=='none'){
-    _fillAjusteInline(diff);
   }
   // Render accounts list
   const list=document.getElementById('caja-cuentas-list');
@@ -6200,62 +6185,17 @@ function deleteCuenta(i){
   S.finCfg.cuentas.splice(i,1);
   save();renderCajaWidget();
 }
-function _fillAjusteInline(diff){
-  // diff = real - calculada
-  // diff < 0 → hay gastos sin registrar → tipo gasto
-  // diff > 0 → hay ingresos sin registrar → tipo ingreso
-  const tipoSel=document.getElementById('caja-ajuste-tipo');
-  const montoEl=document.getElementById('caja-ajuste-monto');
-  const hintEl=document.getElementById('caja-ajuste-hint');
-  const absDiff=Math.abs(diff);
-  if(tipoSel){tipoSel.value=diff<0?'gasto':'ingreso';}
-  if(montoEl&&!montoEl.value)montoEl.value=Math.round(absDiff);
-  if(hintEl){
-    if(diff<0)hintEl.innerHTML=`Tu caja real tiene <strong style="color:var(--coral)">${fmtMoney(absDiff)} menos</strong> de lo que dicen tus movimientos. Registrá un gasto para cerrar la diferencia.`;
-    else hintEl.innerHTML=`Tu caja real tiene <strong style="color:var(--green)">${fmtMoney(absDiff)} más</strong> de lo que dicen tus movimientos. Registrá un ingreso para cerrar la diferencia.`;
-  }
-}
-function abrirAjusteDesdeDiff(){
-  // Calcular diff actual
-  if(!S)return;
-  const fin=S.finanzas||[];
-  const allIng=fin.filter(t=>t.tipo==='ingreso').reduce((s,t)=>s+(parseFloat(t.bruto||t.monto||0)),0);
-  const allGas=fin.filter(t=>t.tipo==='gasto').reduce((s,t)=>s+(parseFloat(t.bruto||t.monto||0)),0);
-  const calculada=allIng-allGas;
-  const cuentas=(S.finCfg?.cuentas)||[];
-  const real=cuentas.reduce((s,c)=>s+(parseFloat(c.saldo||0)),0);
-  const diff=real-calculada;
-  const panel=document.getElementById('caja-ajuste-inline');
-  if(panel){
-    panel.style.display='block';
-    // Abrir detalle si está cerrado
-    const det=document.getElementById('caja-detail');
-    if(det&&det.style.display==='none'){
-      det.style.display='block';
-      const btn=document.getElementById('caja-toggle-btn');
-      if(btn)btn.textContent='Ocultar detalle ▴';
-    }
-    _fillAjusteInline(diff);
-    setTimeout(()=>document.getElementById('caja-ajuste-concepto')?.focus(),50);
-  }
-}
-function cerrarAjusteInline(){
-  const panel=document.getElementById('caja-ajuste-inline');
-  if(panel)panel.style.display='none';
-}
 function registrarAjusteCaja(){
   const concepto=document.getElementById('caja-ajuste-concepto')?.value.trim();
   const monto=parseFloat(document.getElementById('caja-ajuste-monto')?.value)||0;
-  const tipo=document.getElementById('caja-ajuste-tipo')?.value||'gasto';
-  if(!concepto){notify('Escribí un concepto para el ajuste');return;}
-  if(!monto){notify('Ingresá el monto del ajuste');return;}
+  const tipo=document.getElementById('caja-ajuste-tipo')?.value||'ingreso';
+  if(!concepto||!monto){notify('Completá concepto y monto');return;}
   if(!S.finanzas)S.finanzas=[];
   const today=new Date().toISOString().slice(0,10);
   S.finanzas.unshift({fecha:today,concepto:'[Ajuste] '+concepto,categoria:'Ajuste caja',tipo,bruto:monto,monto,fee:0,medio:'Ajuste'});
   save();
   document.getElementById('caja-ajuste-concepto').value='';
   document.getElementById('caja-ajuste-monto').value='';
-  cerrarAjusteInline();
   renderFinanzas();renderCajaWidget();
   notify('Ajuste registrado ✓');
 }
