@@ -9377,14 +9377,19 @@ function _cfUpdateSummary(months,ingTotals,egTotals,ajTotals,saldoAcum){
   if(!months){const r=_cfCalc();months=r.months;ingTotals=r.ingTotals;egTotals=r.egTotals;ajTotals=r.ajTotals;saldoAcum=r.saldoAcum;}
 
   const currentM=months.find(m=>m.isCurrent)||months[2];
-  const saldoActual=saldoAcum[currentM.key]||0;
   const actualEl=document.getElementById('cf-s-actual');
   const actualSub=document.getElementById('cf-s-actual-sub');
+  // Usar caja real (cuentas) si están definidas, si no caer en proyección
+  const cuentas=(S.finCfg?.cuentas)||[];
+  const hasCuentas=cuentas.length>0;
+  const saldoActual=hasCuentas
+    ?cuentas.reduce((s,c)=>s+(parseFloat(c.saldo||0)),0)
+    :saldoAcum[currentM.key]||0;
   if(actualEl){
     actualEl.textContent=(saldoActual<0?'-':'')+'$'+Math.abs(Math.round(saldoActual)).toLocaleString('es-AR');
     actualEl.className='cf-summary-value '+(saldoActual>0?'cf-positive':saldoActual<0?'cf-negative':'cf-neutral');
   }
-  if(actualSub)actualSub.textContent='saldo acumulado a fin de '+currentM.label;
+  if(actualSub)actualSub.textContent=hasCuentas?'caja real (suma de cuentas)':'proyección acumulada — cargá cuentas en Movimientos';
 
   const nextM=months.find(m=>m.offset===1);
   const proxEl=document.getElementById('cf-s-proximo');
