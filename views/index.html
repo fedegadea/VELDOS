@@ -1420,6 +1420,13 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <div style="font-size:12px;font-weight:600;color:#fff;background:linear-gradient(135deg,#0071e3,#2979ff);padding:8px 16px;border-radius:8px;white-space:nowrap;flex-shrink:0">Ir a Crealo →</div>
   </a>
 
+  <!-- ── SYNC VENTAS TN ── -->
+  <div id="sync-ventas-card" style="display:none;margin-bottom:18px">
+    <button onclick="syncVentasALaFecha()" id="sync-ventas-btn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#00a99d,#009688);color:#fff;border:none;border-radius:12px;padding:14px 20px;font-family:var(--fb);font-size:13px;font-weight:700;letter-spacing:.04em;cursor:pointer;transition:opacity .2s">
+      <span style="font-size:17px">🛍️</span> ACTUALIZAR VENTAS A LA FECHA
+    </button>
+  </div>
+
   <!-- ── RECOMENDACIONES DEL MES ── -->
   <div id="recom-card" style="display:none;background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-bottom:18px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
@@ -8644,16 +8651,21 @@ function setStockFilter(v,btn){
   renderStock();
 }
 
+function _stockCatDatalist(){
+  const cats=[...new Set((S.stock||[]).map(p=>p.categoria||'').filter(Boolean))].sort();
+  return`<datalist id="fst-cat-list">${cats.map(c=>`<option value="${c.replace(/"/g,'&quot;')}">`).join('')}</datalist>`;
+}
 function openNewProductModal(){
   _editIdx=null;
   document.getElementById('modal-title').textContent='Nuevo producto';
   document.getElementById('modal-body').innerHTML=`
+    ${_stockCatDatalist()}
     <div class="form-row">
       <div class="form-group"><label class="form-label">Nombre del producto</label><input class="form-input" id="fst-nombre" placeholder="Ej: Jean negro talle S"></div>
       <div class="form-group"><label class="form-label">SKU / Código</label><input class="form-input" id="fst-sku" placeholder="Ej: JN-S-001"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Categoría</label><input class="form-input" id="fst-cat" placeholder="Ej: Pantalones, Remeras..."></div>
+      <div class="form-group"><label class="form-label">Categoría</label><input class="form-input" id="fst-cat" list="fst-cat-list" placeholder="Ej: Pantalones, Remeras..." autocomplete="off"></div>
       <div class="form-group"><label class="form-label">Stock inicial</label><input class="form-input" id="fst-stock" type="number" min="0" placeholder="0" value="0"></div>
     </div>
     <div class="form-row">
@@ -8672,12 +8684,13 @@ function openProductDetail(ri){
   document.getElementById('modal-title').textContent=p.nombre||'Producto';
   const movs=(p.movimientos||[]).slice().reverse();
   document.getElementById('modal-body').innerHTML=`
+    ${_stockCatDatalist()}
     <div class="form-row">
       <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="fst-nombre" value="${p.nombre||''}"></div>
       <div class="form-group"><label class="form-label">SKU</label><input class="form-input" id="fst-sku" value="${p.sku||''}"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Categoría</label><input class="form-input" id="fst-cat" value="${p.categoria||''}"></div>
+      <div class="form-group"><label class="form-label">Categoría</label><input class="form-input" id="fst-cat" list="fst-cat-list" value="${p.categoria||''}" autocomplete="off"></div>
       <div class="form-group"><label class="form-label">Stock actual</label><input class="form-input" id="fst-stock" type="number" value="${p.stock||0}"></div>
     </div>
     <div class="form-row">
@@ -9564,6 +9577,58 @@ function emptyState(icon,title,sub,btnLabel,btnAction){
 }
 
 // ══════════════════════════════════════════
+// ── Sync ventas TN desde el dashboard ────────────────────────
+async function syncVentasALaFecha(){
+  if(!S.tnIntegration){notify('TN no conectada');return;}
+  const btn=document.getElementById('sync-ventas-btn');
+  if(btn){btn.disabled=true;btn.innerHTML='<span style="font-size:17px">⏳</span> Buscando ventas...';}
+  try{
+    // Desde: fecha del último pedido TN importado, o 90 días atrás
+    const imported=(S.finanzas||[]).filter(t=>t.tn_id&&t.fecha).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+    const lastDate=imported[0]?.fecha;
+    const desde=lastDate||new Date(Date.now()-90*86400000).toISOString().slice(0,10);
+    const hasta=new Date().toISOString().slice(0,10);
+    await syncTNProductsCost(false);
+    const r=await fetch(`/api/tn/orders?desde=${desde}&hasta=${hasta}&wsId=${encodeURIComponent(_activeWsId)}`);
+    const orders=await r.json();
+    if(!r.ok||orders.error){notify('Error TN: '+(orders.error||'sin respuesta'));return;}
+    const importedIds=new Set((S.finanzas||[]).filter(t=>t.tn_id).map(t=>String(t.tn_id)));
+    const nuevas=orders.filter(o=>!importedIds.has(String(o.id)));
+    if(!nuevas.length){notify(`✓ Todo al día — ${orders.length} órdenes ya importadas`);return;}
+    // Auto-import todas las nuevas
+    function mapGW(o){const g=(o.gateway||'').toLowerCase();if(g.includes('mercado'))return'Mercado Pago';if(g.includes('nuvem')||g.includes('nube'))return'Pago Nube';if(g.includes('transfer'))return'transferencia';if(g.includes('cash')||g.includes('efectivo'))return'Efectivo';return o.gateway||'Otro';}
+    if(!S.finanzas)S.finanzas=[];
+    nuevas.forEach(o=>{
+      const fecha=(o.created_at||'').slice(0,10);
+      const total=parseFloat(o.total)||0;
+      const medio=mapGW(o);
+      const productos=(o.products||[]).map(p=>p.name).join(', ')||'Venta TN';
+      const envioMonto=_tnEnvio(o);
+      let costoTotal=0;
+      let matchedProductoId=null;
+      const stockArr=S.stock||[];
+      (o.products||[]).forEach(p=>{
+        const qty=parseInt(p.quantity)||1;
+        const look=_tnLookupCost(p);
+        if(look.cost>0){costoTotal+=Math.round(look.cost*qty);}
+        if(!matchedProductoId){
+          const sku=(p.sku||'').toString().trim();
+          const name=(p.name||'').toString().toLowerCase().trim();
+          let prod=sku?stockArr.find(s=>(s.sku||'').toString().trim()===sku):null;
+          if(!prod&&name)prod=stockArr.find(s=>(s.nombre||'').toLowerCase().trim()===name);
+          if(prod){if(!prod.id)prod.id='p_'+Date.now();matchedProductoId=prod.id;}
+        }
+      });
+      const coupons=o.coupon||o.coupons||[];
+      const descuento=Array.isArray(coupons)&&coupons.length?coupons.map(c=>c.code).filter(Boolean).join(', '):(typeof coupons==='string'?coupons:'');
+      S.finanzas.unshift({fecha,concepto:`TN #${o.number} · ${productos}`,categoria:'Ventas tienda',tipo:'ingreso',bruto:total,monto:total,fee:0,medio,tn_id:o.id,tn_number:o.number,tn_cliente:o.customer?.name||'',tn_envio:envioMonto,tn_descuento:descuento,costoTotal,productoId:matchedProductoId});
+    });
+    save();renderFinanzas();renderInicio();
+    notify(`✓ ${nuevas.length} venta${nuevas.length>1?'s':''} importada${nuevas.length>1?'s':''} (${desde} → ${hasta})`);
+  }catch(e){notify('Error: '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.innerHTML='<span style="font-size:17px">🛍️</span> ACTUALIZAR VENTAS A LA FECHA';}}
+}
+
 // DASHBOARD — INICIO
 // ══════════════════════════════════════════
 function renderInicio(){
@@ -9674,6 +9739,10 @@ function renderInicio(){
         </div>`).join('');
     }
   }
+
+  // Mostrar botón sync ventas si TN está conectada
+  const syncCard=document.getElementById('sync-ventas-card');
+  if(syncCard)syncCard.style.display=S.tnIntegration?'block':'none';
 
   renderRecomendaciones();
 }
