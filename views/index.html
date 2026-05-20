@@ -2394,38 +2394,42 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <!-- ── CAJA REAL widget ── -->
     <div id="caja-widget" style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
-        <div style="font-size:13px;font-weight:700;color:var(--text)">💰 Caja &amp; Cuentas</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text)">💰 Caja</div>
         <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn btn-sm" style="font-size:10px;padding:3px 10px;border-radius:20px" onclick="openCajaAddModal()">+ Agregar cuenta</button>
-          <button class="btn btn-sm" style="font-size:10px;padding:3px 10px;border-radius:20px;background:var(--s3)" onclick="toggleCajaDetail()" id="caja-toggle-btn">Ver detalle ▾</button>
+          <button class="btn btn-primary btn-sm" style="font-size:10px;padding:4px 12px;border-radius:20px" onclick="openCorteModal()">📍 Establecer saldo real</button>
+          <button class="btn btn-sm" style="font-size:10px;padding:3px 10px;border-radius:20px;background:var(--s3)" onclick="toggleCajaDetail()" id="caja-toggle-btn">Cuentas ▾</button>
         </div>
       </div>
       <!-- Summary row -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
         <div style="background:var(--s2);border-radius:10px;padding:12px 14px">
-          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Caja calculada</div>
-          <div style="font-size:18px;font-weight:700" id="caja-calculada">$0</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:3px">ingresos − gastos (todo el tiempo)</div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Saldo de corte</div>
+          <div style="font-size:18px;font-weight:700;color:var(--text)" id="caja-corte-val">—</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px" id="caja-corte-fecha">sin establecer</div>
         </div>
         <div style="background:var(--s2);border-radius:10px;padding:12px 14px">
-          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Caja real</div>
-          <div style="font-size:18px;font-weight:700" id="caja-real">$0</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:3px">suma de saldos registrados</div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Movimientos desde corte</div>
+          <div style="font-size:18px;font-weight:700" id="caja-mov-corte">—</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px" id="caja-mov-corte-sub">ingresos − gastos</div>
         </div>
-        <div style="background:var(--s2);border-radius:10px;padding:12px 14px">
-          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Diferencia</div>
-          <div style="font-size:18px;font-weight:700" id="caja-diff">—</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:3px" id="caja-diff-label">sin cuentas registradas</div>
+        <div style="background:var(--s2);border-radius:10px;padding:12px 14px;border:1px solid rgba(41,121,255,.2)">
+          <div style="font-size:10px;color:var(--gold);margin-bottom:4px;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Caja real ahora</div>
+          <div style="font-size:22px;font-weight:800" id="caja-real">—</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px">corte + movimientos</div>
         </div>
       </div>
       <!-- Accounts detail (collapsible) -->
       <div id="caja-detail" style="display:none">
         <div style="height:1px;background:var(--border);margin-bottom:12px"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:11px;color:var(--muted);font-weight:600">Cuentas (referencia)</div>
+          <button class="btn btn-sm" style="font-size:10px;padding:3px 9px;border-radius:20px" onclick="openCajaAddModal()">+ Agregar</button>
+        </div>
         <div id="caja-cuentas-list" style="display:flex;flex-direction:column;gap:8px"></div>
-        <div id="caja-empty" style="font-size:12px;color:var(--muted);text-align:center;padding:10px 0;display:none">No hay cuentas registradas. Agregá una para empezar.</div>
+        <div id="caja-empty" style="font-size:12px;color:var(--muted);text-align:center;padding:10px 0;display:none">Sin cuentas. Agregá una como referencia.</div>
         <!-- Ajuste manual -->
         <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600">Registrar ajuste / diferencia</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600">Registrar ajuste de caja</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <input id="caja-ajuste-concepto" class="form-input" placeholder="Concepto del ajuste" style="flex:1;min-width:160px;font-size:12px;padding:7px 10px">
             <div style="display:flex;align-items:center;background:var(--s3);border:1px solid var(--border2);border-radius:8px;padding:0 10px">
@@ -6055,39 +6059,53 @@ function syncStockToCapital(silent){
 }
 
 // ── Caja widget (Movimientos tab)
+function _getCajaReal(){
+  // Caja real = saldo de corte + Σ movimientos desde la fecha de corte
+  if(!S)return{real:null,corte:null,mov:0};
+  if(!S.finCfg)S.finCfg={};
+  const corte=S.finCfg.cajaCorte||null; // {saldo, fecha}
+  if(!corte)return{real:null,corte:null,mov:0};
+  const fin=S.finanzas||[];
+  const finDesde=corte.fecha?fin.filter(t=>t.fecha>=corte.fecha):fin;
+  const ing=finDesde.filter(t=>t.tipo==='ingreso').reduce((s,t)=>s+(parseFloat(t.monto||0)),0);
+  const gas=finDesde.filter(t=>t.tipo==='gasto').reduce((s,t)=>s+(parseFloat(t.monto||0)),0);
+  const mov=ing-gas;
+  return{real:parseFloat(corte.saldo||0)+mov,corte,mov,ing,gas};
+}
 function renderCajaWidget(){
   if(!S)return;
-  // Caja calculada = ALL-TIME ingresos − gastos (not filtered by period)
-  const fin=S.finanzas||[];
-  const allIng=fin.filter(t=>t.tipo==='ingreso').reduce((s,t)=>s+(parseFloat(t.bruto||t.monto||0)),0);
-  const allGas=fin.filter(t=>t.tipo==='gasto').reduce((s,t)=>s+(parseFloat(t.bruto||t.monto||0)),0);
-  const calculada=allIng-allGas;
-  // Caja real = sum of account balances
   if(!S.finCfg)S.finCfg={};
   if(!S.finCfg.cuentas)S.finCfg.cuentas=[];
-  const cuentas=S.finCfg.cuentas;
-  const real=cuentas.reduce((s,c)=>s+(parseFloat(c.saldo||0)),0);
-  const diff=real-calculada;
-  const hasCuentas=cuentas.length>0;
   const setEl=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   const setStyle=(id,v)=>{const e=document.getElementById(id);if(e)e.style.color=v;};
-  setEl('caja-calculada',fmtMoney(calculada));
-  setStyle('caja-calculada',calculada>=0?'var(--green)':'var(--coral)');
-  setEl('caja-real',hasCuentas?fmtMoney(real):'—');
-  setStyle('caja-real',hasCuentas?(real>=0?'var(--green)':'var(--coral)'):'var(--muted)');
-  if(hasCuentas){
-    setEl('caja-diff',fmtMoney(diff));
-    setStyle('caja-diff',Math.abs(diff)<1?'var(--muted)':(diff>=0?'var(--green)':'var(--coral)'));
-    setEl('caja-diff-label',Math.abs(diff)<1?'✓ cuadra perfecto':(diff>0?'sobrante vs transacciones':'faltante vs transacciones'));
+
+  const{real,corte,mov}=_getCajaReal();
+  const hasCorte=corte!==null;
+
+  // Saldo de corte
+  setEl('caja-corte-val',hasCorte?fmtMoney(parseFloat(corte.saldo||0)):'—');
+  setEl('caja-corte-fecha',hasCorte?'al '+corte.fecha:'Establecé un saldo real →');
+
+  // Movimientos desde corte
+  if(hasCorte){
+    setEl('caja-mov-corte',(mov>=0?'+':'')+fmtMoney(Math.abs(mov)));
+    setStyle('caja-mov-corte',mov>0?'var(--green)':mov<0?'var(--coral)':'var(--muted)');
+    setEl('caja-mov-corte-sub',`desde ${corte.fecha}`);
   } else {
-    setEl('caja-diff','—');
-    setEl('caja-diff-label','sin cuentas registradas');
+    setEl('caja-mov-corte','—');
+    setEl('caja-mov-corte-sub','ingresos − gastos');
   }
-  // Render accounts list
+
+  // Caja real
+  setEl('caja-real',hasCorte?fmtMoney(real):'—');
+  setStyle('caja-real',!hasCorte?'var(--muted)':real>=0?'var(--green)':'var(--coral)');
+
+  // Accounts list (referencia)
+  const cuentas=S.finCfg.cuentas;
   const list=document.getElementById('caja-cuentas-list');
   const empty=document.getElementById('caja-empty');
   if(!list)return;
-  if(!hasCuentas){
+  if(!cuentas.length){
     list.innerHTML='';
     if(empty)empty.style.display='block';
   } else {
@@ -6098,18 +6116,56 @@ function renderCajaWidget(){
           <span style="font-size:16px">${c.tipo==='banco'?'🏦':c.tipo==='mp'?'💙':c.tipo==='efectivo'?'💵':'💳'}</span>
           <div>
             <div style="font-weight:600;font-size:12px">${c.nombre||'Cuenta'}</div>
-            <div style="font-size:10px;color:var(--muted)">${c.tipo||''} · actualizado ${c.fecha||'—'}</div>
+            <div style="font-size:10px;color:var(--muted)">${c.tipo||''} · ref. al ${c.fecha||'—'}</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
-          <div style="text-align:right">
-            <div style="font-weight:700;font-size:14px;color:${parseFloat(c.saldo||0)>=0?'var(--green)':'var(--coral)'}">${fmtMoney(parseFloat(c.saldo||0))}</div>
-          </div>
+          <div style="font-weight:600;font-size:13px;color:var(--muted2)">${fmtMoney(parseFloat(c.saldo||0))}</div>
           <button class="btn btn-sm" style="font-size:10px;padding:3px 9px;border-radius:20px" onclick="editCuenta(${i})">Editar</button>
-          <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 4px" onclick="deleteCuenta(${i})" title="Eliminar">×</button>
+          <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 4px" onclick="deleteCuenta(${i})">×</button>
         </div>
       </div>`).join('');
   }
+}
+function openCorteModal(){
+  document.getElementById('caja-corte-modal')?.remove();
+  const corte=S?.finCfg?.cajaCorte||{};
+  const today=new Date().toISOString().slice(0,10);
+  const html=`<div id="caja-corte-modal" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)" onclick="if(event.target===this)document.getElementById('caja-corte-modal')?.remove()">
+    <div style="background:var(--s1);border:1px solid var(--border2);border-radius:16px;padding:28px;width:380px;max-width:95vw">
+      <div style="font-size:14px;font-weight:700;margin-bottom:6px">Establecer saldo real</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:18px;line-height:1.6">Ingresá lo que tenés disponible hoy en total (efectivo + banco + MP + lo que sea). A partir de esta fecha, los movimientos que registres se suman y restan automáticamente.</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Saldo real total ($)</label>
+          <div style="display:flex;align-items:center;background:var(--s3);border:1px solid var(--border2);border-radius:8px;padding:0 12px">
+            <span style="color:var(--muted)">$</span>
+            <input id="cc-saldo" type="number" placeholder="0" value="${corte.saldo||''}" style="background:none;border:none;color:var(--text);font-family:var(--fb);font-size:16px;font-weight:700;padding:10px 8px;flex:1;outline:none">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Fecha del corte</label>
+          <input id="cc-fecha" type="date" value="${corte.fecha||today}" style="background:var(--s3);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:13px;padding:8px 12px;border-radius:8px;outline:none;width:100%">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:20px;justify-content:flex-end">
+        <button class="btn btn-sm" onclick="document.getElementById('caja-corte-modal')?.remove()">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="saveCorte()">Guardar</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend',html);
+  setTimeout(()=>document.getElementById('cc-saldo')?.focus(),50);
+}
+function saveCorte(){
+  const saldo=parseFloat(document.getElementById('cc-saldo')?.value)||0;
+  const fecha=document.getElementById('cc-fecha')?.value||new Date().toISOString().slice(0,10);
+  if(!S.finCfg)S.finCfg={};
+  S.finCfg.cajaCorte={saldo,fecha};
+  save();
+  document.getElementById('caja-corte-modal')?.remove();
+  renderCajaWidget();
+  notify(`Corte establecido: ${fmtMoney(saldo)} al ${fecha} ✓`);
 }
 function toggleCajaDetail(){
   const det=document.getElementById('caja-detail');
@@ -9379,17 +9435,15 @@ function _cfUpdateSummary(months,ingTotals,egTotals,ajTotals,saldoAcum){
   const currentM=months.find(m=>m.isCurrent)||months[2];
   const actualEl=document.getElementById('cf-s-actual');
   const actualSub=document.getElementById('cf-s-actual-sub');
-  // Usar caja real (cuentas) si están definidas, si no caer en proyección
-  const cuentas=(S.finCfg?.cuentas)||[];
-  const hasCuentas=cuentas.length>0;
-  const saldoActual=hasCuentas
-    ?cuentas.reduce((s,c)=>s+(parseFloat(c.saldo||0)),0)
-    :saldoAcum[currentM.key]||0;
+  // Usar caja real dinámica si hay corte definido, si no caer en proyección
+  const{real:cajaReal,corte}=_getCajaReal();
+  const hasCorte=corte!==null;
+  const saldoActual=hasCorte?cajaReal:(saldoAcum[currentM.key]||0);
   if(actualEl){
     actualEl.textContent=(saldoActual<0?'-':'')+'$'+Math.abs(Math.round(saldoActual)).toLocaleString('es-AR');
     actualEl.className='cf-summary-value '+(saldoActual>0?'cf-positive':saldoActual<0?'cf-negative':'cf-neutral');
   }
-  if(actualSub)actualSub.textContent=hasCuentas?'caja real (suma de cuentas)':'proyección acumulada — cargá cuentas en Movimientos';
+  if(actualSub)actualSub.textContent=hasCorte?`caja real · corte ${corte.fecha}`:'proyección — establecé un saldo real en Movimientos';
 
   const nextM=months.find(m=>m.offset===1);
   const proxEl=document.getElementById('cf-s-proximo');
