@@ -948,6 +948,34 @@ tr:hover .tx-del{color:var(--muted)}
 @media(max-width:700px){.ws-grid{grid-template-columns:1fr 1fr}.hojas-grid{grid-template-columns:1fr}}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* ── BRIEF CREATOR ── */
+.bc-wrap{max-width:700px}
+.bc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.bc-title{font-family:var(--fd);font-size:20px;letter-spacing:-.02em}
+.bc-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.bc-full{grid-column:1/-1}
+.bc-field{display:flex;flex-direction:column;gap:5px}
+.bc-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.bc-input,.bc-select,.bc-textarea{background:var(--s2);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:13px;border-radius:8px;padding:9px 12px;outline:none;transition:border-color .15s,box-shadow .15s;width:100%}
+.bc-input:focus,.bc-select:focus,.bc-textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--glow2)}
+.bc-textarea{resize:vertical;min-height:80px;line-height:1.5}
+.bc-select option{background:var(--s2)}
+.bc-toggles{display:flex;flex-wrap:wrap;gap:7px;padding-top:2px}
+.bc-toggle{background:var(--s2);border:1px solid var(--border2);color:var(--muted2);font-family:var(--fb);font-size:11px;font-weight:500;padding:5px 13px;border-radius:20px;cursor:pointer;transition:all .15s;letter-spacing:.01em}
+.bc-toggle.on{background:var(--gold);border-color:var(--gold);color:#fff;box-shadow:0 1px 6px rgba(41,121,255,.35)}
+.bc-actions{display:flex;gap:8px;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+.bc-result{margin-top:24px;background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:none}
+.bc-result-head{background:var(--s2);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.bc-result-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.bc-result-btns{display:flex;gap:6px}
+.bc-result-body{padding:18px 20px}
+.bc-brief-row{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.bc-brief-row:last-child{border-bottom:none}
+.bc-brief-key{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;flex-shrink:0;width:130px;padding-top:1px}
+.bc-brief-val{font-size:13px;color:var(--text);font-weight:300;line-height:1.5;flex:1}
+.bc-emociones-pills{display:flex;flex-wrap:wrap;gap:5px}
+.bc-emo-pill{font-size:10px;padding:3px 10px;border-radius:12px;background:rgba(41,121,255,.1);color:var(--gold);border:1px solid rgba(41,121,255,.2)}
+
 /* ── SIDEBAR ── */
 :root{--topbar-h:52px}
 .sidebar{
@@ -1524,6 +1552,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button class="plan-tab" onclick="switchPlanTab('biblioteca',this)">🎬 Biblioteca</button>
     <div class="plan-tab-sep"></div>
     <button class="plan-tab" onclick="switchPlanTab('briefs',this)">📝 Briefs</button>
+    <button class="plan-tab" onclick="switchPlanTab('generador',this)">✏️ Generador</button>
     <button class="plan-tab" onclick="switchPlanTab('canjes',this)">🤝 Canjes</button>
     <button class="plan-tab" onclick="switchPlanTab('collabs',this)">🔗 Collabs</button>
     <button class="plan-tab" id="plan-tab-estrategia" style="display:none" onclick="switchPlanTab('estrategia',this)">🧭 Estrategia</button>
@@ -1715,6 +1744,102 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
   <div class="plan-section" id="plantab-briefs">
     <p style="font-size:11px;color:var(--muted);margin-bottom:14px;font-weight:300">7 ideas cargadas por la CM cada semana (sáb–mar). Hacé click en una idea para asignarla a una creadora.</p>
     <div class="brief-grid" id="briefs-container"></div>
+  </div>
+
+  <!-- TAB: GENERADOR DE BRIEF -->
+  <div class="plan-section" id="plantab-generador">
+    <div class="bc-wrap">
+      <div class="bc-header">
+        <div class="bc-title">Generador de brief <span style="font-family:var(--fb);font-size:12px;color:var(--muted);font-weight:300">· Soul Studio</span></div>
+        <button class="btn btn-sm" onclick="limpiarBrief()" title="Limpiar formulario">✕ Limpiar</button>
+      </div>
+
+      <div class="bc-grid">
+        <!-- Formato -->
+        <div class="bc-field">
+          <label class="bc-label">Formato</label>
+          <select class="bc-select" id="bc-formato">
+            <option value="">Seleccionar…</option>
+            <option value="Reel">Reel</option>
+            <option value="TikTok">TikTok</option>
+            <option value="Story">Story</option>
+            <option value="Post / carrusel">Post / carrusel</option>
+            <option value="UGC">UGC</option>
+          </select>
+        </div>
+
+        <!-- Objetivo -->
+        <div class="bc-field">
+          <label class="bc-label">Objetivo</label>
+          <input class="bc-input" id="bc-objetivo" placeholder="Ej: aumentar awareness del producto X">
+        </div>
+
+        <!-- Tono -->
+        <div class="bc-field">
+          <label class="bc-label">Tono</label>
+          <input class="bc-input" id="bc-tono" placeholder="Ej: cercano, divertido, aspiracional">
+        </div>
+
+        <!-- Hook -->
+        <div class="bc-field">
+          <label class="bc-label">Hook — primeros 2 segundos</label>
+          <input class="bc-input" id="bc-hook" placeholder="¿Qué dice o se ve al inicio?">
+        </div>
+
+        <!-- Mensaje central -->
+        <div class="bc-field bc-full">
+          <label class="bc-label">Mensaje central — una sola idea</label>
+          <input class="bc-input" id="bc-mensaje" placeholder="La idea principal que tiene que quedarse en la mente">
+        </div>
+
+        <!-- Emociones -->
+        <div class="bc-field bc-full">
+          <label class="bc-label">¿Qué tiene que sentir quien lo ve?</label>
+          <div class="bc-toggles">
+            <button class="bc-toggle" data-emo="Identificación" onclick="toggleEmo(this)">Identificación</button>
+            <button class="bc-toggle" data-emo="Deseo" onclick="toggleEmo(this)">Deseo</button>
+            <button class="bc-toggle" data-emo="Sorpresa" onclick="toggleEmo(this)">Sorpresa</button>
+            <button class="bc-toggle" data-emo="Urgencia" onclick="toggleEmo(this)">Urgencia</button>
+            <button class="bc-toggle" data-emo="Confianza" onclick="toggleEmo(this)">Confianza</button>
+            <button class="bc-toggle" data-emo="Humor" onclick="toggleEmo(this)">Humor</button>
+          </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="bc-field">
+          <label class="bc-label">CTA — ¿qué hace después?</label>
+          <input class="bc-input" id="bc-cta" placeholder="Ej: visitar perfil, guardar, comprar">
+        </div>
+
+        <!-- Referencias -->
+        <div class="bc-field">
+          <label class="bc-label">Referencias <span style="color:var(--muted);font-size:9px">(opcional)</span></label>
+          <input class="bc-input" id="bc-referencias" placeholder="Links o nombres de referencia">
+        </div>
+
+        <!-- Planos / notas -->
+        <div class="bc-field bc-full">
+          <label class="bc-label">Planos / locación / notas para el filmmaker</label>
+          <textarea class="bc-textarea" id="bc-notas" placeholder="Planos sugeridos, locación, encuadres, música, mood…" rows="4"></textarea>
+        </div>
+      </div>
+
+      <div class="bc-actions">
+        <button class="btn btn-primary" onclick="generarBrief()" style="padding:9px 22px;font-size:13px">Generar brief ↗</button>
+      </div>
+
+      <!-- RESULTADO -->
+      <div class="bc-result" id="bc-result">
+        <div class="bc-result-head">
+          <span class="bc-result-label">Brief generado</span>
+          <div class="bc-result-btns">
+            <button class="btn btn-sm" onclick="copiarBrief()">📋 Copiar texto</button>
+            <button class="btn btn-sm btn-primary" onclick="descargarBriefPDF()">⬇ Descargar PDF</button>
+          </div>
+        </div>
+        <div class="bc-result-body" id="bc-result-body"></div>
+      </div>
+    </div>
   </div>
 
   <!-- TAB: CANJES -->
@@ -3548,7 +3673,7 @@ function sbNav(area,page,el){
 
 let _activeFinTab='movimientos';
 
-const _PLAN_TABS=new Set(['calendario','semana','ideas','biblioteca','briefs','canjes','collabs','estrategia']);
+const _PLAN_TABS=new Set(['calendario','semana','ideas','biblioteca','briefs','generador','canjes','collabs','estrategia']);
 const _FIN_TABS =new Set(['movimientos','ingresos','gastos','comisiones','kpis','cashflow','config','presupuesto','capital']);
 const _AREA_LABELS={inicio:'Inicio',marketing:'Marketing',finanzas:'Finanzas',crm:'CRM',flows:'Flows',hojas:'Hojas',operaciones:'Operaciones',stock:'Stock',integraciones:'Integraciones'};
 
@@ -4295,6 +4420,168 @@ function renderBriefs(){
     </div>`).join('');
 }
 function deleteBrief(i){S.briefs.splice(i,1);save();renderBriefs();notify('Brief eliminado');}
+
+// ══════════════════════════════════════════
+// GENERADOR DE BRIEF
+// ══════════════════════════════════════════
+function toggleEmo(btn){btn.classList.toggle('on');}
+
+function _getBriefData(){
+  return{
+    formato:document.getElementById('bc-formato')?.value||'',
+    objetivo:document.getElementById('bc-objetivo')?.value?.trim()||'',
+    tono:document.getElementById('bc-tono')?.value?.trim()||'',
+    hook:document.getElementById('bc-hook')?.value?.trim()||'',
+    mensaje:document.getElementById('bc-mensaje')?.value?.trim()||'',
+    emociones:[...(document.querySelectorAll('.bc-toggle.on')||[])].map(b=>b.dataset.emo),
+    cta:document.getElementById('bc-cta')?.value?.trim()||'',
+    referencias:document.getElementById('bc-referencias')?.value?.trim()||'',
+    notas:document.getElementById('bc-notas')?.value?.trim()||'',
+  };
+}
+
+function generarBrief(){
+  const d=_getBriefData();
+  if(!d.formato&&!d.objetivo&&!d.mensaje){notify('Completá al menos Formato, Objetivo o Mensaje central');return;}
+  const result=document.getElementById('bc-result');
+  const body=document.getElementById('bc-result-body');
+  if(!result||!body)return;
+
+  const row=(key,val)=>val?`<div class="bc-brief-row"><div class="bc-brief-key">${key}</div><div class="bc-brief-val">${val}</div></div>`:'';
+  const emoPills=d.emociones.length?`<div class="bc-emociones-pills">${d.emociones.map(e=>`<span class="bc-emo-pill">${e}</span>`).join('')}</div>`:'-';
+
+  body.innerHTML=`
+    ${row('Formato',d.formato)}
+    ${row('Objetivo',d.objetivo)}
+    ${row('Tono',d.tono)}
+    ${row('Hook',d.hook)}
+    ${row('Mensaje central',d.mensaje)}
+    <div class="bc-brief-row"><div class="bc-brief-key">Emoción buscada</div><div class="bc-brief-val">${emoPills}</div></div>
+    ${row('CTA',d.cta)}
+    ${row('Planos / notas',d.notas?d.notas.replace(/\n/g,'<br>'):'')}
+    ${row('Referencias',d.referencias)}
+  `;
+  result.style.display='';
+  result.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function limpiarBrief(){
+  ['bc-formato','bc-objetivo','bc-tono','bc-hook','bc-mensaje','bc-cta','bc-referencias','bc-notas'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.value='';
+  });
+  document.querySelectorAll('.bc-toggle.on').forEach(b=>b.classList.remove('on'));
+  const r=document.getElementById('bc-result');
+  if(r)r.style.display='none';
+}
+
+function copiarBrief(){
+  const d=_getBriefData();
+  const lines=[];
+  const add=(k,v)=>{if(v)lines.push(`${k.toUpperCase()}\n${v}\n`);};
+  add('Formato',d.formato);
+  add('Objetivo',d.objetivo);
+  add('Tono',d.tono);
+  add('Hook',d.hook);
+  add('Mensaje central',d.mensaje);
+  if(d.emociones.length)lines.push(`EMOCIÓN BUSCADA\n${d.emociones.join(', ')}\n`);
+  add('CTA',d.cta);
+  add('Planos / notas',d.notas);
+  add('Referencias',d.referencias);
+  const txt=`BRIEF DE CONTENIDO\n${'─'.repeat(30)}\n\n${lines.join('\n')}Soul Studio · Brief Creator`;
+  navigator.clipboard.writeText(txt).then(()=>notify('Brief copiado al portapapeles ✓')).catch(()=>notify('No se pudo copiar'));
+}
+
+function descargarBriefPDF(){
+  if(typeof window.jspdf==='undefined'&&typeof window.jsPDF==='undefined'){
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload=()=>_doBriefPDF();
+    document.head.appendChild(s);
+  } else {
+    _doBriefPDF();
+  }
+}
+
+function _doBriefPDF(){
+  const jsPDF=window.jspdf?.jsPDF||window.jsPDF;
+  if(!jsPDF){notify('No se pudo cargar jsPDF');return;}
+  const d=_getBriefData();
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=210,PL=18,PR=18,CW=W-PL-PR;
+  let y=0;
+
+  // Header negro
+  doc.setFillColor(10,10,20);
+  doc.rect(0,0,W,28,'F');
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(15);
+  doc.setTextColor(255,255,255);
+  doc.text('BRIEF DE CONTENIDO',PL,13);
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(8);
+  doc.setTextColor(140,140,170);
+  doc.text('Soul Studio · Brief Creator',PL,20);
+  const fecha=new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  doc.text(fecha,W-PR,20,{align:'right'});
+  y=36;
+
+  // Accent line
+  doc.setDrawColor(41,121,255);
+  doc.setLineWidth(0.5);
+  doc.line(PL,y-4,W-PR,y-4);
+
+  const addRow=(label,value)=>{
+    if(!value)return;
+    // label
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(120,120,150);
+    doc.text(label.toUpperCase(),PL,y);
+    y+=4.5;
+    // value — wrap long text
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(11);
+    doc.setTextColor(20,20,35);
+    const lines=doc.splitTextToSize(value,CW);
+    lines.forEach(line=>{
+      if(y>272){doc.addPage();y=20;}
+      doc.text(line,PL,y);
+      y+=5.5;
+    });
+    // separator
+    doc.setDrawColor(230,230,240);
+    doc.setLineWidth(0.25);
+    doc.line(PL,y+1,W-PR,y+1);
+    y+=7;
+  };
+
+  addRow('Formato',d.formato);
+  addRow('Objetivo',d.objetivo);
+  addRow('Tono',d.tono);
+  addRow('Hook — primeros 2 segundos',d.hook);
+  addRow('Mensaje central',d.mensaje);
+  addRow('Emoción buscada',d.emociones.join(' · ')||'');
+  addRow('CTA',d.cta);
+  addRow('Planos / locación / notas para el filmmaker',d.notas);
+  addRow('Referencias',d.referencias);
+
+  // Footer
+  const totalPages=doc.getNumberOfPages();
+  for(let p=1;p<=totalPages;p++){
+    doc.setPage(p);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7);
+    doc.setTextColor(160,160,180);
+    doc.text('Soul Studio · Brief Creator',PL,292);
+    doc.text(`${p}/${totalPages}`,W-PR,292,{align:'right'});
+  }
+
+  const fn=`brief_${new Date().toISOString().slice(0,10)}.pdf`;
+  doc.save(fn);
+  notify(`PDF descargado: ${fn} ✓`);
+}
+
 function asignarBriefACanje(i){
   const b=S.briefs[i];if(!b)return;
   _pendingBriefId=b.id||b.titulo;
@@ -4426,6 +4713,7 @@ function switchPlanTab(id,btn){
     else if(id==='canjes'){addBtn.textContent='+ Agregar creadora';addBtn.onclick=()=>openModal('creadora');addBtn.style.display='';}
     else if(id==='collabs'){addBtn.textContent='+ Agregar marca';addBtn.onclick=()=>openModal('collab');addBtn.style.display='';}
     else if(id==='estrategia'){addBtn.style.display='none';}
+    else if(id==='generador'){addBtn.style.display='none';}
     else if(id==='semana'){addBtn.style.display='none';}
     else{addBtn.textContent='+ Nueva idea';addBtn.onclick=()=>openModal('planidea');addBtn.style.display='';}
   }
