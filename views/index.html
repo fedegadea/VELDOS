@@ -1498,24 +1498,36 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
   </div>
   <div class="progress-row">
     <div class="prog-card" onclick="goPlanning('briefs')" style="cursor:pointer" title="Ver Briefs en Planning">
-      <div class="prog-label">Briefs cargados</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div class="prog-label">Briefs cargados</div>
+        <button class="btn btn-xs" onclick="event.stopPropagation();openProgTargetModal('briefs')" title="Cambiar objetivo" style="padding:1px 6px;font-size:9px;opacity:.5">✎</button>
+      </div>
       <div class="prog-bar-wrap"><div class="prog-bar" id="pb-briefs" style="background:var(--gold);width:0%"></div></div>
-      <div class="prog-count"><strong id="pc-briefs">0</strong>/7 ideas</div>
+      <div class="prog-count"><strong id="pc-briefs">0</strong>/<span id="pt-briefs">7</span> ideas</div>
     </div>
     <div class="prog-card" onclick="goPlanning('canjes')" style="cursor:pointer" title="Ver Canjes en Planning">
-      <div class="prog-label">Canjes gestionados</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div class="prog-label">Canjes gestionados</div>
+        <button class="btn btn-xs" onclick="event.stopPropagation();openProgTargetModal('canjes')" title="Cambiar objetivo" style="padding:1px 6px;font-size:9px;opacity:.5">✎</button>
+      </div>
       <div class="prog-bar-wrap"><div class="prog-bar" id="pb-canje" style="background:var(--coral);width:0%"></div></div>
-      <div class="prog-count"><strong id="pc-canje">0</strong>/7 contactadas</div>
+      <div class="prog-count"><strong id="pc-canje">0</strong>/<span id="pt-canjes">7</span> contactadas</div>
     </div>
     <div class="prog-card" onclick="goPlanning('collabs')" style="cursor:pointer" title="Ver Collabs en Planning">
-      <div class="prog-label">Collabs marcas</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div class="prog-label">Collabs marcas</div>
+        <button class="btn btn-xs" onclick="event.stopPropagation();openProgTargetModal('collabs')" title="Cambiar objetivo" style="padding:1px 6px;font-size:9px;opacity:.5">✎</button>
+      </div>
       <div class="prog-bar-wrap"><div class="prog-bar" id="pb-collab" style="background:var(--blue);width:0%"></div></div>
-      <div class="prog-count"><strong id="pc-collab">0</strong>/4 contactadas</div>
+      <div class="prog-count"><strong id="pc-collab">0</strong>/<span id="pt-collabs">4</span> contactadas</div>
     </div>
     <div class="prog-card" onclick="goPlanning('calendario')" style="cursor:pointer" title="Ver Calendario en Planning">
-      <div class="prog-label">Contenido calendarizado</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div class="prog-label">Contenido calendarizado</div>
+        <button class="btn btn-xs" onclick="event.stopPropagation();openProgTargetModal('cal')" title="Cambiar objetivo" style="padding:1px 6px;font-size:9px;opacity:.5">✎</button>
+      </div>
       <div class="prog-bar-wrap"><div class="prog-bar" id="pb-cal" style="background:var(--green);width:0%"></div></div>
-      <div class="prog-count"><strong id="pc-cal">0</strong> piezas esta semana</div>
+      <div class="prog-count"><strong id="pc-cal">0</strong>/<span id="pt-cal">10</span> piezas esta semana</div>
     </div>
   </div>
   <div class="checklist-grid" id="checklist-grid"></div>
@@ -1568,14 +1580,19 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
         <div class="cal-nav-title" id="cal-nav-title">—</div>
         <button class="cal-nav-btn" onclick="calNavMes(1)">›</button>
       </div>
-      <div style="padding:8px 16px 6px;display:flex;align-items:center;justify-content:space-between">
+      <div style="padding:8px 16px 6px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
         <div style="display:flex;gap:10px;font-size:10px;color:var(--muted);align-items:center">
           <span style="border-left:2px solid var(--green);padding-left:5px">Feed</span>
           <span style="border-left:2px solid #7ab3ff;padding-left:5px">Story</span>
           <span style="border-left:2px solid var(--gold);padding-left:5px">Reel</span>
           <span style="border-left:2px solid var(--purple);padding-left:5px">Ads</span>
         </div>
-        <button class="btn btn-sm" onclick="irHoy()">Hoy</button>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select id="cal-filter-cuenta" class="form-select" style="font-size:11px;padding:4px 10px;height:26px;border-radius:14px;width:auto" onchange="renderCalendario()">
+            <option value="">Todas las cuentas</option>
+          </select>
+          <button class="btn btn-sm" onclick="irHoy()">Hoy</button>
+        </div>
       </div>
       <div class="cal-month-grid" id="calendario"></div>
     </div>
@@ -1754,8 +1771,12 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
         <select id="brief-filter-pilar" class="form-select" style="font-size:11px;padding:4px 12px;height:30px;border-radius:16px;width:auto" onchange="renderBriefs()">
           <option value="">Todos los pilares</option>
         </select>
+        <select id="brief-filter-cuenta" class="form-select" style="font-size:11px;padding:4px 12px;height:30px;border-radius:16px;width:auto" onchange="_briefFilterCuenta=this.value;renderBriefs()">
+          <option value="">Todas las cuentas</option>
+        </select>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn btn-sm" onclick="openCuentasModal()" title="Gestionar marcas / cuentas">🏢 Cuentas</button>
         <button class="btn btn-sm" onclick="openPilaresModal()" title="Gestionar pilares de contenido">⚙ Pilares</button>
         <button class="btn btn-sm" id="brief-print-btn" onclick="startBriefPrint()">🖨 Imprimir</button>
       </div>
@@ -1771,12 +1792,18 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
 
   <!-- TAB: CANJES -->
   <div class="plan-section" id="plantab-canjes">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap">
       <div class="inner-tabs" style="margin-bottom:0">
         <button class="inner-tab active" onclick="switchInner('kanje','micro',this)">Micro influencers</button>
         <button class="inner-tab" onclick="switchInner('kanje','top',this)">Top creadora</button>
       </div>
-      <button class="btn btn-sm" onclick="openOfertasModal()" title="Gestionar plantillas de oferta">⚙ Ofertas</button>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <select id="canje-filter-cuenta" class="form-select" style="font-size:11px;padding:4px 12px;height:30px;border-radius:16px;width:auto" onchange="_canjeFilterCuenta=this.value;renderKanban('micro');renderKanban('top')">
+          <option value="">Todas las cuentas</option>
+        </select>
+        <button class="btn btn-sm" onclick="openCuentasModal()" title="Gestionar marcas / cuentas">🏢 Cuentas</button>
+        <button class="btn btn-sm" onclick="openOfertasModal()" title="Gestionar plantillas de oferta">⚙ Ofertas</button>
+      </div>
     </div>
     <div class="inner-section active" id="kanje-micro">
       <div class="kanban" id="kanban-micro"></div>
@@ -3064,7 +3091,7 @@ let _activePlanTab='calendario';
 let _pendingBriefId=null;
 
 function defaultData(){
-  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},ideas:[],semana:{},estrategia:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[],flows:[],flowDone:{},tnProductCost:{},pilares:[],ofertasPlantilla:[]};
+  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},ideas:[],semana:{},estrategia:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[],flows:[],flowDone:{},tnProductCost:{},pilares:[],ofertasPlantilla:[],cuentas:[],progTargets:{briefs:7,canjes:7,collabs:4,cal:10}};
 }
 
 function _localLoad(){
@@ -3095,6 +3122,10 @@ function _enterWorkspace(ws){
   S=ws.data||defaultData();
   if(!S.crm)S.crm=[];
   if(!S.customViews)S.customViews=[];
+  if(!S.pilares)S.pilares=[];
+  if(!S.ofertasPlantilla)S.ofertasPlantilla=[];
+  if(!S.cuentas)S.cuentas=[];
+  if(!S.progTargets)S.progTargets={briefs:7,canjes:7,collabs:4,cal:10};
   initCashflow();
   WORKSPACES.active=ws.id;
   _localSave();
@@ -4238,18 +4269,52 @@ function resetChecklist(){
   save();renderChecklist();notify('Checklist reiniciado ✓');
 }
 function updateProgress(){
+  if(!S.progTargets)S.progTargets={briefs:7,canjes:7,collabs:4,cal:10};
+  const t=S.progTargets;
+  // update target display
+  const setTxt=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  setTxt('pt-briefs',t.briefs);setTxt('pt-canjes',t.canjes);setTxt('pt-collabs',t.collabs);setTxt('pt-cal',t.cal);
   const bc=S.briefs.length;
-  document.getElementById('pc-briefs').textContent=Math.min(bc,7);
-  document.getElementById('pb-briefs').style.width=Math.min(bc/7*100,100)+'%';
+  setTxt('pc-briefs',Math.min(bc,t.briefs));
+  const pbBr=document.getElementById('pb-briefs');if(pbBr)pbBr.style.width=Math.min(bc/t.briefs*100,100)+'%';
   const cc=S.creadoras.filter(c=>['contactada','confirmada','envio','entregado','completado'].includes(c.estado)).length;
-  document.getElementById('pc-canje').textContent=Math.min(cc,7);
-  document.getElementById('pb-canje').style.width=Math.min(cc/7*100,100)+'%';
+  setTxt('pc-canje',Math.min(cc,t.canjes));
+  const pbCj=document.getElementById('pb-canje');if(pbCj)pbCj.style.width=Math.min(cc/t.canjes*100,100)+'%';
   const col=S.collabs.filter(c=>c.estado==='activa').length;
-  document.getElementById('pc-collab').textContent=Math.min(col,4);
-  document.getElementById('pb-collab').style.width=Math.min(col/4*100,100)+'%';
+  setTxt('pc-collab',Math.min(col,t.collabs));
+  const pbCo=document.getElementById('pb-collab');if(pbCo)pbCo.style.width=Math.min(col/t.collabs*100,100)+'%';
   const cp=Object.values(S.calendario).flat().length;
-  document.getElementById('pc-cal').textContent=cp;
-  document.getElementById('pb-cal').style.width=Math.min(cp/10*100,100)+'%';
+  setTxt('pc-cal',cp);
+  const pbCl=document.getElementById('pb-cal');if(pbCl)pbCl.style.width=Math.min(cp/t.cal*100,100)+'%';
+}
+function openProgTargetModal(key){
+  if(!S.progTargets)S.progTargets={briefs:7,canjes:7,collabs:4,cal:10};
+  const labels={briefs:'Briefs',canjes:'Canjes',collabs:'Collabs',cal:'Calendarizado'};
+  const cur=S.progTargets[key]||1;
+  const overlay=document.getElementById('modal-overlay');
+  if(!overlay)return;
+  overlay.classList.add('open');
+  overlay.innerHTML=`<div class="modal" style="max-width:320px">
+    <div class="modal-head"><div class="modal-title">Objetivo — ${labels[key]}</div><button class="modal-close" onclick="document.getElementById('modal-overlay').classList.remove('open')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Cantidad objetivo</label>
+        <input class="form-input" id="prog-target-inp" type="number" min="1" max="999" value="${cur}" style="text-align:center;font-size:20px;font-weight:600">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="document.getElementById('modal-overlay').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveProgTarget('${key}')">Guardar</button>
+    </div>
+  </div>`;
+  setTimeout(()=>document.getElementById('prog-target-inp')?.select(),30);
+}
+function saveProgTarget(key){
+  const v=parseInt(document.getElementById('prog-target-inp')?.value)||1;
+  if(v<1)return;
+  if(!S.progTargets)S.progTargets={briefs:7,canjes:7,collabs:4,cal:10};
+  S.progTargets[key]=v;
+  save();document.getElementById('modal-overlay').classList.remove('open');
+  updateProgress();notify('Objetivo actualizado ✓');
 }
  
 // ══════════════════════════════════════════
@@ -4323,8 +4388,78 @@ function deleteTodo(i){if(!confirm('¿Eliminar tarea?'))return;S.todos.splice(i,
 // BRIEFS — RENDER, FILTROS, PILARES, IMPRESIÓN
 // ══════════════════════════════════════════
 let _briefFilterCat='';
+let _briefFilterCuenta='';
+let _canjeFilterCuenta='';
 let _briefPrintMode=false;
 let _briefSelected=new Set();
+
+// ── Cuentas helpers ──
+function _cuentasSelect(selId,current=''){
+  const c=document.getElementById(selId);
+  if(!c)return;
+  const list=S.cuentas||[];
+  c.innerHTML='<option value="">— Sin cuenta —</option>'+list.map(n=>`<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join('');
+  if(current)c.value=current;
+}
+function _cuentasFilterSelect(selId,allLabel='Todas las cuentas'){
+  const c=document.getElementById(selId);
+  if(!c)return;
+  const cur=c.value;
+  const list=S.cuentas||[];
+  c.innerHTML=`<option value="">${allLabel}</option>`+list.map(n=>`<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join('');
+  if(cur&&list.includes(cur))c.value=cur;
+}
+function openCuentasModal(){
+  if(!S.cuentas)S.cuentas=[];
+  const overlay=document.getElementById('modal-overlay');
+  if(!overlay)return;
+  overlay.classList.add('open');
+  overlay.innerHTML=`<div class="modal" style="max-width:380px">
+    <div class="modal-head"><div class="modal-title">Marcas / Cuentas</div><button class="modal-close" onclick="closeCuentasModal()">×</button></div>
+    <div class="modal-body" id="cuentas-modal-body">${_renderCuentaList()}</div>
+    <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px">
+      <input class="form-input" id="cuenta-new-input" placeholder="Nombre de la cuenta o marca…" style="flex:1" onkeydown="if(event.key==='Enter')addCuenta()">
+      <button class="btn btn-primary btn-sm" onclick="addCuenta()">Agregar</button>
+    </div>
+  </div>`;
+  setTimeout(()=>document.getElementById('cuenta-new-input')?.focus(),50);
+}
+function _renderCuentaList(){
+  const p=S.cuentas||[];
+  if(!p.length)return`<p style="font-size:12px;color:var(--muted);padding:8px 0">No hay cuentas. Agregá la primera.</p>`;
+  return`<div>`+p.map((n,i)=>`
+    <div class="pilar-row">
+      <div class="pilar-dot" style="background:var(--blue)"></div>
+      <input value="${n.replace(/"/g,'&quot;')}" onchange="editCuenta(${i},this.value)" onblur="editCuenta(${i},this.value)" style="flex:1;background:none;border:none;color:var(--text);font-size:12px;outline:none">
+      <button class="btn btn-xs btn-danger" onclick="deleteCuenta(${i})">×</button>
+    </div>`).join('')+`</div>`;
+}
+function addCuenta(){
+  const inp=document.getElementById('cuenta-new-input');
+  const v=inp?.value?.trim();
+  if(!v)return;
+  if(!S.cuentas)S.cuentas=[];
+  if(S.cuentas.includes(v)){notify('Ya existe esa cuenta');return;}
+  S.cuentas.push(v);
+  save();inp.value='';
+  const body=document.getElementById('cuentas-modal-body');
+  if(body)body.innerHTML=_renderCuentaList();
+}
+function editCuenta(i,val){
+  if(!val.trim()||!S.cuentas)return;
+  S.cuentas[i]=val.trim();save();
+}
+function deleteCuenta(i){
+  if(!S.cuentas)return;
+  S.cuentas.splice(i,1);save();
+  const body=document.getElementById('cuentas-modal-body');
+  if(body)body.innerHTML=_renderCuentaList();
+}
+function closeCuentasModal(){
+  const ov=document.getElementById('modal-overlay');
+  if(ov)ov.classList.remove('open');
+  renderBriefs();
+}
 
 const CAT_LABEL={marca:'🏷 Marca',ugc:'📱 UGC',influencers:'🤝 Influencers'};
 const CAT_COLOR={marca:'rgba(41,121,255,.12)',ugc:'rgba(52,199,123,.12)',influencers:'rgba(124,77,255,.12)'};
@@ -4347,21 +4482,26 @@ function setBriefCatFilter(cat,btn){
 
 function renderBriefs(){
   _pilaresSelect();
+  _cuentasFilterSelect('brief-filter-cuenta');
   const c=document.getElementById('briefs-container');
   if(!c)return;
   const pilarF=document.getElementById('brief-filter-pilar')?.value||'';
+  const cuentaF=_briefFilterCuenta;
   let list=S.briefs;
   if(_briefFilterCat)list=list.filter(b=>b.categoria===_briefFilterCat);
   if(pilarF)list=list.filter(b=>b.pilar===pilarF);
+  if(cuentaF)list=list.filter(b=>b.cuenta===cuentaF);
   if(!list.length){c.innerHTML=`<div class="empty"><div class="e-icon">📋</div><p>${S.briefs.length?'Sin briefs que coincidan con ese filtro.':'No hay briefs todavía. Creá uno con el botón + arriba.'}</p></div>`;return;}
   // map sobre briefs originales para mantener índices reales
   c.innerHTML=S.briefs.map((b,i)=>{
     if(_briefFilterCat&&b.categoria!==_briefFilterCat)return'';
     if(pilarF&&b.pilar!==pilarF)return'';
+    if(cuentaF&&b.cuenta!==cuentaF)return'';
     const emos=(b.emociones||[]).map(e=>`<span class="tag" style="background:rgba(41,121,255,.08);color:var(--gold);border:1px solid rgba(41,121,255,.18);font-size:9px">${e}</span>`).join('');
     const asignado=(S.creadoras||[]).some(cr=>cr.briefId===(b.id||b.titulo));
     const catBadge=b.categoria?`<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:${CAT_COLOR[b.categoria]};color:${CAT_TEXT[b.categoria]};margin-left:6px">${CAT_LABEL[b.categoria]||b.categoria}</span>`:'';
     const pilarBadge=b.pilar?`<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:var(--s3);color:var(--muted2);margin-left:4px">${b.pilar}</span>`:'';
+    const cuentaBadge=b.cuenta?`<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:rgba(124,77,255,.12);color:var(--purple);margin-left:4px">🏢 ${b.cuenta}</span>`:'';
     const selClass=_briefPrintMode?'bf-sel-mode':''
     const selCls=_briefSelected.has(i)?'bf-selected':'';
     const selCheck=_briefPrintMode?`<div class="brief-sel-check">${_briefSelected.has(i)?'✓':''}</div>`:'';
@@ -4371,7 +4511,7 @@ function renderBriefs(){
       <div class="brief-card-head">
         <div class="brief-num">${String(i+1).padStart(2,'0')}</div>
         <div class="brief-meta">
-          <div class="brief-title">${b.titulo}${catBadge}${pilarBadge}</div>
+          <div class="brief-title">${b.titulo}${catBadge}${pilarBadge}${cuentaBadge}</div>
           <div class="brief-tipo">${[b.formato,b.tipo].filter(Boolean).join(' · ')}</div>
         </div>
         ${!_briefPrintMode?`<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deleteBrief(${i})" style="flex-shrink:0">×</button>`:''}
@@ -4759,9 +4899,10 @@ const ESTADOS_LABEL={potencial:'Potencial',contactada:'Contactada',confirmada:'C
 function estadoColor(e){return{potencial:'var(--blue)',contactada:'var(--gold)',confirmada:'var(--purple)',envio:'var(--coral)',entregado:'var(--green)',completado:'#7ab3ff'}[e]||'var(--muted)';}
  
 function renderKanban(tipo){
+  _cuentasFilterSelect('canje-filter-cuenta');
   const c=document.getElementById('kanban-'+tipo);
   if(!c)return;
-  const list=S.creadoras.filter(cr=>cr.tipo===tipo);
+  const list=S.creadoras.filter(cr=>cr.tipo===tipo&&(!_canjeFilterCuenta||cr.cuenta===_canjeFilterCuenta));
   c.innerHTML=ESTADOS.map(est=>{
     const items=list.filter(cr=>cr.estado===est);
     return`<div class="kol">
@@ -4775,7 +4916,7 @@ function renderKanban(tipo){
           const linkedBrief=cr.briefId?(S.briefs||[]).find(b=>(b.id||b.titulo)===cr.briefId):null;
           return`<div class="creadora-card">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px">
-              <div><div class="c-name">${cr.nombre}</div><div class="c-handle">${cr.handle}</div></div>
+              <div><div class="c-name">${cr.nombre}</div><div class="c-handle">${cr.handle}${cr.cuenta?`<span style="font-size:9px;color:var(--purple);margin-left:6px">🏢 ${cr.cuenta}</span>`:''}</div></div>
               <span class="estado-pill ep-${cr.estado}">${ESTADOS_LABEL[cr.estado]}</span>
             </div>
             ${cr.oferta?`<div class="c-brief">${cr.oferta}</div>`:''}
@@ -5115,6 +5256,8 @@ function renderCalendario(){
   const titleEl=document.getElementById('cal-nav-title');
   if(!cal)return;
   if(titleEl)titleEl.textContent=`${MESES[_calMonth]} ${_calYear}`;
+  _cuentasFilterSelect('cal-filter-cuenta');
+  const calCuentaF=document.getElementById('cal-filter-cuenta')?.value||'';
   const today=new Date();
   const todayKey=dateKey(today.getFullYear(),today.getMonth(),today.getDate());
   // First day of month (0=Sun..6=Sat), convert to Mon-first (0=Mon..6=Sun)
@@ -5134,8 +5277,11 @@ function renderCalendario(){
   for(let d=1;d<=daysInMonth;d++){
     const key=dateKey(_calYear,_calMonth,d);
     const isToday=key===todayKey;
-    const events=S.calendario[key]||[];
-    const evHTML=events.map((p,i)=>`<div class="cal-event ${p.tipo}" onclick="removeCalPost('${key}',${i})" title="Click para quitar: ${p.nombre}">${p.nombre}</div>`).join('');
+    const events=(S.calendario[key]||[]).filter(p=>!calCuentaF||p.cuenta===calCuentaF);
+    const evHTML=events.map((p,i)=>{
+      const cuentaTag=p.cuenta?` <span style="font-size:8px;opacity:.8">[${p.cuenta}]</span>`:'';
+      return`<div class="cal-event ${p.tipo}" onclick="removeCalPost('${key}',${i})" title="Click para quitar: ${p.nombre}">${p.nombre}${cuentaTag}</div>`;
+    }).join('');
     html+=`<div class="cal-month-cell${isToday?' today':''}">
       <div class="cal-date-num${isToday?' is-today':''}">
         <span>${d}</span>
@@ -6835,6 +6981,12 @@ function openModal(tipo,data,idx){
       <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveTodo()">Guardar</button></div>`,
     brief:`
       <div class="form-group"><label class="form-label">Título</label><input class="form-input" id="f-titulo" placeholder="Ej: 3 outfits con el jean negro"></div>
+      <div class="form-group"><label class="form-label">Cuenta / Marca</label>
+        <div style="display:flex;gap:6px">
+          <select class="form-select" id="f-cuenta" style="flex:1"><option value="">— Sin cuenta —</option></select>
+          <button type="button" class="btn btn-sm" onclick="openCuentasModal()" title="Gestionar cuentas">🏢</button>
+        </div>
+      </div>
       <div class="form-group"><label class="form-label">Tipo de contenido</label>
         <div class="bf-cat-wrap">
           <button type="button" class="bf-cat" data-cat="marca" onclick="toggleBriefCat(this)">🏷 Marca</button>
@@ -6894,6 +7046,12 @@ function openModal(tipo,data,idx){
           <select class="form-select" id="f-ctipo"><option value="micro">Micro influencer</option><option value="top">Top creadora</option></select></div>
         <div class="form-group"><label class="form-label">Estado inicial</label>
           <select class="form-select" id="f-estado"><option value="potencial">Potencial</option><option value="contactada">Contactada</option></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Cuenta / Marca</label>
+        <div style="display:flex;gap:6px">
+          <select class="form-select" id="f-cuenta" style="flex:1"><option value="">— Sin cuenta —</option></select>
+          <button type="button" class="btn btn-sm" onclick="openCuentasModal()" title="Gestionar cuentas">🏢</button>
+        </div>
       </div>
       <div class="form-group"><label class="form-label">Oferta enviada</label>
         <div style="display:flex;gap:6px">
@@ -7211,10 +7369,11 @@ function openModal(tipo,data,idx){
   document.getElementById('modal-body').innerHTML=forms[tipo]||'';
   overlay.classList.add('open');
   if(tipo==='brief'){
-    setTimeout(()=>_pilaresSelect(),30);
+    setTimeout(()=>{_pilaresSelect();_cuentasSelect('f-cuenta');},30);
   }
   if(tipo==='creadora'){
     setTimeout(()=>{
+      _cuentasSelect('f-cuenta');
       _ofertasSelect();
       populateBriefSelect('f-brief-id');
       if(_pendingBriefId){
@@ -7240,6 +7399,7 @@ function openCalModal(dateKey){
   const [y,m,d]=dateKey.split('-');
   const displayDate=`${d}/${m}/${y}`;
   document.getElementById('modal-title').textContent='Agregar — '+displayDate;
+  const cuentasOpts=(S.cuentas||[]).map(n=>`<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join('');
   document.getElementById('modal-body').innerHTML=`
     <div class="form-group"><label class="form-label">Nombre</label>
       <input class="form-input" id="f-cal-nombre" placeholder="Ej: Reel jean negro, Story promo..."></div>
@@ -7250,6 +7410,8 @@ function openCalModal(dateKey){
         <option value="story">Story</option>
         <option value="ads">Ads</option>
       </select></div>
+    ${cuentasOpts?`<div class="form-group"><label class="form-label">Cuenta / Marca</label>
+      <select class="form-select" id="f-cal-cuenta"><option value="">— Sin cuenta —</option>${cuentasOpts}</select></div>`:''}
     <div class="form-group"><label class="form-label">Pieza del drive (opcional)</label>
       <select class="form-select" id="f-cal-pieza">
         <option value="">— Sin asignar —</option>
@@ -7280,6 +7442,7 @@ function saveBrief(){
     id:'b_'+Date.now(),
     titulo:t,
     categoria,
+    cuenta:document.getElementById('f-cuenta')?.value||'',
     pilar:document.getElementById('f-pilar')?.value||'',
     formato:document.getElementById('f-formato')?.value||'',
     tipo:document.getElementById('f-tipo')?.value||'',
@@ -7298,7 +7461,7 @@ function saveBrief(){
 function saveCreadora(){
   const n=document.getElementById('f-nombre')?.value?.trim();
   if(!n){notify('Escribí un nombre');return;}
-  S.creadoras.push({nombre:n,handle:document.getElementById('f-handle').value,tipo:document.getElementById('f-ctipo').value,estado:document.getElementById('f-estado').value,oferta:document.getElementById('f-oferta').value,wapp:document.getElementById('f-wapp').value,notas:document.getElementById('f-notas').value,briefId:document.getElementById('f-brief-id')?.value||''});
+  S.creadoras.push({nombre:n,handle:document.getElementById('f-handle').value,tipo:document.getElementById('f-ctipo').value,estado:document.getElementById('f-estado').value,cuenta:document.getElementById('f-cuenta')?.value||'',oferta:document.getElementById('f-oferta').value,wapp:document.getElementById('f-wapp').value,notas:document.getElementById('f-notas').value,briefId:document.getElementById('f-brief-id')?.value||''});
   save();closeModal();render();notify('Creadora guardada ✓');
 }
 function populateBriefSelect(selectId){
@@ -7349,8 +7512,9 @@ function saveCalPost(dia){
     if(pieza)nombre=pieza.nombre;
   }
   if(!nombre){notify('Escribí un nombre para la publicación');return;}
+  const cuenta=document.getElementById('f-cal-cuenta')?.value||'';
   if(!S.calendario[dia])S.calendario[dia]=[];
-  S.calendario[dia].push({nombre,tipo});
+  S.calendario[dia].push({nombre,tipo,cuenta});
   save();closeModal();renderCalendario();notify('Agregado al calendario ✓');
 }
 function updateTxCats(){
