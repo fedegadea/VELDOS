@@ -1771,16 +1771,17 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
 
   <!-- TAB: CANJES -->
   <div class="plan-section" id="plantab-canjes">
-    <div class="inner-tabs">
-      <button class="inner-tab active" onclick="switchInner('kanje','micro',this)">Micro influencers</button>
-      <button class="inner-tab" onclick="switchInner('kanje','top',this)">Top creadora</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px">
+      <div class="inner-tabs" style="margin-bottom:0">
+        <button class="inner-tab active" onclick="switchInner('kanje','micro',this)">Micro influencers</button>
+        <button class="inner-tab" onclick="switchInner('kanje','top',this)">Top creadora</button>
+      </div>
+      <button class="btn btn-sm" onclick="openOfertasModal()" title="Gestionar plantillas de oferta">⚙ Ofertas</button>
     </div>
     <div class="inner-section active" id="kanje-micro">
-      <p style="font-size:11px;color:var(--muted);margin-bottom:12px;font-weight:300">Oferta: <strong style="color:var(--text)">2 reels + 5 stories en distintos días + fotos</strong> — a 6 micro influencers. Canje por producto.</p>
       <div class="kanban" id="kanban-micro"></div>
     </div>
     <div class="inner-section" id="kanje-top">
-      <p style="font-size:11px;color:var(--muted);margin-bottom:12px;font-weight:300">Oferta: <strong style="color:var(--text)">1 reel + 1 story</strong> — 1 creadora top que valga la pena. Fede coordina envío.</p>
       <div class="kanban" id="kanban-top"></div>
     </div>
   </div>
@@ -3063,7 +3064,7 @@ let _activePlanTab='calendario';
 let _pendingBriefId=null;
 
 function defaultData(){
-  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},ideas:[],semana:{},estrategia:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[],flows:[],flowDone:{},tnProductCost:{},pilares:[]};
+  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},ideas:[],semana:{},estrategia:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[],flows:[],flowDone:{},tnProductCost:{},pilares:[],ofertasPlantilla:[]};
 }
 
 function _localLoad(){
@@ -4678,6 +4679,76 @@ function asignarBriefACanje(i){
   const b=S.briefs[i];if(!b)return;
   _pendingBriefId=b.id||b.titulo;
   openModal('creadora');
+}
+
+// ══════════════════════════════════════════
+// OFERTAS PLANTILLA
+// ══════════════════════════════════════════
+function _ofertasSelect(val=''){
+  const opts=(S.ofertasPlantilla||[]);
+  const sel=document.getElementById('f-oferta');
+  if(!sel)return;
+  sel.innerHTML='<option value="">— Sin oferta —</option>'+opts.map(o=>`<option value="${o.replace(/"/g,'&quot;')}">${o}</option>`).join('');
+  if(val)sel.value=val;
+}
+
+function openOfertasModal(){
+  if(!S.ofertasPlantilla)S.ofertasPlantilla=[];
+  const overlay=document.getElementById('modal-overlay');
+  if(!overlay)return;
+  overlay.classList.add('open');
+  overlay.innerHTML=`
+    <div class="modal" style="max-width:440px">
+      <div class="modal-head"><div class="modal-title">Ofertas de canje</div><button class="modal-close" onclick="closeOfertasModal()">×</button></div>
+      <div class="modal-body" id="ofertas-modal-body">${_renderOfertaList()}</div>
+      <div style="padding:12px 20px;border-top:1px solid var(--border)">
+        <textarea class="form-textarea" id="oferta-new-input" placeholder="Ej: 2 reels + 5 stories en distintos días + fotos — canje por producto" rows="2" style="resize:none"></textarea>
+        <button class="btn btn-primary btn-sm" style="margin-top:8px;width:100%" onclick="addOferta()">+ Agregar oferta</button>
+      </div>
+      <div class="modal-footer"><button class="btn btn-primary" onclick="closeOfertasModal()">Listo</button></div>
+    </div>`;
+}
+
+function _renderOfertaList(){
+  const list=S.ofertasPlantilla||[];
+  if(!list.length)return`<p style="font-size:12px;color:var(--muted);padding:4px 0">No hay ofertas guardadas. Agregá la primera.</p>`;
+  return list.map((o,i)=>`
+    <div class="pilar-row" style="align-items:flex-start;gap:8px">
+      <div class="pilar-dot" style="margin-top:5px"></div>
+      <textarea style="flex:1;background:transparent;border:none;color:var(--text);font-family:var(--fb);font-size:12px;outline:none;resize:none;line-height:1.5;padding:2px 4px;border-radius:4px" rows="2" onchange="editOferta(${i},this.value)" onblur="editOferta(${i},this.value)">${o.replace(/</g,'&lt;')}</textarea>
+      <button class="btn btn-xs btn-danger" onclick="deleteOferta(${i})">×</button>
+    </div>`).join('');
+}
+
+function addOferta(){
+  const inp=document.getElementById('oferta-new-input');
+  const v=inp?.value?.trim();
+  if(!v)return;
+  if(!S.ofertasPlantilla)S.ofertasPlantilla=[];
+  S.ofertasPlantilla.push(v);
+  save();inp.value='';
+  const body=document.getElementById('ofertas-modal-body');
+  if(body)body.innerHTML=_renderOfertaList();
+}
+
+function editOferta(i,val){
+  if(!S.ofertasPlantilla||!val.trim())return;
+  S.ofertasPlantilla[i]=val.trim();
+  save();
+}
+
+function deleteOferta(i){
+  if(!S.ofertasPlantilla)return;
+  S.ofertasPlantilla.splice(i,1);
+  save();
+  const body=document.getElementById('ofertas-modal-body');
+  if(body)body.innerHTML=_renderOfertaList();
+}
+
+function closeOfertasModal(){
+  const ov=document.getElementById('modal-overlay');
+  if(ov)ov.classList.remove('open');
+  _ofertasSelect();
 }
 
 // ══════════════════════════════════════════
@@ -6825,11 +6896,11 @@ function openModal(tipo,data,idx){
           <select class="form-select" id="f-estado"><option value="potencial">Potencial</option><option value="contactada">Contactada</option></select></div>
       </div>
       <div class="form-group"><label class="form-label">Oferta enviada</label>
-        <select class="form-select" id="f-oferta">
-          <option value="2 reels + 5 stories en distintos días + fotos — canje por producto">Micro: 2 reels + 5 stories + fotos</option>
-          <option value="1 reel + 1 story — canje especial">Top: 1 reel + 1 story</option>
-          <option value="">Otra</option>
-        </select></div>
+        <div style="display:flex;gap:6px">
+          <select class="form-select" id="f-oferta" style="flex:1"><option value="">— Sin oferta —</option></select>
+          <button type="button" class="btn btn-sm" onclick="openOfertasModal()" title="Gestionar ofertas">⚙</button>
+        </div>
+      </div>
       <div class="form-group"><label class="form-label">Brief vinculado</label>
         <select class="form-select" id="f-brief-id" onmousedown="populateBriefSelect('f-brief-id')">
           <option value="">Sin brief vinculado</option>
@@ -7144,6 +7215,7 @@ function openModal(tipo,data,idx){
   }
   if(tipo==='creadora'){
     setTimeout(()=>{
+      _ofertasSelect();
       populateBriefSelect('f-brief-id');
       if(_pendingBriefId){
         const sel=document.getElementById('f-brief-id');
