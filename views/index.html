@@ -1530,9 +1530,10 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
       <div class="prog-count"><strong id="pc-cal">0</strong>/<span id="pt-cal">10</span> piezas esta semana</div>
     </div>
   </div>
+  <div id="check-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:16px"></div>
   <div class="checklist-grid" id="checklist-grid"></div>
 </div>
- 
+
 <!-- ══ TO DO ══ -->
 <div class="page" id="page-todo">
   <div class="sec-head">
@@ -4198,23 +4199,75 @@ document.addEventListener('click',function(e){
 // ══════════════════════════════════════════
 // CHECKLIST
 // ══════════════════════════════════════════
+const DIAS_SEMANA=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+let _checkFilterPersona='';
+let _checkFilterDia='';
+
+function _buildCheckFilters(){
+  const bar=document.getElementById('check-filter-bar');
+  if(!bar)return;
+  const personas=[...new Set((S.checkGroups||[]).map(g=>g.persona).filter(Boolean))];
+  const dias=DIAS_SEMANA.filter(d=>(S.checkGroups||[]).some(g=>g.dia===d));
+  let html='';
+  // Persona filters
+  if(personas.length){
+    html+=`<span style="font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-right:2px">Persona</span>`;
+    html+=`<button class="brief-ftag${!_checkFilterPersona?' active':''}" onclick="setCheckFilter('persona','',this)">Todos</button>`;
+    html+=personas.map(p=>`<button class="brief-ftag${_checkFilterPersona===p?' active':''}" onclick="setCheckFilter('persona','${p}',this)">${p}</button>`).join('');
+  }
+  // Separator
+  if(personas.length&&dias.length)html+=`<span style="color:var(--border2);margin:0 4px">|</span>`;
+  // Día filters
+  if(dias.length){
+    html+=`<span style="font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-right:2px">Día</span>`;
+    html+=`<button class="brief-ftag${!_checkFilterDia?' active':''}" onclick="setCheckFilter('dia','',this)">Todos</button>`;
+    html+=dias.map(d=>`<button class="brief-ftag${_checkFilterDia===d?' active':''}" onclick="setCheckFilter('dia','${d}',this)">${d}</button>`).join('');
+  }
+  bar.innerHTML=html;
+}
+function setCheckFilter(tipo,val,btn){
+  if(tipo==='persona')_checkFilterPersona=val;
+  else _checkFilterDia=val;
+  renderChecklist();
+}
+
 function renderChecklist(){
   if(!S.checkGroups?.length)S.checkGroups=defaultCheckGroups();
   const grid=document.getElementById('checklist-grid');
   if(!grid)return;
+  _buildCheckFilters();
   if(!S.checkGroups.length){
     grid.innerHTML=emptyState('📋','Sin listas todavía','Creá tu primera lista de tareas semanales para organizar el trabajo de tu equipo.','+ Nueva lista',"addCheckGroup()");
     updateProgress();return;
   }
-  grid.innerHTML=S.checkGroups.map((g,gi)=>`
-    <div class="check-group">
+  const filtered=S.checkGroups.map((g,gi)=>({g,gi})).filter(({g})=>{
+    if(_checkFilterPersona&&g.persona!==_checkFilterPersona)return false;
+    if(_checkFilterDia&&g.dia!==_checkFilterDia)return false;
+    return true;
+  });
+  if(!filtered.length){
+    grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="e-icon">🔍</div><p>Sin listas que coincidan con ese filtro.</p></div>`;
+    updateProgress();return;
+  }
+  grid.innerHTML=filtered.map(({g,gi})=>{
+    const personaBadge=g.persona?`<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:rgba(41,121,255,.1);color:var(--gold);font-weight:500">👤 ${g.persona}</span>`:'';
+    const diaBadge=g.dia?`<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:rgba(52,199,123,.1);color:var(--green);font-weight:500">📅 ${g.dia}</span>`:'';
+    const done=g.items.filter(i=>i.done).length;
+    const total=g.items.length;
+    return`<div class="check-group">
       <div class="cg-head">
-        <div class="cg-title-wrap">
-          <div class="cg-title">${g.title}</div>
-          <div class="cg-range">${g.range}</div>
+        <div class="cg-title-wrap" style="flex-direction:column;align-items:flex-start;gap:4px">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <div class="cg-title">${g.title}</div>
+            ${personaBadge}${diaBadge}
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div class="cg-range">${g.range||''}</div>
+            ${total?`<span style="font-size:9px;color:var(--muted)">${done}/${total} listas</span>`:''}
+          </div>
         </div>
-        <div style="display:flex;gap:4px">
-          <button class="btn btn-xs" onclick="editGroupTitle(${gi})">✎</button>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn btn-xs" onclick="editCheckGroup(${gi})">✎</button>
           <button class="btn btn-xs btn-danger" onclick="deleteCheckGroup(${gi})" title="Eliminar lista">×</button>
         </div>
       </div>
@@ -4234,7 +4287,8 @@ function renderChecklist(){
       <div style="padding:6px 12px 10px">
         <button class="btn-ghost" onclick="addCheckItem(${gi})">+ agregar tarea</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   updateProgress();
 }
  
@@ -4259,9 +4313,43 @@ function addCheckItem(gi){
   const ii=S.checkGroups[gi].items.length-1;
   setTimeout(()=>editCheckItem(gi,ii),50);
 }
-function editGroupTitle(gi){
-  const nv=prompt('Nombre del grupo:',S.checkGroups[gi].title);
-  if(nv?.trim()){S.checkGroups[gi].title=nv.trim();save();renderChecklist();}
+function editCheckGroup(gi){
+  const g=S.checkGroups[gi];
+  const overlay=document.getElementById('modal-overlay');
+  if(!overlay)return;
+  const diasOpts=DIAS_SEMANA.map(d=>`<option value="${d}"${g.dia===d?' selected':''}>${d}</option>`).join('');
+  overlay.classList.add('open');
+  overlay.innerHTML=`<div class="modal" style="max-width:360px">
+    <div class="modal-head"><div class="modal-title">Editar lista</div><button class="modal-close" onclick="_restoreModalStructure();document.getElementById('modal-overlay').classList.remove('open')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Título</label>
+        <input class="form-input" id="ck-title" value="${(g.title||'').replace(/"/g,'&quot;')}"></div>
+      <div class="form-group"><label class="form-label">Persona responsable</label>
+        <input class="form-input" id="ck-persona" value="${(g.persona||'').replace(/"/g,'&quot;')}" placeholder="Ej: Fede, CM, Diseñadora…" list="ck-persona-list">
+        <datalist id="ck-persona-list">${[...new Set((S.checkGroups||[]).map(g=>g.persona).filter(Boolean))].map(p=>`<option value="${p}">`).join('')}</datalist>
+      </div>
+      <div class="form-group"><label class="form-label">Día de la semana</label>
+        <select class="form-select" id="ck-dia">
+          <option value="">— Sin día —</option>
+          ${diasOpts}
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="_restoreModalStructure();document.getElementById('modal-overlay').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCheckGroup(${gi})">Guardar</button>
+    </div>
+  </div>`;
+  setTimeout(()=>document.getElementById('ck-title')?.select(),30);
+}
+function saveCheckGroup(gi){
+  const title=document.getElementById('ck-title')?.value?.trim();
+  if(!title)return;
+  S.checkGroups[gi].title=title;
+  S.checkGroups[gi].persona=document.getElementById('ck-persona')?.value?.trim()||'';
+  S.checkGroups[gi].dia=document.getElementById('ck-dia')?.value||'';
+  save();_restoreModalStructure();document.getElementById('modal-overlay').classList.remove('open');
+  renderChecklist();notify('Lista actualizada ✓');
 }
 function resetChecklist(){
   if(!confirm('¿Reiniciar checklist para nueva semana?'))return;
@@ -9033,11 +9121,42 @@ function toggleTheme(){
 // CHECKLIST — NUEVA LISTA
 // ══════════════════════════════════════════
 function addCheckGroup(){
-  const name=prompt('Nombre de la nueva lista:');
-  if(!name?.trim())return;
+  const overlay=document.getElementById('modal-overlay');
+  if(!overlay)return;
+  const diasOpts=DIAS_SEMANA.map(d=>`<option value="${d}">${d}</option>`).join('');
+  overlay.classList.add('open');
+  overlay.innerHTML=`<div class="modal" style="max-width:360px">
+    <div class="modal-head"><div class="modal-title">Nueva lista</div><button class="modal-close" onclick="_restoreModalStructure();document.getElementById('modal-overlay').classList.remove('open')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Título</label>
+        <input class="form-input" id="ck-new-title" placeholder="Ej: Tareas de grabación"></div>
+      <div class="form-group"><label class="form-label">Persona responsable <span style="color:var(--muted);font-size:9px">(opcional)</span></label>
+        <input class="form-input" id="ck-new-persona" placeholder="Ej: Fede, CM, Diseñadora…" list="ck-new-persona-list">
+        <datalist id="ck-new-persona-list">${[...new Set((S.checkGroups||[]).map(g=>g.persona).filter(Boolean))].map(p=>`<option value="${p}">`).join('')}</datalist>
+      </div>
+      <div class="form-group"><label class="form-label">Día de la semana <span style="color:var(--muted);font-size:9px">(opcional)</span></label>
+        <select class="form-select" id="ck-new-dia">
+          <option value="">— Sin día —</option>
+          ${diasOpts}
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="_restoreModalStructure();document.getElementById('modal-overlay').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-primary" onclick="_saveNewCheckGroup()">Crear lista</button>
+    </div>
+  </div>`;
+  setTimeout(()=>document.getElementById('ck-new-title')?.focus(),30);
+}
+function _saveNewCheckGroup(){
+  const name=document.getElementById('ck-new-title')?.value?.trim();
+  if(!name){notify('Escribí un título');return;}
   if(!S.checkGroups)S.checkGroups=[];
-  S.checkGroups.push({id:'g_'+Date.now(),title:name.trim(),range:'',items:[{id:'c'+Date.now(),text:'Primera tarea',owner:'',done:false}]});
-  save();renderChecklist();notify('Lista creada ✓');
+  const persona=document.getElementById('ck-new-persona')?.value?.trim()||'';
+  const dia=document.getElementById('ck-new-dia')?.value||'';
+  S.checkGroups.push({id:'g_'+Date.now(),title:name,persona,dia,range:'',items:[{id:'c'+Date.now(),text:'Primera tarea',owner:'',done:false}]});
+  save();_restoreModalStructure();document.getElementById('modal-overlay').classList.remove('open');
+  renderChecklist();notify('Lista creada ✓');
   setTimeout(()=>{
     const last=document.querySelectorAll('.check-group');
     if(last.length)last[last.length-1].scrollIntoView({behavior:'smooth',block:'center'});
