@@ -4295,14 +4295,14 @@ function openProgTargetModal(key){
   if(!overlay)return;
   overlay.classList.add('open');
   overlay.innerHTML=`<div class="modal" style="max-width:320px">
-    <div class="modal-head"><div class="modal-title">Objetivo — ${labels[key]}</div><button class="modal-close" onclick="document.getElementById('modal-overlay').classList.remove('open')">×</button></div>
+    <div class="modal-head"><div class="modal-title">Objetivo — ${labels[key]}</div><button class="modal-close" onclick="_restoreModalStructure();document.getElementById('modal-overlay').classList.remove('open')">×</button></div>
     <div class="modal-body">
       <div class="form-group"><label class="form-label">Cantidad objetivo</label>
         <input class="form-input" id="prog-target-inp" type="number" min="1" max="999" value="${cur}" style="text-align:center;font-size:20px;font-weight:600">
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn" onclick="document.getElementById('modal-overlay').classList.remove('open')">Cancelar</button>
+      <button class="btn" onclick="_restoreModalStructure();document.getElementById('modal-overlay').classList.remove('open')">Cancelar</button>
       <button class="btn btn-primary" onclick="saveProgTarget('${key}')">Guardar</button>
     </div>
   </div>`;
@@ -4313,7 +4313,7 @@ function saveProgTarget(key){
   if(v<1)return;
   if(!S.progTargets)S.progTargets={briefs:7,canjes:7,collabs:4,cal:10};
   S.progTargets[key]=v;
-  save();document.getElementById('modal-overlay').classList.remove('open');
+  save();_restoreModalStructure();document.getElementById('modal-overlay').classList.remove('open');
   updateProgress();notify('Objetivo actualizado ✓');
 }
  
@@ -4455,7 +4455,15 @@ function deleteCuenta(i){
   const body=document.getElementById('cuentas-modal-body');
   if(body)body.innerHTML=_renderCuentaList();
 }
+function _restoreModalStructure(){
+  const ov=document.getElementById('modal-overlay');
+  if(!ov)return;
+  if(!document.getElementById('modal-title')){
+    ov.innerHTML=`<div class="modal" id="modal-box"><div class="modal-head"><div class="modal-title" id="modal-title"></div><button class="modal-close" onclick="closeModal()">×</button></div><div class="modal-body" id="modal-body"></div></div>`;
+  }
+}
 function closeCuentasModal(){
+  _restoreModalStructure();
   const ov=document.getElementById('modal-overlay');
   if(ov)ov.classList.remove('open');
   renderBriefs();
@@ -4597,6 +4605,7 @@ function deletePilar(i){
 }
 
 function closePilaresModal(){
+  _restoreModalStructure();
   const ov=document.getElementById('modal-overlay');
   if(ov)ov.classList.remove('open');
   renderBriefs();
@@ -4886,6 +4895,7 @@ function deleteOferta(i){
 }
 
 function closeOfertasModal(){
+  _restoreModalStructure();
   const ov=document.getElementById('modal-overlay');
   if(ov)ov.classList.remove('open');
   _ofertasSelect();
