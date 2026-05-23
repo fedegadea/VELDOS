@@ -47,7 +47,7 @@ app.post("/api/mp/create-preference", async (req, res) => {
         items: [{
           title: "Soul eCommlab — Suscripción mensual",
           quantity: 1,
-          unit_price: 19999,
+          unit_price: 39000,
           currency_id: "ARS"
         }],
         payer: { email: email || "" },
