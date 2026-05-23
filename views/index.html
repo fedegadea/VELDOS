@@ -2493,8 +2493,9 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
         <div style="font-size:13px;font-weight:700;color:var(--text)">💰 Caja</div>
         <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn btn-primary btn-sm" style="font-size:10px;padding:4px 12px;border-radius:20px" onclick="openCorteModal()">📍 Establecer saldo real</button>
-          <button class="btn btn-sm" style="font-size:10px;padding:3px 10px;border-radius:20px;background:var(--s3)" onclick="toggleCajaDetail()" id="caja-toggle-btn">Cuentas ▾</button>
+          <button class="btn btn-sm" style="font-size:10px;padding:4px 12px;border-radius:20px;background:var(--s3)" onclick="toggleCajaDetail()" id="caja-toggle-btn">Ver detalle ▾</button>
+          <button class="btn btn-sm" style="font-size:10px;padding:4px 14px;border-radius:20px;background:rgba(52,199,123,.15);color:var(--green);border:1px solid rgba(52,199,123,.3);font-weight:700" onclick="abrirAjusteCaja()">💸 Ajustar Caja</button>
+          <button class="btn btn-primary btn-sm" style="font-size:10px;padding:4px 12px;border-radius:20px" onclick="openCorteModal()">📍 Cierre de Caja</button>
         </div>
       </div>
       <!-- Summary row -->
@@ -6905,6 +6906,19 @@ function toggleCajaDetail(){
   det.style.display=open?'block':'none';
   if(btn)btn.textContent=open?'Ocultar detalle ▴':'Ver detalle ▾';
   if(open)renderCajaWidget();
+}
+function abrirAjusteCaja(){
+  const det=document.getElementById('caja-detail');
+  const btn=document.getElementById('caja-toggle-btn');
+  if(det&&det.style.display==='none'){
+    det.style.display='block';
+    if(btn)btn.textContent='Ocultar detalle ▴';
+    renderCajaWidget();
+  }
+  setTimeout(()=>{
+    const inp=document.getElementById('caja-ajuste-concepto');
+    if(inp){inp.focus();inp.scrollIntoView({behavior:'smooth',block:'center'});}
+  },120);
 }
 function openCajaAddModal(idx){
   // reuse a simple prompt-style inline form approach via a small floating modal
