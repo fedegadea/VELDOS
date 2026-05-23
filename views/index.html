@@ -1530,7 +1530,16 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
       <div class="prog-count"><strong id="pc-cal">0</strong>/<span id="pt-cal">10</span> piezas esta semana</div>
     </div>
   </div>
-  <div id="check-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:16px"></div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+    <span style="font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase">Filtrar por</span>
+    <select id="check-filter-persona-sel" class="form-select" style="font-size:11px;padding:4px 12px;height:30px;border-radius:16px;width:auto" onchange="_checkFilterPersona=this.value;renderChecklist()">
+      <option value="">👤 Todos</option>
+    </select>
+    <select id="check-filter-dia-sel" class="form-select" style="font-size:11px;padding:4px 12px;height:30px;border-radius:16px;width:auto" onchange="_checkFilterDia=this.value;renderChecklist()">
+      <option value="">📅 Todos los días</option>
+    </select>
+    <div id="check-filter-bar"></div>
+  </div>
   <div class="checklist-grid" id="checklist-grid"></div>
 </div>
 
@@ -4225,31 +4234,30 @@ let _checkFilterPersona='';
 let _checkFilterDia='';
 
 function _buildCheckFilters(){
-  const bar=document.getElementById('check-filter-bar');
-  if(!bar)return;
+  // Populate persona select
   const personas=[...new Set((S.checkGroups||[]).map(g=>g.persona).filter(Boolean))];
+  const selP=document.getElementById('check-filter-persona-sel');
+  if(selP){
+    const cur=_checkFilterPersona;
+    selP.innerHTML='<option value="">👤 Todos</option>'+personas.map(p=>`<option value="${p.replace(/"/g,'&quot;')}">${p}</option>`).join('');
+    if(cur&&personas.includes(cur))selP.value=cur;
+  }
+  // Populate dia select
   const dias=DIAS_SEMANA.filter(d=>(S.checkGroups||[]).some(g=>g.dia===d));
-  let html='';
-  // Persona filters
-  if(personas.length){
-    html+=`<span style="font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-right:2px">Persona</span>`;
-    html+=`<button class="brief-ftag${!_checkFilterPersona?' active':''}" onclick="setCheckFilter('persona','',this)">Todos</button>`;
-    html+=personas.map(p=>`<button class="brief-ftag${_checkFilterPersona===p?' active':''}" onclick="setCheckFilter('persona','${p}',this)">${p}</button>`).join('');
+  const selD=document.getElementById('check-filter-dia-sel');
+  if(selD){
+    const cur=_checkFilterDia;
+    selD.innerHTML='<option value="">📅 Todos los días</option>'+dias.map(d=>`<option value="${d}">${d}</option>`).join('');
+    if(cur&&dias.includes(cur))selD.value=cur;
   }
-  // Separator
-  if(personas.length&&dias.length)html+=`<span style="color:var(--border2);margin:0 4px">|</span>`;
-  // Día filters
-  if(dias.length){
-    html+=`<span style="font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-right:2px">Día</span>`;
-    html+=`<button class="brief-ftag${!_checkFilterDia?' active':''}" onclick="setCheckFilter('dia','',this)">Todos</button>`;
-    html+=dias.map(d=>`<button class="brief-ftag${_checkFilterDia===d?' active':''}" onclick="setCheckFilter('dia','${d}',this)">${d}</button>`).join('');
+  // Active filter pills
+  const bar=document.getElementById('check-filter-bar');
+  if(bar){
+    let pills='';
+    if(_checkFilterPersona)pills+=`<span style="font-size:11px;background:rgba(41,121,255,.12);color:var(--gold);padding:3px 10px;border-radius:12px;border:1px solid rgba(41,121,255,.25)">👤 ${_checkFilterPersona} <button onclick="_checkFilterPersona='';document.getElementById('check-filter-persona-sel').value='';renderChecklist()" style="background:none;border:none;color:inherit;cursor:pointer;margin-left:2px;font-size:11px">×</button></span>`;
+    if(_checkFilterDia)pills+=`<span style="font-size:11px;background:rgba(52,199,123,.12);color:var(--green);padding:3px 10px;border-radius:12px;border:1px solid rgba(52,199,123,.25)">📅 ${_checkFilterDia} <button onclick="_checkFilterDia='';document.getElementById('check-filter-dia-sel').value='';renderChecklist()" style="background:none;border:none;color:inherit;cursor:pointer;margin-left:2px;font-size:11px">×</button></span>`;
+    bar.innerHTML=pills;
   }
-  bar.innerHTML=html;
-}
-function setCheckFilter(tipo,val,btn){
-  if(tipo==='persona')_checkFilterPersona=val;
-  else _checkFilterDia=val;
-  renderChecklist();
 }
 
 function renderChecklist(){
