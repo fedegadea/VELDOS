@@ -2957,7 +2957,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
 
   <!-- Tabs -->
   <div class="plan-tabs">
-    <button class="plan-tab active" id="flow-tab-hoy" onclick="switchFlowTab('hoy',this)">📋 Tareas de hoy <span id="flow-today-count" style="background:var(--accent,#a87bff);color:#fff;font-size:10px;padding:1px 7px;border-radius:9px;margin-left:4px">0</span></button>
+    <button class="plan-tab active" id="flow-tab-hoy" onclick="switchFlowTab('hoy',this)">📋 Tareas pendientes <span id="flow-today-count" style="background:var(--accent,#a87bff);color:#fff;font-size:10px;padding:1px 7px;border-radius:9px;margin-left:4px">0</span></button>
     <button class="plan-tab" id="flow-tab-flows" onclick="switchFlowTab('flows',this)">⚙️ Automatizaciones</button>
     <button class="plan-tab" id="flow-tab-historial" onclick="switchFlowTab('historial',this)">🗂 Historial</button>
   </div>
@@ -3811,7 +3811,7 @@ function _daysBetween(a,b){
   return Math.floor((db-da)/(1000*60*60*24));
 }
 
-// Devuelve array de tareas pendientes para HOY (computadas en tiempo real)
+// Devuelve array de tareas pendientes (hoy + vencidas sin completar)
 function computeFlowTasks(){
   _flowsInit();
   const today=fmtDate(new Date());
@@ -3827,12 +3827,14 @@ function computeFlowTasks(){
       }
       let triggerKey=null;
       let dueDate=null;
+      let daysOverdue=0;
       if(trig.type==='after_purchase'&&c.ultimaCompra){
         const diff=_daysBetween(c.ultimaCompra,today);
-        if(diff===days){triggerKey=c.ultimaCompra;dueDate=today;}
+        // Mostrar desde el día exacto en adelante (hasta que se complete)
+        if(diff!==null&&diff>=days){triggerKey=c.ultimaCompra;dueDate=today;daysOverdue=diff-days;}
       } else if(trig.type==='after_creation'&&c.creado){
         const diff=_daysBetween(c.creado,today);
-        if(diff===days){triggerKey=c.creado;dueDate=today;}
+        if(diff!==null&&diff>=days){triggerKey=c.creado;dueDate=today;daysOverdue=diff-days;}
       } else if(trig.type==='no_contact'){
         const ref=c.ultimoContacto||c.creado;
         if(ref){
@@ -3869,11 +3871,14 @@ function computeFlowTasks(){
           triggerType:trig.type,
           triggerDate:triggerKey,
           dueDate,
+          daysOverdue:daysOverdue||0,
           message:_applyTemplate(f.action?.template||'',c,{dias:days})
         });
       }
     });
   });
+  // Ordenar: más vencidas primero
+  out.sort((a,b)=>(b.daysOverdue||0)-(a.daysOverdue||0));
   return out;
 }
 
@@ -3910,44 +3915,60 @@ function renderFlowsToday(){
   if(!tasks.length){
     cont.innerHTML=`<div style="text-align:center;padding:50px 20px;color:var(--muted)">
       <div style="font-size:48px;margin-bottom:12px">✨</div>
-      <div style="font-size:14px;font-weight:600;color:var(--text)">Sin tareas pendientes hoy</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text)">Sin tareas pendientes</div>
       <div style="font-size:12px;margin-top:6px">Las automatizaciones se dispararán a medida que se cumplan las condiciones.</div>
       ${(!S.flows||!S.flows.length)?'<button class="btn btn-primary" style="margin-top:14px" onclick="openFlowModal()">+ Crear mi primera automatización</button>':''}
     </div>`;
     return;
   }
+  // Separar: vencidas (daysOverdue > 0) y de hoy
+  const overdue=tasks.filter(t=>t.daysOverdue>0);
+  const hoy=tasks.filter(t=>t.daysOverdue===0);
   // Agrupar por flow
-  const byFlow={};
-  tasks.forEach(t=>{
-    if(!byFlow[t.flow.id])byFlow[t.flow.id]={flow:t.flow,tasks:[]};
-    byFlow[t.flow.id].tasks.push(t);
-  });
-  cont.innerHTML=Object.values(byFlow).map(g=>`
-    <div style="background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px">
+  const _group=(list)=>{
+    const byFlow={};
+    list.forEach(t=>{
+      if(!byFlow[t.flow.id])byFlow[t.flow.id]={flow:t.flow,tasks:[]};
+      byFlow[t.flow.id].tasks.push(t);
+    });
+    return Object.values(byFlow);
+  };
+  const _renderTask=(t)=>{
+    const wapp=buildWappUrl(t.contact.tel);
+    const wappLink=wapp?`${wapp}?text=${encodeURIComponent(t.message)}`:'';
+    const msgEsc=t.message.replace(/'/g,"\\'");
+    const overdueBadge=t.daysOverdue>0?`<span style="font-size:9px;background:rgba(255,107,107,.15);color:var(--coral);border:1px solid rgba(255,107,107,.3);padding:2px 8px;border-radius:10px;font-weight:600">${t.daysOverdue===1?'hace 1 día':'hace '+t.daysOverdue+' días'}</span>`:'<span style="font-size:9px;background:rgba(52,199,123,.12);color:var(--green);border:1px solid rgba(52,199,123,.25);padding:2px 8px;border-radius:10px;font-weight:600">Hoy</span>';
+    return`<div style="background:var(--s3);padding:10px 12px;border-radius:8px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap${t.daysOverdue>0?';border-left:3px solid var(--coral)':''}">
+      <div style="flex:1;min-width:200px">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
+          <span style="font-size:13px;font-weight:600">${t.contact.nombre||'Sin nombre'}</span>
+          ${t.contact.ig?`<span style="color:var(--muted);font-size:11px">@${t.contact.ig}</span>`:''}
+          ${overdueBadge}
+        </div>
+        ${t.message?`<div style="font-size:11px;color:var(--muted2);margin-top:5px;background:var(--s1);padding:8px 10px;border-radius:6px;line-height:1.4">${t.message}</div>`:''}
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start">
+        ${t.flow.action?.type==='whatsapp'&&wappLink?`<a class="btn btn-sm" href="${wappLink}" target="_blank" onclick="markFlowDone('${t.key}',${S.crm.indexOf(t.contact)},'${msgEsc}')" style="background:#25d366;color:#fff;border-color:#25d366">💬 WhatsApp</a>`:''}
+        <button class="btn btn-sm" onclick="markFlowDone('${t.key}',${S.crm.indexOf(t.contact)},'${msgEsc}')">✓ Hecho</button>
+        <button class="btn btn-sm" onclick="snoozeFlow('${t.key}')" title="Posponer 1 día">⏰</button>
+      </div>
+    </div>`;
+  };
+  const _renderGroup=(groups,label,accent)=>groups.length?`
+    <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:${accent};font-weight:600;margin:14px 0 8px">${label} (${groups.reduce((a,g)=>a+g.tasks.length,0)})</div>
+    ${groups.map(g=>`
+    <div style="background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div>
-          <div style="font-size:14px;font-weight:700">${g.flow.name||'Sin nombre'}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${_triggerLabel(g.flow.trigger)} · ${g.tasks.length} cliente${g.tasks.length===1?'':'s'}</div>
+          <div style="font-size:13px;font-weight:700">${g.flow.name||'Sin nombre'}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${_triggerLabel(g.flow.trigger)} · ${g.tasks.length} contacto${g.tasks.length===1?'':'s'}</div>
         </div>
       </div>
-      ${g.tasks.map(t=>{
-        const wapp=buildWappUrl(t.contact.tel);
-        const wappLink=wapp?`${wapp}?text=${encodeURIComponent(t.message)}`:'';
-        const msgEsc=t.message.replace(/'/g,"\\'");
-        return`<div style="background:var(--s3);padding:10px 12px;border-radius:8px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
-          <div style="flex:1;min-width:200px">
-            <div style="font-size:13px;font-weight:600">${t.contact.nombre||'Sin nombre'} ${t.contact.ig?`<span style="color:var(--muted);font-weight:400">@${t.contact.ig}</span>`:''}</div>
-            ${t.message?`<div style="font-size:11px;color:var(--muted2);margin-top:5px;background:var(--s1);padding:8px 10px;border-radius:6px;line-height:1.4">${t.message}</div>`:''}
-          </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            ${t.flow.action?.type==='whatsapp'&&wappLink?`<a class="btn btn-sm" href="${wappLink}" target="_blank" onclick="markFlowDone('${t.key}',${S.crm.indexOf(t.contact)},'${msgEsc}')" style="background:#25d366;color:#fff;border-color:#25d366">💬 Enviar WhatsApp</a>`:''}
-            <button class="btn btn-sm" onclick="markFlowDone('${t.key}',${S.crm.indexOf(t.contact)},'${msgEsc}')">✓ Marcar hecho</button>
-            <button class="btn btn-sm" onclick="snoozeFlow('${t.key}')" title="Posponer 1 día">⏰</button>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>
-  `).join('');
+      ${g.tasks.map(_renderTask).join('')}
+    </div>`).join('')}`:'';
+  cont.innerHTML=
+    _renderGroup(_group(overdue),'⚠ Vencidas','var(--coral)')+
+    _renderGroup(_group(hoy),'📋 De hoy','var(--muted2)');
 }
 
 function _triggerLabel(t){
