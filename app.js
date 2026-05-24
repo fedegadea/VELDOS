@@ -835,7 +835,7 @@ app.get("/api/meta/oauth/callback", async (req, res) => {
       oauthConnected: true,
       // If multiple accounts, store them for selection; if only one auto-pick
       pendingAdAccounts: adAccounts.length > 1 ? adAccounts : undefined,
-      adAccountId: adAccounts.length === 1 ? adAccounts[0].account_id : (d.metaIntegration?.adAccountId || ""),
+      adAccountId: adAccounts.length === 1 ? (adAccounts[0].account_id || adAccounts[0].id?.replace('act_','') || "") : (d.metaIntegration?.adAccountId || ""),
       adAccountName: adAccounts.length === 1 ? adAccounts[0].name : (d.metaIntegration?.adAccountName || ""),
     }
     await patchWorkspace(wsId, d)

@@ -4,6 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Soul eCommlab</title>
+<script>
+// Capturar params de OAuth de Meta ANTES de que el router limpie la URL
+(function(){
+  try{
+    const p=new URLSearchParams(location.search);
+    const r=p.get('metaOAuth');
+    if(r){
+      sessionStorage.setItem('_metaOAuth',r);
+      sessionStorage.setItem('_metaOAuthWsId',p.get('wsId')||'');
+      sessionStorage.setItem('_metaOAuthMsg',p.get('msg')||'');
+      // Limpiar URL sin recargar
+      history.replaceState({},'',location.pathname);
+    }
+  }catch(e){}
+})();
+</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230a0a1a'/><text x='16' y='22' text-anchor='middle' font-family='system-ui,sans-serif' font-size='18' font-weight='800' fill='%232979ff'>S</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <style>
@@ -6497,49 +6513,61 @@ function startMetaOAuth(){
 }
 
 // Called on app load — detect if we just came back from Meta OAuth
+// Lee de sessionStorage (capturado antes de que el router limpie la URL)
 function _checkMetaOAuthReturn(){
-  const params=new URLSearchParams(window.location.search);
-  const oauthResult=params.get('metaOAuth');
-  const wsIdParam=params.get('wsId');
+  const oauthResult=sessionStorage.getItem('_metaOAuth');
+  const wsIdParam=sessionStorage.getItem('_metaOAuthWsId');
+  const msgParam=sessionStorage.getItem('_metaOAuthMsg');
   if(!oauthResult)return;
-  // Clean URL
-  window.history.replaceState({},'',window.location.pathname+'#meta/ads');
+  // Limpiar sessionStorage
+  sessionStorage.removeItem('_metaOAuth');
+  sessionStorage.removeItem('_metaOAuthWsId');
+  sessionStorage.removeItem('_metaOAuthMsg');
+
+  const goToMeta=()=>{
+    if(typeof sbNav==='function'){
+      const btn=document.getElementById('sbi-meta');
+      sbNav('meta','meta',btn);
+    }
+  };
+
   if(oauthResult==='ok'){
-    // Reload workspace data from server and navigate to meta
     _reloadWorkspaceFromServer(wsIdParam,()=>{
-      notify('✅ Meta Ads conectado correctamente');
-      sbNav('meta','meta',document.getElementById('sbi-meta'));
-      renderMetaAds();
+      goToMeta();
+      setTimeout(()=>{ renderMetaAds(); notify('✅ Meta Ads conectado correctamente'); },200);
     });
   } else if(oauthResult==='select'){
-    // Multiple ad accounts — show selector
     _reloadWorkspaceFromServer(wsIdParam,()=>{
-      sbNav('meta','meta',document.getElementById('sbi-meta'));
-      _openAccountSelector();
+      goToMeta();
+      setTimeout(_openAccountSelector,200);
     });
   } else if(oauthResult==='noaccount'){
     _reloadWorkspaceFromServer(wsIdParam,()=>{
-      sbNav('meta','meta',document.getElementById('sbi-meta'));
-      notify('⚠️ Conectado pero no encontramos cuentas publicitarias activas. Ingresá el ID manualmente.');
-      renderMetaAds();
+      goToMeta();
+      setTimeout(()=>{ renderMetaAds(); notify('⚠️ Conectado pero sin cuentas activas. Ingresá el ID manualmente.'); },200);
     });
   } else if(oauthResult==='error'){
-    const msg=params.get('msg')||'Error desconocido';
-    notify('❌ Error al conectar Meta: '+msg);
-    sbNav('meta','meta',document.getElementById('sbi-meta'));
+    notify('❌ Error al conectar Meta: '+(msgParam||'Error desconocido'));
+    goToMeta();
   }
 }
 
 async function _reloadWorkspaceFromServer(wsId, cb){
-  // Pull fresh workspace from Supabase and merge into S
-  if(!wsId)wsId=_activeWsId;
+  const targetId=wsId||_activeWsId;
   try{
-    const res=await fetch(`/api/workspace/${wsId}`);
+    const res=await fetch('/api/workspace/'+encodeURIComponent(targetId));
     if(res.ok){
       const data=await res.json();
-      if(data&&data.data){Object.assign(S,data.data);save();}
+      if(data&&data.data){
+        // Merge fresh server data into S (keeps connection info from Supabase)
+        Object.assign(S, data.data);
+        // Safety inits
+        if(!S.metaRules)S.metaRules=[];
+        if(!S.waLog)S.waLog=[];
+        save();
+      }
     }
-  }catch(e){}
+  }catch(e){ console.warn('_reloadWorkspaceFromServer error:',e); }
   if(cb)cb();
 }
 
@@ -6563,7 +6591,7 @@ async function _openAccountSelector(){
     const accounts=d.accounts||[];
     if(!accounts.length){list.innerHTML='<div class="empty"><p>Sin cuentas activas encontradas</p></div>';return;}
     list.innerHTML=accounts.map(a=>`
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;transition:border-color .15s" onclick="_selectMetaAccount('${a.account_id||a.id.replace('act_','')}','${a.name}',this)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;transition:border-color .15s" onclick="_selectMetaAccount('${(a.account_id||a.id||'').replace('act_','')}','${a.name}',this)">
         <div>
           <div style="font-size:13px;font-weight:600;color:var(--text)">${a.name}</div>
           <div style="font-size:11px;color:var(--muted)">ID: ${a.account_id||a.id} · ${a.currency||'ARS'}</div>
