@@ -14,9 +14,9 @@ const SUPA_KEY = () => process.env.SUPA_SERVICE_KEY || ""
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN || "TEST-PLACEHOLDER"
 
 // Meta OAuth
-const META_APP_ID     = () => process.env.META_APP_ID     || ""
-const META_APP_SECRET = () => process.env.META_APP_SECRET || ""
-const APP_BASE_URL    = () => process.env.APP_BASE_URL    || "http://localhost:3000"
+const META_APP_ID     = () => (process.env.META_APP_ID     || "").trim()
+const META_APP_SECRET = () => (process.env.META_APP_SECRET || "").trim()
+const APP_BASE_URL    = () => (process.env.APP_BASE_URL    || "http://localhost:3000").trim()
 
 // Landing page
 app.get("/landing", (req, res) => {
