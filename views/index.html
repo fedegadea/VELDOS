@@ -3066,14 +3066,39 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
   <div id="meta-tab-ads">
     <!-- Banner de conexión -->
     <div id="meta-ads-connect" style="display:none">
-      <div class="meta-connect-card">
-        <div class="meta-connect-icon">📊</div>
+      <div class="meta-connect-card" style="max-width:560px">
+        <div class="meta-connect-icon">📘</div>
         <div class="meta-connect-title">Conectar Meta Ads</div>
-        <div class="meta-connect-sub">Ingresá tu Access Token y el ID de tu cuenta publicitaria para ver métricas de campañas en tiempo real.</div>
-        <div class="form-group"><label class="form-label">Access Token <a href="https://developers.facebook.com/tools/explorer/" target="_blank" style="color:var(--gold);font-size:10px;margin-left:6px">→ Obtener token</a></label><input class="form-input" id="meta-token-input" placeholder="EAAxxxxx…" style="font-family:monospace;font-size:11px"></div>
-        <div class="form-group"><label class="form-label">Ad Account ID</label><input class="form-input" id="meta-account-input" placeholder="act_1234567890 o solo los números"></div>
-        <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="connectMetaAds()">Conectar cuenta</button>
-        <p style="font-size:10px;color:var(--muted);margin-top:12px;line-height:1.6">Permisos necesarios en el token: <strong>ads_read</strong>, <strong>read_insights</strong>, <strong>ads_management</strong>. Tu token se guarda de forma segura en tu workspace.</p>
+        <div class="meta-connect-sub">Conectate con tu cuenta de Facebook en un clic. No necesitás tokens ni configuraciones técnicas.</div>
+
+        <!-- OAuth button (primary path) -->
+        <button class="btn btn-primary" id="meta-oauth-btn" style="width:100%;padding:12px;font-size:14px;font-weight:700;background:linear-gradient(135deg,#1877f2,#0d5ebd);border:none;box-shadow:0 4px 14px rgba(24,119,242,.35);display:flex;align-items:center;justify-content:center;gap:10px;border-radius:var(--radius-sm)" onclick="startMetaOAuth()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M24 12.073C24 5.444 18.627 0 12 0S0 5.444 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078V12.07h3.047V9.428c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.234 2.686.234v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.493h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>
+          Conectar con Facebook
+        </button>
+
+        <div style="display:flex;align-items:center;gap:10px;margin:16px 0">
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+          <span style="font-size:10px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.08em">o ingresá manualmente</span>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+        </div>
+
+        <!-- Manual fallback -->
+        <details style="margin-bottom:4px">
+          <summary style="font-size:11px;color:var(--muted2);cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:6px">
+            <span>🔧</span> Conectar con token manual
+          </summary>
+          <div style="margin-top:12px">
+            <div class="form-group"><label class="form-label">Access Token <a href="https://developers.facebook.com/tools/explorer/" target="_blank" style="color:var(--gold);font-size:10px;margin-left:6px">→ Obtener token</a></label><input class="form-input" id="meta-token-input" placeholder="EAAxxxxx…" style="font-family:monospace;font-size:11px"></div>
+            <div class="form-group"><label class="form-label">Ad Account ID</label><input class="form-input" id="meta-account-input" placeholder="act_1234567890 o solo los números"></div>
+            <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="connectMetaAds()">Conectar manualmente</button>
+          </div>
+        </details>
+
+        <p style="font-size:10px;color:var(--muted);margin-top:14px;line-height:1.7">
+          🔒 <strong>Seguro:</strong> Solo pedimos permisos de lectura y gestión de anuncios.<br>
+          Tu token se guarda encriptado en tu workspace y nunca se comparte.
+        </p>
       </div>
     </div>
 
@@ -3506,6 +3531,8 @@ function _enterWorkspace(ws){
   }
   // Tour de primera sesión — solo la primera vez
   setTimeout(startTour, 700);
+  // Detect Meta OAuth return (after Facebook redirects back)
+  setTimeout(_checkMetaOAuthReturn, 400);
 }
 
 // ── Cache de unlock por sesión: skip de PIN/usuario al refrescar dentro de la misma pestaña ──
@@ -6460,6 +6487,110 @@ function _metaApplyCampaignFilters(campaigns){
   else if(sort==='cpa')list.sort((a,b)=>(a.cpa||9999999)-(b.cpa||9999999));
   else if(sort==='name')list.sort((a,b)=>a.name.localeCompare(b.name,'es'));
   return list;
+}
+
+// ── Meta OAuth ──
+function startMetaOAuth(){
+  if(!_activeWsId){notify('Necesitás tener un workspace activo');return;}
+  // Open OAuth in same window (popup blocked on mobile, redirect is safer)
+  window.location.href='/api/meta/oauth/start?wsId='+encodeURIComponent(_activeWsId);
+}
+
+// Called on app load — detect if we just came back from Meta OAuth
+function _checkMetaOAuthReturn(){
+  const params=new URLSearchParams(window.location.search);
+  const oauthResult=params.get('metaOAuth');
+  const wsIdParam=params.get('wsId');
+  if(!oauthResult)return;
+  // Clean URL
+  window.history.replaceState({},'',window.location.pathname+'#meta/ads');
+  if(oauthResult==='ok'){
+    // Reload workspace data from server and navigate to meta
+    _reloadWorkspaceFromServer(wsIdParam,()=>{
+      notify('✅ Meta Ads conectado correctamente');
+      sbNav('meta','meta',document.getElementById('sbi-meta'));
+      renderMetaAds();
+    });
+  } else if(oauthResult==='select'){
+    // Multiple ad accounts — show selector
+    _reloadWorkspaceFromServer(wsIdParam,()=>{
+      sbNav('meta','meta',document.getElementById('sbi-meta'));
+      _openAccountSelector();
+    });
+  } else if(oauthResult==='noaccount'){
+    _reloadWorkspaceFromServer(wsIdParam,()=>{
+      sbNav('meta','meta',document.getElementById('sbi-meta'));
+      notify('⚠️ Conectado pero no encontramos cuentas publicitarias activas. Ingresá el ID manualmente.');
+      renderMetaAds();
+    });
+  } else if(oauthResult==='error'){
+    const msg=params.get('msg')||'Error desconocido';
+    notify('❌ Error al conectar Meta: '+msg);
+    sbNav('meta','meta',document.getElementById('sbi-meta'));
+  }
+}
+
+async function _reloadWorkspaceFromServer(wsId, cb){
+  // Pull fresh workspace from Supabase and merge into S
+  if(!wsId)wsId=_activeWsId;
+  try{
+    const res=await fetch(`/api/workspace/${wsId}`);
+    if(res.ok){
+      const data=await res.json();
+      if(data&&data.data){Object.assign(S,data.data);save();}
+    }
+  }catch(e){}
+  if(cb)cb();
+}
+
+async function _openAccountSelector(){
+  const overlay=document.getElementById('modal-overlay');
+  if(!overlay)return;
+  overlay.innerHTML=`<div class="modal" id="modal-box" style="max-width:480px">
+    <div class="modal-head"><div class="modal-title">📘 Seleccioná tu cuenta publicitaria</div></div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--muted2);margin-bottom:16px">Encontramos múltiples cuentas asociadas a tu perfil. ¿Con cuál querés trabajar?</p>
+      <div id="meta-account-list"><div class="empty"><div class="e-icon">⏳</div><p>Cargando cuentas…</p></div></div>
+    </div>
+  </div>`;
+  overlay.classList.add('open');
+  try{
+    const r=await fetch(`/api/meta/adaccounts?wsId=${encodeURIComponent(_activeWsId)}`);
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    const list=document.getElementById('meta-account-list');
+    if(!list)return;
+    const accounts=d.accounts||[];
+    if(!accounts.length){list.innerHTML='<div class="empty"><p>Sin cuentas activas encontradas</p></div>';return;}
+    list.innerHTML=accounts.map(a=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;transition:border-color .15s" onclick="_selectMetaAccount('${a.account_id||a.id.replace('act_','')}','${a.name}',this)">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${a.name}</div>
+          <div style="font-size:11px;color:var(--muted)">ID: ${a.account_id||a.id} · ${a.currency||'ARS'}</div>
+        </div>
+        <button class="btn btn-sm btn-primary" style="flex-shrink:0">Seleccionar</button>
+      </div>`).join('');
+  }catch(e){
+    const list=document.getElementById('meta-account-list');
+    if(list)list.innerHTML=`<div class="empty"><p>⚠️ ${e.message}</p></div>`;
+  }
+}
+
+async function _selectMetaAccount(accountId, accountName, rowEl){
+  if(rowEl)rowEl.style.opacity='.6';
+  try{
+    const r=await fetch('/api/meta/select-account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId:_activeWsId,accountId,accountName})});
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    if(!S.metaIntegration)S.metaIntegration={};
+    S.metaIntegration.adAccountId=accountId;
+    S.metaIntegration.adAccountName=accountName;
+    S.metaIntegration.pendingAdAccounts=undefined;
+    save();closeModal();
+    notify('✅ Cuenta seleccionada: '+accountName);
+    renderMetaAds();
+    syncMetaAds();
+  }catch(e){notify('Error: '+e.message);if(rowEl)rowEl.style.opacity='1';}
 }
 
 // ── Ads Performance ──

@@ -12,6 +12,11 @@ const SUPA_KEY = () => process.env.SUPA_SERVICE_KEY || ""
 // Mercado Pago
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN || "TEST-PLACEHOLDER"
 
+// Meta OAuth
+const META_APP_ID     = () => process.env.META_APP_ID     || ""
+const META_APP_SECRET = () => process.env.META_APP_SECRET || ""
+const APP_BASE_URL    = () => process.env.APP_BASE_URL    || "http://localhost:3000"
+
 // Landing page
 app.get("/landing", (req, res) => {
   res.sendFile(__dirname + "/views/landing.html")
@@ -717,6 +722,131 @@ app.post("/api/meta/wa/send", async (req, res) => {
       await patchWorkspace(wsId, d)
     } catch(e) { /* log failure non-critical */ }
     res.json({ ok: true, messageId: data.messages?.[0]?.id })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// Get a single workspace by ID (used to refresh S after OAuth callback)
+app.get("/api/workspace/:wsId", async (req, res) => {
+  const ws = await getWorkspace(req.params.wsId)
+  if (!ws) return res.status(404).json({ error: "not found" })
+  res.json({ id: ws.id, data: ws.data })
+})
+
+// ── Meta OAuth 2.0 ──────────────────────────────────────────────────────────
+
+// Step 1 — redirect user to Facebook consent screen
+app.get("/api/meta/oauth/start", (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).send("wsId requerido")
+  if (!META_APP_ID()) return res.status(500).send("META_APP_ID no configurado en el servidor")
+  const redirectUri = encodeURIComponent(`${APP_BASE_URL()}/api/meta/oauth/callback`)
+  const scope = encodeURIComponent("ads_read,read_insights,ads_management,business_management,pages_show_list")
+  // state = wsId so we know which workspace to update after callback
+  const state = encodeURIComponent(wsId)
+  const url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${META_APP_ID()}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}&response_type=code`
+  res.redirect(url)
+})
+
+// Step 2 — Facebook redirects back here with a code
+app.get("/api/meta/oauth/callback", async (req, res) => {
+  const { code, state, error: fbError, error_description } = req.query
+  const wsId = decodeURIComponent(state || "")
+
+  // User denied or error
+  if (fbError || !code) {
+    const msg = error_description || fbError || "El usuario canceló la autorización"
+    return res.redirect(`/?metaOAuth=error&msg=${encodeURIComponent(msg)}`)
+  }
+  if (!wsId) return res.redirect("/?metaOAuth=error&msg=Missing+wsId+in+state")
+
+  try {
+    const redirectUri = encodeURIComponent(`${APP_BASE_URL()}/api/meta/oauth/callback`)
+
+    // Exchange code → short-lived token
+    const tokenRes = await fetch(`https://graph.facebook.com/v21.0/oauth/access_token?client_id=${META_APP_ID()}&redirect_uri=${redirectUri}&client_secret=${META_APP_SECRET()}&code=${code}`)
+    const tokenData = await tokenRes.json()
+    if (tokenData.error) throw new Error(tokenData.error.message)
+    const shortToken = tokenData.access_token
+
+    // Exchange short-lived → long-lived token (60 days)
+    const longRes = await fetch(`https://graph.facebook.com/v21.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${META_APP_ID()}&client_secret=${META_APP_SECRET()}&fb_exchange_token=${shortToken}`)
+    const longData = await longRes.json()
+    if (longData.error) throw new Error(longData.error.message)
+    const accessToken = longData.access_token
+    const expiresIn   = longData.expires_in || 5184000 // ~60 days default
+
+    // Get user info
+    const meRes = await fetch(`https://graph.facebook.com/v21.0/me?fields=id,name&access_token=${accessToken}`)
+    const me = await meRes.json()
+
+    // Get their ad accounts
+    const accsRes = await fetch(`https://graph.facebook.com/v21.0/me/adaccounts?fields=id,name,account_status,currency,account_id&limit=50&access_token=${accessToken}`)
+    const accsData = await accsRes.json()
+    const adAccounts = (accsData.data || []).filter(a => a.account_status === 1) // 1 = ACTIVE
+
+    // Save token + user info + ad accounts list in workspace
+    const ws = await getWorkspace(wsId)
+    if (!ws) throw new Error("Workspace no encontrado")
+    const d = ws.data || {}
+    d.metaIntegration = {
+      ...(d.metaIntegration || {}),
+      accessToken,
+      expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
+      userId: me.id,
+      name: me.name || "",
+      connectedAt: new Date().toISOString(),
+      oauthConnected: true,
+      // If multiple accounts, store them for selection; if only one auto-pick
+      pendingAdAccounts: adAccounts.length > 1 ? adAccounts : undefined,
+      adAccountId: adAccounts.length === 1 ? adAccounts[0].account_id : (d.metaIntegration?.adAccountId || ""),
+      adAccountName: adAccounts.length === 1 ? adAccounts[0].name : (d.metaIntegration?.adAccountName || ""),
+    }
+    await patchWorkspace(wsId, d)
+
+    // Redirect back to app
+    if (adAccounts.length > 1) {
+      // Multiple accounts — let frontend show the selector
+      res.redirect(`/?metaOAuth=select&wsId=${encodeURIComponent(wsId)}`)
+    } else if (adAccounts.length === 1) {
+      res.redirect(`/?metaOAuth=ok&wsId=${encodeURIComponent(wsId)}`)
+    } else {
+      // No active ad accounts found — still connected, but needs manual account ID
+      res.redirect(`/?metaOAuth=noaccount&wsId=${encodeURIComponent(wsId)}`)
+    }
+  } catch(e) {
+    console.error("Meta OAuth callback error:", e)
+    res.redirect(`/?metaOAuth=error&msg=${encodeURIComponent(e.message)}`)
+  }
+})
+
+// List ad accounts for selection (after OAuth with multiple accounts)
+app.get("/api/meta/adaccounts", async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: "wsId requerido" })
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.accessToken) return res.status(400).json({ error: "Meta no conectado" })
+    // Return pending accounts if already fetched, otherwise re-fetch
+    if (meta.pendingAdAccounts) return res.json({ accounts: meta.pendingAdAccounts })
+    const r = await fetch(`https://graph.facebook.com/v21.0/me/adaccounts?fields=id,name,account_status,currency,account_id&limit=50&access_token=${meta.accessToken}`)
+    const data = await r.json()
+    if (data.error) return res.status(400).json({ error: data.error.message })
+    res.json({ accounts: (data.data || []).filter(a => a.account_status === 1) })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// Save selected ad account after OAuth multi-account selection
+app.post("/api/meta/select-account", async (req, res) => {
+  const { wsId, accountId, accountName } = req.body
+  if (!wsId || !accountId) return res.status(400).json({ error: "wsId y accountId requeridos" })
+  try {
+    const ws = await getWorkspace(wsId)
+    if (!ws) return res.status(404).json({ error: "Workspace no encontrado" })
+    const d = ws.data || {}
+    d.metaIntegration = { ...(d.metaIntegration || {}), adAccountId: accountId, adAccountName: accountName || "", pendingAdAccounts: undefined }
+    await patchWorkspace(wsId, d)
+    res.json({ ok: true })
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
