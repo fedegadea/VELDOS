@@ -662,6 +662,37 @@ tr:hover .tx-del{color:var(--muted)}
 .pres-bar-fill{height:5px;border-radius:3px;transition:width .5s ease}
 .pres-cat-disp{font-size:11px;margin-top:5px;font-weight:300}
  
+/* ── META ADS ── */
+.meta-connect-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:28px 32px;max-width:520px;box-shadow:var(--shadow)}
+.meta-connect-icon{font-size:32px;margin-bottom:12px}
+.meta-connect-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;font-family:var(--fd);letter-spacing:-.02em}
+.meta-connect-sub{font-size:12px;color:var(--muted2);line-height:1.6;margin-bottom:20px;font-weight:300}
+.meta-kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
+.meta-kpi{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.meta-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--gold)}
+.meta-kpi-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:8px}
+.meta-kpi-value{font-family:var(--fd);font-size:24px;font-weight:700;color:var(--text);letter-spacing:-.02em}
+.meta-kpi-sub{font-size:11px;color:var(--muted);margin-top:3px;font-weight:300}
+.meta-table{width:100%;border-collapse:collapse;font-size:12px}
+.meta-table th{padding:9px 14px;text-align:left;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;border-bottom:1px solid var(--border)}
+.meta-table td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--muted2);font-weight:300;vertical-align:middle}
+.meta-table tr:last-child td{border-bottom:none}
+.meta-table tr:hover td{background:var(--s2)}
+.meta-status-pill{font-size:9px;padding:2px 8px;border-radius:20px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.meta-status-ACTIVE{background:rgba(52,199,123,.12);color:var(--green);border:1px solid rgba(52,199,123,.2)}
+.meta-status-PAUSED{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border)}
+.meta-status-ARCHIVED{background:rgba(160,160,160,.06);color:var(--muted);border:1px solid var(--border)}
+.meta-ad-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.meta-ad-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);transition:border-color .2s}
+.meta-ad-card:hover{border-color:var(--border2)}
+.meta-ad-page{font-size:11px;font-weight:700;color:var(--text);padding:12px 14px 6px}
+.meta-ad-body{font-size:11px;color:var(--muted2);font-weight:300;line-height:1.55;padding:0 14px 10px;max-height:80px;overflow:hidden}
+.meta-ad-foot{padding:8px 14px 12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.meta-ad-since{font-size:10px;color:var(--muted)}
+.meta-wa-connected{background:rgba(52,199,123,.08);border:1px solid rgba(52,199,123,.2);border-radius:var(--radius);padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.meta-log-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:11px}
+.meta-log-row:last-child{border-bottom:none}
+
 /* ── AREA DROPDOWN ── */
 .area-dropdown{position:relative}
 .area-btn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--muted2);font-family:var(--fb);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:5px 12px;border-radius:10px;cursor:pointer;transition:all .15s;font-weight:500}
@@ -1392,6 +1423,11 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
   <nav class="nav-tabs" id="nav-integraciones" style="display:none">
     <button class="nav-tab active" onclick="switchPage('integraciones',this)">Integraciones</button>
   </nav>
+  <nav class="nav-tabs" id="nav-meta" style="display:none">
+    <button class="nav-tab active" onclick="switchMetaTab('ads',this)">📊 Ads</button>
+    <button class="nav-tab" onclick="switchMetaTab('adlibrary',this)">🔍 Ad Library</button>
+    <button class="nav-tab" onclick="switchMetaTab('whatsapp',this)">💬 WhatsApp</button>
+  </nav>
   <div class="week-badge" id="week-label"></div>
   <button onclick="toggleTheme()" id="theme-btn" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:7px;cursor:pointer;flex-shrink:0">☀️ Light</button>
   <button onclick="authLogout()" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:7px;cursor:pointer;flex-shrink:0">Salir</button>
@@ -1425,6 +1461,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button class="sb-item" id="sbi-flows" onclick="sbNav('flows','flows',this)"><span class="sb-item-icon">⚡</span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Flows<span id="flows-nav-badge" style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Automatizaciones</span></span></button>
     <button class="sb-item" id="sbi-stock" onclick="sbNav('stock','stock',this)"><span class="sb-item-icon">📦</span>Stock</button>
     <button class="sb-item" id="sbi-integraciones" onclick="sbNav('integraciones','integraciones',this)"><span class="sb-item-icon">🔗</span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Integraciones<span id="tn-nav-badge" style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">🛍️ Tienda Nube</span></span></button>
+    <button class="sb-item" id="sbi-meta" onclick="sbNav('meta','meta',this)"><span class="sb-item-icon">📘</span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Meta<span style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Ads · Library · WhatsApp</span></span></button>
     <button class="sb-item" id="sbi-hojas" onclick="sbNav('hojas','hojas',this)"><span class="sb-item-icon">📁</span>Hojas</button>
   </div>
   <a href="https://crealo.solutions/" target="_blank" rel="noopener" class="sb-crealo-btn">
@@ -2903,14 +2940,14 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
       <div id="tn-card-body" style="padding:0 20px 20px"></div>
     </div>
 
-    <!-- Coming soon cards -->
-    <div class="fin-card" style="opacity:.6">
+    <!-- Meta card -->
+    <div class="fin-card" style="cursor:pointer" onclick="sbNav('meta','meta',document.getElementById('sbi-meta'))">
       <div class="fin-card-head">
         <div style="display:flex;align-items:center;gap:12px">
-          <div style="font-size:24px">📊</div>
-          <div><div style="font-size:14px;font-weight:600">Meta Ads</div><div style="font-size:11px;color:var(--muted)">Importá gasto en ads automáticamente</div></div>
+          <div style="font-size:24px">📘</div>
+          <div><div style="font-size:14px;font-weight:600">Meta</div><div style="font-size:11px;color:var(--muted)">Ads Performance · Ad Library · WhatsApp</div></div>
         </div>
-        <span style="font-size:10px;padding:3px 10px;border-radius:20px;background:var(--s3);color:var(--muted)">Próximamente</span>
+        <span style="font-size:10px;padding:3px 10px;border-radius:20px;background:rgba(41,121,255,.1);color:var(--gold);border:1px solid rgba(41,121,255,.2)">Disponible →</span>
       </div>
     </div>
     <div class="fin-card" style="opacity:.6">
@@ -2920,6 +2957,122 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
           <div><div style="font-size:14px;font-weight:600">MercadoLibre</div><div style="font-size:11px;color:var(--muted)">Sincronizá ventas de ML</div></div>
         </div>
         <span style="font-size:10px;padding:3px 10px;border-radius:20px;background:var(--s3);color:var(--muted)">Próximamente</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ META ══ -->
+<div class="page" id="page-meta">
+  <div class="sec-head">
+    <div class="sec-title">Meta<small>Ads Performance · Ad Library · WhatsApp</small></div>
+    <div class="btn-row" id="meta-head-actions"></div>
+  </div>
+
+  <!-- TAB: ADS PERFORMANCE -->
+  <div id="meta-tab-ads">
+    <!-- Banner de conexión -->
+    <div id="meta-ads-connect" style="display:none">
+      <div class="meta-connect-card">
+        <div class="meta-connect-icon">📊</div>
+        <div class="meta-connect-title">Conectar Meta Ads</div>
+        <div class="meta-connect-sub">Ingresá tu Access Token y el ID de tu cuenta publicitaria para ver métricas de campañas en tiempo real.</div>
+        <div class="form-group"><label class="form-label">Access Token <a href="https://developers.facebook.com/tools/explorer/" target="_blank" style="color:var(--gold);font-size:10px;margin-left:6px">→ Obtener token</a></label><input class="form-input" id="meta-token-input" placeholder="EAAxxxxx…" style="font-family:monospace;font-size:11px"></div>
+        <div class="form-group"><label class="form-label">Ad Account ID</label><input class="form-input" id="meta-account-input" placeholder="act_1234567890 o solo los números"></div>
+        <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="connectMetaAds()">Conectar cuenta</button>
+        <p style="font-size:10px;color:var(--muted);margin-top:12px;line-height:1.6">Permisos necesarios en el token: <strong>ads_read</strong>, <strong>read_insights</strong>. Tu token se guarda de forma segura en tu workspace.</p>
+      </div>
+    </div>
+
+    <!-- Dashboard de ads -->
+    <div id="meta-ads-dash" style="display:none">
+      <div class="meta-kpi-row" id="meta-kpi-row"></div>
+      <div class="fin-card">
+        <div class="fin-card-head">
+          <div class="fin-card-title">Campañas — últimos 30 días</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" onclick="syncMetaAds()">↺ Sincronizar</button>
+            <button class="btn btn-sm btn-danger" onclick="disconnectMetaAds()">Desconectar</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="meta-table" id="meta-campaigns-table">
+            <thead><tr>
+              <th>Campaña</th><th>Estado</th><th>Gasto</th><th>Impresiones</th><th>Clics</th><th>CTR</th><th>CPC</th><th>Conversiones</th><th>ROAS</th>
+            </tr></thead>
+            <tbody id="meta-campaigns-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: AD LIBRARY -->
+  <div id="meta-tab-adlibrary" style="display:none">
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
+      <input class="form-input" id="adlib-query" placeholder="Nombre de marca o palabra clave…" style="flex:1;min-width:220px" onkeydown="if(event.key==='Enter')searchAdLibrary()">
+      <select class="form-input" id="adlib-country" style="width:130px">
+        <option value="AR">🇦🇷 Argentina</option>
+        <option value="MX">🇲🇽 México</option>
+        <option value="CO">🇨🇴 Colombia</option>
+        <option value="ES">🇪🇸 España</option>
+        <option value="US">🇺🇸 EEUU</option>
+        <option value="ALL">🌍 Global</option>
+      </select>
+      <button class="btn btn-primary" onclick="searchAdLibrary()">🔍 Buscar</button>
+    </div>
+    <div id="adlib-results"></div>
+  </div>
+
+  <!-- TAB: WHATSAPP -->
+  <div id="meta-tab-whatsapp" style="display:none">
+    <!-- Conexión WA -->
+    <div id="wa-connect-section">
+      <div class="meta-connect-card" id="wa-connect-form">
+        <div class="meta-connect-icon">💬</div>
+        <div class="meta-connect-title">Conectar WhatsApp Business</div>
+        <div class="meta-connect-sub">Configurá tu número de WhatsApp Business API para enviar mensajes de plantilla a leads y clientes del CRM.</div>
+        <div class="form-group"><label class="form-label">Access Token (permanente)</label><input class="form-input" id="wa-token-input" placeholder="EAAxxxxx…" style="font-family:monospace;font-size:11px"></div>
+        <div class="form-group"><label class="form-label">Phone Number ID</label><input class="form-input" id="wa-phone-id-input" placeholder="123456789012345"></div>
+        <div class="form-group"><label class="form-label">Business Account ID</label><input class="form-input" id="wa-biz-id-input" placeholder="987654321098765"></div>
+        <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="connectWhatsApp()">Conectar WhatsApp</button>
+        <p style="font-size:10px;color:var(--muted);margin-top:12px;line-height:1.6">El Phone Number ID y Business Account ID se encuentran en <strong>Meta Business Suite → WhatsApp → Configuración</strong>.</p>
+      </div>
+      <div id="wa-connected-info" style="display:none">
+        <div class="meta-wa-connected">
+          <div style="font-size:28px">✅</div>
+          <div><div style="font-size:13px;font-weight:600;color:var(--text)" id="wa-conn-name"></div><div style="font-size:11px;color:var(--muted2)" id="wa-conn-number"></div></div>
+          <button class="btn btn-sm btn-danger" style="margin-left:auto" onclick="disconnectWhatsApp()">Desconectar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Envío rápido -->
+    <div id="wa-send-section" style="display:none;margin-top:20px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+        <div class="fin-card">
+          <div class="fin-card-head"><div class="fin-card-title">Enviar mensaje</div></div>
+          <div style="padding:16px 20px">
+            <div class="form-group">
+              <label class="form-label">Destinatario (teléfono o buscar en CRM)</label>
+              <input class="form-input" id="wa-to-input" placeholder="Ej: 1122334455" list="wa-crm-list">
+              <datalist id="wa-crm-list"></datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Plantilla <button class="btn btn-xs" onclick="loadWaTemplates()" style="margin-left:6px">↺ Cargar</button></label>
+              <select class="form-input" id="wa-template-select"><option value="">— Seleccioná una plantilla —</option></select>
+            </div>
+            <div class="form-group" id="wa-params-group" style="display:none">
+              <label class="form-label">Parámetros (uno por línea)</label>
+              <textarea class="form-input" id="wa-params-input" rows="3" placeholder="Ej:&#10;Nombre del cliente&#10;Nombre del producto"></textarea>
+            </div>
+            <button class="btn btn-primary" style="width:100%" onclick="sendWaFromPanel()">💬 Enviar mensaje</button>
+          </div>
+        </div>
+        <div class="fin-card">
+          <div class="fin-card-head"><div class="fin-card-title">Historial de envíos</div><button class="btn btn-xs" onclick="renderWaLog()">↺</button></div>
+          <div id="wa-log-list" style="max-height:380px;overflow-y:auto"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -3112,7 +3265,7 @@ let _activePlanTab='calendario';
 let _pendingBriefId=null;
 
 function defaultData(){
-  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},ideas:[],semana:{},estrategia:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[],flows:[],flowDone:{},tnProductCost:{},pilares:[],ofertasPlantilla:[],cuentas:[],progTargets:{briefs:7,canjes:7,collabs:4,cal:10}};
+  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},ideas:[],semana:{},estrategia:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[],flows:[],flowDone:{},tnProductCost:{},pilares:[],ofertasPlantilla:[],cuentas:[],progTargets:{briefs:7,canjes:7,collabs:4,cal:10},metaIntegration:null,metaAdsCache:null,waLog:[]};
 }
 
 function _localLoad(){
@@ -3147,6 +3300,7 @@ function _enterWorkspace(ws){
   if(!S.ofertasPlantilla)S.ofertasPlantilla=[];
   if(!S.cuentas)S.cuentas=[];
   if(!S.progTargets)S.progTargets={briefs:7,canjes:7,collabs:4,cal:10};
+  if(!S.waLog)S.waLog=[];
   initCashflow();
   WORKSPACES.active=ws.id;
   _localSave();
@@ -3641,7 +3795,7 @@ function sbNav(area,page,el){
     document.getElementById('pin-error').textContent='';
     return;
   }
-  const paths={inicio:'inicio',checklist:'checklist',todo:'todo',drive:'planning',marca:'marca',producto:'producto',crm:'crm',flows:'flows',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones',finanzas:'finanzas'};
+  const paths={inicio:'inicio',checklist:'checklist',todo:'todo',drive:'planning',marca:'marca',producto:'producto',crm:'crm',flows:'flows',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones',finanzas:'finanzas',meta:'meta'};
   navigate(paths[page]||page);
 }
 
@@ -3658,7 +3812,7 @@ const _FIN_TABS =new Set(['movimientos','ingresos','gastos','comisiones','kpis',
 const _AREA_LABELS={inicio:'Inicio',marketing:'Marketing',finanzas:'Finanzas',crm:'CRM',flows:'Flows',hojas:'Hojas',operaciones:'Operaciones',stock:'Stock',integraciones:'Integraciones'};
 
 // Lista de rutas válidas — usada también para el fallback (rutas no válidas → /checklist)
-const _VALID_TOP_SEGMENTS=new Set(['inicio','checklist','todo','planning','marca','producto','finanzas','crm','flows','hojas','operaciones','stock','integraciones','login','projects']);
+const _VALID_TOP_SEGMENTS=new Set(['inicio','checklist','todo','planning','marca','producto','finanzas','crm','flows','hojas','operaciones','stock','integraciones','meta','login','projects']);
 
 function parseRoute(pathname){
   const clean=(pathname||'/').replace(/^\/+|\/+$/g,'');
@@ -3676,6 +3830,7 @@ function parseRoute(pathname){
   if(seg==='finanzas'){
     return{area:'finanzas',page:'finanzas',finTab:(_FIN_TABS.has(s2)?s2:'movimientos')};
   }
+  if(seg==='meta') return{area:'meta',page:'meta',metaTab:s2||'ads'};
   const direct={crm:1,flows:1,hojas:1,operaciones:1,stock:1,integraciones:1};
   if(direct[seg]) return{area:seg,page:seg};
   // Ruta desconocida → checklist (único fallback permitido)
@@ -3760,6 +3915,10 @@ function applyRoute(){
     if(r.area==='hojas'){if(!S.customViews)S.customViews=[];renderHojas();}
     if(r.area==='stock'){if(!S.stock)S.stock=[];renderStock();}
     if(r.area==='integraciones')renderIntegraciones();
+    if(r.area==='meta'){
+      const tab=r.metaTab||'ads';
+      switchMetaTab(tab);
+    }
   }
 
   // Mobile nav active state
@@ -6014,6 +6173,275 @@ function renderIntegraciones(){
   updateTNBadge();
 }
 
+// ══════════════════════════════════════════════════════════
+// META — Ads Performance · Ad Library · WhatsApp Business
+// ══════════════════════════════════════════════════════════
+
+let _metaCurrentTab='ads';
+
+function switchMetaTab(tab,btn){
+  _metaCurrentTab=tab;
+  ['ads','adlibrary','whatsapp'].forEach(t=>{
+    const el=document.getElementById('meta-tab-'+t);
+    if(el)el.style.display=t===tab?'block':'none';
+  });
+  document.querySelectorAll('#nav-meta .nav-tab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  else{const active=document.querySelector(`#nav-meta .nav-tab[onclick*="'${tab}'"]`);if(active)active.classList.add('active');}
+  if(tab==='ads')renderMetaAds();
+  if(tab==='whatsapp')renderWaSection();
+  if(tab==='adlibrary'){const r=document.getElementById('adlib-results');if(r&&!r.innerHTML)r.innerHTML='<div class="empty"><div class="e-icon">🔍</div><p>Buscá una marca o palabra clave para ver sus anuncios activos</p></div>';}
+}
+
+// ── Ads Performance ──
+async function connectMetaAds(){
+  const token=(document.getElementById('meta-token-input')?.value||'').trim();
+  const accountId=(document.getElementById('meta-account-input')?.value||'').trim();
+  if(!token||!accountId){notify('Completá token y Ad Account ID');return;}
+  const btn=event?.target;if(btn){btn.disabled=true;btn.textContent='Conectando…';}
+  try{
+    const r=await fetch('/api/meta/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId:_activeWsId,accessToken:token,adAccountId:accountId})});
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    if(!S.metaIntegration)S.metaIntegration={};
+    S.metaIntegration.accessToken=token;S.metaIntegration.adAccountId=accountId;S.metaIntegration.name=d.name||'';S.metaIntegration.connectedAt=new Date().toISOString();
+    save();notify('✅ Meta Ads conectado como '+d.name);syncMetaAds();
+  }catch(e){notify('Error: '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='Conectar cuenta';}}
+}
+
+async function syncMetaAds(){
+  const btn=event?.target;if(btn){btn.disabled=true;btn.textContent='Sincronizando…';}
+  try{
+    const r=await fetch('/api/meta/campaigns?wsId='+encodeURIComponent(_activeWsId));
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    if(!S.metaAdsCache)S.metaAdsCache={};
+    S.metaAdsCache.campaigns=d.campaigns||[];S.metaAdsCache.fetchedAt=new Date().toISOString();
+    save();renderMetaAds();notify('✅ Campañas sincronizadas');
+  }catch(e){notify('Error al sincronizar: '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='↺ Sincronizar';}}
+}
+
+function disconnectMetaAds(){
+  if(!confirm('¿Desconectar Meta Ads? Se borrará el token guardado.'))return;
+  if(S.metaIntegration){delete S.metaIntegration.accessToken;delete S.metaIntegration.adAccountId;delete S.metaIntegration.name;delete S.metaIntegration.connectedAt;}
+  S.metaAdsCache=null;save();renderMetaAds();notify('Meta Ads desconectado');
+}
+
+function renderMetaAds(){
+  const connected=!!(S.metaIntegration?.accessToken&&S.metaIntegration?.adAccountId);
+  const connectEl=document.getElementById('meta-ads-connect');
+  const dashEl=document.getElementById('meta-ads-dash');
+  if(connectEl)connectEl.style.display=connected?'none':'block';
+  if(dashEl)dashEl.style.display=connected?'block':'none';
+  if(!connected)return;
+  const campaigns=S.metaAdsCache?.campaigns||[];
+  // KPI row
+  const totalSpend=campaigns.reduce((s,c)=>s+c.spend,0);
+  const totalImp=campaigns.reduce((s,c)=>s+c.impressions,0);
+  const totalClicks=campaigns.reduce((s,c)=>s+c.clicks,0);
+  const avgCTR=totalImp>0?(totalClicks/totalImp*100):0;
+  const avgCPC=totalClicks>0?(totalSpend/totalClicks):0;
+  const totalConv=campaigns.reduce((s,c)=>s+c.conversions,0);
+  const kpiRow=document.getElementById('meta-kpi-row');
+  if(kpiRow)kpiRow.innerHTML=`
+    <div class="meta-kpi" style="--kpi-color:var(--coral)"><div class="meta-kpi-label">Gasto total</div><div class="meta-kpi-value" style="color:var(--coral)">$${fmtMoney(totalSpend)}</div><div class="meta-kpi-sub">últimos 30 días</div></div>
+    <div class="meta-kpi" style=""><div class="meta-kpi-label">Impresiones</div><div class="meta-kpi-value">${totalImp.toLocaleString('es-AR')}</div><div class="meta-kpi-sub">alcance acumulado</div></div>
+    <div class="meta-kpi"><div class="meta-kpi-label">Clics</div><div class="meta-kpi-value">${totalClicks.toLocaleString('es-AR')}</div><div class="meta-kpi-sub">en todos los anuncios</div></div>
+    <div class="meta-kpi"><div class="meta-kpi-label">CTR promedio</div><div class="meta-kpi-value" style="color:${avgCTR>1?'var(--green)':'var(--coral)'}">${avgCTR.toFixed(2)}%</div><div class="meta-kpi-sub">referencia: 1%</div></div>
+    <div class="meta-kpi"><div class="meta-kpi-label">Conversiones</div><div class="meta-kpi-value" style="color:var(--green)">${totalConv}</div><div class="meta-kpi-sub">compras registradas</div></div>
+  `;
+  // Campaigns table
+  const tbody=document.getElementById('meta-campaigns-body');
+  if(!tbody)return;
+  if(!campaigns.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--muted)">Sin datos — hacé clic en "Sincronizar"</td></tr>';return;}
+  const sorted=[...campaigns].sort((a,b)=>b.spend-a.spend);
+  tbody.innerHTML=sorted.map(c=>{
+    const statusClass='meta-status-'+c.status;
+    const roasStr=c.roas?`<span style="color:${c.roas>1?'var(--green)':'var(--coral)'};font-weight:600">${c.roas.toFixed(2)}x</span>`:'—';
+    return`<tr>
+      <td style="color:var(--text);font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.name}">${c.name}</td>
+      <td><span class="meta-status-pill ${statusClass}">${c.status}</span></td>
+      <td style="color:var(--coral);font-weight:500">$${fmtMoney(c.spend)}</td>
+      <td>${c.impressions.toLocaleString('es-AR')}</td>
+      <td>${c.clicks.toLocaleString('es-AR')}</td>
+      <td style="color:${c.ctr>1?'var(--green)':'var(--muted2)'}">${c.ctr.toFixed(2)}%</td>
+      <td>$${c.cpc.toFixed(0)}</td>
+      <td>${c.conversions||'—'}</td>
+      <td>${roasStr}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Ad Library ──
+async function searchAdLibrary(){
+  const q=(document.getElementById('adlib-query')?.value||'').trim();
+  const country=document.getElementById('adlib-country')?.value||'AR';
+  const resultsEl=document.getElementById('adlib-results');
+  if(!q){notify('Ingresá un término de búsqueda');return;}
+  if(resultsEl)resultsEl.innerHTML='<div class="empty"><div class="e-icon">⏳</div><p>Buscando anuncios…</p></div>';
+  try{
+    const r=await fetch(`/api/meta/adlibrary?q=${encodeURIComponent(q)}&country=${country}&wsId=${encodeURIComponent(_activeWsId)}`);
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    renderAdLibraryResults(d.ads||[],q);
+  }catch(e){
+    if(resultsEl)resultsEl.innerHTML=`<div class="empty"><div class="e-icon">⚠️</div><p>${e.message}</p></div>`;
+    notify('Error: '+e.message);
+  }
+}
+
+function renderAdLibraryResults(ads,q){
+  const el=document.getElementById('adlib-results');
+  if(!el)return;
+  if(!ads.length){el.innerHTML=`<div class="empty"><div class="e-icon">🔍</div><p>No se encontraron anuncios activos para "<strong>${q}</strong>" en este país</p></div>`;return;}
+  el.innerHTML=`<div style="font-size:11px;color:var(--muted);margin-bottom:12px">${ads.length} anuncios encontrados</div><div class="meta-ad-grid">${ads.map(a=>{
+    const body=(a.ad_creative_body||a.ad_creative_link_caption||'Sin texto').slice(0,160);
+    const title=a.ad_creative_link_title||'';
+    const since=a.ad_delivery_start_time?new Date(a.ad_delivery_start_time).toLocaleDateString('es-AR'):'';
+    const spend=a.spend?'<span style="font-size:10px;color:var(--gold);font-weight:500">💰 '+a.spend+'</span>':'';
+    return`<div class="meta-ad-card">
+      <div class="meta-ad-page">📘 ${a.page_name||'Página desconocida'}</div>
+      ${title?`<div style="font-size:12px;font-weight:600;color:var(--text);padding:0 14px 4px;letter-spacing:-.01em">${title}</div>`:''}
+      <div class="meta-ad-body">${body}${body.length===160?'…':''}</div>
+      <div class="meta-ad-foot">
+        <span class="meta-ad-since">${since?'Desde '+since:''}</span>
+        <div style="display:flex;gap:6px;align-items:center">${spend}${a.ad_snapshot_url?`<a href="${a.ad_snapshot_url}" target="_blank" class="btn btn-xs">Ver anuncio ↗</a>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ── WhatsApp Business ──
+let _waTemplates=[];
+
+async function connectWhatsApp(){
+  const token=(document.getElementById('wa-token-input')?.value||'').trim();
+  const phoneId=(document.getElementById('wa-phone-id-input')?.value||'').trim();
+  const bizId=(document.getElementById('wa-biz-id-input')?.value||'').trim();
+  if(!token||!phoneId){notify('Completá token y Phone Number ID');return;}
+  const btn=event?.target;if(btn){btn.disabled=true;btn.textContent='Conectando…';}
+  try{
+    const r=await fetch('/api/meta/wa/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId:_activeWsId,accessToken:token,phoneNumberId:phoneId,businessAccountId:bizId})});
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    if(!S.metaIntegration)S.metaIntegration={};
+    Object.assign(S.metaIntegration,{waAccessToken:token,waPhoneNumberId:phoneId,waBusinessAccountId:bizId,waPhoneName:d.name||'',waPhoneNumber:d.number||'',waConnectedAt:new Date().toISOString()});
+    save();notify('✅ WhatsApp conectado: '+d.name+' ('+d.number+')');renderWaSection();
+  }catch(e){notify('Error: '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='Conectar WhatsApp';}}
+}
+
+function disconnectWhatsApp(){
+  if(!confirm('¿Desconectar WhatsApp?'))return;
+  if(S.metaIntegration){['waAccessToken','waPhoneNumberId','waBusinessAccountId','waPhoneName','waPhoneNumber','waConnectedAt'].forEach(k=>delete S.metaIntegration[k]);}
+  save();renderWaSection();notify('WhatsApp desconectado');
+}
+
+function renderWaSection(){
+  const connected=!!(S.metaIntegration?.waPhoneNumberId&&S.metaIntegration?.waAccessToken);
+  const connForm=document.getElementById('wa-connect-form');
+  const connInfo=document.getElementById('wa-connected-info');
+  const sendSec=document.getElementById('wa-send-section');
+  if(connForm)connForm.style.display=connected?'none':'block';
+  if(connInfo){connInfo.style.display=connected?'block':'none';document.getElementById('wa-conn-name').textContent=S.metaIntegration?.waPhoneName||'WhatsApp conectado';document.getElementById('wa-conn-number').textContent=S.metaIntegration?.waPhoneNumber||'';}
+  if(sendSec)sendSec.style.display=connected?'block':'none';
+  if(connected){
+    // Populate CRM datalist
+    const dl=document.getElementById('wa-crm-list');
+    if(dl)dl.innerHTML=(S.crm||[]).filter(c=>c.tel).map(c=>`<option value="${(c.tel||'').replace(/[^0-9]/g,'')}">${c.nombre||''}${c.tel?' · '+c.tel:''}</option>`).join('');
+    renderWaLog();
+  }
+}
+
+async function loadWaTemplates(){
+  try{
+    const r=await fetch('/api/meta/wa/templates?wsId='+encodeURIComponent(_activeWsId));
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    _waTemplates=d.templates||[];
+    const sel=document.getElementById('wa-template-select');
+    if(sel){sel.innerHTML='<option value="">— Seleccioná una plantilla —</option>'+_waTemplates.map(t=>`<option value="${t.name}">${t.name} (${t.language?.code||'es'})</option>`).join('');}
+    notify(`${_waTemplates.length} plantillas cargadas`);
+  }catch(e){notify('Error al cargar plantillas: '+e.message);}
+}
+
+async function sendWaFromPanel(){
+  const to=(document.getElementById('wa-to-input')?.value||'').trim();
+  const templateName=document.getElementById('wa-template-select')?.value||'';
+  const paramsRaw=(document.getElementById('wa-params-input')?.value||'').trim();
+  const params=paramsRaw?paramsRaw.split('\n').map(p=>p.trim()).filter(Boolean):[];
+  if(!to||!templateName){notify('Completá destinatario y plantilla');return;}
+  const btn=event?.target;if(btn){btn.disabled=true;btn.textContent='Enviando…';}
+  try{
+    const r=await fetch('/api/meta/wa/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId:_activeWsId,to,templateName,params})});
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    S.waLog=S.waLog||[];S.waLog.unshift({to,templateName,params,sentAt:new Date().toISOString()});
+    save();renderWaLog();notify('✅ Mensaje enviado');
+    if(document.getElementById('wa-to-input'))document.getElementById('wa-to-input').value='';
+  }catch(e){notify('Error al enviar: '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='💬 Enviar mensaje';}}
+}
+
+function renderWaLog(){
+  const el=document.getElementById('wa-log-list');
+  if(!el)return;
+  const log=S.waLog||[];
+  if(!log.length){el.innerHTML='<div class="empty" style="padding:24px"><div class="e-icon">💬</div><p>Sin mensajes enviados aún</p></div>';return;}
+  el.innerHTML=log.slice(0,50).map(m=>{
+    const d=m.sentAt?new Date(m.sentAt).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+    return`<div class="meta-log-row">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:500;color:var(--text);font-size:11px">${m.templateName}</div>
+        <div style="color:var(--muted);font-size:10px">→ ${m.to}${m.params?.length?' · «'+m.params.slice(0,2).join(', ')+'»':''}</div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);flex-shrink:0">${d}</div>
+    </div>`;
+  }).join('');
+}
+
+async function openWaSendModal(contactIdx){
+  const c=(S.crm||[])[contactIdx];
+  if(!c)return;
+  const tel=(c.tel||'').replace(/[^0-9]/g,'');
+  if(!_waTemplates.length){
+    try{const r=await fetch('/api/meta/wa/templates?wsId='+encodeURIComponent(_activeWsId));const d=await r.json();_waTemplates=d.templates||[];}catch(e){}
+  }
+  const overlay=document.getElementById('modal-overlay');
+  if(!overlay)return;
+  overlay.innerHTML=`<div class="modal" id="modal-box"><div class="modal-head"><div class="modal-title" id="modal-title">📲 Enviar WA a ${c.nombre||'contacto'}</div><button class="modal-close" onclick="closeModal()">×</button></div><div class="modal-body" id="modal-body">
+    <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="wam-to" value="${tel}" placeholder="Número sin espacios ni +"></div>
+    <div class="form-group"><label class="form-label">Plantilla</label><select class="form-input" id="wam-template" onchange="document.getElementById('wam-params-g').style.display=this.value?'block':'none'">
+      <option value="">— Seleccioná plantilla —</option>${_waTemplates.map(t=>`<option value="${t.name}">${t.name}</option>`).join('')}
+    </select></div>
+    <div id="wam-params-g" style="display:none" class="form-group"><label class="form-label">Parámetros (uno por línea)</label><textarea class="form-input" id="wam-params" rows="3" placeholder="Nombre, producto, etc."></textarea></div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="_sendWaFromModal(${contactIdx})">💬 Enviar</button></div>
+  </div></div>`;
+  overlay.classList.add('open');
+}
+
+async function _sendWaFromModal(contactIdx){
+  const to=(document.getElementById('wam-to')?.value||'').trim();
+  const templateName=document.getElementById('wam-template')?.value||'';
+  const paramsRaw=(document.getElementById('wam-params')?.value||'').trim();
+  const params=paramsRaw?paramsRaw.split('\n').map(p=>p.trim()).filter(Boolean):[];
+  if(!to||!templateName){notify('Completá destinatario y plantilla');return;}
+  const btn=event?.target;if(btn){btn.disabled=true;btn.textContent='Enviando…';}
+  try{
+    const r=await fetch('/api/meta/wa/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId:_activeWsId,to,templateName,params})});
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    S.waLog=S.waLog||[];S.waLog.unshift({to,templateName,params,sentAt:new Date().toISOString(),contactIdx});
+    // Log contact interaction
+    const c=(S.crm||[])[contactIdx];
+    if(c){c.ultimoContacto=new Date().toISOString().slice(0,10);if(!c.historial)c.historial=[];c.historial.unshift({fecha:c.ultimoContacto,tipo:'whatsapp',nota:'Plantilla: '+templateName});}
+    save();closeModal();notify('✅ Mensaje enviado a '+to);
+  }catch(e){notify('Error: '+e.message);if(btn){btn.disabled=false;btn.textContent='💬 Enviar';}}
+}
+
 function updateTNBadge(){
   const badge=document.getElementById('tn-nav-badge');
   if(!badge)return;
@@ -8215,6 +8643,7 @@ function renderCRMCard(c,ri){
     <div class="crm-card-move" onclick="event.stopPropagation()">
       <button class="crm-move-btn" title="Registrar contacto hoy" onclick="logContact(${ri},'','nota')" style="flex:0.6;padding:3px 6px">✓ Hoy</button>
       ${wappUrl?`<a class="crm-wapp" href="${wappUrl}" target="_blank" style="flex:1;justify-content:center" onclick="logContact(${ri},'','wapp')">💬 WA</a>`:'<span style="flex:1"></span>'}
+      ${S.metaIntegration?.waPhoneNumberId?`<button class="crm-move-btn" style="flex:0.8;font-size:9px;background:rgba(52,199,123,.12);color:var(--green);border-color:rgba(52,199,123,.2)" onclick="event.stopPropagation();openWaSendModal(${ri})" title="Enviar plantilla WA">📲</button>`:''}
       ${prevEst?`<button class="crm-move-btn" onclick="moveCRM(${ri},-1)" title="${prevEst}">◀</button>`:'<span style="flex:.5"></span>'}
       ${nextEst?`<button class="crm-move-btn primary" onclick="moveCRM(${ri},1)" title="${nextEst}">▶</button>`:'<span style="flex:.5"></span>'}
     </div>

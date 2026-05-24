@@ -534,6 +534,125 @@ app.post("/api/tn/webhooks/customers-data-request", (req, res) => {
   res.sendStatus(200)
 })
 
+// ── Meta (Ads + Ad Library + WhatsApp) ──────────────────────────────────────
+
+// Connect Meta Ads — store token + adAccountId in workspace
+app.post("/api/meta/connect", async (req, res) => {
+  const { wsId, accessToken, adAccountId } = req.body
+  if (!wsId || !accessToken) return res.status(400).json({ error: "wsId y accessToken requeridos" })
+  try {
+    const meRes = await fetch(`https://graph.facebook.com/v21.0/me?access_token=${accessToken}`)
+    const me = await meRes.json()
+    if (me.error) return res.status(400).json({ error: me.error.message })
+    const ws = await getWorkspace(wsId)
+    if (!ws) return res.status(404).json({ error: "Workspace no encontrado" })
+    const wsData = { ...(ws.data || {}), metaIntegration: { ...(ws.data?.metaIntegration || {}), accessToken, adAccountId: adAccountId || ws.data?.metaIntegration?.adAccountId || "", name: me.name || "", connectedAt: new Date().toISOString() } }
+    await patchWorkspace(wsId, wsData)
+    res.json({ ok: true, name: me.name })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// Get campaign metrics from Meta Marketing API
+app.get("/api/meta/campaigns", async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: "wsId requerido" })
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.accessToken || !meta?.adAccountId) return res.status(400).json({ error: "Meta Ads no conectado" })
+    const accountId = meta.adAccountId.startsWith("act_") ? meta.adAccountId : "act_" + meta.adAccountId
+    const fields = "id,name,status,objective,insights.date_preset(last_30d){spend,impressions,clicks,ctr,cpc,reach,actions,frequency,cpp}"
+    const url = `https://graph.facebook.com/v21.0/${accountId}/campaigns?fields=${encodeURIComponent(fields)}&limit=50&access_token=${meta.accessToken}`
+    const r = await fetch(url)
+    const data = await r.json()
+    if (data.error) return res.status(400).json({ error: data.error.message })
+    const campaigns = (data.data || []).map(c => {
+      const ins = c.insights?.data?.[0] || {}
+      const purchaseAction = (ins.actions || []).find(a => ["purchase","offsite_conversion.fb_pixel_purchase","omni_purchase"].includes(a.action_type))
+      const conversions = purchaseAction ? Number(purchaseAction.value) : 0
+      const spend = parseFloat(ins.spend || 0)
+      const revenue = (ins.action_values || []).find(a => a.action_type === "purchase")?.value || 0
+      return { id: c.id, name: c.name, status: c.status, objective: c.objective || "", spend, impressions: parseInt(ins.impressions || 0), clicks: parseInt(ins.clicks || 0), ctr: parseFloat(ins.ctr || 0), cpc: parseFloat(ins.cpc || 0), reach: parseInt(ins.reach || 0), conversions, roas: spend > 0 && revenue > 0 ? parseFloat(revenue) / spend : null, frequency: parseFloat(ins.frequency || 0), cpp: parseFloat(ins.cpp || 0) }
+    })
+    res.json({ campaigns, accountId })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// Ad Library search (public API — can search any brand)
+app.get("/api/meta/adlibrary", async (req, res) => {
+  const { q, country = "AR", wsId } = req.query
+  if (!q) return res.status(400).json({ error: "q (término de búsqueda) requerido" })
+  try {
+    let accessToken = process.env.META_ACCESS_TOKEN || ""
+    if (wsId) { const ws = await getWorkspace(wsId); accessToken = ws?.data?.metaIntegration?.accessToken || accessToken }
+    if (!accessToken) return res.status(400).json({ error: "Se necesita un token de Meta conectado para buscar la biblioteca de anuncios" })
+    const fields = "id,ad_creative_body,ad_creative_link_title,ad_creative_link_caption,ad_snapshot_url,page_name,page_id,currency,spend,impressions,ad_delivery_start_time"
+    const url = `https://graph.facebook.com/v21.0/ads_archive?search_terms=${encodeURIComponent(q)}&ad_reached_countries=${country}&ad_type=ALL&limit=24&fields=${encodeURIComponent(fields)}&access_token=${accessToken}`
+    const r = await fetch(url)
+    const data = await r.json()
+    if (data.error) return res.status(400).json({ error: data.error.message })
+    res.json({ ads: data.data || [] })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// WhatsApp — connect phone number
+app.post("/api/meta/wa/connect", async (req, res) => {
+  const { wsId, accessToken, phoneNumberId, businessAccountId } = req.body
+  if (!wsId || !accessToken || !phoneNumberId) return res.status(400).json({ error: "wsId, accessToken y phoneNumberId requeridos" })
+  try {
+    const r = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}?fields=verified_name,display_phone_number&access_token=${accessToken}`)
+    const info = await r.json()
+    if (info.error) return res.status(400).json({ error: info.error.message })
+    const ws = await getWorkspace(wsId)
+    if (!ws) return res.status(404).json({ error: "Workspace no encontrado" })
+    const wsData = { ...(ws.data || {}), metaIntegration: { ...(ws.data?.metaIntegration || {}), waAccessToken: accessToken, waPhoneNumberId: phoneNumberId, waBusinessAccountId: businessAccountId || "", waPhoneName: info.verified_name || "", waPhoneNumber: info.display_phone_number || "", waConnectedAt: new Date().toISOString() } }
+    await patchWorkspace(wsId, wsData)
+    res.json({ ok: true, name: info.verified_name, number: info.display_phone_number })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// WhatsApp — list approved templates
+app.get("/api/meta/wa/templates", async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: "wsId requerido" })
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.waAccessToken || !meta?.waBusinessAccountId) return res.status(400).json({ error: "WhatsApp no conectado o falta Business Account ID" })
+    const r = await fetch(`https://graph.facebook.com/v21.0/${meta.waBusinessAccountId}/message_templates?status=APPROVED&limit=50&access_token=${meta.waAccessToken}`)
+    const data = await r.json()
+    if (data.error) return res.status(400).json({ error: data.error.message })
+    res.json({ templates: data.data || [] })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// WhatsApp — send template message
+app.post("/api/meta/wa/send", async (req, res) => {
+  const { wsId, to, templateName, languageCode = "es_AR", params = [] } = req.body
+  if (!wsId || !to || !templateName) return res.status(400).json({ error: "wsId, to y templateName requeridos" })
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.waAccessToken || !meta?.waPhoneNumberId) return res.status(400).json({ error: "WhatsApp no conectado" })
+    let phone = to.replace(/[\s\-\(\)\+]/g, "")
+    if (!phone.startsWith("54")) phone = "54" + phone
+    const msgBody = { messaging_product: "whatsapp", to: phone, type: "template", template: { name: templateName, language: { code: languageCode }, ...(params.length ? { components: [{ type: "body", parameters: params.map(p => ({ type: "text", text: String(p) })) }] } : {}) } }
+    const r = await fetch(`https://graph.facebook.com/v21.0/${meta.waPhoneNumberId}/messages`, { method: "POST", headers: { "Authorization": `Bearer ${meta.waAccessToken}`, "Content-Type": "application/json" }, body: JSON.stringify(msgBody) })
+    const data = await r.json()
+    if (data.error) return res.status(400).json({ error: data.error.message })
+    // Log to workspace (non-critical)
+    try {
+      const freshWs = await getWorkspace(wsId)
+      const d = freshWs.data || {}
+      if (!d.waLog) d.waLog = []
+      d.waLog.unshift({ to: phone, templateName, params, sentAt: new Date().toISOString(), messageId: data.messages?.[0]?.id || "" })
+      if (d.waLog.length > 500) d.waLog = d.waLog.slice(0, 500)
+      await patchWorkspace(wsId, d)
+    } catch(e) { /* log failure non-critical */ }
+    res.json({ ok: true, messageId: data.messages?.[0]?.id })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
 // SPA catch-all: any unmatched GET serves the app (hash router handles client routing)
 app.get('*', serveApp)
 
