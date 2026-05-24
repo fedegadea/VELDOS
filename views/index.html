@@ -3162,11 +3162,12 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
 
       <!-- Tier tabs -->
       <div class="meta-tier-tabs" id="meta-tier-tabs">
-        <button class="meta-tier-tab active" onclick="_metaSetTierFilter('all',this)">📋 Todas</button>
+        <button class="meta-tier-tab active" onclick="_metaSetTierFilter('all',this)">📋 Campañas</button>
         <button class="meta-tier-tab" onclick="_metaSetTierFilter('winner',this)">🔥 Ganadoras</button>
         <button class="meta-tier-tab" onclick="_metaSetTierFilter('healthy',this)">✅ Saludables</button>
         <button class="meta-tier-tab" onclick="_metaSetTierFilter('attention',this)">⚠️ Atención</button>
         <button class="meta-tier-tab" onclick="_metaSetTierFilter('stop',this)">🔴 Detener</button>
+        <button class="meta-tier-tab" onclick="_metaSetTierFilter('alladss',this)">🎯 Todos los anuncios</button>
         <button class="meta-tier-tab" onclick="_metaSetTierFilter('rules',this)">🤖 Reglas auto</button>
       </div>
 
@@ -3221,6 +3222,19 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
             </tr></thead>
             <tbody id="meta-campaigns-body"></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- All ads panel (shown when tier=alladss) -->
+      <div id="meta-alladss-panel" style="display:none">
+        <div class="fin-card">
+          <div class="fin-card-head">
+            <div class="fin-card-title">🎯 Todos los anuncios</div>
+            <button class="btn btn-sm" onclick="_metaLoadAllAds(true)" id="meta-alladss-sync-btn">↺ Cargar</button>
+          </div>
+          <div id="meta-alladss-body" style="padding:12px 16px">
+            <div class="empty" style="padding:32px"><div class="e-icon">🎯</div><p>Hacé clic en "↺ Cargar" para ver todos los anuncios.</p></div>
+          </div>
         </div>
       </div>
 
@@ -3858,7 +3872,10 @@ async function initState(){
     return;
   }
   // Con sesión: si están en raíz, mandar a /projects (selector de proyecto)
-  if(location.pathname==='/'){
+  // EXCEPCIÓN: si hay un OAuth return pendiente (Meta, etc.), NO redirigir a /projects
+  // para que _enterWorkspace → _checkMetaOAuthReturn se ejecute normalmente.
+  const _hasOAuthPending=!!(sessionStorage.getItem('_metaOAuth'));
+  if(location.pathname==='/'&&!_hasOAuthPending){
     try{history.replaceState({},'','/projects');}catch(e){}
   }
   await checkSubscriptionAndProceed();
@@ -6484,16 +6501,21 @@ function _metaSetTierFilter(tier,btn){
   if(objSel)objSel.value='ALL';
   const campaignPanel=document.getElementById('meta-campaigns-panel');
   const rulesPanel=document.getElementById('meta-rules-panel');
+  const allAdsPanel=document.getElementById('meta-alladss-panel');
   const filterBar=document.getElementById('meta-filter-bar');
+  // Hide all panels first
+  [campaignPanel,rulesPanel,allAdsPanel].forEach(p=>{if(p)p.style.display='none';});
   if(tier==='rules'){
-    if(campaignPanel)campaignPanel.style.display='none';
     if(filterBar)filterBar.style.display='none';
     if(rulesPanel)rulesPanel.style.display='block';
     renderMetaRules();
+  } else if(tier==='alladss'){
+    if(filterBar)filterBar.style.display='none';
+    if(allAdsPanel)allAdsPanel.style.display='block';
+    _metaLoadAllAds(false);
   } else {
     if(campaignPanel)campaignPanel.style.display='block';
     if(filterBar)filterBar.style.display='flex';
-    if(rulesPanel)rulesPanel.style.display='none';
     renderMetaAds();
   }
 }
@@ -6724,20 +6746,36 @@ function disconnectMetaAds(){
   S.metaAdsCache=null;save();renderMetaAds();notify('Meta Ads desconectado');
 }
 
+async function _metaSetBudget(campaignId, newBudget, type){
+  const c=S.metaAdsCache?.campaigns?.find(x=>x.id===campaignId);
+  if(!c)return;
+  const body={wsId:_activeWsId,campaignId};
+  if(type==='lifetime')body.lifetimeBudget=newBudget;
+  else body.dailyBudget=newBudget;
+  try{
+    const r=await fetch('/api/meta/campaign/budget',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    if(type==='lifetime')c.lifetimeBudget=newBudget;else c.dailyBudget=newBudget;
+    save();renderMetaAds();
+    notify(`✅ Presupuesto → $${fmtMoney(newBudget)}${type==='lifetime'?' total':'/día'}`);
+  }catch(e){notify('Error al actualizar presupuesto: '+e.message);}
+}
+
+function _metaEditBudget(campaignId, current, type){
+  const label=type==='lifetime'?'total':'diario';
+  const raw=prompt(`Nuevo presupuesto ${label} ($):`,Math.round(current));
+  if(raw===null||raw==='')return;
+  const newBudget=parseFloat(String(raw).replace(/[^0-9.]/g,''));
+  if(isNaN(newBudget)||newBudget<=0){notify('Monto inválido');return;}
+  _metaSetBudget(campaignId,newBudget,type);
+}
+
 async function _metaChangeBudget(campaignId, deltaPct){
   const c=S.metaAdsCache?.campaigns?.find(x=>x.id===campaignId);
   if(!c||!c.dailyBudget)return;
   const newBudget=Math.max(1,Math.round(c.dailyBudget*(1+deltaPct/100)));
-  const sign=deltaPct>0?'+':'-';
-  if(!confirm(`${sign}${Math.abs(deltaPct)}% presupuesto diario → $${fmtMoney(newBudget)}/día`))return;
-  try{
-    const r=await fetch('/api/meta/campaign/budget',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId:_activeWsId,campaignId,dailyBudget:newBudget})});
-    const d=await r.json();
-    if(!r.ok||d.error)throw new Error(d.error||'Error');
-    c.dailyBudget=newBudget;
-    save();renderMetaAds();
-    notify(`✅ Presupuesto actualizado a $${fmtMoney(newBudget)}/día`);
-  }catch(e){notify('Error al actualizar presupuesto: '+e.message);}
+  await _metaSetBudget(campaignId,newBudget,'daily');
 }
 
 async function _metaToggleCampaign(id, currentStatus, btn){
@@ -6973,8 +7011,8 @@ function renderMetaAds(){
     const cpaStr=c.cpa!=null?`$${fmtMoney(c.cpa)}`:'—';
     const isActive=c.status==='ACTIVE';
     const budgetCell=c.dailyBudget?
-      `<div class="meta-budget-cell"><button class="meta-budget-btn" onclick="_metaChangeBudget('${c.id}',-10)" title="Bajar 10%">−</button><span style="font-size:10px">$${fmtMoney(c.dailyBudget)}/d</span><button class="meta-budget-btn" onclick="_metaChangeBudget('${c.id}',10)" title="Subir 10%">+</button></div>`:
-      c.lifetimeBudget?`<span style="font-size:10px">$${fmtMoney(c.lifetimeBudget)} total</span>`:'—';
+      `<div class="meta-budget-cell"><button class="meta-budget-btn" onclick="_metaChangeBudget('${c.id}',-10)" title="Bajar 10%">−</button><span style="font-size:10px;cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px" onclick="_metaEditBudget('${c.id}',${c.dailyBudget},'daily')" title="Clic para editar monto">$${fmtMoney(c.dailyBudget)}/d</span><button class="meta-budget-btn" onclick="_metaChangeBudget('${c.id}',10)" title="Subir 10%">+</button></div>`:
+      c.lifetimeBudget?`<span style="font-size:10px;cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px" onclick="_metaEditBudget('${c.id}',${c.lifetimeBudget},'lifetime')" title="Clic para editar monto">$${fmtMoney(c.lifetimeBudget)} total</span>`:'—';
     return`<tr data-cid="${c.id}">
       <td><button class="meta-expand-btn" onclick="_metaLoadAdSets('${c.id}',this)" title="Ver conjuntos de anuncios">▶</button></td>
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-weight:500;font-size:12px" title="${c.name}">${c.name}</td>
@@ -7409,6 +7447,66 @@ function runMetaRules(campaigns){
   });
   if(executed.length){save();}
   return executed;
+}
+
+async function _metaLoadAllAds(forceRefresh){
+  const body=document.getElementById('meta-alladss-body');
+  const btn=document.getElementById('meta-alladss-sync-btn');
+  if(!body)return;
+  // Use cached if available and not forcing refresh
+  if(!forceRefresh&&body.dataset.loaded==='1')return;
+  if(btn){btn.disabled=true;btn.textContent='Cargando…';}
+  body.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted);font-size:12px">⏳ Cargando todos los anuncios…</div>';
+  try{
+    const r=await fetch(`/api/meta/account-ads?wsId=${encodeURIComponent(_activeWsId)}&datePreset=${_metaDatePreset}`);
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    const ads=d.ads||[];
+    // Group by campaign
+    const byCampaign={};
+    ads.forEach(a=>{
+      const cid=a.campaignId||'_';
+      if(!byCampaign[cid])byCampaign[cid]={name:a.campaignName||a.campaignId||'Campaña desconocida',ads:[]};
+      byCampaign[cid].ads.push(a);
+    });
+    if(!ads.length){
+      body.innerHTML='<div class="empty" style="padding:32px"><div class="e-icon">🎯</div><p>No se encontraron anuncios.</p></div>';
+    } else {
+      body.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;padding:0 0 12px;border-bottom:1px solid var(--border);margin-bottom:12px"><span style="font-size:11px;color:var(--muted)">${ads.length} anuncio(s)</span><span style="font-size:10px;color:var(--muted2)">Período: ${{'last_7d':'7 días','last_14d':'14 días','last_30d':'30 días','last_90d':'90 días'}[_metaDatePreset]||'30 días'}</span></div>` +
+        ads.map(a=>{
+          const ins=a.insights||{};
+          const spend=parseFloat(ins.spend||0);
+          const ctr=parseFloat(ins.ctr||0);
+          const isActive=a.status==='ACTIVE';
+          const thumb=a.creative?.thumbnail_url||'';
+          return`<div class="meta-ad-row" data-ad-id="${a.id}" style="margin-bottom:8px">
+            ${thumb?`<img class="meta-ad-thumb" src="${thumb}" onerror="this.style.display='none'" alt="">`:
+              `<div class="meta-ad-thumb" style="display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--s3)">🎨</div>`}
+            <div class="meta-ad-info">
+              <div class="meta-ad-row-name" title="${a.name}">${a.name}</div>
+              <div class="meta-ad-row-status">
+                <span class="meta-status-pill meta-status-${a.status}" style="font-size:8px;padding:1px 6px">${a.status}</span>
+                ${a.adsetName?`<span style="font-size:9px;color:var(--muted);margin-left:4px">· ${a.adsetName.slice(0,30)}</span>`:''}
+              </div>
+            </div>
+            <div class="meta-ad-metrics">
+              <div class="meta-ad-metric"><div class="meta-ad-metric-val" style="color:var(--coral)">$${fmtMoney(spend)}</div><div class="meta-ad-metric-lbl">Gasto</div></div>
+              <div class="meta-ad-metric"><div class="meta-ad-metric-val">${parseInt(ins.clicks||0).toLocaleString('es-AR')}</div><div class="meta-ad-metric-lbl">Clics</div></div>
+              <div class="meta-ad-metric"><div class="meta-ad-metric-val ${ctr>=1?'meta-ctr-good':ctr>=0.5?'meta-ctr-warn':'meta-ctr-bad'}">${ctr.toFixed(2)}%</div><div class="meta-ad-metric-lbl">CTR</div></div>
+              <div class="meta-ad-metric"><div class="meta-ad-metric-val" style="color:var(--green)">${a.conversions||'—'}</div><div class="meta-ad-metric-lbl">Conv.</div></div>
+            </div>
+            <div class="meta-ad-actions-row">
+              <button class="meta-action-btn ${isActive?'pause':'activate'}" style="font-size:9px;padding:3px 8px" onclick="_metaToggleAd('${a.id}','${a.status}',this,'${a.adsetId||''}')">
+                ${isActive?'⏸ Pausar':'▶ Activar'}
+              </button>
+            </div>
+          </div>`;
+        }).join('');
+    }
+    body.dataset.loaded='1';
+  }catch(e){
+    body.innerHTML=`<div style="padding:24px;text-align:center;color:var(--coral);font-size:12px">⚠️ ${e.message}</div>`;
+  }finally{if(btn){btn.disabled=false;btn.textContent='↺ Cargar';}}
 }
 
 function renderMetaRules(){

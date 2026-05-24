@@ -1021,6 +1021,40 @@ app.get("/api/meta/pages", async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
+// Get ALL ads for an account (flat list with insights)
+app.get("/api/meta/account-ads", async (req, res) => {
+  const { wsId, datePreset = "last_30d" } = req.query
+  if (!wsId) return res.status(400).json({ error: "wsId requerido" })
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.accessToken || !meta?.adAccountId) return res.status(400).json({ error: "Meta Ads no conectado" })
+    const accountId = meta.adAccountId.startsWith("act_") ? meta.adAccountId : "act_" + meta.adAccountId
+    const fields = `id,name,status,campaign_id,adset_id,adset{name},campaign{name},creative{thumbnail_url,image_url},insights.date_preset(${datePreset}){spend,impressions,clicks,ctr,cpc,actions}`
+    const url = `https://graph.facebook.com/v21.0/${accountId}/ads?fields=${encodeURIComponent(fields)}&limit=100&access_token=${meta.accessToken}`
+    const r = await fetch(url)
+    const data = await r.json()
+    if (data.error) return res.status(400).json({ error: data.error.message })
+    const ads = (data.data || []).map(a => {
+      const ins = a.insights?.data?.[0] || {}
+      const convAction = (ins.actions || []).find(x => ["purchase","offsite_conversion.fb_pixel_purchase","lead"].includes(x.action_type))
+      const conversions = convAction ? Number(convAction.value) : 0
+      return {
+        id: a.id, name: a.name, status: a.status,
+        campaignId: a.campaign_id, campaignName: a.campaign?.name || "",
+        adsetId: a.adset_id, adsetName: a.adset?.name || "",
+        creative: { thumbnail_url: a.creative?.image_url || a.creative?.thumbnail_url || "" },
+        insights: {
+          spend: parseFloat(ins.spend || 0), impressions: parseInt(ins.impressions || 0),
+          clicks: parseInt(ins.clicks || 0), ctr: parseFloat(ins.ctr || 0), cpc: parseFloat(ins.cpc || 0)
+        },
+        conversions
+      }
+    })
+    res.json({ ads })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
 // Get Instagram posts for a Facebook page (for IG post ad creation)
 app.get("/api/meta/ig-posts", async (req, res) => {
   const { wsId, pageId } = req.query
