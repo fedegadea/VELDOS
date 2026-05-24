@@ -493,6 +493,42 @@ app.post("/api/tn/webhook", async (req, res) => {
   }
 })
 
+// ── Eliminación de datos de usuario (requerido por Meta) ─────────────────────
+app.get("/eliminar-datos", (req, res) => {
+  res.send(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Eliminar mis datos — Soul eCommlab</title><style>body{font-family:system-ui,sans-serif;max-width:680px;margin:60px auto;padding:0 24px;color:#222;line-height:1.7}h1{font-size:24px;margin-bottom:8px}h2{font-size:16px;margin-top:32px;color:#1877f2}p,li{font-size:14px;color:#444}a{color:#1877f2}code{background:#f4f4f4;padding:2px 6px;border-radius:4px;font-size:13px}.box{background:#fff8e1;border-left:4px solid #f5c842;padding:14px 18px;border-radius:4px;margin:20px 0}.steps{counter-reset:step}.steps li{counter-increment:step;padding:8px 0 8px 0;font-size:14px;color:#444}</style></head><body>
+  <h1>Eliminar mis datos</h1>
+  <p>Última actualización: ${new Date().toLocaleDateString('es-AR')}</p>
+  <p>En <strong>Soul eCommlab</strong> respetamos tu privacidad. Si conectaste tu cuenta de Facebook/Meta a nuestra plataforma y querés que eliminemos tus datos, seguí estos pasos.</p>
+
+  <h2>Opción 1 — Desde Facebook (automático)</h2>
+  <p>Podés revocar el acceso de Soul eCommlab directamente desde tu cuenta de Facebook:</p>
+  <ol class="steps">
+    <li>Entrá a <a href="https://www.facebook.com/settings?tab=applications" target="_blank">facebook.com/settings → Aplicaciones y sitios web</a></li>
+    <li>Buscá <strong>Soul eCommlab</strong> en la lista</li>
+    <li>Hacé clic en <strong>Eliminar</strong></li>
+  </ol>
+  <p>Esto revoca el acceso al token inmediatamente. No podremos usar tus datos de Meta a partir de ese momento.</p>
+
+  <h2>Opción 2 — Solicitud directa por email</h2>
+  <p>Envianos un email a <a href="mailto:soporte@veldos.app">soporte@veldos.app</a> con el asunto <code>Eliminar mis datos</code> indicando el email de tu cuenta. Procesamos la solicitud en un máximo de <strong>72 horas hábiles</strong>.</p>
+
+  <div class="box">
+    <strong>¿Qué datos guardamos?</strong><br>
+    Solo almacenamos tu nombre de perfil de Facebook, el ID de tu cuenta publicitaria y el token de acceso cifrado necesario para sincronizar tus campañas. No almacenamos datos personales de tus clientes ni información sensible.
+  </div>
+
+  <h2>Qué eliminamos al recibir tu solicitud</h2>
+  <ul>
+    <li>Token de acceso a Meta Ads</li>
+    <li>ID de cuenta publicitaria vinculada</li>
+    <li>Nombre de perfil de Facebook asociado</li>
+    <li>Historial de campañas sincronizadas</li>
+  </ul>
+
+  <p style="margin-top:32px;font-size:13px;color:#888">Para más información consultá nuestra <a href="/privacidad">Política de Privacidad</a>.</p>
+</body></html>`)
+})
+
 // ── Páginas públicas (requeridas por Tienda Nube) ────────────────────────────
 app.get("/privacidad", (req, res) => {
   res.send(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Política de privacidad — Soul eCommlab</title><style>body{font-family:system-ui,sans-serif;max-width:700px;margin:60px auto;padding:0 24px;color:#222;line-height:1.7}h1{font-size:24px;margin-bottom:8px}h2{font-size:16px;margin-top:32px}p,li{font-size:14px;color:#444}a{color:#2979ff}</style></head><body>
