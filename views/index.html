@@ -754,6 +754,38 @@ tr:hover .tx-del{color:var(--muted)}
 .meta-rule-toggle input:checked~.meta-rule-toggle-sl::after{transform:translateX(13px);background:var(--green)}
 .meta-last-fired{font-size:9px;color:var(--muted);font-weight:300}
 
+/* ── META ADS PANEL (individual ads) ── */
+.meta-ads-panel{background:rgba(0,0,0,.18);padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.meta-ads-panel-empty{padding:12px 16px 12px 44px;font-size:11px;color:var(--muted);font-style:italic}
+.meta-ad-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius-sm);transition:border-color .15s}
+.meta-ad-row:hover{border-color:var(--border2)}
+.meta-ad-thumb{width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--s3)}
+.meta-ad-thumb-placeholder{width:40px;height:40px;border-radius:6px;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.meta-ad-info{flex:1;min-width:0}
+.meta-ad-row-name{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.meta-ad-row-status{font-size:10px;color:var(--muted);font-weight:300}
+.meta-ad-metrics{display:flex;gap:14px;flex-shrink:0;flex-wrap:wrap}
+.meta-ad-metric{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:40px}
+.meta-ad-metric-val{font-size:11px;font-weight:600;color:var(--text)}
+.meta-ad-metric-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.meta-ad-actions-row{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.meta-ads-load-btn{font-size:10px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:var(--fb);transition:all .15s;white-space:nowrap}
+.meta-ads-load-btn:hover{border-color:var(--gold);color:var(--gold)}
+
+/* ── Meta Create Ad Modal ── */
+.meta-create-step{display:none}.meta-create-step.active{display:block}
+.meta-create-nav{display:flex;gap:0;margin-bottom:20px;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border)}
+.meta-create-nav-step{flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:var(--s2);color:var(--muted);transition:all .15s;border-right:1px solid var(--border)}
+.meta-create-nav-step:last-child{border-right:none}
+.meta-create-nav-step.active{background:rgba(41,121,255,.1);color:var(--gold)}
+.meta-create-nav-step.done{background:rgba(52,199,123,.08);color:var(--green)}
+.meta-ad-preview-box{background:var(--s2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;margin-top:12px}
+.meta-ad-preview-img{width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-bottom:10px;background:var(--s3);display:block;min-height:80px}
+.meta-ad-preview-page{font-size:11px;color:var(--muted);margin-bottom:6px}
+.meta-ad-preview-headline{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
+.meta-ad-preview-body{font-size:12px;color:var(--muted2);line-height:1.5;margin-bottom:10px}
+.meta-ad-preview-cta{display:inline-block;padding:6px 14px;border-radius:6px;background:var(--gold);color:#fff;font-size:11px;font-weight:700}
+
 /* ── AREA DROPDOWN ── */
 .area-dropdown{position:relative}
 .area-btn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--muted2);font-family:var(--fb);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:5px 12px;border-radius:10px;cursor:pointer;transition:all .15s;font-weight:500}
@@ -3065,6 +3097,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
             <button class="meta-date-btn active" onclick="_metaSetDatePreset('last_30d',this)">30D</button>
             <button class="meta-date-btn" onclick="_metaSetDatePreset('last_90d',this)">90D</button>
           </div>
+          <button class="btn btn-sm btn-primary" onclick="openCreateAdModal()" style="background:rgba(52,199,123,.15);color:var(--green);border-color:rgba(52,199,123,.3)">✦ Crear anuncio</button>
           <button class="btn btn-sm" onclick="syncMetaAds()" id="meta-sync-btn">↺ Sincronizar</button>
           <button class="btn btn-sm btn-danger" onclick="disconnectMetaAds()">Desconectar</button>
         </div>
@@ -6499,11 +6532,12 @@ async function _metaLoadAdSets(campaignId,expandBtn){
     const colCount=15;
     const html=adsets.length?adsets.map(s=>{
       const cpaStr=s.cpa?`$${s.cpa.toFixed(0)}`:'—';
-      const statusDot=s.status==='ACTIVE'?'🟢':'⏸️';
+      const isActive=s.status==='ACTIVE';
+      const statusDot=isActive?'🟢':'⏸️';
       return`<tr class="meta-adset-row-${campaignId} meta-drill-row">
         <td></td>
-        <td colspan="2" style="color:var(--text);font-size:11px">${statusDot} ${s.name}</td>
-        <td></td>
+        <td colspan="2" style="color:var(--text);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px" title="${s.name}">${statusDot} ${s.name}</td>
+        <td><span class="meta-status-pill meta-status-${s.status}" style="font-size:8px">${s.status}</span></td>
         <td style="font-size:10px;color:var(--muted)">${s.dailyBudget?'$'+fmtMoney(s.dailyBudget)+'/d':'—'}</td>
         <td style="color:var(--coral);font-size:11px">$${fmtMoney(s.spend)}</td>
         <td>${s.reach.toLocaleString('es-AR')}</td>
@@ -6514,12 +6548,113 @@ async function _metaLoadAdSets(campaignId,expandBtn){
         <td>${s.conversions||'—'}</td>
         <td>${cpaStr}</td>
         <td>—</td>
-        <td></td>
+        <td>
+          <label class="meta-toggle" title="${isActive?'Pausar conjunto':'Activar conjunto'}" onclick="event.preventDefault();_metaToggleAdset('${s.id}','${s.status}',this)">
+            <input type="checkbox" ${isActive?'checked':''} readonly>
+            <span class="meta-toggle-slider"></span>
+          </label>
+        </td>
+      </tr>
+      <tr class="meta-adset-row-${campaignId} meta-drill-row" style="padding:0">
+        <td colspan="${colCount}" style="padding:0;background:rgba(0,0,0,.2)">
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid var(--border)">
+            <span style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em">🎨 Anuncios</span>
+            <button class="meta-ads-load-btn" onclick="_metaToggleAdsPanel('${s.id}',this)">Ver anuncios ▾</button>
+            <button class="meta-ads-load-btn" onclick="openCreateAdModal('${s.id}')" style="color:var(--green);border-color:rgba(52,199,123,.3)">+ Crear anuncio</button>
+          </div>
+          <div id="ads-panel-${s.id}" style="display:none"></div>
+        </td>
       </tr>`;
     }).join(''):`<tr class="meta-adset-row-${campaignId} meta-drill-row"><td colspan="${colCount}" style="text-align:center;color:var(--muted);padding:12px">Sin conjuntos de anuncios</td></tr>`;
     parentRow.insertAdjacentHTML('afterend',html);
     expandBtn.textContent='▼';
   }catch(e){notify('Error: '+e.message);expandBtn.textContent='▶';}
+}
+
+async function _metaToggleAdset(id, currentStatus, btn){
+  const newStatus=currentStatus==='ACTIVE'?'PAUSED':'ACTIVE';
+  if(btn)btn.style.opacity='.5';
+  try{
+    const r=await fetch('/api/meta/adset/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId:_activeWsId,adsetId:id,action:newStatus})});
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    notify(`${newStatus==='PAUSED'?'⏸️':'▶️'} Conjunto ${newStatus==='PAUSED'?'pausado':'activado'}`);
+    // Reload the parent campaign's drill-down
+  }catch(e){notify('Error: '+e.message);}
+  finally{if(btn)btn.style.opacity='1';}
+}
+
+async function _metaToggleAdsPanel(adsetId, btn){
+  const panel=document.getElementById('ads-panel-'+adsetId);
+  if(!panel)return;
+  if(panel.style.display==='block'){panel.style.display='none';btn.textContent='Ver anuncios ▾';return;}
+  panel.style.display='block';btn.textContent='Ocultar ▴';
+  if(panel.dataset.loaded==='1')return;
+  panel.innerHTML='<div class="meta-ads-panel-empty">⏳ Cargando anuncios…</div>';
+  try{
+    const r=await fetch(`/api/meta/ads?wsId=${encodeURIComponent(_activeWsId)}&adsetId=${adsetId}`);
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    _renderAdsList(d.ads||[], panel, adsetId);
+    panel.dataset.loaded='1';
+  }catch(e){panel.innerHTML=`<div class="meta-ads-panel-empty">⚠️ ${e.message}</div>`;}
+}
+
+function _renderAdsList(ads, container, adsetId){
+  if(!ads.length){container.innerHTML='<div class="meta-ads-panel-empty">Sin anuncios en este conjunto</div>';return;}
+  container.innerHTML=`<div class="meta-ads-panel">${ads.map(a=>{
+    const ins=a.insights||{};
+    const spend=parseFloat(ins.spend||0);
+    const clicks=parseInt(ins.clicks||0);
+    const ctr=parseFloat(ins.ctr||0);
+    const conv=a.conversions||0;
+    const isActive=a.status==='ACTIVE';
+    const thumb=a.creative?.thumbnail_url||'';
+    const thumbEl=thumb?`<img class="meta-ad-thumb" src="${thumb}" onerror="this.style.display='none'" alt="">`:`<div class="meta-ad-thumb-placeholder">🎨</div>`;
+    const preview=a.creative?.preview_url||a.creative?.ad_snapshot_url||'';
+    return`<div class="meta-ad-row" data-ad-id="${a.id}">
+      ${thumbEl}
+      <div class="meta-ad-info">
+        <div class="meta-ad-row-name" title="${a.name}">${a.name}</div>
+        <div class="meta-ad-row-status"><span class="meta-status-pill meta-status-${a.status}" style="font-size:8px;padding:1px 6px">${a.status}</span>${a.creative?.name?` · ${a.creative.name.slice(0,30)}`:''}
+        </div>
+      </div>
+      <div class="meta-ad-metrics">
+        <div class="meta-ad-metric"><div class="meta-ad-metric-val" style="color:var(--coral)">$${fmtMoney(spend)}</div><div class="meta-ad-metric-lbl">Gasto</div></div>
+        <div class="meta-ad-metric"><div class="meta-ad-metric-val">${clicks.toLocaleString('es-AR')}</div><div class="meta-ad-metric-lbl">Clics</div></div>
+        <div class="meta-ad-metric"><div class="meta-ad-metric-val ${ctr>=1?'meta-ctr-good':ctr>=0.5?'meta-ctr-warn':'meta-ctr-bad'}">${ctr.toFixed(2)}%</div><div class="meta-ad-metric-lbl">CTR</div></div>
+        <div class="meta-ad-metric"><div class="meta-ad-metric-val" style="color:var(--green)">${conv||'—'}</div><div class="meta-ad-metric-lbl">Conv.</div></div>
+      </div>
+      <div class="meta-ad-actions-row">
+        ${preview?`<a href="${preview}" target="_blank" class="btn btn-xs" style="font-size:9px">👁 Preview</a>`:''}
+        <label class="meta-toggle" title="${isActive?'Pausar anuncio':'Activar anuncio'}" onclick="event.preventDefault();_metaToggleAd('${a.id}','${a.status}',this,'${adsetId}')">
+          <input type="checkbox" ${isActive?'checked':''} readonly>
+          <span class="meta-toggle-slider"></span>
+        </label>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+async function _metaToggleAd(adId, currentStatus, btn, adsetId){
+  const newStatus=currentStatus==='ACTIVE'?'PAUSED':'ACTIVE';
+  if(btn)btn.style.opacity='.5';
+  try{
+    const r=await fetch('/api/meta/ad/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId:_activeWsId,adId,action:newStatus})});
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    // Update UI in place
+    const adRow=btn.closest('.meta-ad-row');
+    if(adRow){
+      const pill=adRow.querySelector('.meta-status-pill');
+      if(pill){pill.className=`meta-status-pill meta-status-${newStatus}`;pill.textContent=newStatus;pill.style.fontSize='8px';pill.style.padding='1px 6px';}
+      const inp=btn.querySelector('input');
+      if(inp)inp.checked=newStatus==='ACTIVE';
+      adRow.dataset.adStatus=newStatus;
+    }
+    notify(`${newStatus==='PAUSED'?'⏸️':'▶️'} Anuncio ${newStatus==='PAUSED'?'pausado':'activado'}`);
+  }catch(e){notify('Error: '+e.message);}
+  finally{if(btn)btn.style.opacity='1';}
 }
 
 function renderMetaAds(){
@@ -6602,6 +6737,236 @@ function renderMetaAds(){
       </td>
     </tr>`;
   }).join('');
+}
+
+// ── Crear Anuncio ──
+let _metaPages=[];
+let _metaCreateAdsets=[];
+let _metaCreateStep=1;
+
+async function openCreateAdModal(preselectedAdsetId){
+  const overlay=document.getElementById('modal-overlay');
+  if(!overlay)return;
+  _metaCreateStep=1;
+  // Load pages first
+  try{
+    const r=await fetch(`/api/meta/pages?wsId=${encodeURIComponent(_activeWsId)}`);
+    const d=await r.json();
+    _metaPages=d.pages||[];
+  }catch(e){_metaPages=[];}
+
+  const campaigns=S.metaAdsCache?.campaigns||[];
+  const pageOpts=_metaPages.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  const campaignOpts=campaigns.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  const ctaOpts=['SHOP_NOW','LEARN_MORE','SIGN_UP','GET_QUOTE','CONTACT_US','BOOK_NOW','DOWNLOAD','WATCH_MORE'].map(t=>`<option value="${t}">${t.replace(/_/g,' ')}</option>`).join('');
+
+  overlay.innerHTML=`<div class="modal" id="modal-box" style="max-width:600px;max-height:90vh;overflow-y:auto">
+    <div class="modal-head">
+      <div class="modal-title">✦ Crear nuevo anuncio</div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" style="padding:20px">
+      <div class="meta-create-nav" id="mc-nav">
+        <div class="meta-create-nav-step active" id="mc-nav-1">1 Ubicación</div>
+        <div class="meta-create-nav-step" id="mc-nav-2">2 Contenido</div>
+        <div class="meta-create-nav-step" id="mc-nav-3">3 Destino</div>
+        <div class="meta-create-nav-step" id="mc-nav-4">4 Revisar</div>
+      </div>
+
+      <!-- Step 1: Campaign & AdSet -->
+      <div class="meta-create-step active" id="mc-step-1">
+        <div class="form-group">
+          <label class="form-label">Campaña</label>
+          <select class="form-input" id="mc-campaign" onchange="_mcLoadAdsets(this.value)">${campaigns.length?campaignOpts:'<option value="">— Sin campañas sincronizadas —</option>'}</select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Conjunto de anuncios</label>
+          <select class="form-input" id="mc-adset"><option value="${preselectedAdsetId||''}">Seleccioná campaña primero…</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nombre del anuncio</label>
+          <input class="form-input" id="mc-name" placeholder="Ej: Promo Mayo — Imagen Feed">
+        </div>
+        ${pageOpts?`<div class="form-group"><label class="form-label">Página de Facebook</label><select class="form-input" id="mc-page">${pageOpts}</select></div>`:'<div class="form-group"><label class="form-label">ID de página de Facebook</label><input class="form-input" id="mc-page" placeholder="123456789012345" value=""></div>'}
+        <button class="btn btn-primary" style="width:100%" onclick="_mcNextStep(1)">Siguiente →</button>
+      </div>
+
+      <!-- Step 2: Creative content -->
+      <div class="meta-create-step" id="mc-step-2">
+        <div class="form-group">
+          <label class="form-label">URL de imagen o video <span style="color:var(--muted);font-size:10px">Recomendado: 1080×1080px o 1080×1920px</span></label>
+          <input class="form-input" id="mc-image-url" placeholder="https://tusitio.com/imagen.jpg" oninput="_mcUpdatePreview()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Texto principal <span style="color:var(--muted);font-size:10px">≤125 chars recomendado</span></label>
+          <textarea class="form-input" id="mc-primary-text" rows="3" placeholder="Descubrí nuestra nueva colección. Envío gratis en compras +$10.000 🔥" oninput="_mcUpdatePreview()"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Titular <span style="color:var(--muted);font-size:10px">≤40 chars</span></label>
+          <input class="form-input" id="mc-headline" placeholder="Ej: ¡Hasta 50% OFF!" oninput="_mcUpdatePreview()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripción <span style="color:var(--muted);font-size:10px">Opcional</span></label>
+          <input class="form-input" id="mc-description" placeholder="Ej: Solo por tiempo limitado" oninput="_mcUpdatePreview()">
+        </div>
+        <p style="font-size:10px;color:var(--muted);margin-bottom:12px">👉 Vista previa (aproximada):</p>
+        <div class="meta-ad-preview-box" id="mc-preview">
+          <div class="meta-ad-preview-page">📘 Tu página</div>
+          <img class="meta-ad-preview-img" id="mc-prev-img" src="" alt="" style="display:none">
+          <div class="meta-ad-preview-headline" id="mc-prev-headline">Titular del anuncio</div>
+          <div class="meta-ad-preview-body" id="mc-prev-body">Texto principal del anuncio…</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px">
+          <button class="btn" onclick="_mcNextStep(0)">← Atrás</button>
+          <button class="btn btn-primary" style="flex:1" onclick="_mcNextStep(2)">Siguiente →</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Destination & CTA -->
+      <div class="meta-create-step" id="mc-step-3">
+        <div class="form-group">
+          <label class="form-label">URL de destino</label>
+          <input class="form-input" id="mc-dest-url" placeholder="https://tusitio.com/producto" oninput="_mcUpdatePreview()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Botón de llamada a la acción</label>
+          <select class="form-input" id="mc-cta">${ctaOpts}</select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado inicial del anuncio</label>
+          <select class="form-input" id="mc-status">
+            <option value="PAUSED">⏸️ Pausado (recomendado — revisarlo antes de activar)</option>
+            <option value="ACTIVE">▶️ Activo</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px">
+          <button class="btn" onclick="_mcNextStep(0)">← Atrás</button>
+          <button class="btn btn-primary" style="flex:1" onclick="_mcNextStep(3)">Revisar →</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Review & Submit -->
+      <div class="meta-create-step" id="mc-step-4">
+        <div class="meta-ad-preview-box" style="margin-bottom:16px" id="mc-final-preview">
+          <div class="meta-ad-preview-page" id="mc-fp-page">📘 Tu página</div>
+          <img class="meta-ad-preview-img" id="mc-fp-img" src="" alt="" style="display:none">
+          <div class="meta-ad-preview-headline" id="mc-fp-headline"></div>
+          <div class="meta-ad-preview-body" id="mc-fp-body"></div>
+          <span class="meta-ad-preview-cta" id="mc-fp-cta">SHOP NOW</span>
+        </div>
+        <div id="mc-summary" style="font-size:11px;color:var(--muted2);line-height:2;margin-bottom:16px"></div>
+        <div style="background:rgba(255,193,7,.08);border:1px solid rgba(255,193,7,.2);border-radius:var(--radius-sm);padding:10px 14px;font-size:11px;color:#f5c842;margin-bottom:16px">
+          ⚠️ Necesitás permiso <strong>ads_management</strong> en tu token. Si tu token solo tiene <em>ads_read</em>, la creación fallará.
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" onclick="_mcNextStep(0)">← Atrás</button>
+          <button class="btn btn-primary" id="mc-submit-btn" style="flex:1" onclick="createMetaAd()">🚀 Publicar anuncio</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  overlay.classList.add('open');
+  // Auto-load adsets if campaign selected
+  const campaignSel=document.getElementById('mc-campaign');
+  if(campaignSel&&campaignSel.value)_mcLoadAdsets(campaignSel.value, preselectedAdsetId);
+}
+
+async function _mcLoadAdsets(campaignId, preselectedId){
+  const sel=document.getElementById('mc-adset');
+  if(!sel||!campaignId)return;
+  sel.innerHTML='<option>Cargando…</option>';
+  try{
+    const r=await fetch(`/api/meta/adsets?wsId=${encodeURIComponent(_activeWsId)}&campaignId=${campaignId}`);
+    const d=await r.json();
+    _metaCreateAdsets=d.adsets||[];
+    sel.innerHTML=_metaCreateAdsets.map(s=>`<option value="${s.id}" ${s.id===preselectedId?'selected':''}>${s.name} (${s.status})</option>`).join('');
+  }catch(e){sel.innerHTML='<option>Error al cargar conjuntos</option>';}
+}
+
+function _mcUpdatePreview(){
+  const img=document.getElementById('mc-image-url')?.value||'';
+  const headline=document.getElementById('mc-headline')?.value||'Titular del anuncio';
+  const body=document.getElementById('mc-primary-text')?.value||'Texto principal del anuncio…';
+  const prevImg=document.getElementById('mc-prev-img');
+  if(prevImg){if(img){prevImg.src=img;prevImg.style.display='block';}else{prevImg.style.display='none';}}
+  const prevH=document.getElementById('mc-prev-headline');if(prevH)prevH.textContent=headline;
+  const prevB=document.getElementById('mc-prev-body');if(prevB)prevB.textContent=body.slice(0,120)+(body.length>120?'…':'');
+}
+
+function _mcNextStep(direction){
+  // direction: 1=next, 0=back, 2=next from step2, 3=next from step3
+  const cur=_metaCreateStep;
+  if(direction===0){_metaCreateStep=Math.max(1,cur-1);}
+  else if(direction===1){
+    // Validate step 1
+    const adset=document.getElementById('mc-adset')?.value||'';
+    const name=(document.getElementById('mc-name')?.value||'').trim();
+    if(!adset||!name){notify('Completá conjunto y nombre del anuncio');return;}
+    _metaCreateStep=2;
+  }else if(direction===2){
+    const img=(document.getElementById('mc-image-url')?.value||'').trim();
+    const body=(document.getElementById('mc-primary-text')?.value||'').trim();
+    const hl=(document.getElementById('mc-headline')?.value||'').trim();
+    if(!img||!body||!hl){notify('Completá imagen, texto principal y titular');return;}
+    _metaCreateStep=3;
+  }else if(direction===3){
+    const dest=(document.getElementById('mc-dest-url')?.value||'').trim();
+    if(!dest){notify('Completá la URL de destino');return;}
+    _metaCreateStep=4;
+    // Build final preview
+    _mcBuildFinalPreview();
+  }
+  // Update nav
+  for(let i=1;i<=4;i++){
+    const navEl=document.getElementById('mc-nav-'+i);
+    if(navEl){navEl.className='meta-create-nav-step'+(i<_metaCreateStep?' done':i===_metaCreateStep?' active':'');}
+    const stepEl=document.getElementById('mc-step-'+i);
+    if(stepEl)stepEl.className='meta-create-step'+(i===_metaCreateStep?' active':'');
+  }
+}
+
+function _mcBuildFinalPreview(){
+  const img=document.getElementById('mc-image-url')?.value||'';
+  const hl=document.getElementById('mc-headline')?.value||'';
+  const body=(document.getElementById('mc-primary-text')?.value||'').slice(0,120);
+  const cta=(document.getElementById('mc-cta')?.value||'SHOP_NOW').replace(/_/g,' ');
+  const adsetName=document.getElementById('mc-adset')?.selectedOptions?.[0]?.textContent||'—';
+  const status=document.getElementById('mc-status')?.value||'PAUSED';
+  const fpImg=document.getElementById('mc-fp-img');
+  if(fpImg){if(img){fpImg.src=img;fpImg.style.display='block';}else{fpImg.style.display='none';}}
+  const fpH=document.getElementById('mc-fp-headline');if(fpH)fpH.textContent=hl;
+  const fpB=document.getElementById('mc-fp-body');if(fpB)fpB.textContent=body+(document.getElementById('mc-primary-text')?.value?.length>120?'…':'');
+  const fpCTA=document.getElementById('mc-fp-cta');if(fpCTA)fpCTA.textContent=cta;
+  const summary=document.getElementById('mc-summary');
+  if(summary)summary.innerHTML=`<div>📁 <strong>Conjunto:</strong> ${adsetName}</div><div>🔗 <strong>Destino:</strong> ${document.getElementById('mc-dest-url')?.value||'—'}</div><div>📣 <strong>CTA:</strong> ${cta}</div><div>⚙️ <strong>Estado:</strong> ${status}</div>`;
+}
+
+async function createMetaAd(){
+  const btn=document.getElementById('mc-submit-btn');
+  if(btn){btn.disabled=true;btn.textContent='Creando anuncio…';}
+  const adsetId=document.getElementById('mc-adset')?.value||'';
+  const name=(document.getElementById('mc-name')?.value||'').trim();
+  const pageId=document.getElementById('mc-page')?.value||'';
+  const imageUrl=(document.getElementById('mc-image-url')?.value||'').trim();
+  const primaryText=(document.getElementById('mc-primary-text')?.value||'').trim();
+  const headline=(document.getElementById('mc-headline')?.value||'').trim();
+  const description=(document.getElementById('mc-description')?.value||'').trim();
+  const destinationUrl=(document.getElementById('mc-dest-url')?.value||'').trim();
+  const ctaType=document.getElementById('mc-cta')?.value||'SHOP_NOW';
+  const status=document.getElementById('mc-status')?.value||'PAUSED';
+  try{
+    const r=await fetch('/api/meta/ad/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId:_activeWsId,adsetId,name,pageId,imageUrl,primaryText,headline,description,destinationUrl,ctaType,status})});
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    closeModal();
+    notify(`✅ Anuncio "${name}" creado${status==='PAUSED'?' (pausado — activalo desde el panel)':' y activo'}`);
+    // Invalidate ads cache for this adset
+    const panel=document.getElementById('ads-panel-'+adsetId);
+    if(panel){delete panel.dataset.loaded;panel.style.display='none';}
+  }catch(e){
+    notify('Error al crear anuncio: '+e.message);
+    if(btn){btn.disabled=false;btn.textContent='🚀 Publicar anuncio';}
+  }
 }
 
 // ── Automation Rules ──

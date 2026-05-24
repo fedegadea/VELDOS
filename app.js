@@ -720,6 +720,155 @@ app.post("/api/meta/wa/send", async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
+// Get individual ads for an ad set (or campaign)
+app.get("/api/meta/ads", async (req, res) => {
+  const { wsId, adsetId, campaignId } = req.query
+  if (!wsId || (!adsetId && !campaignId)) return res.status(400).json({ error: "wsId y adsetId o campaignId requeridos" })
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.accessToken) return res.status(400).json({ error: "Meta Ads no conectado" })
+    const parentId = adsetId || campaignId
+    const endpoint = adsetId ? `${adsetId}/ads` : `${campaignId}/ads`
+    const fields = "id,name,status,creative{name,thumbnail_url,image_url,object_story_spec,effective_object_story_id},insights.date_preset(last_30d){spend,impressions,clicks,ctr,cpc,actions,action_values}"
+    const url = `https://graph.facebook.com/v21.0/${endpoint}?fields=${encodeURIComponent(fields)}&limit=50&access_token=${meta.accessToken}`
+    const r = await fetch(url)
+    const data = await r.json()
+    if (data.error) return res.status(400).json({ error: data.error.message })
+    const ads = (data.data || []).map(a => {
+      const ins = a.insights?.data?.[0] || {}
+      const convAction = (ins.actions || []).find(x => ["purchase","offsite_conversion.fb_pixel_purchase","lead"].includes(x.action_type))
+      const conversions = convAction ? Number(convAction.value) : 0
+      // Try to get preview URL
+      const previewUrl = a.creative?.image_url || a.creative?.thumbnail_url || ""
+      return {
+        id: a.id, name: a.name, status: a.status,
+        creative: { name: a.creative?.name || "", thumbnail_url: previewUrl, effective_object_story_id: a.creative?.effective_object_story_id || "" },
+        insights: { spend: parseFloat(ins.spend || 0), impressions: parseInt(ins.impressions || 0), clicks: parseInt(ins.clicks || 0), ctr: parseFloat(ins.ctr || 0), cpc: parseFloat(ins.cpc || 0) },
+        conversions
+      }
+    })
+    res.json({ ads })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// Pause or enable a single ad
+app.post("/api/meta/ad/action", async (req, res) => {
+  const { wsId, adId, action } = req.body
+  if (!wsId || !adId || !action) return res.status(400).json({ error: "wsId, adId y action requeridos" })
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.accessToken) return res.status(400).json({ error: "Meta Ads no conectado" })
+    const r = await fetch(`https://graph.facebook.com/v21.0/${adId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: action, access_token: meta.accessToken })
+    })
+    const data = await r.json()
+    if (data.error) return res.status(400).json({ error: data.error.message })
+    res.json({ ok: true, adId, newStatus: action })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// Pause or enable an ad set
+app.post("/api/meta/adset/action", async (req, res) => {
+  const { wsId, adsetId, action } = req.body
+  if (!wsId || !adsetId || !action) return res.status(400).json({ error: "wsId, adsetId y action requeridos" })
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.accessToken) return res.status(400).json({ error: "Meta Ads no conectado" })
+    const r = await fetch(`https://graph.facebook.com/v21.0/${adsetId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: action, access_token: meta.accessToken })
+    })
+    const data = await r.json()
+    if (data.error) return res.status(400).json({ error: data.error.message })
+    res.json({ ok: true, adsetId, newStatus: action })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// Get pages available to promote (for ad creation)
+app.get("/api/meta/pages", async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: "wsId requerido" })
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.accessToken || !meta?.adAccountId) return res.status(400).json({ error: "Meta Ads no conectado" })
+    const accountId = meta.adAccountId.startsWith("act_") ? meta.adAccountId : "act_" + meta.adAccountId
+    const r = await fetch(`https://graph.facebook.com/v21.0/${accountId}/promote_pages?fields=id,name,category&access_token=${meta.accessToken}`)
+    const data = await r.json()
+    if (data.error) {
+      // Fallback: try /me/accounts
+      const r2 = await fetch(`https://graph.facebook.com/v21.0/me/accounts?access_token=${meta.accessToken}`)
+      const d2 = await r2.json()
+      if (d2.error) return res.status(400).json({ error: d2.error.message })
+      return res.json({ pages: (d2.data || []).map(p => ({ id: p.id, name: p.name })) })
+    }
+    res.json({ pages: (data.data || []).map(p => ({ id: p.id, name: p.name, category: p.category })) })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// Create a new ad (creative + ad)
+app.post("/api/meta/ad/create", async (req, res) => {
+  const { wsId, adsetId, name, pageId, imageUrl, primaryText, headline, description, destinationUrl, ctaType = "SHOP_NOW", status = "PAUSED" } = req.body
+  if (!wsId || !adsetId || !name || !pageId || !imageUrl || !primaryText || !headline || !destinationUrl) {
+    return res.status(400).json({ error: "Faltan campos requeridos: adsetId, name, pageId, imageUrl, primaryText, headline, destinationUrl" })
+  }
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.accessToken || !meta?.adAccountId) return res.status(400).json({ error: "Meta Ads no conectado" })
+    const accountId = meta.adAccountId.startsWith("act_") ? meta.adAccountId : "act_" + meta.adAccountId
+    const token = meta.accessToken
+
+    // Step 1: Create ad creative
+    const creativeBody = {
+      name: `${name} — creative`,
+      object_story_spec: {
+        page_id: pageId,
+        link_data: {
+          image_url: imageUrl,
+          message: primaryText,
+          name: headline,
+          ...(description ? { description } : {}),
+          link: destinationUrl,
+          call_to_action: { type: ctaType, value: { link: destinationUrl } }
+        }
+      },
+      access_token: token
+    }
+    const creativeRes = await fetch(`https://graph.facebook.com/v21.0/${accountId}/adcreatives`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(creativeBody)
+    })
+    const creativeData = await creativeRes.json()
+    if (creativeData.error) return res.status(400).json({ error: "Error al crear creativo: " + creativeData.error.message })
+
+    // Step 2: Create the ad
+    const adBody = {
+      name,
+      adset_id: adsetId,
+      creative: { creative_id: creativeData.id },
+      status,
+      access_token: token
+    }
+    const adRes = await fetch(`https://graph.facebook.com/v21.0/${accountId}/ads`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(adBody)
+    })
+    const adData = await adRes.json()
+    if (adData.error) return res.status(400).json({ error: "Error al crear anuncio: " + adData.error.message })
+
+    res.json({ ok: true, adId: adData.id, creativeId: creativeData.id, name, status })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
 // SPA catch-all: any unmatched GET serves the app (hash router handles client routing)
 app.get('*', serveApp)
 
