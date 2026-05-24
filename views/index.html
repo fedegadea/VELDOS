@@ -1118,6 +1118,7 @@ tr:hover .tx-del{color:var(--muted)}
 .hoja-ci-del:hover{color:var(--red);opacity:1!important}
 @media(max-width:700px){.ws-grid{grid-template-columns:1fr 1fr}.hojas-grid{grid-template-columns:1fr}}
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes crealProgressAnim{from{width:20%}to{width:90%}}
 
 /* ── BRIEF — MODAL EMOCIONES & CATEGORÍA ── */
 .bf-emo-wrap{display:flex;flex-wrap:wrap;gap:6px;padding-top:2px}
@@ -1149,6 +1150,25 @@ tr:hover .tx-del{color:var(--muted)}
 .pilar-row input{flex:1;background:transparent;border:none;color:var(--text);font-family:var(--fb);font-size:13px;outline:none;padding:2px 4px;border-radius:4px}
 .pilar-row input:focus{background:var(--s2)}
 .pilar-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);flex-shrink:0}
+
+/* ── CREALO ── */
+.crealo-step { display:none }
+.crealo-step.active { display:block }
+.crealo-angle-card { padding:16px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s;background:var(--s2) }
+.crealo-angle-card:hover,.crealo-angle-card.selected { border-color:var(--gold);background:rgba(41,121,255,.08) }
+.crealo-script-card { padding:16px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;margin-bottom:10px;transition:all .15s }
+.crealo-script-card.selected { border-color:var(--gold);background:rgba(41,121,255,.06) }
+.crealo-hook { color:var(--gold);font-size:13px;font-weight:700;margin-bottom:6px }
+.crealo-avatar-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:12px }
+.crealo-avatar-card { border:2px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;cursor:pointer;transition:all .15s;background:var(--s2) }
+.crealo-avatar-card:hover,.crealo-avatar-card.selected { border-color:var(--gold) }
+.crealo-progress { display:flex;gap:8px;align-items:center;margin-bottom:24px;justify-content:center }
+.crealo-progress-step { width:28px;height:28px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);transition:all .2s }
+.crealo-progress-step.active { border-color:var(--gold);color:var(--gold);background:rgba(41,121,255,.1) }
+.crealo-progress-step.done { border-color:var(--green);background:var(--green);color:#fff }
+.viral-score-ring { width:80px;height:80px;border-radius:50%;border:4px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:var(--gold) }
+.crealo-progress-line { flex:1;height:2px;background:var(--border);border-radius:2px;max-width:40px }
+.crealo-progress-line.done { background:var(--green) }
 
 /* ── SIDEBAR ── */
 :root{--topbar-h:52px}
@@ -1593,6 +1613,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button class="sb-item" id="sbi-stock" onclick="sbNav('stock','stock',this)"><span class="sb-item-icon">📦</span>Stock</button>
     <button class="sb-item" id="sbi-integraciones" onclick="sbNav('integraciones','integraciones',this)"><span class="sb-item-icon">🔗</span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Integraciones<span id="tn-nav-badge" style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">🛍️ Tienda Nube</span></span></button>
     <button class="sb-item" id="sbi-meta" onclick="sbNav('meta','meta',this)"><span class="sb-item-icon">📘</span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Meta<span style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Ads · Library · WhatsApp</span></span></button>
+    <button class="sb-item" id="sbi-crealo" onclick="sbNav('crealo','crealo',this)"><span class="sb-item-icon">🎬</span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Crealo<span style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Videos UGC con IA</span></span></button>
     <button class="sb-item" id="sbi-hojas" onclick="sbNav('hojas','hojas',this)"><span class="sb-item-icon">📁</span>Hojas</button>
   </div>
   <a href="https://crealo.solutions/" target="_blank" rel="noopener" class="sb-crealo-btn">
@@ -3333,6 +3354,333 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
   </div>
 </div>
 
+<!-- ══ CREALO ══ -->
+<div class="page" id="page-crealo" style="padding:0;max-width:100%">
+
+  <!-- LANDING VIEW -->
+  <div id="crealo-landing" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:60px 20px;background:linear-gradient(135deg,#0a0a0a 0%,#111 50%,#0d0d0d 100%)">
+    <div style="font-family:var(--fd);font-size:64px;font-weight:800;letter-spacing:-.04em;background:linear-gradient(135deg,#fff 0%,#7ab3ff 60%,var(--gold) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;line-height:1">Crealo</div>
+    <div style="font-size:18px;color:var(--muted2);font-weight:300;margin-bottom:28px;max-width:480px;line-height:1.5">Creá videos UGC con IA que venden</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:40px">
+      <span style="background:rgba(41,121,255,.1);border:1px solid rgba(41,121,255,.25);color:#7ab3ff;font-size:12px;padding:6px 16px;border-radius:20px;font-weight:500">🤖 Avatar IA</span>
+      <span style="background:rgba(52,199,123,.1);border:1px solid rgba(52,199,123,.25);color:var(--green);font-size:12px;padding:6px 16px;border-radius:20px;font-weight:500">✍️ Guión optimizado</span>
+      <span style="background:rgba(201,180,138,.1);border:1px solid rgba(201,180,138,.25);color:var(--gold);font-size:12px;padding:6px 16px;border-radius:20px;font-weight:500">📤 Publicá directo en Meta</span>
+    </div>
+    <button class="btn btn-primary" style="font-size:15px;padding:14px 36px;border-radius:12px;font-weight:700" onclick="crealShowApp()">Empezar gratis →</button>
+    <div style="margin-top:48px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:760px;width:100%">
+      <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:14px;padding:24px 20px;text-align:left">
+        <div style="font-size:24px;margin-bottom:12px">🎯</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Ángulo de venta</div>
+        <div style="font-size:12px;color:var(--muted);font-weight:300;line-height:1.5">6 estrategias probadas para conectar con tu audiencia y convertir</div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:14px;padding:24px 20px;text-align:left">
+        <div style="font-size:24px;margin-bottom:12px">✨</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Guión con Claude IA</div>
+        <div style="font-size:12px;color:var(--muted);font-weight:300;line-height:1.5">3 variaciones de guión listas para grabar en segundos</div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:14px;padding:24px 20px;text-align:left">
+        <div style="font-size:24px;margin-bottom:12px">📊</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Score viral</div>
+        <div style="font-size:12px;color:var(--muted);font-weight:300;line-height:1.5">Análisis de rendimiento esperado con tips del algoritmo de Meta</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP VIEW — 5-step wizard -->
+  <div id="crealo-app" style="display:none;padding:32px 40px 96px;max-width:900px">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px">
+      <div>
+        <div style="font-family:var(--fd);font-size:28px;font-weight:800;letter-spacing:-.03em">🎬 Crealo</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Creá tu video UGC con IA</div>
+      </div>
+      <button class="btn btn-sm" onclick="crealShowLanding()">← Volver</button>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="crealo-progress">
+      <div class="crealo-progress-step active" id="cpstep-1" title="Tu Producto">1</div>
+      <div class="crealo-progress-line" id="cpline-1"></div>
+      <div class="crealo-progress-step" id="cpstep-2" title="Estrategia">2</div>
+      <div class="crealo-progress-line" id="cpline-2"></div>
+      <div class="crealo-progress-step" id="cpstep-3" title="Guión">3</div>
+      <div class="crealo-progress-line" id="cpline-3"></div>
+      <div class="crealo-progress-step" id="cpstep-4" title="Avatar">4</div>
+      <div class="crealo-progress-line" id="cpline-4"></div>
+      <div class="crealo-progress-step" id="cpstep-5" title="Publicar">5</div>
+    </div>
+    <div style="display:flex;justify-content:center;gap:40px;margin-bottom:32px;margin-top:-16px">
+      <span style="font-size:9px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;text-align:center">Producto</span>
+      <span style="font-size:9px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;text-align:center">Estrategia</span>
+      <span style="font-size:9px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;text-align:center">Guión</span>
+      <span style="font-size:9px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;text-align:center">Avatar</span>
+      <span style="font-size:9px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;text-align:center">Publicar</span>
+    </div>
+
+    <!-- STEP 1 — Tu Producto -->
+    <div class="crealo-step active" id="cstep-1">
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:28px 32px;margin-bottom:16px">
+        <div style="font-family:var(--fd);font-size:22px;margin-bottom:6px">Tu Producto</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:24px;font-weight:300">Pegá el link o completá los datos manualmente</div>
+        <div style="display:flex;gap:10px;margin-bottom:20px">
+          <input id="crealUrlInput" class="form-input" style="flex:1;font-size:14px;padding:12px 16px" placeholder="https://tutienda.com/producto">
+          <button class="btn btn-primary" onclick="crealAnalyzeUrl()" id="crealUrlBtn" style="white-space:nowrap;padding:12px 20px">Analizar →</button>
+        </div>
+        <div id="crealUrlResult" style="display:none;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:20px">
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <img id="crealProductImg" src="" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:8px;background:var(--s3);flex-shrink:0" onerror="this.style.display='none'">
+            <div style="flex:1">
+              <div id="crealProductTitle" style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px"></div>
+              <div id="crealProductPrice" style="font-size:13px;color:var(--green);font-weight:600;margin-bottom:6px"></div>
+              <div id="crealProductDesc" style="font-size:12px;color:var(--muted);font-weight:300;line-height:1.5"></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <div class="form-group">
+            <label class="form-label">Nombre del producto</label>
+            <input class="form-input" id="crealProdName" placeholder="Ej: Crema hidratante Glow">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Precio</label>
+            <input class="form-input" id="crealProdPrice" placeholder="Ej: $12.990">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripción</label>
+          <textarea class="form-textarea" id="crealProdDesc" placeholder="¿Qué hace tu producto? ¿Para quién es? ¿Qué problema resuelve?" style="min-height:80px"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">URL de imagen del producto</label>
+          <input class="form-input" id="crealProdImg" placeholder="https://...">
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end">
+        <button class="btn btn-primary" onclick="crealGoStep(2)" style="padding:12px 28px">Siguiente: Estrategia →</button>
+      </div>
+    </div>
+
+    <!-- STEP 2 — Estrategia de Venta -->
+    <div class="crealo-step" id="cstep-2">
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:28px 32px;margin-bottom:16px">
+        <div style="font-family:var(--fd);font-size:22px;margin-bottom:6px">Estrategia de Venta</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:24px;font-weight:300">¿Cuál es tu ángulo de venta?</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:28px">
+          <div class="crealo-angle-card" onclick="crealSelectAngle(this,'Problema → Solución')">
+            <div style="font-size:20px;margin-bottom:8px">🎯</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Problema → Solución</div>
+            <div style="font-size:11px;color:var(--muted);font-weight:300">Mostrá el dolor y cómo tu producto lo resuelve</div>
+          </div>
+          <div class="crealo-angle-card" onclick="crealSelectAngle(this,'Aspiracional')">
+            <div style="font-size:20px;margin-bottom:8px">😍</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Aspiracional</div>
+            <div style="font-size:11px;color:var(--muted);font-weight:300">Mostrá el estilo de vida que tu producto habilita</div>
+          </div>
+          <div class="crealo-angle-card" onclick="crealSelectAngle(this,'Demostración')">
+            <div style="font-size:20px;margin-bottom:8px">🧪</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Demostración</div>
+            <div style="font-size:11px;color:var(--muted);font-weight:300">Mostrá el producto en acción, resultados reales</div>
+          </div>
+          <div class="crealo-angle-card" onclick="crealSelectAngle(this,'Testimonio')">
+            <div style="font-size:20px;margin-bottom:8px">⭐</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Testimonio</div>
+            <div style="font-size:11px;color:var(--muted);font-weight:300">Actuá como cliente satisfecho contando tu experiencia</div>
+          </div>
+          <div class="crealo-angle-card" onclick="crealSelectAngle(this,'Urgencia/Oferta')">
+            <div style="font-size:20px;margin-bottom:8px">⚡</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Urgencia/Oferta</div>
+            <div style="font-size:11px;color:var(--muted);font-weight:300">Oferta limitada, stock bajo, no te lo pierdas</div>
+          </div>
+          <div class="crealo-angle-card" onclick="crealSelectAngle(this,'Educativo')">
+            <div style="font-size:20px;margin-bottom:8px">🤔</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Educativo</div>
+            <div style="font-size:11px;color:var(--muted);font-weight:300">Enseñá algo útil relacionado con el producto</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+          <div>
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;font-weight:600">Duración</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--muted2)"><input type="radio" name="crealDuration" value="15" style="accent-color:var(--gold)"> 15 segundos</label>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--muted2)"><input type="radio" name="crealDuration" value="30" checked style="accent-color:var(--gold)"> 30 segundos</label>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--muted2)"><input type="radio" name="crealDuration" value="60" style="accent-color:var(--gold)"> 60 segundos</label>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;font-weight:600">Tono</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--muted2)"><input type="radio" name="crealTone" value="Casual y cercano" checked style="accent-color:var(--gold)"> Casual y cercano</label>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--muted2)"><input type="radio" name="crealTone" value="Energético" style="accent-color:var(--gold)"> Energético</label>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--muted2)"><input type="radio" name="crealTone" value="Profesional" style="accent-color:var(--gold)"> Profesional</label>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--muted2)"><input type="radio" name="crealTone" value="Divertido" style="accent-color:var(--gold)"> Divertido</label>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;font-weight:600">Idioma</div>
+            <select class="form-select" id="crealLanguage">
+              <option value="Español (Argentina)">Español (Argentina)</option>
+              <option value="Español (España)">Español (España)</option>
+              <option value="Español (México)">Español (México)</option>
+              <option value="English">English</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <button class="btn" onclick="crealGoStep(1)">← Anterior</button>
+        <button class="btn btn-primary" onclick="crealGoStep(3)" style="padding:12px 28px">Siguiente: Guión →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3 — El Guión -->
+    <div class="crealo-step" id="cstep-3">
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:28px 32px;margin-bottom:16px">
+        <div style="font-family:var(--fd);font-size:22px;margin-bottom:6px">El Guión</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:24px;font-weight:300">Claude IA generará 3 variaciones optimizadas para tu producto</div>
+        <div style="text-align:center;margin-bottom:24px">
+          <button class="btn btn-primary" id="crealGenBtn" onclick="crealGenerateScript()" style="font-size:14px;padding:14px 32px;font-weight:700">✨ Generar guión con IA</button>
+        </div>
+        <div id="crealScriptLoading" style="display:none;text-align:center;padding:32px">
+          <div style="font-size:24px;margin-bottom:12px;animation:spin 1s linear infinite;display:inline-block">⚙️</div>
+          <div style="font-size:13px;color:var(--muted)">Claude está escribiendo tu guión...</div>
+        </div>
+        <div id="crealScripts" style="display:none">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:12px;text-align:center">Seleccioná una variación para continuar</div>
+          <div id="crealScriptList"></div>
+          <div style="margin-top:20px">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;font-weight:600">Editar guión seleccionado</div>
+            <textarea class="form-textarea" id="crealScriptEdit" style="min-height:120px;font-size:13px" placeholder="El guión seleccionado aparecerá aquí para editar..."></textarea>
+          </div>
+        </div>
+        <!-- Algorithm tips collapsible -->
+        <details style="margin-top:24px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+          <summary style="padding:14px 18px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text);background:var(--s2);list-style:none;display:flex;align-items:center;gap:8px">
+            <span>💡</span> Tips del algoritmo de Meta
+          </summary>
+          <div style="padding:16px 18px;display:flex;flex-direction:column;gap:8px">
+            <div style="font-size:12px;color:var(--muted2);display:flex;gap:8px;align-items:flex-start"><span style="color:var(--green);flex-shrink:0">→</span>Los Reels de 7-15 segundos tienen mayor tasa de visualización completa</div>
+            <div style="font-size:12px;color:var(--muted2);display:flex;gap:8px;align-items:flex-start"><span style="color:var(--green);flex-shrink:0">→</span>El hook en los primeros 3 segundos determina el 80% del rendimiento</div>
+            <div style="font-size:12px;color:var(--muted2);display:flex;gap:8px;align-items:flex-start"><span style="color:var(--green);flex-shrink:0">→</span>Videos con subtítulos tienen 40% más retención (85% ve sin sonido)</div>
+            <div style="font-size:12px;color:var(--muted2);display:flex;gap:8px;align-items:flex-start"><span style="color:var(--green);flex-shrink:0">→</span>Mostrá el producto en uso real antes del segundo 5</div>
+            <div style="font-size:12px;color:var(--muted2);display:flex;gap:8px;align-items:flex-start"><span style="color:var(--green);flex-shrink:0">→</span>UGC nativo (grabado con celular) convierte 3x más que producción profesional</div>
+            <div style="font-size:12px;color:var(--muted2);display:flex;gap:8px;align-items:flex-start"><span style="color:var(--green);flex-shrink:0">→</span>Terminá con una pregunta o CTA que invite a comentar para impulsar el alcance</div>
+          </div>
+        </details>
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <button class="btn" onclick="crealGoStep(2)">← Anterior</button>
+        <button class="btn btn-primary" onclick="crealGoStep(4)" id="crealToStep4Btn" disabled style="padding:12px 28px;opacity:.5">Siguiente: Avatar →</button>
+      </div>
+    </div>
+
+    <!-- STEP 4 — Tu Avatar -->
+    <div class="crealo-step" id="cstep-4">
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:28px 32px;margin-bottom:16px">
+        <div style="font-family:var(--fd);font-size:22px;margin-bottom:6px">Tu Avatar</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:20px;font-weight:300">Elegí quién va a presentar tu producto</div>
+        <div id="crealAvatarInfo" style="background:rgba(41,121,255,.06);border:1px solid rgba(41,121,255,.2);border-radius:10px;padding:12px 16px;font-size:12px;color:#7ab3ff;margin-bottom:20px;display:none">Conectá HeyGen para usar avatares reales — por ahora generamos el video con tu guión y Creatomate</div>
+        <div class="crealo-avatar-grid" id="crealAvatarGrid"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px">
+          <div class="form-group">
+            <label class="form-label">Voz</label>
+            <select class="form-select" id="crealVoice">
+              <option value="es-AR-female">Español AR — Femenina</option>
+              <option value="es-AR-male">Español AR — Masculina</option>
+              <option value="es-ES-female">Español ES — Femenina</option>
+              <option value="es-MX-female">Español MX — Femenina</option>
+              <option value="en-US-female">English US — Female</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Formato de salida</label>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-sm crealo-fmt-btn selected" onclick="crealSelectFormat(this,'9:16')" data-fmt="9:16" style="flex:1;border-color:var(--gold);color:var(--gold)">📱 9:16</button>
+              <button class="btn btn-sm crealo-fmt-btn" onclick="crealSelectFormat(this,'1:1')" data-fmt="1:1" style="flex:1">⬛ 1:1</button>
+              <button class="btn btn-sm crealo-fmt-btn" onclick="crealSelectFormat(this,'16:9')" data-fmt="16:9" style="flex:1">🖥 16:9</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:8px">
+          <label class="form-label" style="display:flex;align-items:center;gap:8px">
+            Música de fondo
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;letter-spacing:0;text-transform:none;cursor:pointer"><input type="checkbox" id="crealMusicEnabled" style="accent-color:var(--gold)"> Activar</label>
+          </label>
+          <select class="form-select" id="crealMusic" disabled>
+            <option value="none">Sin música</option>
+            <option value="energetica">Energética</option>
+            <option value="relajante">Relajante</option>
+            <option value="corporativa">Corporativa</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <button class="btn" onclick="crealGoStep(3)">← Anterior</button>
+        <button class="btn btn-primary" onclick="crealGenerateVideo()" style="padding:12px 28px;font-weight:700" id="crealGenVideoBtn">🎬 Generar video →</button>
+      </div>
+    </div>
+
+    <!-- STEP 5 — Tu Video -->
+    <div class="crealo-step" id="cstep-5">
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:28px 32px;margin-bottom:16px">
+        <div style="font-family:var(--fd);font-size:22px;margin-bottom:6px">Tu Video</div>
+        <!-- Loading -->
+        <div id="crealVideoLoading" style="text-align:center;padding:48px 20px">
+          <div style="font-size:36px;margin-bottom:16px;animation:spin 1.5s linear infinite;display:inline-block">🎬</div>
+          <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">Generando con IA...</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:20px">(esto puede tardar 1-2 min)</div>
+          <div style="background:var(--s3);border-radius:8px;height:6px;overflow:hidden;max-width:300px;margin:0 auto">
+            <div id="crealProgressBar" style="height:6px;background:linear-gradient(90deg,var(--gold),#7ab3ff);border-radius:8px;width:0%;transition:width .5s;animation:crealProgressAnim 2s ease-in-out infinite alternate"></div>
+          </div>
+          <div id="crealStatusMsg" style="font-size:11px;color:var(--muted);margin-top:10px">Iniciando render...</div>
+        </div>
+        <!-- Result -->
+        <div id="crealVideoResult" style="display:none">
+          <div id="crealVideoPlayer" style="margin-bottom:20px;text-align:center;background:var(--s2);border-radius:10px;overflow:hidden;min-height:120px;display:flex;align-items:center;justify-content:center"></div>
+          <!-- Action buttons -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px">
+            <a id="crealDownloadBtn" href="#" download class="btn btn-primary" style="text-decoration:none">⬇ Descargar</a>
+            <button class="btn" onclick="crealPublishToMeta()" style="color:var(--blue);border-color:rgba(41,121,255,.3)">📤 Publicar en Meta Ads</button>
+            <button class="btn" onclick="crealShowApp()">🔄 Crear otro</button>
+          </div>
+          <!-- Viral Score -->
+          <div id="crealViralScoreSection" style="background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+              <div class="viral-score-ring" id="crealScoreRing">—</div>
+              <div>
+                <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px">Score Viral</div>
+                <div style="font-size:11px;color:var(--muted)">Basado en el análisis de Claude IA</div>
+              </div>
+              <button class="btn btn-sm" onclick="crealGetViralScore()" id="crealScoreBtn" style="margin-left:auto">✨ Analizar</button>
+            </div>
+            <div id="crealScoreDetails" style="display:none">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+                <div>
+                  <div style="font-size:10px;color:var(--green);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:6px">Fortalezas</div>
+                  <div id="crealStrengths" style="display:flex;flex-direction:column;gap:4px"></div>
+                </div>
+                <div>
+                  <div style="font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:6px">Optimizaciones</div>
+                  <div id="crealImprovements" style="display:flex;flex-direction:column;gap:4px"></div>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:6px">Tips del algoritmo</div>
+                <div id="crealAlgorithmTips" style="display:flex;flex-direction:column;gap:4px"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <button class="btn" onclick="crealGoStep(4)">← Anterior</button>
+        <button class="btn" onclick="crealShowLanding()">Volver al inicio</button>
+      </div>
+    </div>
+
+  </div><!-- /crealo-app -->
+</div><!-- /page-crealo -->
+
 <!-- ══ OPERACIONES ══ -->
 <div class="page" id="page-operaciones">
   <div class="sec-head">
@@ -4056,7 +4404,7 @@ function sbNav(area,page,el){
     document.getElementById('pin-error').textContent='';
     return;
   }
-  const paths={inicio:'inicio',checklist:'checklist',todo:'todo',drive:'planning',marca:'marca',producto:'producto',crm:'crm',flows:'flows',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones',finanzas:'finanzas',meta:'meta'};
+  const paths={inicio:'inicio',checklist:'checklist',todo:'todo',drive:'planning',marca:'marca',producto:'producto',crm:'crm',flows:'flows',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones',finanzas:'finanzas',meta:'meta',crealo:'crealo'};
   navigate(paths[page]||page);
 }
 
@@ -4070,10 +4418,10 @@ let _activeFinTab='movimientos';
 
 const _PLAN_TABS=new Set(['calendario','semana','ideas','biblioteca','briefs','canjes','collabs','estrategia']);
 const _FIN_TABS =new Set(['movimientos','ingresos','gastos','comisiones','kpis','cashflow','config','presupuesto','capital']);
-const _AREA_LABELS={inicio:'Inicio',marketing:'Marketing',finanzas:'Finanzas',crm:'CRM',flows:'Flows',hojas:'Hojas',operaciones:'Operaciones',stock:'Stock',integraciones:'Integraciones'};
+const _AREA_LABELS={inicio:'Inicio',marketing:'Marketing',finanzas:'Finanzas',crm:'CRM',flows:'Flows',hojas:'Hojas',operaciones:'Operaciones',stock:'Stock',integraciones:'Integraciones',crealo:'Crealo'};
 
 // Lista de rutas válidas — usada también para el fallback (rutas no válidas → /checklist)
-const _VALID_TOP_SEGMENTS=new Set(['inicio','checklist','todo','planning','marca','producto','finanzas','crm','flows','hojas','operaciones','stock','integraciones','meta','login','projects']);
+const _VALID_TOP_SEGMENTS=new Set(['inicio','checklist','todo','planning','marca','producto','finanzas','crm','flows','hojas','operaciones','stock','integraciones','meta','crealo','login','projects']);
 
 function parseRoute(pathname){
   const clean=(pathname||'/').replace(/^\/+|\/+$/g,'');
@@ -4092,6 +4440,7 @@ function parseRoute(pathname){
     return{area:'finanzas',page:'finanzas',finTab:(_FIN_TABS.has(s2)?s2:'movimientos')};
   }
   if(seg==='meta') return{area:'meta',page:'meta',metaTab:s2||'ads'};
+  if(seg==='crealo') return{area:'crealo',page:'crealo'};
   const direct={crm:1,flows:1,hojas:1,operaciones:1,stock:1,integraciones:1};
   if(direct[seg]) return{area:seg,page:seg};
   // Ruta desconocida → checklist (único fallback permitido)
@@ -4180,6 +4529,7 @@ function applyRoute(){
       const tab=r.metaTab||'ads';
       switchMetaTab(tab);
     }
+    if(r.area==='crealo') initCrealoPage();
   }
 
   // Mobile nav active state
@@ -13508,6 +13858,382 @@ document.addEventListener('keydown',function(e){
   if(e.key==='Escape'){closeCmdK();}
 });
 
+</script>
+
+<!-- ══ CREALO — JS ══ -->
+<script>
+// ═══════════════════════════════════════════════════════
+// CREALO — AI UGC Video Creation Wizard
+// ═══════════════════════════════════════════════════════
+let _crealStep = 1;
+let _crealData = {
+  product: {},
+  angle: '',
+  duration: '30',
+  tone: 'Casual y cercano',
+  language: 'Español (Argentina)',
+  selectedScript: null,
+  avatarId: 'placeholder_1',
+  voiceId: 'es-AR-female',
+  format: '9:16',
+  music: 'none',
+  videoResult: null
+};
+
+function initCrealoPage() {
+  // Load avatars when entering the page
+  crealLoadAvatars();
+  // Enable music select toggle
+  const musicCb = document.getElementById('crealMusicEnabled');
+  const musicSel = document.getElementById('crealMusic');
+  if (musicCb && musicSel) {
+    musicCb.onchange = () => { musicSel.disabled = !musicCb.checked; };
+  }
+}
+
+function crealShowLanding() {
+  document.getElementById('crealo-landing').style.display = 'flex';
+  document.getElementById('crealo-app').style.display = 'none';
+}
+
+function crealShowApp() {
+  document.getElementById('crealo-landing').style.display = 'none';
+  document.getElementById('crealo-app').style.display = 'block';
+  _crealData = { product:{}, angle:'', duration:'30', tone:'Casual y cercano', language:'Español (Argentina)', selectedScript:null, avatarId:'placeholder_1', voiceId:'es-AR-female', format:'9:16', music:'none', videoResult:null };
+  crealGoStep(1);
+  crealLoadAvatars();
+}
+
+function crealGoStep(n) {
+  _crealStep = n;
+  document.querySelectorAll('.crealo-step').forEach((el, i) => {
+    el.classList.toggle('active', i + 1 === n);
+  });
+  // Update progress dots
+  for (let i = 1; i <= 5; i++) {
+    const dot = document.getElementById('cpstep-' + i);
+    const line = document.getElementById('cpline-' + i);
+    if (dot) {
+      dot.classList.toggle('done', i < n);
+      dot.classList.toggle('active', i === n);
+      if (i < n) dot.textContent = '✓';
+      else dot.textContent = i;
+    }
+    if (line) line.classList.toggle('done', i < n);
+  }
+  // Scroll to top of app
+  document.getElementById('crealo-app')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// STEP 1 — Analyze URL
+async function crealAnalyzeUrl() {
+  const url = document.getElementById('crealUrlInput')?.value?.trim();
+  if (!url) { notify('Ingresá una URL'); return; }
+  const btn = document.getElementById('crealUrlBtn');
+  btn.disabled = true; btn.textContent = 'Analizando...';
+  try {
+    const r = await fetch('/api/crealo/analyze-product', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    const data = await r.json();
+    if (data.error) { notify('Error: ' + data.error); return; }
+    // Fill fields
+    document.getElementById('crealProdName').value = data.title || '';
+    document.getElementById('crealProdPrice').value = data.price || '';
+    document.getElementById('crealProdDesc').value = data.description || '';
+    document.getElementById('crealProdImg').value = data.imageUrl || '';
+    // Show result card
+    const resultEl = document.getElementById('crealUrlResult');
+    resultEl.style.display = 'block';
+    document.getElementById('crealProductTitle').textContent = data.title || 'Sin título';
+    document.getElementById('crealProductPrice').textContent = data.price ? '$' + data.price : '';
+    document.getElementById('crealProductDesc').textContent = (data.description || '').slice(0, 200);
+    const imgEl = document.getElementById('crealProductImg');
+    if (data.imageUrl) { imgEl.src = data.imageUrl; imgEl.style.display = 'block'; }
+    else imgEl.style.display = 'none';
+    notify('✓ Producto analizado');
+  } catch (e) {
+    notify('Error: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Analizar →';
+  }
+}
+
+// STEP 2 — Select angle
+function crealSelectAngle(el, angle) {
+  document.querySelectorAll('.crealo-angle-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  _crealData.angle = angle;
+}
+
+// STEP 3 — Generate script
+async function crealGenerateScript() {
+  // Gather product data
+  _crealData.product = {
+    title: document.getElementById('crealProdName')?.value || '',
+    description: document.getElementById('crealProdDesc')?.value || '',
+    price: document.getElementById('crealProdPrice')?.value || ''
+  };
+  _crealData.duration = document.querySelector('input[name="crealDuration"]:checked')?.value || '30';
+  _crealData.tone = document.querySelector('input[name="crealTone"]:checked')?.value || 'Casual y cercano';
+  _crealData.language = document.getElementById('crealLanguage')?.value || 'Español (Argentina)';
+  if (!_crealData.angle) { notify('Seleccioná un ángulo de venta en el paso 2'); crealGoStep(2); return; }
+
+  const btn = document.getElementById('crealGenBtn');
+  const loading = document.getElementById('crealScriptLoading');
+  const scriptsEl = document.getElementById('crealScripts');
+  btn.style.display = 'none';
+  loading.style.display = 'block';
+  scriptsEl.style.display = 'none';
+
+  try {
+    const r = await fetch('/api/crealo/generate-script', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        product: _crealData.product,
+        angle: _crealData.angle,
+        duration: _crealData.duration,
+        tone: _crealData.tone,
+        language: _crealData.language
+      })
+    });
+    const data = await r.json();
+    if (data.error) { notify('Error: ' + data.error); return; }
+    const scripts = data.scripts || [];
+    renderCrealScripts(scripts);
+    scriptsEl.style.display = 'block';
+    notify('✓ 3 variaciones generadas');
+  } catch (e) {
+    notify('Error: ' + e.message);
+  } finally {
+    loading.style.display = 'none';
+    btn.style.display = 'inline-block';
+    btn.textContent = '✨ Regenerar guión';
+  }
+}
+
+function renderCrealScripts(scripts) {
+  const list = document.getElementById('crealScriptList');
+  if (!list) return;
+  list.innerHTML = scripts.map((s, i) => `
+    <div class="crealo-script-card" onclick="crealSelectScript(this,${i})" data-idx="${i}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:600">Variación ${i+1}</span>
+        <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(41,121,255,.1);color:var(--gold);border:1px solid rgba(41,121,255,.2)">~${s.estimatedSeconds}s</span>
+      </div>
+      <div class="crealo-hook" style="margin-bottom:4px">🎯 Hook (primeros 3 seg)</div>
+      <div style="font-size:13px;color:var(--text);font-style:italic;margin-bottom:10px;line-height:1.4">"${(s.hook||'').replace(/"/g,'&quot;')}"</div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:4px">Desarrollo</div>
+      <div style="font-size:12px;color:var(--muted2);font-weight:300;line-height:1.5;margin-bottom:10px">${(s.body||'').replace(/</g,'&lt;')}</div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:4px">CTA</div>
+      <div style="font-size:12px;color:var(--green);font-weight:600">${(s.cta||'').replace(/</g,'&lt;')}</div>
+    </div>
+  `).join('');
+  // Store scripts for selection
+  window._crealScripts = scripts;
+}
+
+function crealSelectScript(el, idx) {
+  document.querySelectorAll('.crealo-script-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  const s = window._crealScripts[idx];
+  _crealData.selectedScript = s;
+  const editEl = document.getElementById('crealScriptEdit');
+  if (editEl) editEl.value = [s.hook, s.body, s.cta].join('\n\n');
+  // Enable next button
+  const nextBtn = document.getElementById('crealToStep4Btn');
+  if (nextBtn) { nextBtn.disabled = false; nextBtn.style.opacity = '1'; }
+}
+
+// STEP 4 — Avatars
+async function crealLoadAvatars() {
+  try {
+    const r = await fetch('/api/crealo/avatars');
+    const data = await r.json();
+    const grid = document.getElementById('crealAvatarGrid');
+    if (!grid) return;
+    const infoEl = document.getElementById('crealAvatarInfo');
+    if (data.source === 'placeholder' && infoEl) infoEl.style.display = 'block';
+    const avatars = data.avatars || [];
+    grid.innerHTML = avatars.map((av, i) => `
+      <div class="crealo-avatar-card ${i === 0 ? 'selected' : ''}" onclick="crealSelectAvatar(this,'${av.id || av.avatar_id}')" data-avatar-id="${av.id || av.avatar_id}">
+        ${av.preview ? `<img src="${av.preview}" alt="${av.name}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;margin:0 auto 10px;display:block">` : `<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--s3),var(--border2));margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:24px">${(av.gender||'') === 'female' ? '👩' : '👨'}</div>`}
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">${av.name || av.avatar_name || 'Avatar'}</div>
+        <div style="font-size:11px;color:var(--muted)">${av.style || ''}</div>
+      </div>
+    `).join('');
+    if (avatars[0]) _crealData.avatarId = avatars[0].id || avatars[0].avatar_id;
+  } catch (e) { /* silently fail */ }
+}
+
+function crealSelectAvatar(el, avatarId) {
+  document.querySelectorAll('.crealo-avatar-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  _crealData.avatarId = avatarId;
+}
+
+function crealSelectFormat(el, fmt) {
+  document.querySelectorAll('.crealo-fmt-btn').forEach(b => {
+    b.classList.remove('selected');
+    b.style.borderColor = '';
+    b.style.color = '';
+  });
+  el.classList.add('selected');
+  el.style.borderColor = 'var(--gold)';
+  el.style.color = 'var(--gold)';
+  _crealData.format = fmt;
+}
+
+// STEP 5 — Generate video
+async function crealGenerateVideo() {
+  _crealData.voiceId = document.getElementById('crealVoice')?.value || 'es-AR-female';
+  const musicEnabled = document.getElementById('crealMusicEnabled')?.checked;
+  _crealData.music = musicEnabled ? (document.getElementById('crealMusic')?.value || 'none') : 'none';
+
+  const scriptToUse = _crealData.selectedScript || { hook: 'Transformá tu rutina', body: 'Con este producto todo cambia', cta: 'Compralo ahora' };
+
+  crealGoStep(5);
+  document.getElementById('crealVideoLoading').style.display = 'block';
+  document.getElementById('crealVideoResult').style.display = 'none';
+
+  // Animate progress bar
+  let progress = 0;
+  const bar = document.getElementById('crealProgressBar');
+  const statusMsg = document.getElementById('crealStatusMsg');
+  const progressInterval = setInterval(() => {
+    progress = Math.min(progress + Math.random() * 8, 88);
+    if (bar) bar.style.width = progress + '%';
+    if (statusMsg) {
+      if (progress < 30) statusMsg.textContent = 'Procesando guión...';
+      else if (progress < 60) statusMsg.textContent = 'Generando video...';
+      else statusMsg.textContent = 'Finalizando render...';
+    }
+  }, 1200);
+
+  try {
+    const r = await fetch('/api/crealo/generate-video', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        wsId: _activeWsId,
+        script: scriptToUse,
+        avatarId: _crealData.avatarId,
+        voiceId: _crealData.voiceId,
+        format: _crealData.format,
+        music: _crealData.music,
+        product: _crealData.product
+      })
+    });
+    const data = await r.json();
+    clearInterval(progressInterval);
+    if (bar) bar.style.width = '100%';
+    _crealData.videoResult = data;
+
+    // Poll for status if not demo
+    if (data.provider !== 'demo' && (data.renderId || data.heygenVideoId)) {
+      await crealPollVideoStatus(data);
+    } else {
+      crealShowVideoResult(data);
+    }
+  } catch (e) {
+    clearInterval(progressInterval);
+    notify('Error: ' + e.message);
+    crealGoStep(4);
+  }
+}
+
+async function crealPollVideoStatus(initData) {
+  const statusMsg = document.getElementById('crealStatusMsg');
+  const bar = document.getElementById('crealProgressBar');
+  let attempts = 0;
+  const maxAttempts = 60; // 2 minutes
+
+  const poll = async () => {
+    attempts++;
+    if (attempts > maxAttempts) {
+      if (statusMsg) statusMsg.textContent = 'Tiempo agotado — el video puede estar listo en tu dashboard de Creatomate/HeyGen';
+      crealShowVideoResult(initData);
+      return;
+    }
+    try {
+      const provider = initData.provider || 'creatomate';
+      const videoId = initData.heygenVideoId || initData.videoId;
+      const renderId = initData.renderId;
+      const r = await fetch(`/api/crealo/video-status?videoId=${videoId}&renderId=${renderId||''}&provider=${provider}`);
+      const st = await r.json();
+      if (bar) bar.style.width = Math.min(90 + (st.progress || 0) / 10, 99) + '%';
+      if (st.status === 'completed') {
+        initData.renderUrl = st.videoUrl || initData.renderUrl;
+        if (bar) bar.style.width = '100%';
+        crealShowVideoResult(initData);
+      } else if (st.status === 'failed') {
+        if (statusMsg) statusMsg.textContent = 'El render falló — intentá de nuevo';
+        crealShowVideoResult(initData);
+      } else {
+        setTimeout(poll, 3000);
+      }
+    } catch (e) {
+      setTimeout(poll, 3000);
+    }
+  };
+  setTimeout(poll, 3000);
+}
+
+function crealShowVideoResult(data) {
+  document.getElementById('crealVideoLoading').style.display = 'none';
+  document.getElementById('crealVideoResult').style.display = 'block';
+  const player = document.getElementById('crealVideoPlayer');
+  const dlBtn = document.getElementById('crealDownloadBtn');
+  if (data.renderUrl) {
+    player.innerHTML = `<video controls style="max-width:100%;max-height:480px;border-radius:8px" src="${data.renderUrl}"></video>`;
+    if (dlBtn) { dlBtn.href = data.renderUrl; dlBtn.style.display = 'inline-flex'; }
+  } else if (data.provider === 'demo') {
+    player.innerHTML = `<div style="padding:40px 20px;text-align:center"><div style="font-size:32px;margin-bottom:12px">🎬</div><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Demo — sin API keys</div><div style="font-size:12px;color:var(--muted);line-height:1.5">Conectá <strong>CREATOMATE_API_KEY</strong> en Vercel para generar videos reales.<br>El guión está listo para grabar manualmente.</div></div>`;
+    if (dlBtn) dlBtn.style.display = 'none';
+  } else {
+    player.innerHTML = `<div style="padding:40px 20px;text-align:center"><div style="font-size:13px;color:var(--muted)">Video procesando — revisá tu panel de ${data.provider || 'Creatomate'} en unos minutos.</div></div>`;
+    if (dlBtn) dlBtn.style.display = 'none';
+  }
+  notify('✓ Video generado');
+}
+
+async function crealGetViralScore() {
+  const btn = document.getElementById('crealScoreBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Analizando...'; }
+  const script = _crealData.selectedScript || {};
+  try {
+    const r = await fetch('/api/crealo/viral-score', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ script, product: _crealData.product, angle: _crealData.angle })
+    });
+    const data = await r.json();
+    if (data.error) { notify('Error: ' + data.error); return; }
+    const ring = document.getElementById('crealScoreRing');
+    if (ring) {
+      ring.textContent = data.score ? data.score.toFixed(1) : '—';
+      ring.style.borderColor = data.score >= 7 ? 'var(--green)' : data.score >= 5 ? 'var(--gold)' : 'var(--coral)';
+      ring.style.color = data.score >= 7 ? 'var(--green)' : data.score >= 5 ? 'var(--gold)' : 'var(--coral)';
+    }
+    const strengthsEl = document.getElementById('crealStrengths');
+    if (strengthsEl) strengthsEl.innerHTML = (data.strengths || []).map(s => `<div style="font-size:11px;color:var(--muted2);display:flex;gap:6px"><span style="color:var(--green)">✓</span>${s}</div>`).join('');
+    const impEl = document.getElementById('crealImprovements');
+    if (impEl) impEl.innerHTML = (data.improvements || []).map(s => `<div style="font-size:11px;color:var(--muted2);display:flex;gap:6px"><span style="color:var(--gold)">→</span>${s}</div>`).join('');
+    const tipsEl = document.getElementById('crealAlgorithmTips');
+    if (tipsEl) tipsEl.innerHTML = (data.algorithmTips || []).map(s => `<div style="font-size:11px;color:var(--muted2);display:flex;gap:6px"><span style="color:var(--blue)">💡</span>${s}</div>`).join('');
+    document.getElementById('crealScoreDetails').style.display = 'block';
+    notify('✓ Score viral calculado');
+  } catch (e) {
+    notify('Error: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '✨ Analizar'; }
+  }
+}
+
+function crealPublishToMeta() {
+  if (!_activeWsId) { notify('Entrá a un proyecto primero'); return; }
+  navigate('meta');
+  setTimeout(() => notify('Seleccioná una cuenta y creá un anuncio con tu video'), 500);
+}
 </script>
 
 <!-- ══ COMMAND PALETTE ══ -->

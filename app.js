@@ -1356,6 +1356,323 @@ app.post("/api/meta/ad/create", async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
+// ── Crealo — AI UGC Video Creation ──────────────────────────────────────────
+const Anthropic = require('@anthropic-ai/sdk')
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' })
+const CREATOMATE_KEY = () => process.env.CREATOMATE_API_KEY || ''
+const HEYGEN_KEY = () => process.env.HEYGEN_API_KEY || ''
+
+// POST /api/crealo/analyze-product — fetch URL, extract OG/meta tags
+app.post('/api/crealo/analyze-product', async (req, res) => {
+  const { url } = req.body
+  if (!url) return res.status(400).json({ error: 'URL requerida' })
+  try {
+    const r = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Veldos/1.0)' },
+      signal: AbortSignal.timeout(8000)
+    })
+    if (!r.ok) return res.status(400).json({ error: 'No se pudo acceder a la URL (status ' + r.status + ')' })
+    const html = await r.text()
+
+    const ogGet = (prop) => {
+      const m = html.match(new RegExp(`<meta[^>]+(?:property|name)=["'](?:og:)?${prop}["'][^>]+content=["']([^"']+)["']`, 'i'))
+        || html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:)?${prop}["']`, 'i'))
+      return m ? m[1].trim() : ''
+    }
+
+    const titleTag = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+    const title = ogGet('title') || (titleTag ? titleTag[1].trim() : '') || ''
+    const description = ogGet('description') || ''
+    const imageUrl = ogGet('image') || ''
+
+    // Try to find price in JSON-LD or meta
+    let price = ''
+    const ldMatch = html.match(/"price"\s*:\s*"?([0-9.,]+)"?/)
+    if (ldMatch) price = ldMatch[1]
+    const priceMetaMatch = html.match(/content=["']([0-9.,]+)["'][^>]+(?:property|name)=["'][^"']*price[^"']*["']/i)
+      || html.match(/(?:property|name)=["'][^"']*price[^"']*["'][^>]+content=["']([0-9.,]+)["']/i)
+    if (!price && priceMetaMatch) price = priceMetaMatch[1]
+
+    res.json({ title, description, price, imageUrl, url })
+  } catch (e) {
+    if (e.name === 'TimeoutError') return res.status(400).json({ error: 'La URL tardó demasiado en responder' })
+    res.status(400).json({ error: 'No se pudo analizar la URL: ' + e.message })
+  }
+})
+
+// POST /api/crealo/generate-script — generate 3 UGC script variants with Claude
+app.post('/api/crealo/generate-script', async (req, res) => {
+  const { product, angle, duration, tone, language } = req.body
+  if (!product || !angle) return res.status(400).json({ error: 'product y angle son requeridos' })
+  if (!process.env.ANTHROPIC_API_KEY) return res.status(400).json({ error: 'ANTHROPIC_API_KEY no configurada' })
+
+  const prompt = `Sos un director creativo especializado en UGC ads de alto rendimiento para Meta e Instagram.
+Generá 3 variaciones de guión para un video de ${duration || 30} segundos.
+
+PRODUCTO: ${product.title || 'Sin nombre'}
+DESCRIPCIÓN: ${product.description || 'Sin descripción'}
+PRECIO: ${product.price || 'No especificado'}
+ÁNGULO: ${angle}
+TONO: ${tone || 'Casual y cercano'}
+IDIOMA: ${language || 'Español (Argentina)'}
+
+Para cada variación generá:
+1. HOOK (primeros 3 segundos — debe generar pattern interrupt y detener el scroll)
+2. DESARROLLO (el mensaje central, natural, conversacional)
+3. CTA (llamada a la acción clara y específica)
+
+Reglas de ORO para UGC ads que funcionan:
+- El hook NUNCA empieza con "Hola" o presentación
+- Hablá directamente al dolor/deseo del cliente
+- Usá lenguaje natural, no corporativo
+- El CTA debe crear urgencia real
+- Adaptá al idioma y cultura especificada
+- Estimá duración real en segundos
+
+Respondé SOLO con JSON válido:
+{
+  "scripts": [
+    { "hook": "...", "body": "...", "cta": "...", "estimatedSeconds": 30 },
+    { "hook": "...", "body": "...", "cta": "...", "estimatedSeconds": 28 },
+    { "hook": "...", "body": "...", "cta": "...", "estimatedSeconds": 32 }
+  ]
+}`
+
+  try {
+    const message = await anthropic.messages.create({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 1500,
+      messages: [{ role: 'user', content: prompt }]
+    })
+    const text = message.content[0].text
+    const jsonMatch = text.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) return res.status(500).json({ error: 'Claude no devolvió JSON válido' })
+    const data = JSON.parse(jsonMatch[0])
+    res.json(data)
+  } catch (e) {
+    res.status(500).json({ error: 'Error generando guión: ' + e.message })
+  }
+})
+
+// POST /api/crealo/generate-video — generate video via HeyGen or Creatomate
+app.post('/api/crealo/generate-video', async (req, res) => {
+  const { wsId, script, avatarId, voiceId, format = '9:16', music = 'none', product } = req.body
+  if (!script) return res.status(400).json({ error: 'script es requerido' })
+
+  const fullScript = [script.hook, script.body, script.cta].filter(Boolean).join(' ')
+
+  try {
+    let videoSourceUrl = null
+    let heygenVideoId = null
+
+    // Step 1: HeyGen if key available
+    if (HEYGEN_KEY() && avatarId && avatarId !== 'placeholder_1' && !avatarId.startsWith('placeholder_')) {
+      const dim = format === '9:16' ? { width: 1080, height: 1920 }
+        : format === '1:1' ? { width: 1080, height: 1080 }
+        : { width: 1920, height: 1080 }
+
+      const hRes = await fetch('https://api.heygen.com/v2/video/generate', {
+        method: 'POST',
+        headers: { 'X-Api-Key': HEYGEN_KEY(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          video_inputs: [{
+            character: { type: 'avatar', avatar_id: avatarId, avatar_style: 'normal' },
+            voice: { type: 'text', input_text: fullScript, voice_id: voiceId || '' }
+          }],
+          dimension: dim
+        })
+      })
+      const hData = await hRes.json()
+      if (hData.data?.video_id) heygenVideoId = hData.data.video_id
+    }
+
+    // Step 2: Creatomate — demo video or post-processing
+    if (CREATOMATE_KEY()) {
+      const w = format === '9:16' ? 1080 : format === '1:1' ? 1080 : 1920
+      const h = format === '9:16' ? 1920 : format === '1:1' ? 1080 : 1080
+      const bgColor = '#111111'
+
+      const elements = []
+      if (videoSourceUrl) {
+        elements.push({ type: 'video', source: videoSourceUrl, fit: 'cover', duration: 'auto' })
+      } else {
+        // Demo: text-on-background video
+        elements.push({ type: 'rectangle', width: '100%', height: '100%', fill_color: bgColor })
+        elements.push({
+          type: 'text', text: script.hook || '',
+          y: '35%', width: '85%', x_alignment: '50%',
+          font_size: '5 vmin', font_weight: '700', color: '#ffffff',
+          font_family: 'Montserrat'
+        })
+        elements.push({
+          type: 'text', text: script.body || '',
+          y: '55%', width: '80%', x_alignment: '50%',
+          font_size: '3.5 vmin', font_weight: '400', color: 'rgba(255,255,255,0.85)',
+          font_family: 'Montserrat'
+        })
+      }
+      elements.push({
+        type: 'text', text: script.cta || '',
+        y: '85%', width: '85%', x_alignment: '50%',
+        font_size: '6 vmin', font_weight: '700', color: '#ffffff',
+        background_color: 'rgba(41,121,255,0.85)',
+        background_x_padding: '8%', background_y_padding: '4%', border_radius: '8px',
+        font_family: 'Montserrat'
+      })
+
+      const ctRes = await fetch('https://api.creatomate.com/v1/renders', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + CREATOMATE_KEY(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ output_format: 'mp4', width: w, height: h, elements })
+      })
+      const ctData = await ctRes.json()
+      const render = Array.isArray(ctData) ? ctData[0] : ctData
+      return res.json({
+        videoId: heygenVideoId || render?.id || null,
+        renderId: render?.id || null,
+        renderStatus: render?.status || 'planned',
+        renderUrl: render?.url || null,
+        heygenVideoId,
+        provider: heygenVideoId ? 'heygen' : 'creatomate',
+        message: heygenVideoId
+          ? 'Video en proceso con HeyGen — verificá el estado con /api/crealo/video-status'
+          : 'Video en proceso con Creatomate — verificá el estado con /api/crealo/video-status'
+      })
+    }
+
+    // No keys — return demo response
+    res.json({
+      videoId: 'demo_' + Date.now(),
+      renderId: null,
+      renderStatus: 'demo',
+      renderUrl: null,
+      heygenVideoId: null,
+      provider: 'demo',
+      message: 'Demo: Conectá CREATOMATE_API_KEY y/o HEYGEN_API_KEY para generar videos reales.'
+    })
+  } catch (e) {
+    res.status(500).json({ error: 'Error generando video: ' + e.message })
+  }
+})
+
+// GET /api/crealo/avatars — list HeyGen avatars or return placeholders
+app.get('/api/crealo/avatars', async (req, res) => {
+  if (HEYGEN_KEY()) {
+    try {
+      const r = await fetch('https://api.heygen.com/v2/avatars', {
+        headers: { 'X-Api-Key': HEYGEN_KEY() }
+      })
+      const data = await r.json()
+      return res.json({ avatars: data.data?.avatars || [], source: 'heygen' })
+    } catch (e) {
+      // fall through to placeholders
+    }
+  }
+  const placeholderAvatars = [
+    { id: 'placeholder_1', name: 'Sofía', style: 'Casual', gender: 'female', preview: null },
+    { id: 'placeholder_2', name: 'Martín', style: 'Profesional', gender: 'male', preview: null },
+    { id: 'placeholder_3', name: 'Valentina', style: 'Energética', gender: 'female', preview: null },
+    { id: 'placeholder_4', name: 'Diego', style: 'Casual', gender: 'male', preview: null },
+    { id: 'placeholder_5', name: 'Camila', style: 'Profesional', gender: 'female', preview: null },
+    { id: 'placeholder_6', name: 'Lucas', style: 'Energético', gender: 'male', preview: null }
+  ]
+  res.json({ avatars: placeholderAvatars, source: 'placeholder' })
+})
+
+// GET /api/crealo/video-status — poll HeyGen or Creatomate for render status
+app.get('/api/crealo/video-status', async (req, res) => {
+  const { videoId, provider = 'creatomate', renderId } = req.query
+  if (!videoId) return res.status(400).json({ error: 'videoId requerido' })
+
+  try {
+    if (provider === 'heygen' && HEYGEN_KEY()) {
+      const r = await fetch(`https://api.heygen.com/v1/video_status.get?video_id=${videoId}`, {
+        headers: { 'X-Api-Key': HEYGEN_KEY() }
+      })
+      const data = await r.json()
+      const status = data.data?.status || 'processing'
+      return res.json({
+        status: status === 'completed' ? 'completed' : status === 'failed' ? 'failed' : 'processing',
+        videoUrl: data.data?.video_url || null,
+        progress: data.data?.progress || 0
+      })
+    }
+
+    if ((provider === 'creatomate' || !provider) && CREATOMATE_KEY()) {
+      const id = renderId || videoId
+      const r = await fetch(`https://api.creatomate.com/v1/renders/${id}`, {
+        headers: { 'Authorization': 'Bearer ' + CREATOMATE_KEY() }
+      })
+      const data = await r.json()
+      return res.json({
+        status: data.status === 'succeeded' ? 'completed' : data.status === 'failed' ? 'failed' : 'processing',
+        videoUrl: data.url || null,
+        progress: data.status === 'succeeded' ? 100 : 50
+      })
+    }
+
+    // Demo mode
+    res.json({ status: 'completed', videoUrl: null, progress: 100, demo: true })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// POST /api/crealo/viral-score — Claude analyzes the script and returns a viral score
+app.post('/api/crealo/viral-score', async (req, res) => {
+  const { script, product, angle } = req.body
+  if (!script) return res.status(400).json({ error: 'script es requerido' })
+  if (!process.env.ANTHROPIC_API_KEY) return res.status(400).json({ error: 'ANTHROPIC_API_KEY no configurada' })
+
+  const prompt = `Sos un experto en performance marketing en Meta e Instagram.
+Analizá este guión UGC y devolvé un análisis de viralidad.
+
+GUIÓN:
+Hook: ${script.hook || ''}
+Desarrollo: ${script.body || ''}
+CTA: ${script.cta || ''}
+
+PRODUCTO: ${product?.title || 'Sin especificar'}
+ÁNGULO: ${angle || 'Sin especificar'}
+
+Analizá según:
+1. Fuerza del hook (0-10)
+2. Claridad del mensaje (0-10)
+3. Urgencia del CTA (0-10)
+4. Adecuación al algoritmo de Meta/Instagram (0-10)
+
+Respondé SOLO con JSON válido:
+{
+  "score": 7.5,
+  "strengths": ["Punto fuerte 1", "Punto fuerte 2"],
+  "improvements": ["Mejora 1", "Mejora 2"],
+  "algorithmTips": [
+    "Los Reels de 7-15 segundos tienen mayor tasa de visualización completa",
+    "El hook en los primeros 3 segundos determina el 80% del rendimiento",
+    "Videos con subtítulos tienen 40% más retención (85% ve sin sonido)",
+    "Mostrá el producto en uso real antes del segundo 5",
+    "Terminá con una pregunta o CTA que invite a comentar"
+  ]
+}`
+
+  try {
+    const message = await anthropic.messages.create({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 800,
+      messages: [{ role: 'user', content: prompt }]
+    })
+    const text = message.content[0].text
+    const jsonMatch = text.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) return res.status(500).json({ error: 'Claude no devolvió JSON válido' })
+    res.json(JSON.parse(jsonMatch[0]))
+  } catch (e) {
+    res.status(500).json({ error: 'Error analizando guión: ' + e.message })
+  }
+})
+
 // SPA catch-all: any unmatched GET serves the app (hash router handles client routing)
 app.get('*', serveApp)
 
