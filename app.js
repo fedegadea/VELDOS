@@ -899,7 +899,7 @@ app.get("/api/meta/oauth/start", (req, res) => {
   if (!wsId) return res.status(400).send("wsId requerido")
   if (!META_APP_ID()) return res.status(500).send("META_APP_ID no configurado en el servidor")
   const redirectUri = encodeURIComponent(`${APP_BASE_URL()}/api/meta/oauth/callback`)
-  const scope = encodeURIComponent("ads_read,ads_management,business_management,pages_show_list,pages_manage_ads,instagram_basic")
+  const scope = encodeURIComponent("ads_read,ads_management,business_management,pages_show_list,pages_manage_ads")
   // state = wsId so we know which workspace to update after callback
   const state = encodeURIComponent(wsId)
   const url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${META_APP_ID()}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}&response_type=code`
