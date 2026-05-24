@@ -3366,7 +3366,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
       <span style="background:rgba(52,199,123,.1);border:1px solid rgba(52,199,123,.25);color:var(--green);font-size:12px;padding:6px 16px;border-radius:20px;font-weight:500">✍️ Guión optimizado</span>
       <span style="background:rgba(201,180,138,.1);border:1px solid rgba(201,180,138,.25);color:var(--gold);font-size:12px;padding:6px 16px;border-radius:20px;font-weight:500">📤 Publicá directo en Meta</span>
     </div>
-    <button class="btn btn-primary" style="font-size:15px;padding:14px 36px;border-radius:12px;font-weight:700" onclick="crealShowApp()">Empezar gratis →</button>
+    <button class="btn btn-primary" style="font-size:15px;padding:14px 36px;border-radius:12px;font-weight:700" onclick="crealLandingCTA()">Empezar gratis →</button>
     <div style="margin-top:48px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:760px;width:100%">
       <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:14px;padding:24px 20px;text-align:left">
         <div style="font-size:24px;margin-bottom:12px">🎯</div>
@@ -4214,6 +4214,18 @@ async function initState(){
     _authUser=session.user;
     _authToken=session.access_token;
   } else {
+    // Sin sesión — excepción: /crealo es landing pública, no requiere auth
+    if(location.pathname==='/crealo'){
+      // Mostrar landing de Crealo sin auth
+      document.getElementById('ws-overlay')?.classList.add('hidden');
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      document.getElementById('page-crealo')?.classList.add('active');
+      const landing=document.getElementById('crealo-landing');
+      const app=document.getElementById('crealo-app');
+      if(landing)landing.style.display='flex';
+      if(app)app.style.display='none';
+      return;
+    }
     // Sin sesión: si están en / o ruta de sección, mandar a /login
     if(location.pathname!=='/login'){
       try{history.replaceState({},'','/login');}catch(e){}
@@ -13888,6 +13900,23 @@ function initCrealoPage() {
   const musicSel = document.getElementById('crealMusic');
   if (musicCb && musicSel) {
     musicCb.onchange = () => { musicSel.disabled = !musicCb.checked; };
+  }
+}
+
+function crealLandingCTA(){
+  // Si hay sesión activa → ir directo al wizard
+  if(_authUser||_authToken){
+    crealShowApp();
+  } else {
+    // Sin sesión → login con redirect de vuelta a /crealo
+    try{history.replaceState({},'','/login');}catch(e){}
+    document.getElementById('auth-screen').style.display='flex';
+    document.getElementById('ws-overlay')?.classList.remove('hidden');
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    _proceedAfterAuth=async()=>{
+      try{history.replaceState({},'','/crealo');}catch(e){}
+      await checkSubscriptionAndProceed();
+    };
   }
 }
 
