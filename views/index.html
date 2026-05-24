@@ -6643,7 +6643,7 @@ async function _reloadWorkspaceFromServer(wsId, cb){
 }
 
 function _renderAccountRow(a){
-  const rawId=(a.account_id||a.id||'').replace('act_','');
+  const rawId=a.rawId||(a.account_id||a.id||'').replace('act_','');
   return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;cursor:pointer;transition:border-color .15s" onmouseenter="this.style.borderColor='var(--gold)'" onmouseleave="this.style.borderColor='var(--border)'" onclick="_selectMetaAccount('${rawId}','${a.name.replace(/'/g,"\\'")}',this)">
     <div style="min-width:0">
       <div style="font-size:13px;font-weight:600;color:var(--text)">${a.name}</div>

@@ -840,13 +840,14 @@ app.get("/api/meta/oauth/callback", async (req, res) => {
     const meRes = await fetch(`https://graph.facebook.com/v21.0/me?fields=id,name&access_token=${accessToken}`)
     const me = await meRes.json()
 
-    // Get their ad accounts (only proper ad accounts — numeric IDs, active status)
+    // Get their ad accounts — exclude only explicitly disabled/closed accounts
+    const DEAD_STATUSES_OAUTH = new Set([2, 101]) // DISABLED, CLOSED
     const accsRes = await fetch(`https://graph.facebook.com/v21.0/me/adaccounts?fields=id,name,account_status,currency,account_id&limit=100&access_token=${accessToken}`)
     const accsData = await accsRes.json()
     const adAccounts = (accsData.data || []).filter(a => {
-      if (a.account_status !== 1) return false // only ACTIVE
+      if (DEAD_STATUSES_OAUTH.has(a.account_status)) return false
       const rawId = a.account_id || (a.id || "").replace("act_", "")
-      return rawId && /^\d+$/.test(rawId) // must have numeric account_id
+      return rawId && /^\d+$/.test(rawId)
     })
 
     // Save token + user info + ad accounts list in workspace
@@ -895,44 +896,45 @@ app.get("/api/meta/adaccounts", async (req, res) => {
     if (!meta?.accessToken) return res.status(400).json({ error: "Meta no conectado" })
     const token = meta.accessToken
 
-    // Helper: filter to only proper ad accounts (numeric ID, active status)
-    const filterAdAccounts = (list) => (list || []).filter(a => {
-      if (a.account_status !== 1) return false
-      const rawId = a.account_id || (a.id || "").replace("act_", "")
-      return rawId && /^\d+$/.test(rawId)
-    })
+    // Helper: normalise an account object — always set rawId and exclude truly closed/disabled
+    const DEAD_STATUSES = new Set([2, 101]) // DISABLED, CLOSED
+    const normaliseAccount = (a) => {
+      const rawId = (a.account_id || (a.id || "").replace("act_", "")).toString()
+      if (!rawId || !/^\d+$/.test(rawId)) return null          // not a real ad account
+      if (DEAD_STATUSES.has(a.account_status)) return null     // disabled or closed
+      return { ...a, rawId }
+    }
+    const filterAdAccounts = (list) => (list || []).map(normaliseAccount).filter(Boolean)
 
     // 1. Personal ad accounts (direct access)
     const personalRes = await fetch(`https://graph.facebook.com/v21.0/me/adaccounts?fields=id,name,account_status,currency,account_id&limit=100&access_token=${token}`)
     const personalData = await personalRes.json()
     const personalAccounts = filterAdAccounts(personalData.data || [])
 
-    // 2. Business Portfolios (Portafolios Comerciales) with their owned ad accounts
-    const bizRes = await fetch(`https://graph.facebook.com/v21.0/me/businesses?fields=id,name,owned_ad_accounts{id,name,account_status,currency,account_id},client_ad_accounts{id,name,account_status,currency,account_id}&limit=50&access_token=${token}`)
+    // 2. Business Portfolios (Portafolios Comerciales) with their owned/client ad accounts
+    // Note: account_id is NOT a valid sub-field for nested account queries — derive from id
+    const bizRes = await fetch(`https://graph.facebook.com/v21.0/me/businesses?fields=id,name,owned_ad_accounts{id,name,account_status,currency},client_ad_accounts{id,name,account_status,currency}&limit=50&access_token=${token}`)
     const bizData = await bizRes.json()
     const businesses = (bizData.data || []).map(b => {
       const owned = filterAdAccounts(b.owned_ad_accounts?.data || [])
       const client = filterAdAccounts(b.client_ad_accounts?.data || [])
-      // Merge, deduplicate by account_id
+      // Merge, deduplicate by rawId
       const seen = new Set()
       const accs = [...owned, ...client].filter(a => {
-        const id = a.account_id || a.id
-        if (seen.has(id)) return false
-        seen.add(id); return true
+        if (seen.has(a.rawId)) return false
+        seen.add(a.rawId); return true
       })
       return { id: b.id, name: b.name, adAccounts: accs }
     }).filter(b => b.adAccounts.length > 0)
 
-    // 3. Build a flat deduped list (business accounts + personal, no duplicates)
+    // 3. Build a flat deduped list (business accounts first, then personal extras)
     const allIds = new Set()
     const allAccounts = []
     businesses.forEach(b => b.adAccounts.forEach(a => {
-      const id = a.account_id || (a.id || "").replace("act_", "")
-      if (!allIds.has(id)) { allIds.add(id); allAccounts.push({ ...a, businessName: b.name, businessId: b.id }) }
+      if (!allIds.has(a.rawId)) { allIds.add(a.rawId); allAccounts.push({ ...a, businessName: b.name, businessId: b.id }) }
     }))
     personalAccounts.forEach(a => {
-      const id = a.account_id || (a.id || "").replace("act_", "")
-      if (!allIds.has(id)) { allIds.add(id); allAccounts.push(a) }
+      if (!allIds.has(a.rawId)) { allIds.add(a.rawId); allAccounts.push(a) }
     })
 
     res.json({ accounts: allAccounts, businesses, personalAccounts })
