@@ -637,6 +637,30 @@ app.get("/api/meta/campaigns", async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
+// Update campaign budget
+app.post("/api/meta/campaign/budget", async (req, res) => {
+  const { wsId, campaignId, dailyBudget, lifetimeBudget } = req.body
+  if (!wsId || !campaignId || (dailyBudget == null && lifetimeBudget == null)) {
+    return res.status(400).json({ error: "wsId, campaignId y dailyBudget o lifetimeBudget requeridos" })
+  }
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.accessToken) return res.status(400).json({ error: "Meta Ads no conectado" })
+    const body = { access_token: meta.accessToken }
+    if (dailyBudget != null) body.daily_budget = String(Math.round(dailyBudget * 100)) // Meta uses cents as string
+    if (lifetimeBudget != null) body.lifetime_budget = String(Math.round(lifetimeBudget * 100))
+    const r = await fetch(`https://graph.facebook.com/v21.0/${campaignId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    })
+    const data = await r.json()
+    if (data.error) return res.status(400).json({ error: data.error.message })
+    res.json({ ok: true, campaignId, dailyBudget, lifetimeBudget })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
 // Pause or enable a campaign
 app.post("/api/meta/campaign/action", async (req, res) => {
   const { wsId, campaignId, action } = req.body // action: "PAUSED" | "ACTIVE"
@@ -816,10 +840,14 @@ app.get("/api/meta/oauth/callback", async (req, res) => {
     const meRes = await fetch(`https://graph.facebook.com/v21.0/me?fields=id,name&access_token=${accessToken}`)
     const me = await meRes.json()
 
-    // Get their ad accounts
-    const accsRes = await fetch(`https://graph.facebook.com/v21.0/me/adaccounts?fields=id,name,account_status,currency,account_id&limit=50&access_token=${accessToken}`)
+    // Get their ad accounts (only proper ad accounts — numeric IDs, active status)
+    const accsRes = await fetch(`https://graph.facebook.com/v21.0/me/adaccounts?fields=id,name,account_status,currency,account_id&limit=100&access_token=${accessToken}`)
     const accsData = await accsRes.json()
-    const adAccounts = (accsData.data || []).filter(a => a.account_status === 1) // 1 = ACTIVE
+    const adAccounts = (accsData.data || []).filter(a => {
+      if (a.account_status !== 1) return false // only ACTIVE
+      const rawId = a.account_id || (a.id || "").replace("act_", "")
+      return rawId && /^\d+$/.test(rawId) // must have numeric account_id
+    })
 
     // Save token + user info + ad accounts list in workspace
     const ws = await getWorkspace(wsId)
@@ -864,12 +892,26 @@ app.get("/api/meta/adaccounts", async (req, res) => {
     const ws = await getWorkspace(wsId)
     const meta = ws?.data?.metaIntegration
     if (!meta?.accessToken) return res.status(400).json({ error: "Meta no conectado" })
-    // Return pending accounts if already fetched, otherwise re-fetch
-    if (meta.pendingAdAccounts) return res.json({ accounts: meta.pendingAdAccounts })
-    const r = await fetch(`https://graph.facebook.com/v21.0/me/adaccounts?fields=id,name,account_status,currency,account_id&limit=50&access_token=${meta.accessToken}`)
+
+    // Helper: filter to only proper ad accounts (must have numeric account_id or act_xxx id)
+    const filterAdAccounts = (list) => (list || []).filter(a => {
+      // Must be active (status 1)
+      if (a.account_status !== 1) return false
+      // Must have a proper ad account ID (act_xxx or numeric account_id)
+      const rawId = a.account_id || (a.id || "").replace("act_", "")
+      if (!rawId || !/^\d+$/.test(rawId)) return false
+      return true
+    })
+
+    // Return pending accounts if already fetched (filtered)
+    if (meta.pendingAdAccounts?.length) {
+      return res.json({ accounts: filterAdAccounts(meta.pendingAdAccounts) })
+    }
+    // Fresh fetch from Meta API — only ad accounts endpoint
+    const r = await fetch(`https://graph.facebook.com/v21.0/me/adaccounts?fields=id,name,account_status,currency,account_id&limit=100&access_token=${meta.accessToken}`)
     const data = await r.json()
     if (data.error) return res.status(400).json({ error: data.error.message })
-    res.json({ accounts: (data.data || []).filter(a => a.account_status === 1) })
+    res.json({ accounts: filterAdAccounts(data.data) })
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
@@ -979,12 +1021,50 @@ app.get("/api/meta/pages", async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
-// Create a new ad (creative + ad)
+// Get Instagram posts for a Facebook page (for IG post ad creation)
+app.get("/api/meta/ig-posts", async (req, res) => {
+  const { wsId, pageId } = req.query
+  if (!wsId || !pageId) return res.status(400).json({ error: "wsId y pageId requeridos" })
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.accessToken) return res.status(400).json({ error: "Meta Ads no conectado" })
+    // Get IG Business Account linked to page
+    const igRes = await fetch(`https://graph.facebook.com/v21.0/${pageId}?fields=instagram_business_account&access_token=${meta.accessToken}`)
+    const igData = await igRes.json()
+    if (igData.error) return res.status(400).json({ error: igData.error.message })
+    const igUserId = igData.instagram_business_account?.id
+    if (!igUserId) return res.status(400).json({ error: "Esta página no tiene una cuenta de Instagram Business vinculada" })
+    // Get recent posts
+    const postsRes = await fetch(`https://graph.facebook.com/v21.0/${igUserId}/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp&limit=12&access_token=${meta.accessToken}`)
+    const postsData = await postsRes.json()
+    if (postsData.error) return res.status(400).json({ error: postsData.error.message })
+    res.json({ posts: postsData.data || [], igUserId })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// Create a new ad (creative + ad) — supports manual image or existing IG post
 app.post("/api/meta/ad/create", async (req, res) => {
-  const { wsId, adsetId, name, pageId, imageUrl, primaryText, headline, description, destinationUrl, ctaType = "SHOP_NOW", status = "PAUSED" } = req.body
-  if (!wsId || !adsetId || !name || !pageId || !imageUrl || !primaryText || !headline || !destinationUrl) {
-    return res.status(400).json({ error: "Faltan campos requeridos: adsetId, name, pageId, imageUrl, primaryText, headline, destinationUrl" })
+  const {
+    wsId, adsetId, name, pageId,
+    ctaType = "SHOP_NOW", status = "PAUSED", destinationUrl = "",
+    creativeType = "manual",
+    // Manual fields
+    imageUrl = "", primaryText = "", headline = "", description = "",
+    // IG post fields
+    igMediaId = "", igUserId = ""
+  } = req.body
+
+  if (!wsId || !adsetId || !name || !pageId) {
+    return res.status(400).json({ error: "Faltan campos requeridos: adsetId, name, pageId" })
   }
+  if (creativeType === "manual" && (!imageUrl || !primaryText || !headline || !destinationUrl)) {
+    return res.status(400).json({ error: "Para creativo manual: imageUrl, primaryText, headline y destinationUrl son requeridos" })
+  }
+  if (creativeType === "igpost" && !igMediaId) {
+    return res.status(400).json({ error: "Para publicación de Instagram: igMediaId es requerido" })
+  }
+
   try {
     const ws = await getWorkspace(wsId)
     const meta = ws?.data?.metaIntegration
@@ -992,22 +1072,36 @@ app.post("/api/meta/ad/create", async (req, res) => {
     const accountId = meta.adAccountId.startsWith("act_") ? meta.adAccountId : "act_" + meta.adAccountId
     const token = meta.accessToken
 
-    // Step 1: Create ad creative
-    const creativeBody = {
-      name: `${name} — creative`,
-      object_story_spec: {
-        page_id: pageId,
-        link_data: {
-          image_url: imageUrl,
-          message: primaryText,
-          name: headline,
-          ...(description ? { description } : {}),
-          link: destinationUrl,
-          call_to_action: { type: ctaType, value: { link: destinationUrl } }
-        }
-      },
-      access_token: token
+    // Build creative body based on type
+    let creativeBody
+    if (creativeType === "igpost") {
+      // Promote existing Instagram post as ad
+      creativeBody = {
+        name: `${name} — creative`,
+        source_instagram_media_id: igMediaId,
+        ...(igUserId ? { instagram_actor_id: igUserId } : {}),
+        access_token: token
+      }
+    } else {
+      // Manual image/video creative
+      creativeBody = {
+        name: `${name} — creative`,
+        object_story_spec: {
+          page_id: pageId,
+          link_data: {
+            image_url: imageUrl,
+            message: primaryText,
+            name: headline,
+            ...(description ? { description } : {}),
+            link: destinationUrl,
+            call_to_action: { type: ctaType, value: { link: destinationUrl } }
+          }
+        },
+        access_token: token
+      }
     }
+
+    // Step 1: Create ad creative
     const creativeRes = await fetch(`https://graph.facebook.com/v21.0/${accountId}/adcreatives`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
