@@ -885,6 +885,7 @@ app.get("/api/meta/oauth/callback", async (req, res) => {
 })
 
 // List ad accounts for selection (after OAuth with multiple accounts)
+// Returns both flat accounts list AND grouped by Business Portfolio
 app.get("/api/meta/adaccounts", async (req, res) => {
   const { wsId } = req.query
   if (!wsId) return res.status(400).json({ error: "wsId requerido" })
@@ -892,26 +893,49 @@ app.get("/api/meta/adaccounts", async (req, res) => {
     const ws = await getWorkspace(wsId)
     const meta = ws?.data?.metaIntegration
     if (!meta?.accessToken) return res.status(400).json({ error: "Meta no conectado" })
+    const token = meta.accessToken
 
-    // Helper: filter to only proper ad accounts (must have numeric account_id or act_xxx id)
+    // Helper: filter to only proper ad accounts (numeric ID, active status)
     const filterAdAccounts = (list) => (list || []).filter(a => {
-      // Must be active (status 1)
       if (a.account_status !== 1) return false
-      // Must have a proper ad account ID (act_xxx or numeric account_id)
       const rawId = a.account_id || (a.id || "").replace("act_", "")
-      if (!rawId || !/^\d+$/.test(rawId)) return false
-      return true
+      return rawId && /^\d+$/.test(rawId)
     })
 
-    // Return pending accounts if already fetched (filtered)
-    if (meta.pendingAdAccounts?.length) {
-      return res.json({ accounts: filterAdAccounts(meta.pendingAdAccounts) })
-    }
-    // Fresh fetch from Meta API — only ad accounts endpoint
-    const r = await fetch(`https://graph.facebook.com/v21.0/me/adaccounts?fields=id,name,account_status,currency,account_id&limit=100&access_token=${meta.accessToken}`)
-    const data = await r.json()
-    if (data.error) return res.status(400).json({ error: data.error.message })
-    res.json({ accounts: filterAdAccounts(data.data) })
+    // 1. Personal ad accounts (direct access)
+    const personalRes = await fetch(`https://graph.facebook.com/v21.0/me/adaccounts?fields=id,name,account_status,currency,account_id&limit=100&access_token=${token}`)
+    const personalData = await personalRes.json()
+    const personalAccounts = filterAdAccounts(personalData.data || [])
+
+    // 2. Business Portfolios (Portafolios Comerciales) with their owned ad accounts
+    const bizRes = await fetch(`https://graph.facebook.com/v21.0/me/businesses?fields=id,name,owned_ad_accounts{id,name,account_status,currency,account_id},client_ad_accounts{id,name,account_status,currency,account_id}&limit=50&access_token=${token}`)
+    const bizData = await bizRes.json()
+    const businesses = (bizData.data || []).map(b => {
+      const owned = filterAdAccounts(b.owned_ad_accounts?.data || [])
+      const client = filterAdAccounts(b.client_ad_accounts?.data || [])
+      // Merge, deduplicate by account_id
+      const seen = new Set()
+      const accs = [...owned, ...client].filter(a => {
+        const id = a.account_id || a.id
+        if (seen.has(id)) return false
+        seen.add(id); return true
+      })
+      return { id: b.id, name: b.name, adAccounts: accs }
+    }).filter(b => b.adAccounts.length > 0)
+
+    // 3. Build a flat deduped list (business accounts + personal, no duplicates)
+    const allIds = new Set()
+    const allAccounts = []
+    businesses.forEach(b => b.adAccounts.forEach(a => {
+      const id = a.account_id || (a.id || "").replace("act_", "")
+      if (!allIds.has(id)) { allIds.add(id); allAccounts.push({ ...a, businessName: b.name, businessId: b.id }) }
+    }))
+    personalAccounts.forEach(a => {
+      const id = a.account_id || (a.id || "").replace("act_", "")
+      if (!allIds.has(id)) { allIds.add(id); allAccounts.push(a) }
+    })
+
+    res.json({ accounts: allAccounts, businesses, personalAccounts })
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 

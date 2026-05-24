@@ -6642,14 +6642,25 @@ async function _reloadWorkspaceFromServer(wsId, cb){
   if(cb)cb();
 }
 
+function _renderAccountRow(a){
+  const rawId=(a.account_id||a.id||'').replace('act_','');
+  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;cursor:pointer;transition:border-color .15s" onmouseenter="this.style.borderColor='var(--gold)'" onmouseleave="this.style.borderColor='var(--border)'" onclick="_selectMetaAccount('${rawId}','${a.name.replace(/'/g,"\\'")}',this)">
+    <div style="min-width:0">
+      <div style="font-size:13px;font-weight:600;color:var(--text)">${a.name}</div>
+      <div style="font-size:11px;color:var(--muted)">ID: ${rawId} · ${a.currency||'ARS'}</div>
+    </div>
+    <button class="btn btn-sm btn-primary" style="flex-shrink:0;margin-left:10px">Elegir</button>
+  </div>`;
+}
+
 async function _openAccountSelector(){
   const overlay=document.getElementById('modal-overlay');
   if(!overlay)return;
-  overlay.innerHTML=`<div class="modal" id="modal-box" style="max-width:480px">
+  overlay.innerHTML=`<div class="modal" id="modal-box" style="max-width:500px">
     <div class="modal-head"><div class="modal-title">📘 Seleccioná tu cuenta publicitaria</div></div>
-    <div class="modal-body">
-      <p style="font-size:12px;color:var(--muted2);margin-bottom:16px">Encontramos múltiples cuentas asociadas a tu perfil. ¿Con cuál querés trabajar?</p>
-      <div id="meta-account-list"><div class="empty"><div class="e-icon">⏳</div><p>Cargando cuentas…</p></div></div>
+    <div class="modal-body" style="max-height:70vh;overflow-y:auto">
+      <p style="font-size:12px;color:var(--muted2);margin-bottom:16px">Elegí el portafolio comercial y la cuenta con la que querés trabajar.</p>
+      <div id="meta-account-list"><div class="empty"><div class="e-icon">⏳</div><p>Cargando portafolios…</p></div></div>
     </div>
   </div>`;
   overlay.classList.add('open');
@@ -6659,16 +6670,30 @@ async function _openAccountSelector(){
     if(!r.ok||d.error)throw new Error(d.error||'Error');
     const list=document.getElementById('meta-account-list');
     if(!list)return;
-    const accounts=d.accounts||[];
-    if(!accounts.length){list.innerHTML='<div class="empty"><p>Sin cuentas activas encontradas</p></div>';return;}
-    list.innerHTML=accounts.map(a=>`
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;transition:border-color .15s" onclick="_selectMetaAccount('${(a.account_id||a.id||'').replace('act_','')}','${a.name}',this)">
-        <div>
-          <div style="font-size:13px;font-weight:600;color:var(--text)">${a.name}</div>
-          <div style="font-size:11px;color:var(--muted)">ID: ${a.account_id||a.id} · ${a.currency||'ARS'}</div>
-        </div>
-        <button class="btn btn-sm btn-primary" style="flex-shrink:0">Seleccionar</button>
-      </div>`).join('');
+    const businesses=d.businesses||[];
+    const personal=d.personalAccounts||[];
+    const allAccounts=d.accounts||[];
+    if(!allAccounts.length){list.innerHTML='<div class="empty"><p>Sin cuentas activas encontradas</p></div>';return;}
+    let html='';
+    // Group by business portfolio
+    if(businesses.length){
+      businesses.forEach(biz=>{
+        html+=`<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:12px 0 6px;padding:0 2px">💼 ${biz.name}</div>`;
+        biz.adAccounts.forEach(a=>{html+=_renderAccountRow(a);});
+      });
+    }
+    // Personal accounts not in any business portfolio
+    const bizAccountIds=new Set(businesses.flatMap(b=>b.adAccounts.map(a=>a.account_id||a.id)));
+    const onlyPersonal=personal.filter(a=>!bizAccountIds.has(a.account_id||a.id));
+    if(onlyPersonal.length){
+      if(businesses.length)html+=`<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:12px 0 6px;padding:0 2px">👤 Personal</div>`;
+      onlyPersonal.forEach(a=>{html+=_renderAccountRow(a);});
+    }
+    // Fallback: no businesses, just flat list
+    if(!businesses.length&&!onlyPersonal.length){
+      allAccounts.forEach(a=>{html+=_renderAccountRow(a);});
+    }
+    list.innerHTML=html;
   }catch(e){
     const list=document.getElementById('meta-account-list');
     if(list)list.innerHTML=`<div class="empty"><p>⚠️ ${e.message}</p></div>`;
