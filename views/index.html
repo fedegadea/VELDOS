@@ -693,6 +693,67 @@ tr:hover .tx-del{color:var(--muted)}
 .meta-log-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:11px}
 .meta-log-row:last-child{border-bottom:none}
 
+/* ── META PRO PANEL ── */
+.meta-acct-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;gap:12px;flex-wrap:wrap;box-shadow:var(--shadow)}
+.meta-acct-info{display:flex;align-items:center;gap:10px}
+.meta-acct-avatar{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#1877f2,#0d5ebd);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;box-shadow:0 2px 10px rgba(24,119,242,.35)}
+.meta-acct-name{font-size:13px;font-weight:600;color:var(--text);line-height:1.2}
+.meta-acct-id{font-size:10px;color:var(--muted);font-weight:300}
+.meta-acct-synced{font-size:10px;color:var(--muted);font-weight:300}
+.meta-date-presets{display:flex;gap:4px;flex-wrap:wrap}
+.meta-date-btn{font-size:10px;padding:4px 10px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:var(--fb);transition:all .15s;white-space:nowrap}
+.meta-date-btn.active{background:rgba(41,121,255,.12);border-color:rgba(41,121,255,.3);color:var(--gold);font-weight:600}
+.meta-tier-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.meta-tier-tab{font-size:11px;padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:var(--fb);transition:all .15s;white-space:nowrap}
+.meta-tier-tab.active{border-color:rgba(41,121,255,.35);background:rgba(41,121,255,.1);color:var(--gold);font-weight:600}
+.meta-filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.meta-filter-select{font-size:11px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--s2);color:var(--text);font-family:var(--fb);cursor:pointer;outline:none;transition:border-color .2s}
+.meta-filter-select:focus{border-color:var(--gold)}
+.meta-filter-search{flex:1;min-width:180px;font-size:11px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--s2);color:var(--text);font-family:var(--fb);outline:none;transition:border-color .2s}
+.meta-filter-search:focus{border-color:var(--gold)}
+.meta-filter-search::placeholder{color:var(--muted)}
+.meta-score{display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;white-space:nowrap}
+.meta-score.winner{background:rgba(52,199,123,.15);color:var(--green);border:1px solid rgba(52,199,123,.25)}
+.meta-score.healthy{background:rgba(41,121,255,.12);color:#7ab3ff;border:1px solid rgba(41,121,255,.2)}
+.meta-score.attention{background:rgba(245,200,66,.12);color:#f5c842;border:1px solid rgba(245,200,66,.2)}
+.meta-score.stop{background:rgba(255,107,107,.12);color:var(--coral);border:1px solid rgba(255,107,107,.2)}
+.meta-toggle-wrap{display:flex;align-items:center;justify-content:center}
+.meta-toggle{position:relative;width:34px;height:18px;cursor:pointer}
+.meta-toggle input{opacity:0;width:0;height:0;position:absolute}
+.meta-toggle-slider{position:absolute;inset:0;border-radius:10px;background:var(--s3);border:1px solid var(--border2);transition:background .2s}
+.meta-toggle-slider::after{content:'';position:absolute;width:12px;height:12px;border-radius:50%;background:var(--muted2);top:2px;left:2px;transition:transform .2s,background .2s}
+.meta-toggle input:checked~.meta-toggle-slider{background:rgba(52,199,123,.25);border-color:rgba(52,199,123,.4)}
+.meta-toggle input:checked~.meta-toggle-slider::after{transform:translateX(16px);background:var(--green)}
+.meta-ctr-good{color:var(--green);font-weight:600}
+.meta-ctr-warn{color:#f5c842;font-weight:600}
+.meta-ctr-bad{color:var(--coral);font-weight:600}
+.meta-roas-good{color:var(--green);font-weight:600}
+.meta-roas-ok{color:#f5c842;font-weight:600}
+.meta-roas-bad{color:var(--coral);font-weight:600}
+.meta-freq-warn{color:#f5c842}
+.meta-drill-row td{padding:9px 14px 9px 28px;font-size:11px;color:var(--muted2);background:rgba(0,0,0,.15);border-bottom:1px solid var(--border)}
+.meta-expand-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:0 4px;transition:color .15s;line-height:1}
+.meta-expand-btn:hover{color:var(--gold)}
+.meta-pacing-bar{height:3px;border-radius:2px;background:var(--s3);overflow:hidden;width:50px;display:inline-block;vertical-align:middle;margin-left:4px}
+.meta-pacing-fill{height:3px;border-radius:2px;transition:width .4s}
+.meta-rules-section{margin-top:0}
+.meta-rule-card{display:flex;align-items:center;gap:12px;padding:13px 16px;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;gap:10px}
+.meta-rule-card:hover{border-color:var(--border2)}
+.meta-rule-name{font-weight:600;color:var(--text);font-size:12px;flex:1}
+.meta-rule-cond{font-size:11px;color:var(--muted2);font-weight:300}
+.meta-rule-badge{font-size:9px;padding:2px 8px;border-radius:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.meta-rule-badge.pause{background:rgba(255,107,107,.12);color:var(--coral);border:1px solid rgba(255,107,107,.2)}
+.meta-rule-badge.enable{background:rgba(52,199,123,.12);color:var(--green);border:1px solid rgba(52,199,123,.2)}
+.meta-rule-badge.notify{background:rgba(245,200,66,.12);color:#f5c842;border:1px solid rgba(245,200,66,.2)}
+.meta-rule-badge.scale{background:rgba(41,121,255,.12);color:#7ab3ff;border:1px solid rgba(41,121,255,.2)}
+.meta-rule-toggle{width:28px;height:15px;position:relative;cursor:pointer;flex-shrink:0}
+.meta-rule-toggle input{opacity:0;width:0;height:0;position:absolute}
+.meta-rule-toggle-sl{position:absolute;inset:0;border-radius:8px;background:var(--s3);border:1px solid var(--border2);transition:background .2s}
+.meta-rule-toggle-sl::after{content:'';position:absolute;width:9px;height:9px;border-radius:50%;background:var(--muted2);top:2px;left:2px;transition:transform .2s,background .2s}
+.meta-rule-toggle input:checked~.meta-rule-toggle-sl{background:rgba(52,199,123,.25);border-color:rgba(52,199,123,.4)}
+.meta-rule-toggle input:checked~.meta-rule-toggle-sl::after{transform:translateX(13px);background:var(--green)}
+.meta-last-fired{font-size:9px;color:var(--muted);font-weight:300}
+
 /* ── AREA DROPDOWN ── */
 .area-dropdown{position:relative}
 .area-btn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--muted2);font-family:var(--fb);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:5px 12px;border-radius:10px;cursor:pointer;transition:all .15s;font-weight:500}
@@ -2980,30 +3041,116 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
         <div class="form-group"><label class="form-label">Access Token <a href="https://developers.facebook.com/tools/explorer/" target="_blank" style="color:var(--gold);font-size:10px;margin-left:6px">→ Obtener token</a></label><input class="form-input" id="meta-token-input" placeholder="EAAxxxxx…" style="font-family:monospace;font-size:11px"></div>
         <div class="form-group"><label class="form-label">Ad Account ID</label><input class="form-input" id="meta-account-input" placeholder="act_1234567890 o solo los números"></div>
         <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="connectMetaAds()">Conectar cuenta</button>
-        <p style="font-size:10px;color:var(--muted);margin-top:12px;line-height:1.6">Permisos necesarios en el token: <strong>ads_read</strong>, <strong>read_insights</strong>. Tu token se guarda de forma segura en tu workspace.</p>
+        <p style="font-size:10px;color:var(--muted);margin-top:12px;line-height:1.6">Permisos necesarios en el token: <strong>ads_read</strong>, <strong>read_insights</strong>, <strong>ads_management</strong>. Tu token se guarda de forma segura en tu workspace.</p>
       </div>
     </div>
 
-    <!-- Dashboard de ads -->
+    <!-- ── PRO DASHBOARD ── -->
     <div id="meta-ads-dash" style="display:none">
-      <div class="meta-kpi-row" id="meta-kpi-row"></div>
-      <div class="fin-card">
-        <div class="fin-card-head">
-          <div class="fin-card-title">Campañas — últimos 30 días</div>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-sm" onclick="syncMetaAds()">↺ Sincronizar</button>
-            <button class="btn btn-sm btn-danger" onclick="disconnectMetaAds()">Desconectar</button>
+
+      <!-- Account bar + date presets -->
+      <div class="meta-acct-bar">
+        <div class="meta-acct-info">
+          <div class="meta-acct-avatar">📘</div>
+          <div>
+            <div class="meta-acct-name" id="meta-acct-name">Mi cuenta</div>
+            <div class="meta-acct-id" id="meta-acct-id"></div>
           </div>
+          <span class="meta-acct-synced" id="meta-acct-synced" style="margin-left:8px"></span>
         </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div class="meta-date-presets" id="meta-date-presets">
+            <button class="meta-date-btn" onclick="_metaSetDatePreset('last_7d',this)">7D</button>
+            <button class="meta-date-btn" onclick="_metaSetDatePreset('last_14d',this)">14D</button>
+            <button class="meta-date-btn active" onclick="_metaSetDatePreset('last_30d',this)">30D</button>
+            <button class="meta-date-btn" onclick="_metaSetDatePreset('last_90d',this)">90D</button>
+          </div>
+          <button class="btn btn-sm" onclick="syncMetaAds()" id="meta-sync-btn">↺ Sincronizar</button>
+          <button class="btn btn-sm btn-danger" onclick="disconnectMetaAds()">Desconectar</button>
+        </div>
+      </div>
+
+      <!-- KPI row -->
+      <div class="meta-kpi-row" id="meta-kpi-row" style="margin-bottom:16px"></div>
+
+      <!-- Tier tabs -->
+      <div class="meta-tier-tabs" id="meta-tier-tabs">
+        <button class="meta-tier-tab active" onclick="_metaSetTierFilter('all',this)">📋 Todas</button>
+        <button class="meta-tier-tab" onclick="_metaSetTierFilter('winner',this)">🔥 Ganadoras</button>
+        <button class="meta-tier-tab" onclick="_metaSetTierFilter('healthy',this)">✅ Saludables</button>
+        <button class="meta-tier-tab" onclick="_metaSetTierFilter('attention',this)">⚠️ Atención</button>
+        <button class="meta-tier-tab" onclick="_metaSetTierFilter('stop',this)">🔴 Detener</button>
+        <button class="meta-tier-tab" onclick="_metaSetTierFilter('rules',this)">🤖 Reglas auto</button>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="meta-filter-bar" id="meta-filter-bar">
+        <select class="meta-filter-select" id="meta-filter-status" onchange="renderMetaAds()">
+          <option value="ALL">Estado: Todos</option>
+          <option value="ACTIVE">✅ Activas</option>
+          <option value="PAUSED">⏸️ Pausadas</option>
+          <option value="ARCHIVED">📦 Archivadas</option>
+        </select>
+        <select class="meta-filter-select" id="meta-filter-obj" onchange="renderMetaAds()">
+          <option value="ALL">Objetivo: Todos</option>
+          <option value="OUTCOME_SALES">Ventas</option>
+          <option value="OUTCOME_LEADS">Leads</option>
+          <option value="OUTCOME_TRAFFIC">Tráfico</option>
+          <option value="OUTCOME_AWARENESS">Reconocimiento</option>
+          <option value="OUTCOME_ENGAGEMENT">Interacción</option>
+        </select>
+        <select class="meta-filter-select" id="meta-filter-sort" onchange="renderMetaAds()">
+          <option value="score">Ordenar: Score</option>
+          <option value="spend">Mayor gasto</option>
+          <option value="roas">Mayor ROAS</option>
+          <option value="ctr">Mayor CTR</option>
+          <option value="cpa">Menor CPA</option>
+          <option value="name">Nombre A→Z</option>
+        </select>
+        <input class="meta-filter-search" id="meta-filter-search" placeholder="🔎 Buscar campaña…" oninput="renderMetaAds()">
+      </div>
+
+      <!-- Campaign table panel -->
+      <div class="fin-card" id="meta-campaigns-panel">
         <div style="overflow-x:auto">
           <table class="meta-table" id="meta-campaigns-table">
             <thead><tr>
-              <th>Campaña</th><th>Estado</th><th>Gasto</th><th>Impresiones</th><th>Clics</th><th>CTR</th><th>CPC</th><th>Conversiones</th><th>ROAS</th>
+              <th style="width:28px"></th>
+              <th>Campaña</th>
+              <th>Score</th>
+              <th>Estado</th>
+              <th>Presupuesto</th>
+              <th>Gasto</th>
+              <th>Alcance</th>
+              <th>Freq.</th>
+              <th>CTR</th>
+              <th>CPC</th>
+              <th>CPM</th>
+              <th>Conv.</th>
+              <th>CPA</th>
+              <th>ROAS</th>
+              <th>Acción</th>
             </tr></thead>
             <tbody id="meta-campaigns-body"></tbody>
           </table>
         </div>
       </div>
+
+      <!-- Rules panel (shown when tier=rules) -->
+      <div id="meta-rules-panel" style="display:none" class="meta-rules-section">
+        <div class="fin-card">
+          <div class="fin-card-head">
+            <div class="fin-card-title">🤖 Reglas de automatización</div>
+            <button class="btn btn-sm btn-primary" onclick="openMetaRuleModal()">+ Nueva regla</button>
+          </div>
+          <div style="padding:16px 20px">
+            <p style="font-size:11px;color:var(--muted2);margin-bottom:16px;line-height:1.6">Las reglas se evalúan automáticamente al sincronizar campañas. Podés pausar, activar, escalar presupuesto o recibir una notificación según la métrica que elijas.</p>
+            <div id="meta-rules-list"></div>
+            <div id="meta-rules-empty" style="display:none" class="empty" style="padding:32px"><div class="e-icon">🤖</div><p>No hay reglas configuradas.<br>Creá una para automatizar tus campañas.</p></div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -3265,7 +3412,7 @@ let _activePlanTab='calendario';
 let _pendingBriefId=null;
 
 function defaultData(){
-  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},ideas:[],semana:{},estrategia:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[],flows:[],flowDone:{},tnProductCost:{},pilares:[],ofertasPlantilla:[],cuentas:[],progTargets:{briefs:7,canjes:7,collabs:4,cal:10},metaIntegration:null,metaAdsCache:null,waLog:[]};
+  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},ideas:[],semana:{},estrategia:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[],flows:[],flowDone:{},tnProductCost:{},pilares:[],ofertasPlantilla:[],cuentas:[],progTargets:{briefs:7,canjes:7,collabs:4,cal:10},metaIntegration:null,metaAdsCache:null,waLog:[],metaRules:[]};
 }
 
 function _localLoad(){
@@ -3301,6 +3448,7 @@ function _enterWorkspace(ws){
   if(!S.cuentas)S.cuentas=[];
   if(!S.progTargets)S.progTargets={briefs:7,canjes:7,collabs:4,cal:10};
   if(!S.waLog)S.waLog=[];
+  if(!S.metaRules)S.metaRules=[];
   initCashflow();
   WORKSPACES.active=ws.id;
   _localSave();
@@ -6178,6 +6326,9 @@ function renderIntegraciones(){
 // ══════════════════════════════════════════════════════════
 
 let _metaCurrentTab='ads';
+let _metaDatePreset='last_30d';
+let _metaTierFilter='all';
+let _metaExpandedCampaigns=new Set();
 
 function switchMetaTab(tab,btn){
   _metaCurrentTab=tab;
@@ -6191,6 +6342,91 @@ function switchMetaTab(tab,btn){
   if(tab==='ads')renderMetaAds();
   if(tab==='whatsapp')renderWaSection();
   if(tab==='adlibrary'){const r=document.getElementById('adlib-results');if(r&&!r.innerHTML)r.innerHTML='<div class="empty"><div class="e-icon">🔍</div><p>Buscá una marca o palabra clave para ver sus anuncios activos</p></div>';}
+}
+
+// ── Performance score (0-100) ──
+// ROAS 35% + CTR 35% + Frequency 20% + CPC 10%
+function _metaPerformanceScore(c){
+  let score=0;
+  // ROAS: 0→bad, 1→ok, 3→great, 5→excellent
+  if(c.roas!=null){const rScore=Math.min(c.roas/5,1)*100;score+=rScore*0.35;}
+  else{score+=30*0.35;} // no roas data → neutral
+  // CTR: 0%→0, 1%→50, 2%→85, 3%→100
+  const ctrScore=Math.min(c.ctr/3,1)*100;score+=ctrScore*0.35;
+  // Frequency: <1.5→100, 2→85, 3→60, 3.5→35, 4+→0
+  const freqScore=c.frequency>0?Math.max(0,100-Math.max(0,c.frequency-1.5)*35):80;
+  score+=freqScore*0.20;
+  // CPC: <50→100, 100→80, 500→40, 2000→0 (ARS scale)
+  const cpcScore=c.cpc>0?Math.max(0,100-Math.log10(Math.max(c.cpc,1))*25):80;
+  score+=cpcScore*0.10;
+  return Math.round(Math.min(Math.max(score,0),100));
+}
+
+function _metaScoreBadge(score){
+  if(score>=75)return`<span class="meta-score winner">🔥 ${score}</span>`;
+  if(score>=55)return`<span class="meta-score healthy">✅ ${score}</span>`;
+  if(score>=35)return`<span class="meta-score attention">⚠️ ${score}</span>`;
+  return`<span class="meta-score stop">🔴 ${score}</span>`;
+}
+
+function _metaScoreTier(score){
+  if(score>=75)return'winner';
+  if(score>=55)return'healthy';
+  if(score>=35)return'attention';
+  return'stop';
+}
+
+function _metaSetDatePreset(preset,btn){
+  _metaDatePreset=preset;
+  document.querySelectorAll('.meta-date-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  syncMetaAds();
+}
+
+function _metaSetTierFilter(tier,btn){
+  _metaTierFilter=tier;
+  document.querySelectorAll('.meta-tier-tab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const campaignPanel=document.getElementById('meta-campaigns-panel');
+  const rulesPanel=document.getElementById('meta-rules-panel');
+  const filterBar=document.getElementById('meta-filter-bar');
+  if(tier==='rules'){
+    if(campaignPanel)campaignPanel.style.display='none';
+    if(filterBar)filterBar.style.display='none';
+    if(rulesPanel)rulesPanel.style.display='block';
+    renderMetaRules();
+  } else {
+    if(campaignPanel)campaignPanel.style.display='block';
+    if(filterBar)filterBar.style.display='flex';
+    if(rulesPanel)rulesPanel.style.display='none';
+    renderMetaAds();
+  }
+}
+
+function _metaApplyCampaignFilters(campaigns){
+  let list=[...campaigns];
+  // Status filter
+  const statusF=document.getElementById('meta-filter-status')?.value||'ALL';
+  if(statusF!=='ALL')list=list.filter(c=>c.status===statusF);
+  // Objective filter
+  const objF=document.getElementById('meta-filter-obj')?.value||'ALL';
+  if(objF!=='ALL')list=list.filter(c=>c.objective===objF);
+  // Name search
+  const q=(document.getElementById('meta-filter-search')?.value||'').trim().toLowerCase();
+  if(q)list=list.filter(c=>c.name.toLowerCase().includes(q));
+  // Tier filter
+  if(_metaTierFilter!=='all'&&_metaTierFilter!=='rules'){
+    list=list.filter(c=>_metaScoreTier(_metaPerformanceScore(c))===_metaTierFilter);
+  }
+  // Sort
+  const sort=document.getElementById('meta-filter-sort')?.value||'score';
+  if(sort==='score')list.sort((a,b)=>_metaPerformanceScore(b)-_metaPerformanceScore(a));
+  else if(sort==='spend')list.sort((a,b)=>b.spend-a.spend);
+  else if(sort==='roas')list.sort((a,b)=>(b.roas||0)-(a.roas||0));
+  else if(sort==='ctr')list.sort((a,b)=>b.ctr-a.ctr);
+  else if(sort==='cpa')list.sort((a,b)=>(a.cpa||9999999)-(b.cpa||9999999));
+  else if(sort==='name')list.sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  return list;
 }
 
 // ── Ads Performance ──
@@ -6211,14 +6447,20 @@ async function connectMetaAds(){
 }
 
 async function syncMetaAds(){
-  const btn=event?.target;if(btn){btn.disabled=true;btn.textContent='Sincronizando…';}
+  const btn=document.getElementById('meta-sync-btn');
+  if(btn){btn.disabled=true;btn.textContent='Sincronizando…';}
   try{
-    const r=await fetch('/api/meta/campaigns?wsId='+encodeURIComponent(_activeWsId));
+    const r=await fetch(`/api/meta/campaigns?wsId=${encodeURIComponent(_activeWsId)}&datePreset=${_metaDatePreset}`);
     const d=await r.json();
     if(!r.ok||d.error)throw new Error(d.error||'Error');
     if(!S.metaAdsCache)S.metaAdsCache={};
-    S.metaAdsCache.campaigns=d.campaigns||[];S.metaAdsCache.fetchedAt=new Date().toISOString();
-    save();renderMetaAds();notify('✅ Campañas sincronizadas');
+    S.metaAdsCache.campaigns=d.campaigns||[];S.metaAdsCache.fetchedAt=new Date().toISOString();S.metaAdsCache.datePreset=_metaDatePreset;
+    save();
+    // Run automation rules
+    const ruleResults=runMetaRules(S.metaAdsCache.campaigns);
+    renderMetaAds();
+    if(ruleResults.length){notify(`🤖 ${ruleResults.length} regla(s) ejecutadas`);}
+    else{notify('✅ Campañas sincronizadas');}
   }catch(e){notify('Error al sincronizar: '+e.message);}
   finally{if(btn){btn.disabled=false;btn.textContent='↺ Sincronizar';}}
 }
@@ -6229,6 +6471,57 @@ function disconnectMetaAds(){
   S.metaAdsCache=null;save();renderMetaAds();notify('Meta Ads desconectado');
 }
 
+async function _metaToggleCampaign(id, currentStatus, btn){
+  const newStatus=currentStatus==='ACTIVE'?'PAUSED':'ACTIVE';
+  if(btn){btn.disabled=true;}
+  try{
+    const r=await fetch('/api/meta/campaign/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId:_activeWsId,campaignId:id,action:newStatus})});
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    // Update local cache
+    const c=S.metaAdsCache?.campaigns?.find(x=>x.id===id);
+    if(c){c.status=newStatus;}
+    save();renderMetaAds();
+    notify(`${newStatus==='PAUSED'?'⏸️':'▶️'} Campaña ${newStatus==='PAUSED'?'pausada':'activada'}`);
+  }catch(e){notify('Error: '+e.message);if(btn)btn.disabled=false;}
+}
+
+async function _metaLoadAdSets(campaignId,expandBtn){
+  const existingRows=document.querySelectorAll(`.meta-adset-row-${campaignId}`);
+  if(existingRows.length){existingRows.forEach(r=>r.remove());expandBtn.textContent='▶';return;}
+  expandBtn.textContent='⏳';
+  try{
+    const r=await fetch(`/api/meta/adsets?wsId=${encodeURIComponent(_activeWsId)}&campaignId=${campaignId}`);
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    const adsets=d.adsets||[];
+    const parentRow=expandBtn.closest('tr');
+    const colCount=15;
+    const html=adsets.length?adsets.map(s=>{
+      const cpaStr=s.cpa?`$${s.cpa.toFixed(0)}`:'—';
+      const statusDot=s.status==='ACTIVE'?'🟢':'⏸️';
+      return`<tr class="meta-adset-row-${campaignId} meta-drill-row">
+        <td></td>
+        <td colspan="2" style="color:var(--text);font-size:11px">${statusDot} ${s.name}</td>
+        <td></td>
+        <td style="font-size:10px;color:var(--muted)">${s.dailyBudget?'$'+fmtMoney(s.dailyBudget)+'/d':'—'}</td>
+        <td style="color:var(--coral);font-size:11px">$${fmtMoney(s.spend)}</td>
+        <td>${s.reach.toLocaleString('es-AR')}</td>
+        <td style="${s.frequency>3.5?'color:#f5c842':''}">${s.frequency.toFixed(1)}</td>
+        <td>${s.ctr.toFixed(2)}%</td>
+        <td>$${s.cpc.toFixed(0)}</td>
+        <td>—</td>
+        <td>${s.conversions||'—'}</td>
+        <td>${cpaStr}</td>
+        <td>—</td>
+        <td></td>
+      </tr>`;
+    }).join(''):`<tr class="meta-adset-row-${campaignId} meta-drill-row"><td colspan="${colCount}" style="text-align:center;color:var(--muted);padding:12px">Sin conjuntos de anuncios</td></tr>`;
+    parentRow.insertAdjacentHTML('afterend',html);
+    expandBtn.textContent='▼';
+  }catch(e){notify('Error: '+e.message);expandBtn.textContent='▶';}
+}
+
 function renderMetaAds(){
   const connected=!!(S.metaIntegration?.accessToken&&S.metaIntegration?.adAccountId);
   const connectEl=document.getElementById('meta-ads-connect');
@@ -6236,42 +6529,232 @@ function renderMetaAds(){
   if(connectEl)connectEl.style.display=connected?'none':'block';
   if(dashEl)dashEl.style.display=connected?'block':'none';
   if(!connected)return;
-  const campaigns=S.metaAdsCache?.campaigns||[];
-  // KPI row
-  const totalSpend=campaigns.reduce((s,c)=>s+c.spend,0);
-  const totalImp=campaigns.reduce((s,c)=>s+c.impressions,0);
-  const totalClicks=campaigns.reduce((s,c)=>s+c.clicks,0);
+
+  // Account bar
+  const nameEl=document.getElementById('meta-acct-name');
+  const idEl=document.getElementById('meta-acct-id');
+  const syncedEl=document.getElementById('meta-acct-synced');
+  if(nameEl)nameEl.textContent=S.metaIntegration?.name||'Mi cuenta';
+  if(idEl)idEl.textContent=S.metaIntegration?.adAccountId||'';
+  if(syncedEl&&S.metaAdsCache?.fetchedAt){
+    const ago=Math.round((Date.now()-new Date(S.metaAdsCache.fetchedAt).getTime())/60000);
+    syncedEl.textContent=ago<2?'· Ahora mismo':ago<60?`· Hace ${ago}m`:`· Hace ${Math.round(ago/60)}h`;}
+
+  const allCampaigns=S.metaAdsCache?.campaigns||[];
+  const campaigns=_metaApplyCampaignFilters(allCampaigns);
+
+  // KPI row — always from all campaigns
+  const totalSpend=allCampaigns.reduce((s,c)=>s+c.spend,0);
+  const totalImp=allCampaigns.reduce((s,c)=>s+c.impressions,0);
+  const totalClicks=allCampaigns.reduce((s,c)=>s+c.clicks,0);
+  const totalConv=allCampaigns.reduce((s,c)=>s+c.conversions,0);
   const avgCTR=totalImp>0?(totalClicks/totalImp*100):0;
-  const avgCPC=totalClicks>0?(totalSpend/totalClicks):0;
-  const totalConv=campaigns.reduce((s,c)=>s+c.conversions,0);
+  const totalRevEst=allCampaigns.reduce((s,c)=>s+(c.roas!=null&&c.roas>0?c.spend*c.roas:0),0);
+  const overallROAS=totalSpend>0&&totalRevEst>0?totalRevEst/totalSpend:null;
+  const avgFreq=allCampaigns.length>0?(allCampaigns.reduce((s,c)=>s+c.frequency,0)/allCampaigns.length):0;
+  const totalCPA=totalConv>0?totalSpend/totalConv:null;
+  const preset=S.metaAdsCache?.datePreset||_metaDatePreset;
+  const presetLabel={'last_7d':'7 días','last_14d':'14 días','last_30d':'30 días','last_90d':'90 días'}[preset]||'30 días';
   const kpiRow=document.getElementById('meta-kpi-row');
   if(kpiRow)kpiRow.innerHTML=`
-    <div class="meta-kpi" style="--kpi-color:var(--coral)"><div class="meta-kpi-label">Gasto total</div><div class="meta-kpi-value" style="color:var(--coral)">$${fmtMoney(totalSpend)}</div><div class="meta-kpi-sub">últimos 30 días</div></div>
-    <div class="meta-kpi" style=""><div class="meta-kpi-label">Impresiones</div><div class="meta-kpi-value">${totalImp.toLocaleString('es-AR')}</div><div class="meta-kpi-sub">alcance acumulado</div></div>
-    <div class="meta-kpi"><div class="meta-kpi-label">Clics</div><div class="meta-kpi-value">${totalClicks.toLocaleString('es-AR')}</div><div class="meta-kpi-sub">en todos los anuncios</div></div>
-    <div class="meta-kpi"><div class="meta-kpi-label">CTR promedio</div><div class="meta-kpi-value" style="color:${avgCTR>1?'var(--green)':'var(--coral)'}">${avgCTR.toFixed(2)}%</div><div class="meta-kpi-sub">referencia: 1%</div></div>
-    <div class="meta-kpi"><div class="meta-kpi-label">Conversiones</div><div class="meta-kpi-value" style="color:var(--green)">${totalConv}</div><div class="meta-kpi-sub">compras registradas</div></div>
+    <div class="meta-kpi"><div class="meta-kpi-label">Gasto total</div><div class="meta-kpi-value" style="color:var(--coral)">$${fmtMoney(totalSpend)}</div><div class="meta-kpi-sub">últimos ${presetLabel}</div></div>
+    <div class="meta-kpi"><div class="meta-kpi-label">ROAS global</div><div class="meta-kpi-value ${overallROAS!=null?(overallROAS>=2?'meta-roas-good':overallROAS>=1?'meta-roas-ok':'meta-roas-bad'):''}">${overallROAS!=null?overallROAS.toFixed(2)+'x':'—'}</div><div class="meta-kpi-sub">ref: ≥2x</div></div>
+    <div class="meta-kpi"><div class="meta-kpi-label">CTR promedio</div><div class="meta-kpi-value ${avgCTR>=2?'meta-ctr-good':avgCTR>=1?'meta-ctr-warn':'meta-ctr-bad'}">${avgCTR.toFixed(2)}%</div><div class="meta-kpi-sub">ref: ≥1%</div></div>
+    <div class="meta-kpi"><div class="meta-kpi-label">Conversiones</div><div class="meta-kpi-value" style="color:var(--green)">${totalConv.toLocaleString('es-AR')}</div><div class="meta-kpi-sub">CPA: ${totalCPA?'$'+fmtMoney(totalCPA):'—'}</div></div>
+    <div class="meta-kpi"><div class="meta-kpi-label">Frecuencia media</div><div class="meta-kpi-value ${avgFreq>3.5?'meta-ctr-warn':''}">${avgFreq.toFixed(1)}</div><div class="meta-kpi-sub">${avgFreq>3.5?'⚠️ Fatiga':'✓ Normal'}</div></div>
   `;
-  // Campaigns table
+
+  // Campaign table
   const tbody=document.getElementById('meta-campaigns-body');
   if(!tbody)return;
-  if(!campaigns.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--muted)">Sin datos — hacé clic en "Sincronizar"</td></tr>';return;}
-  const sorted=[...campaigns].sort((a,b)=>b.spend-a.spend);
-  tbody.innerHTML=sorted.map(c=>{
+  if(!allCampaigns.length){tbody.innerHTML=`<tr><td colspan="15" style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:24px;margin-bottom:8px">📊</div>Sin datos — hacé clic en "↺ Sincronizar"</td></tr>`;return;}
+  if(!campaigns.length){tbody.innerHTML=`<tr><td colspan="15" style="text-align:center;padding:40px;color:var(--muted)">Ninguna campaña coincide con los filtros</td></tr>`;return;}
+  tbody.innerHTML=campaigns.map(c=>{
+    const score=_metaPerformanceScore(c);
+    const statusIcon=c.status==='ACTIVE'?'🟢':c.status==='PAUSED'?'⏸️':'📦';
     const statusClass='meta-status-'+c.status;
-    const roasStr=c.roas?`<span style="color:${c.roas>1?'var(--green)':'var(--coral)'};font-weight:600">${c.roas.toFixed(2)}x</span>`:'—';
-    return`<tr>
-      <td style="color:var(--text);font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.name}">${c.name}</td>
-      <td><span class="meta-status-pill ${statusClass}">${c.status}</span></td>
+    const roasStr=c.roas!=null?`<span class="${c.roas>=2?'meta-roas-good':c.roas>=1?'meta-roas-ok':'meta-roas-bad'}">${c.roas.toFixed(2)}x</span>`:'—';
+    const ctrClass=c.ctr>=2?'meta-ctr-good':c.ctr>=1?'meta-ctr-warn':'meta-ctr-bad';
+    const freqWarn=c.frequency>3.5?` <span class="meta-freq-warn" title="Fatiga de frecuencia">⚠️</span>`:'';
+    const cpaStr=c.cpa!=null?`$${fmtMoney(c.cpa)}`:'—';
+    const budgetStr=c.dailyBudget?`$${fmtMoney(c.dailyBudget)}/d`:c.lifetimeBudget?`$${fmtMoney(c.lifetimeBudget)} total`:'—';
+    const isActive=c.status==='ACTIVE';
+    return`<tr data-cid="${c.id}">
+      <td><button class="meta-expand-btn" onclick="_metaLoadAdSets('${c.id}',this)" title="Ver conjuntos de anuncios">▶</button></td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-weight:500;font-size:12px" title="${c.name}">${c.name}</td>
+      <td>${_metaScoreBadge(score)}</td>
+      <td><span class="meta-status-pill ${statusClass}">${statusIcon} ${c.status}</span></td>
+      <td style="font-size:11px">${budgetStr}</td>
       <td style="color:var(--coral);font-weight:500">$${fmtMoney(c.spend)}</td>
-      <td>${c.impressions.toLocaleString('es-AR')}</td>
-      <td>${c.clicks.toLocaleString('es-AR')}</td>
-      <td style="color:${c.ctr>1?'var(--green)':'var(--muted2)'}">${c.ctr.toFixed(2)}%</td>
+      <td>${c.reach.toLocaleString('es-AR')}</td>
+      <td style="${c.frequency>3.5?'color:#f5c842':''}">${c.frequency.toFixed(1)}${freqWarn}</td>
+      <td class="${ctrClass}">${c.ctr.toFixed(2)}%</td>
       <td>$${c.cpc.toFixed(0)}</td>
+      <td>$${c.cpm.toFixed(0)}</td>
       <td>${c.conversions||'—'}</td>
+      <td>${cpaStr}</td>
       <td>${roasStr}</td>
+      <td>
+        <label class="meta-toggle" title="${isActive?'Pausar':'Activar'}" onclick="event.preventDefault();_metaToggleCampaign('${c.id}','${c.status}',this)">
+          <input type="checkbox" ${isActive?'checked':''} readonly>
+          <span class="meta-toggle-slider"></span>
+        </label>
+      </td>
     </tr>`;
   }).join('');
+}
+
+// ── Automation Rules ──
+function runMetaRules(campaigns){
+  if(!S.metaRules||!S.metaRules.length||!campaigns||!campaigns.length)return[];
+  const executed=[];
+  S.metaRules.forEach(rule=>{
+    if(!rule.enabled)return;
+    campaigns.forEach(c=>{
+      if(c.status==='ARCHIVED')return;
+      let metricVal=null;
+      if(rule.metric==='cpa')metricVal=c.cpa;
+      else if(rule.metric==='roas')metricVal=c.roas;
+      else if(rule.metric==='ctr')metricVal=c.ctr;
+      else if(rule.metric==='frequency')metricVal=c.frequency;
+      else if(rule.metric==='spend')metricVal=c.spend;
+      else if(rule.metric==='cpc')metricVal=c.cpc;
+      if(metricVal==null)return;
+      let triggered=false;
+      if(rule.operator==='>'&&metricVal>rule.value)triggered=true;
+      else if(rule.operator==='<'&&metricVal<rule.value)triggered=true;
+      else if(rule.operator==='>='&&metricVal>=rule.value)triggered=true;
+      else if(rule.operator==='<='&&metricVal<=rule.value)triggered=true;
+      if(!triggered)return;
+      // Prevent firing same rule on same campaign more than once per day
+      const today=new Date().toISOString().slice(0,10);
+      if(!rule.lastFired)rule.lastFired={};
+      if(rule.lastFired[c.id]===today)return;
+      rule.lastFired[c.id]=today;
+      // Execute action
+      if(rule.action==='pause'&&c.status==='ACTIVE'){
+        c.status='PAUSED';
+        // Fire-and-forget API call
+        fetch('/api/meta/campaign/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId:_activeWsId,campaignId:c.id,action:'PAUSED'})}).catch(()=>{});
+        executed.push({rule:rule.name,campaign:c.name,action:'Pausada'});
+      } else if(rule.action==='enable'&&c.status==='PAUSED'){
+        c.status='ACTIVE';
+        fetch('/api/meta/campaign/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId:_activeWsId,campaignId:c.id,action:'ACTIVE'})}).catch(()=>{});
+        executed.push({rule:rule.name,campaign:c.name,action:'Activada'});
+      } else if(rule.action==='notify'){
+        executed.push({rule:rule.name,campaign:c.name,action:'Notificación'});
+      }
+    });
+  });
+  if(executed.length){save();}
+  return executed;
+}
+
+function renderMetaRules(){
+  if(!S.metaRules)S.metaRules=[];
+  const listEl=document.getElementById('meta-rules-list');
+  const emptyEl=document.getElementById('meta-rules-empty');
+  if(!listEl)return;
+  if(!S.metaRules.length){listEl.innerHTML='';if(emptyEl)emptyEl.style.display='block';return;}
+  if(emptyEl)emptyEl.style.display='none';
+  const metricLabels={cpa:'CPA',roas:'ROAS',ctr:'CTR (%)',frequency:'Frecuencia',spend:'Gasto ($)',cpc:'CPC ($)'};
+  const actionLabels={pause:'Pausar campaña',enable:'Activar campaña',notify:'Notificar'};
+  const actionClasses={pause:'pause',enable:'enable',notify:'notify',scale_budget:'scale'};
+  listEl.innerHTML=S.metaRules.map(rule=>{
+    const condText=`Si ${metricLabels[rule.metric]||rule.metric} ${rule.operator} ${rule.value}`;
+    const lastFiredCount=rule.lastFired?Object.keys(rule.lastFired).length:0;
+    return`<div class="meta-rule-card">
+      <label class="meta-rule-toggle" title="${rule.enabled?'Desactivar':'Activar'}">
+        <input type="checkbox" ${rule.enabled?'checked':''} onchange="S.metaRules.find(r=>r.id==='${rule.id}').enabled=this.checked;save();renderMetaRules()">
+        <span class="meta-rule-toggle-sl"></span>
+      </label>
+      <div style="flex:1;min-width:0">
+        <div class="meta-rule-name">${rule.name}</div>
+        <div class="meta-rule-cond">${condText} → <strong>${actionLabels[rule.action]||rule.action}</strong>${rule.action==='scale_budget'?' +'+rule.budgetIncrement+'%':''}</div>
+        ${lastFiredCount?`<div class="meta-last-fired">Ejecutada en ${lastFiredCount} campaña(s)</div>`:''}
+      </div>
+      <span class="meta-rule-badge ${actionClasses[rule.action]||''}">${actionLabels[rule.action]||rule.action}</span>
+      <button class="btn btn-xs" onclick="openMetaRuleModal('${rule.id}')" style="font-size:10px;flex-shrink:0">✏️</button>
+      <button class="btn btn-xs btn-danger" onclick="deleteMetaRule('${rule.id}')" style="font-size:10px;flex-shrink:0">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function deleteMetaRule(id){
+  if(!confirm('¿Eliminar esta regla?'))return;
+  S.metaRules=(S.metaRules||[]).filter(r=>r.id!==id);
+  save();renderMetaRules();notify('Regla eliminada');
+}
+
+function openMetaRuleModal(ruleId){
+  const existing=ruleId?(S.metaRules||[]).find(r=>r.id===ruleId):null;
+  const overlay=document.getElementById('modal-overlay');
+  if(!overlay)return;
+  overlay.innerHTML=`<div class="modal" id="modal-box" style="max-width:480px"><div class="modal-head"><div class="modal-title">${existing?'Editar regla':'Nueva regla de automatización'}</div><button class="modal-close" onclick="closeModal()">×</button></div><div class="modal-body">
+    <div class="form-group"><label class="form-label">Nombre de la regla</label><input class="form-input" id="mr-name" value="${existing?.name||''}" placeholder="Ej: Pausar CPA alto"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div class="form-group">
+        <label class="form-label">Métrica</label>
+        <select class="form-input" id="mr-metric">
+          <option value="cpa" ${existing?.metric==='cpa'?'selected':''}>CPA</option>
+          <option value="roas" ${existing?.metric==='roas'?'selected':''}>ROAS</option>
+          <option value="ctr" ${existing?.metric==='ctr'?'selected':''}>CTR (%)</option>
+          <option value="frequency" ${existing?.metric==='frequency'?'selected':''}>Frecuencia</option>
+          <option value="spend" ${existing?.metric==='spend'?'selected':''}>Gasto ($)</option>
+          <option value="cpc" ${existing?.metric==='cpc'?'selected':''}>CPC ($)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Operador</label>
+        <select class="form-input" id="mr-op">
+          <option value=">" ${existing?.operator==='>'?'selected':''}>&gt; mayor que</option>
+          <option value="<" ${existing?.operator==='<'?'selected':''}>&lt; menor que</option>
+          <option value=">=" ${existing?.operator==='>='?'selected':''}>&ge; mayor o igual</option>
+          <option value="<=" ${existing?.operator==='<='?'selected':''}>&le; menor o igual</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Valor</label>
+        <input class="form-input" id="mr-val" type="number" step="0.01" value="${existing?.value||''}" placeholder="Ej: 3000">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Acción a ejecutar</label>
+      <select class="form-input" id="mr-action" onchange="document.getElementById('mr-budget-group').style.display=this.value==='scale_budget'?'block':'none'">
+        <option value="pause" ${existing?.action==='pause'?'selected':''}>⏸️ Pausar campaña</option>
+        <option value="enable" ${existing?.action==='enable'?'selected':''}>▶️ Activar campaña</option>
+        <option value="notify" ${existing?.action==='notify'?'selected':''}>🔔 Solo notificar</option>
+        <option value="scale_budget" ${existing?.action==='scale_budget'?'selected':''}>📈 Escalar presupuesto</option>
+      </select>
+    </div>
+    <div class="form-group" id="mr-budget-group" style="display:${existing?.action==='scale_budget'?'block':'none'}">
+      <label class="form-label">Incremento de presupuesto (%)</label>
+      <input class="form-input" id="mr-budget-inc" type="number" step="5" value="${existing?.budgetIncrement||20}" placeholder="Ej: 20">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px;padding-top:4px;border-top:1px solid var(--border)">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveMetaRule('${ruleId||''}')">💾 Guardar regla</button>
+    </div>
+  </div></div>`;
+  overlay.classList.add('open');
+}
+
+function saveMetaRule(ruleId){
+  const name=(document.getElementById('mr-name')?.value||'').trim();
+  const metric=document.getElementById('mr-metric')?.value||'cpa';
+  const operator=document.getElementById('mr-op')?.value||'>';
+  const value=parseFloat(document.getElementById('mr-val')?.value||0);
+  const action=document.getElementById('mr-action')?.value||'pause';
+  const budgetIncrement=parseInt(document.getElementById('mr-budget-inc')?.value||20);
+  if(!name||isNaN(value)){notify('Completá nombre y valor');return;}
+  if(!S.metaRules)S.metaRules=[];
+  if(ruleId){
+    const idx=S.metaRules.findIndex(r=>r.id===ruleId);
+    if(idx>=0)S.metaRules[idx]={...S.metaRules[idx],name,metric,operator,value,action,budgetIncrement};
+  } else {
+    S.metaRules.push({id:'mr_'+Date.now(),name,metric,operator,value,action,budgetIncrement,enabled:true,lastFired:{}});
+  }
+  save();closeModal();renderMetaRules();notify('✅ Regla guardada');
 }
 
 // ── Ad Library ──

@@ -554,27 +554,94 @@ app.post("/api/meta/connect", async (req, res) => {
 
 // Get campaign metrics from Meta Marketing API
 app.get("/api/meta/campaigns", async (req, res) => {
-  const { wsId } = req.query
+  const { wsId, datePreset = "last_30d" } = req.query
   if (!wsId) return res.status(400).json({ error: "wsId requerido" })
   try {
     const ws = await getWorkspace(wsId)
     const meta = ws?.data?.metaIntegration
     if (!meta?.accessToken || !meta?.adAccountId) return res.status(400).json({ error: "Meta Ads no conectado" })
     const accountId = meta.adAccountId.startsWith("act_") ? meta.adAccountId : "act_" + meta.adAccountId
-    const fields = "id,name,status,objective,insights.date_preset(last_30d){spend,impressions,clicks,ctr,cpc,reach,actions,frequency,cpp}"
-    const url = `https://graph.facebook.com/v21.0/${accountId}/campaigns?fields=${encodeURIComponent(fields)}&limit=50&access_token=${meta.accessToken}`
+    const insightFields = `spend,impressions,clicks,ctr,cpc,reach,actions,action_values,frequency,cpp,cpm,cost_per_result`
+    const fields = `id,name,status,objective,daily_budget,lifetime_budget,budget_remaining,insights.date_preset(${datePreset}){${insightFields}}`
+    const url = `https://graph.facebook.com/v21.0/${accountId}/campaigns?fields=${encodeURIComponent(fields)}&limit=100&access_token=${meta.accessToken}`
     const r = await fetch(url)
     const data = await r.json()
     if (data.error) return res.status(400).json({ error: data.error.message })
     const campaigns = (data.data || []).map(c => {
       const ins = c.insights?.data?.[0] || {}
-      const purchaseAction = (ins.actions || []).find(a => ["purchase","offsite_conversion.fb_pixel_purchase","omni_purchase"].includes(a.action_type))
-      const conversions = purchaseAction ? Number(purchaseAction.value) : 0
+      const findAction = (types) => (ins.actions || []).find(a => types.includes(a.action_type))
+      const findValue = (types) => (ins.action_values || []).find(a => types.includes(a.action_type))
+      const purchaseAction = findAction(["purchase","offsite_conversion.fb_pixel_purchase","omni_purchase","complete_registration"])
+      const leadAction = findAction(["lead","onsite_web_lead"])
+      const conversions = purchaseAction ? Number(purchaseAction.value) : (leadAction ? Number(leadAction.value) : 0)
       const spend = parseFloat(ins.spend || 0)
-      const revenue = (ins.action_values || []).find(a => a.action_type === "purchase")?.value || 0
-      return { id: c.id, name: c.name, status: c.status, objective: c.objective || "", spend, impressions: parseInt(ins.impressions || 0), clicks: parseInt(ins.clicks || 0), ctr: parseFloat(ins.ctr || 0), cpc: parseFloat(ins.cpc || 0), reach: parseInt(ins.reach || 0), conversions, roas: spend > 0 && revenue > 0 ? parseFloat(revenue) / spend : null, frequency: parseFloat(ins.frequency || 0), cpp: parseFloat(ins.cpp || 0) }
+      const revenueVal = findValue(["purchase","offsite_conversion.fb_pixel_purchase","omni_purchase"])
+      const revenue = revenueVal ? parseFloat(revenueVal.value) : 0
+      const roas = spend > 0 && revenue > 0 ? revenue / spend : null
+      const cpa = conversions > 0 ? spend / conversions : null
+      const dailyBudget = c.daily_budget ? parseFloat(c.daily_budget) / 100 : null
+      const lifetimeBudget = c.lifetime_budget ? parseFloat(c.lifetime_budget) / 100 : null
+      const budgetRemaining = c.budget_remaining ? parseFloat(c.budget_remaining) / 100 : null
+      return {
+        id: c.id, name: c.name, status: c.status, objective: c.objective || "",
+        spend, impressions: parseInt(ins.impressions || 0), clicks: parseInt(ins.clicks || 0),
+        ctr: parseFloat(ins.ctr || 0), cpc: parseFloat(ins.cpc || 0),
+        cpm: parseFloat(ins.cpm || 0), reach: parseInt(ins.reach || 0),
+        conversions, roas, cpa, frequency: parseFloat(ins.frequency || 0),
+        cpp: parseFloat(ins.cpp || 0), dailyBudget, lifetimeBudget, budgetRemaining
+      }
     })
-    res.json({ campaigns, accountId })
+    res.json({ campaigns, accountId, datePreset })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// Pause or enable a campaign
+app.post("/api/meta/campaign/action", async (req, res) => {
+  const { wsId, campaignId, action } = req.body // action: "PAUSED" | "ACTIVE"
+  if (!wsId || !campaignId || !action) return res.status(400).json({ error: "wsId, campaignId y action requeridos" })
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.accessToken) return res.status(400).json({ error: "Meta Ads no conectado" })
+    const r = await fetch(`https://graph.facebook.com/v21.0/${campaignId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: action, access_token: meta.accessToken })
+    })
+    const data = await r.json()
+    if (data.error) return res.status(400).json({ error: data.error.message })
+    res.json({ ok: true, campaignId, newStatus: action })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// Get ad sets for a campaign (drill-down)
+app.get("/api/meta/adsets", async (req, res) => {
+  const { wsId, campaignId } = req.query
+  if (!wsId || !campaignId) return res.status(400).json({ error: "wsId y campaignId requeridos" })
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.accessToken) return res.status(400).json({ error: "Meta Ads no conectado" })
+    const fields = "id,name,status,daily_budget,lifetime_budget,insights.date_preset(last_30d){spend,impressions,clicks,ctr,cpc,reach,frequency,actions,action_values}"
+    const url = `https://graph.facebook.com/v21.0/${campaignId}/adsets?fields=${encodeURIComponent(fields)}&limit=50&access_token=${meta.accessToken}`
+    const r = await fetch(url)
+    const data = await r.json()
+    if (data.error) return res.status(400).json({ error: data.error.message })
+    const adsets = (data.data || []).map(s => {
+      const ins = s.insights?.data?.[0] || {}
+      const spend = parseFloat(ins.spend || 0)
+      const conversions = (ins.actions || []).find(a => ["purchase","offsite_conversion.fb_pixel_purchase","lead"].includes(a.action_type))
+      const conv = conversions ? Number(conversions.value) : 0
+      return {
+        id: s.id, name: s.name, status: s.status,
+        spend, impressions: parseInt(ins.impressions || 0), clicks: parseInt(ins.clicks || 0),
+        ctr: parseFloat(ins.ctr || 0), cpc: parseFloat(ins.cpc || 0),
+        reach: parseInt(ins.reach || 0), frequency: parseFloat(ins.frequency || 0),
+        conversions: conv, cpa: conv > 0 ? spend / conv : null,
+        dailyBudget: s.daily_budget ? parseFloat(s.daily_budget) / 100 : null,
+      }
+    })
+    res.json({ adsets })
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
