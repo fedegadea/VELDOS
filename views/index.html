@@ -3156,6 +3156,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
             <button class="meta-date-btn active" onclick="_metaSetDatePreset('last_30d',this)">30D</button>
             <button class="meta-date-btn" onclick="_metaSetDatePreset('last_90d',this)">90D</button>
           </div>
+          <button class="btn btn-sm btn-primary" onclick="openCreateCampaignModal()" style="background:rgba(41,121,255,.15);color:var(--gold);border-color:rgba(41,121,255,.3)">✦ Crear campaña</button>
           <button class="btn btn-sm btn-primary" onclick="openCreateAdModal()" style="background:rgba(52,199,123,.15);color:var(--green);border-color:rgba(52,199,123,.3)">✦ Crear anuncio</button>
           <button class="btn btn-sm" onclick="syncMetaAds()" id="meta-sync-btn">↺ Sincronizar</button>
           <button class="btn btn-sm btn-danger" onclick="disconnectMetaAds()">Desconectar</button>
@@ -6814,12 +6815,21 @@ async function _metaToggleCampaign(id, currentStatus, btn){
   try{
     const r=await fetch('/api/meta/campaign/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId:_activeWsId,campaignId:id,action:newStatus})});
     const d=await r.json();
-    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    if(!r.ok||d.error)throw new Error(d.error||'Error al cambiar estado');
     const c=S.metaAdsCache?.campaigns?.find(x=>x.id===id);
-    if(c){c.status=newStatus;}
-    save();renderMetaAds();
+    if(c)c.status=newStatus;
+    save();
+    // Update button in-place (avoid full re-render)
+    if(btn){
+      btn.textContent=newStatus==='ACTIVE'?'⏸ Pausar':'▶ Activar';
+      btn.className=`meta-action-btn ${newStatus==='ACTIVE'?'pause':'activate'}`;
+      btn.disabled=false;
+      // Update status pill in same row
+      const pill=btn.closest('tr')?.querySelector('.meta-status-pill');
+      if(pill){pill.className=`meta-status-pill meta-status-${newStatus}`;pill.textContent=newStatus==='ACTIVE'?'🟢 ACTIVE':'⏸️ PAUSED';}
+    }
     notify(`${newStatus==='PAUSED'?'⏸️':'▶️'} Campaña ${newStatus==='PAUSED'?'pausada':'activada'}`);
-  }catch(e){notify('Error: '+e.message);if(btn){btn.disabled=false;btn.textContent=currentStatus==='ACTIVE'?'⏸ Pausar':'▶ Activar';}}
+  }catch(e){notify('❌ Error al cambiar estado: '+e.message);if(btn){btn.disabled=false;btn.textContent=currentStatus==='ACTIVE'?'⏸ Pausar':'▶ Activar';}}
 }
 
 async function _metaLoadAdSets(campaignId,expandBtn){
@@ -7067,6 +7077,301 @@ function renderMetaAds(){
   }).join('');
 }
 
+// ── Crear Campaña ──
+let _ccStep=1;
+let _ccObjective=null;
+
+function openCreateCampaignModal(){
+  _ccStep=1;_ccObjective=null;
+  const overlay=document.createElement('div');
+  overlay.id='create-campaign-overlay';
+  overlay.className='modal-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML=`
+<div class="modal" style="width:560px;max-width:100%;max-height:90vh;overflow-y:auto;background:var(--s1);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow)">
+  <div class="modal-head" style="padding:20px 24px 0;border-bottom:1px solid var(--border);margin-bottom:0">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:16px">
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--text)">Nueva campaña</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px" id="cc-step-label">Paso 1 de 3 — Objetivo de campaña</div>
+      </div>
+      <button onclick="document.getElementById('create-campaign-overlay')?.remove()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px 8px;border-radius:6px" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+    </div>
+    <!-- Step progress -->
+    <div style="display:flex;gap:4px;margin-bottom:0;padding-bottom:0">
+      ${[1,2,3].map(i=>`<div id="cc-prog-${i}" style="flex:1;height:3px;border-radius:2px;background:${i===1?'var(--gold)':'var(--border)'}"></div>`).join('')}
+    </div>
+  </div>
+  <div class="modal-body" style="padding:20px 24px">
+
+    <!-- Step 1: Objective -->
+    <div id="cc-step-1">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Elegí el objetivo que mejor describe lo que querés lograr con esta campaña.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="cc-obj-grid">
+        ${[
+          {id:'OUTCOME_AWARENESS',icon:'🔔',label:'Reconocimiento',desc:'Mostrá tu marca a la mayor cantidad de personas'},
+          {id:'OUTCOME_TRAFFIC',icon:'🖱️',label:'Tráfico',desc:'Llevá personas a tu sitio web, app o evento'},
+          {id:'OUTCOME_ENGAGEMENT',icon:'💬',label:'Interacción',desc:'Conseguí más interacciones, seguidores o mensajes'},
+          {id:'OUTCOME_LEADS',icon:'📋',label:'Clientes potenciales',desc:'Recopilá datos de contacto de personas interesadas'},
+          {id:'OUTCOME_SALES',icon:'🛒',label:'Ventas',desc:'Encontrá personas que van a comprar tu producto'},
+          {id:'OUTCOME_APP_PROMOTION',icon:'📱',label:'Promoción de app',desc:'Conseguí instalaciones o eventos dentro de la app'},
+        ].map(o=>`
+          <div class="cc-obj-card" id="cc-obj-${o.id}" onclick="_ccSelectObjective('${o.id}',this)"
+            style="border:1.5px solid var(--border);border-radius:var(--radius);padding:14px 12px;cursor:pointer;transition:all .15s;background:var(--s2)">
+            <div style="font-size:20px;margin-bottom:6px">${o.icon}</div>
+            <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px">${o.label}</div>
+            <div style="font-size:10px;color:var(--muted);line-height:1.4">${o.desc}</div>
+          </div>`).join('')}
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:16px">
+        <button class="btn btn-primary" onclick="_ccGoStep(2)" style="min-width:120px">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Name & config -->
+    <div id="cc-step-2" style="display:none">
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Nombre de la campaña</label>
+        <input class="form-input" id="cc-name" placeholder="Ej: Ventas — Mayo 2026">
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Categorías especiales de anuncios</label>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px" id="cc-special-cats">
+          ${[
+            {v:'NONE',l:'Ninguna (campaña estándar)'},
+            {v:'HOUSING',l:'Vivienda'},
+            {v:'EMPLOYMENT',l:'Empleo'},
+            {v:'CREDIT',l:'Crédito'},
+            {v:'ISSUES_ELECTIONS_POLITICS',l:'Temas sociales, elecciones o política'},
+          ].map((c,i)=>`<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
+            <input type="checkbox" value="${c.v}" ${i===0?'checked':''} onchange="_ccUpdateSpecialCats(this)" style="width:14px;height:14px;accent-color:var(--gold)"> ${c.l}
+          </label>`).join('')}
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <div style="position:relative;width:36px;height:20px;flex-shrink:0">
+            <input type="checkbox" id="cc-cbo" checked onchange="_ccToggleCbo(this.checked)" style="position:absolute;opacity:0;width:0;height:0">
+            <div id="cc-cbo-track" onclick="document.getElementById('cc-cbo').click()" style="width:36px;height:20px;background:var(--gold);border-radius:10px;cursor:pointer;transition:background .2s;display:flex;align-items:center;padding:2px">
+              <div id="cc-cbo-thumb" style="width:16px;height:16px;background:#fff;border-radius:50%;margin-left:16px;transition:margin .2s"></div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:var(--text)">Optimización del presupuesto de campaña (CBO)</div>
+            <div style="font-size:10px;color:var(--muted)">Meta distribuye el presupuesto automáticamente entre los conjuntos de anuncios</div>
+          </div>
+        </label>
+      </div>
+      <div id="cc-budget-section">
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">Tipo de presupuesto</label>
+          <div style="display:flex;gap:12px;margin-top:6px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+              <input type="radio" name="cc-budget-type" value="daily" checked onchange="_ccToggleBudgetType('daily')" style="accent-color:var(--gold)"> Diario
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+              <input type="radio" name="cc-budget-type" value="lifetime" onchange="_ccToggleBudgetType('lifetime')" style="accent-color:var(--gold)"> Total (lifetime)
+            </label>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">Presupuesto (ARS)</label>
+          <div style="position:relative">
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px">$</span>
+            <input class="form-input" id="cc-budget-amount" type="number" min="1" step="1" placeholder="Ej: 5000" style="padding-left:24px">
+          </div>
+        </div>
+        <div id="cc-dates-section" style="display:flex;gap:10px;margin-bottom:10px">
+          <div class="form-group" style="flex:1;margin-bottom:0">
+            <label class="form-label" id="cc-start-label">Fecha de inicio <span style="color:var(--muted);font-size:10px">(opcional)</span></label>
+            <input class="form-input" id="cc-start-date" type="date">
+          </div>
+          <div class="form-group" style="flex:1;margin-bottom:0">
+            <label class="form-label">Fecha de fin <span style="color:var(--muted);font-size:10px" id="cc-end-label-hint">(opcional)</span></label>
+            <input class="form-input" id="cc-end-date" type="date">
+          </div>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Estado inicial</label>
+        <div style="display:flex;gap:16px;margin-top:6px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+            <input type="radio" name="cc-status" value="PAUSED" checked style="accent-color:var(--gold)"> ⏸ Pausada
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+            <input type="radio" name="cc-status" value="ACTIVE" style="accent-color:var(--green)"> 🟢 Activa
+          </label>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
+        <button class="btn btn-sm" onclick="_ccGoStep(1)">← Atrás</button>
+        <button class="btn btn-primary" onclick="_ccGoStep(3)" style="min-width:120px">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Summary -->
+    <div id="cc-step-3" style="display:none">
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px" id="cc-summary"></div>
+      <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
+        <button class="btn btn-sm" onclick="_ccGoStep(2)">← Atrás</button>
+        <button class="btn btn-primary" id="cc-submit-btn" onclick="_ccSubmit()" style="min-width:140px;background:var(--gold);color:#fff;border-color:var(--gold)">✦ Crear campaña</button>
+      </div>
+    </div>
+
+  </div>
+</div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+}
+
+function _ccSelectObjective(id, card){
+  _ccObjective=id;
+  document.querySelectorAll('.cc-obj-card').forEach(c=>{
+    c.style.borderColor='var(--border)';c.style.background='var(--s2)';
+  });
+  card.style.borderColor='var(--gold)';card.style.background='rgba(41,121,255,.08)';
+}
+
+function _ccToggleCbo(on){
+  const track=document.getElementById('cc-cbo-track');
+  const thumb=document.getElementById('cc-cbo-thumb');
+  const section=document.getElementById('cc-budget-section');
+  if(track)track.style.background=on?'var(--gold)':'var(--border2)';
+  if(thumb)thumb.style.marginLeft=on?'16px':'2px';
+  if(section)section.style.display=on?'block':'none';
+}
+
+let _ccBudgetType='daily';
+function _ccToggleBudgetType(type){
+  _ccBudgetType=type;
+  const datesSection=document.getElementById('cc-dates-section');
+  const startLabel=document.getElementById('cc-start-label');
+  const endHint=document.getElementById('cc-end-label-hint');
+  if(type==='lifetime'){
+    if(startLabel)startLabel.innerHTML='Fecha de inicio <span style="color:var(--coral);font-size:10px">*requerida</span>';
+    if(endHint)endHint.textContent='*requerida';
+    if(datesSection)datesSection.style.display='flex';
+  } else {
+    if(startLabel)startLabel.innerHTML='Fecha de inicio <span style="color:var(--muted);font-size:10px">(opcional)</span>';
+    if(endHint)endHint.textContent='(opcional)';
+    if(datesSection)datesSection.style.display='flex';
+  }
+}
+
+function _ccUpdateSpecialCats(cb){
+  const NONE=document.querySelector('#cc-special-cats input[value="NONE"]');
+  if(!NONE)return;
+  if(cb.value==='NONE'&&cb.checked){
+    document.querySelectorAll('#cc-special-cats input:not([value="NONE"])').forEach(el=>el.checked=false);
+  } else if(cb.value!=='NONE'&&cb.checked){
+    NONE.checked=false;
+  }
+  // If nothing checked, re-check NONE
+  const anyChecked=[...document.querySelectorAll('#cc-special-cats input')].some(el=>el.checked);
+  if(!anyChecked)NONE.checked=true;
+}
+
+const _ccObjLabels={OUTCOME_AWARENESS:'🔔 Reconocimiento',OUTCOME_TRAFFIC:'🖱️ Tráfico',OUTCOME_ENGAGEMENT:'💬 Interacción',OUTCOME_LEADS:'📋 Clientes potenciales',OUTCOME_SALES:'🛒 Ventas',OUTCOME_APP_PROMOTION:'📱 Promoción de app'};
+
+function _ccGoStep(n){
+  // Validate step 1
+  if(n===2&&!_ccObjective){notify('Seleccioná un objetivo de campaña');return;}
+  // Validate step 2 → 3
+  if(n===3){
+    const name=(document.getElementById('cc-name')?.value||'').trim();
+    if(!name){notify('Ingresá un nombre para la campaña');return;}
+    const cbo=document.getElementById('cc-cbo')?.checked;
+    if(cbo){
+      const budget=parseFloat(document.getElementById('cc-budget-amount')?.value||'0');
+      if(!budget||budget<1){notify('Ingresá un presupuesto válido');return;}
+      if(_ccBudgetType==='lifetime'){
+        if(!document.getElementById('cc-start-date')?.value){notify('Para presupuesto total es requerida la fecha de inicio');return;}
+        if(!document.getElementById('cc-end-date')?.value){notify('Para presupuesto total es requerida la fecha de fin');return;}
+      }
+    }
+    // Build summary
+    const cboOn=document.getElementById('cc-cbo')?.checked;
+    const budgetType=_ccBudgetType;
+    const budget=document.getElementById('cc-budget-amount')?.value||'';
+    const status=document.querySelector('input[name="cc-status"]:checked')?.value||'PAUSED';
+    const cats=[...document.querySelectorAll('#cc-special-cats input:checked')].map(el=>el.value).filter(v=>v!=='NONE');
+    const startDate=document.getElementById('cc-start-date')?.value||'';
+    const endDate=document.getElementById('cc-end-date')?.value||'';
+    const summary=document.getElementById('cc-summary');
+    if(summary){
+      summary.innerHTML=`
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:12px">Resumen de la campaña</div>
+        ${[
+          ['Objetivo',_ccObjLabels[_ccObjective]||_ccObjective],
+          ['Nombre',name],
+          ['Estado inicial',status==='ACTIVE'?'🟢 Activa':'⏸ Pausada'],
+          cboOn?['CBO','Activado — Meta distribuye el presupuesto']:[],
+          cboOn?['Presupuesto',`$${budget} ARS ${budgetType==='daily'?'/ día':'total'}`]:[],
+          startDate?['Fecha inicio',startDate]:[],
+          endDate?['Fecha fin',endDate]:[],
+          cats.length?['Categorías especiales',cats.join(', ')]:['Categorías especiales','Ninguna'],
+        ].filter(r=>r.length).map(r=>`<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--muted)">${r[0]}</span><span style="color:var(--text);font-weight:600;text-align:right;max-width:280px">${r[1]}</span></div>`).join('')}
+      `;
+    }
+  }
+  // Animate step change
+  _ccStep=n;
+  document.getElementById('cc-step-1').style.display=n===1?'block':'none';
+  document.getElementById('cc-step-2').style.display=n===2?'block':'none';
+  document.getElementById('cc-step-3').style.display=n===3?'block':'none';
+  document.getElementById('cc-step-label').textContent=`Paso ${n} de 3 — ${n===1?'Objetivo de campaña':n===2?'Nombre y configuración':'Resumen'}`;
+  // Progress bars
+  [1,2,3].forEach(i=>{const bar=document.getElementById(`cc-prog-${i}`);if(bar)bar.style.background=i<=n?'var(--gold)':'var(--border)';});
+  // Pre-fill name on step 2
+  if(n===2){
+    const nameInput=document.getElementById('cc-name');
+    if(nameInput&&!nameInput.value&&_ccObjective){
+      const monthNames=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+      const now=new Date();
+      const labels={OUTCOME_AWARENESS:'Reconocimiento',OUTCOME_TRAFFIC:'Tráfico',OUTCOME_ENGAGEMENT:'Interacción',OUTCOME_LEADS:'Clientes potenciales',OUTCOME_SALES:'Ventas',OUTCOME_APP_PROMOTION:'Promoción de app'};
+      nameInput.value=`${labels[_ccObjective]||_ccObjective} — ${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+    }
+  }
+}
+
+async function _ccSubmit(){
+  const btn=document.getElementById('cc-submit-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Creando…';}
+  try{
+    const name=(document.getElementById('cc-name')?.value||'').trim();
+    const cboOn=document.getElementById('cc-cbo')?.checked||false;
+    const budgetAmount=parseFloat(document.getElementById('cc-budget-amount')?.value||'0');
+    const status=document.querySelector('input[name="cc-status"]:checked')?.value||'PAUSED';
+    const startDate=document.getElementById('cc-start-date')?.value||'';
+    const endDate=document.getElementById('cc-end-date')?.value||'';
+    const cats=[...document.querySelectorAll('#cc-special-cats input:checked')].map(el=>el.value);
+    const payload={
+      wsId:_activeWsId, name, objective:_ccObjective, status,
+      specialAdCategories:cats, budgetOptimizationOn:cboOn,
+    };
+    if(cboOn&&budgetAmount>0){
+      if(_ccBudgetType==='daily')payload.dailyBudget=budgetAmount;
+      else payload.lifetimeBudget=budgetAmount;
+    }
+    if(cboOn&&startDate)payload.startTime=new Date(startDate+'T00:00:00').toISOString();
+    if(cboOn&&endDate)payload.endTime=new Date(endDate+'T23:59:59').toISOString();
+    const r=await fetch('/api/meta/campaign/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error al crear campaña');
+    // Add to cache so it appears immediately
+    if(!S.metaAdsCache)S.metaAdsCache={};
+    if(!S.metaAdsCache.campaigns)S.metaAdsCache.campaigns=[];
+    S.metaAdsCache.campaigns.unshift({id:d.campaignId,name:d.name,status:d.status,objective:d.objective,spend:0,impressions:0,clicks:0,ctr:0,cpc:0,cpm:0,reach:0,conversions:0,roas:null,cpa:null,frequency:0,cpp:0,dailyBudget:null,lifetimeBudget:null,budgetRemaining:null});
+    save();
+    renderMetaAds();
+    document.getElementById('create-campaign-overlay')?.remove();
+    notify('✅ Campaña creada correctamente');
+  }catch(e){
+    notify('❌ Error: '+e.message);
+    if(btn){btn.disabled=false;btn.textContent='✦ Crear campaña';}
+  }
+}
+
 // ── Crear Anuncio ──
 let _metaPages=[];
 let _metaCreateAdsets=[];
@@ -7081,26 +7386,49 @@ async function _mcLoadIgAccount(pageId){
   const group=document.getElementById('mc-ig-account-group');
   const sel=document.getElementById('mc-ig-account');
   if(!group||!sel)return;
-  if(!pageId){group.style.display='none';_mcIgUserId=null;_mcIgActorId=null;return;}
+  // Always show the group
+  group.style.display='block';
+  if(!pageId){
+    sel.innerHTML='<option value="">Sin Instagram (solo Facebook)</option>';
+    _mcIgUserId=null;_mcIgActorId=null;
+    return;
+  }
   // Reload IG posts grid if igpost type is active
   const grid=document.getElementById('mc-ig-grid-wrap');
   if(grid)delete grid.dataset.loaded;
+  sel.innerHTML='<option value="">⏳ Cargando cuentas de Instagram…</option>';
   try{
-    const r=await fetch(`/api/meta/ig-account?wsId=${encodeURIComponent(_activeWsId)}&pageId=${pageId}`);
-    const d=await r.json();
-    if(!r.ok||d.error)throw new Error(d.error);
-    if(d.igUserId){
-      _mcIgUserId=d.igUserId;
-      sel.innerHTML=`<option value="${d.igUserId}">📸 ${d.igName||d.igUserId}${d.igUsername?` (@${d.igUsername})`:''}</option><option value="">Solo Facebook (sin Instagram)</option>`;
-      group.style.display='block';
-      _mcIgActorId=d.igUserId;
-    } else {
-      sel.innerHTML='<option value="">Sin cuenta de Instagram vinculada a esta página</option>';
-      group.style.display='block';
-      _mcIgUserId=null;_mcIgActorId=null;
+    // Fetch both: page-linked IG account AND portfolio IG accounts in parallel
+    const [pageR, portfolioR]=await Promise.all([
+      fetch(`/api/meta/ig-account?wsId=${encodeURIComponent(_activeWsId)}&pageId=${pageId}`),
+      fetch(`/api/meta/ig-accounts?wsId=${encodeURIComponent(_activeWsId)}`)
+    ]);
+    const pageD=await pageR.json();
+    const portfolioD=portfolioR.ok?await portfolioR.json():{accounts:[]};
+    // Build deduped options list
+    const opts=[];
+    const seen=new Set();
+    // Page-linked account first
+    if(!pageD.error&&pageD.igUserId){
+      seen.add(pageD.igUserId);
+      opts.push({id:pageD.igUserId,label:`📸 ${pageD.igName||pageD.igUserId}${pageD.igUsername?` (@${pageD.igUsername})`:''}`});
+      _mcIgUserId=pageD.igUserId;
+      _mcIgActorId=pageD.igUserId;
     }
+    // Portfolio IG accounts
+    (portfolioD.accounts||[]).forEach(a=>{
+      if(!seen.has(a.id)){
+        seen.add(a.id);
+        opts.push({id:a.id,label:`📸 ${a.name||a.id}${a.username?` (@${a.username})`:''}`});
+      }
+    });
+    if(opts.length===0){_mcIgUserId=null;_mcIgActorId=null;}
+    sel.innerHTML=opts.map(o=>`<option value="${o.id}">${o.label}</option>`).join('')
+      +`<option value="">Sin Instagram (solo Facebook)</option>`;
+    // Default to first option if available
+    if(opts.length>0){sel.value=opts[0].id;}
   }catch(e){
-    group.style.display='none';
+    sel.innerHTML='<option value="">Sin Instagram (solo Facebook)</option>';
     _mcIgUserId=null;_mcIgActorId=null;
   }
 }
@@ -7274,7 +7602,7 @@ async function openCreateAdModal(preselectedAdsetId){
                <input class="form-input" id="mc-page" placeholder="ID de la página de Facebook (ej: 123456789)">`
           }
         </div>
-        <div class="form-group" id="mc-ig-account-group" style="display:none">
+        <div class="form-group" id="mc-ig-account-group">
           <label class="form-label">Cuenta de Instagram <span style="color:var(--muted);font-size:10px">Para mostrar el anuncio en Instagram</span></label>
           <select class="form-input" id="mc-ig-account" onchange="_mcOnIgAccountChange(this.value)">
             <option value="">Sin Instagram (solo Facebook)</option>

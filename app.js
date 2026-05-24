@@ -661,6 +661,36 @@ app.post("/api/meta/campaign/budget", async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
+// Create a new campaign
+app.post("/api/meta/campaign/create", async (req, res) => {
+  const { wsId, name, objective, status = "PAUSED", dailyBudget, lifetimeBudget, startTime, endTime, specialAdCategories = [], budgetOptimizationOn = false } = req.body
+  if (!wsId || !name || !objective) return res.status(400).json({ error: "wsId, name y objective requeridos" })
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.accessToken || !meta?.adAccountId) return res.status(400).json({ error: "Meta Ads no conectado" })
+    const accountId = meta.adAccountId.startsWith("act_") ? meta.adAccountId : "act_" + meta.adAccountId
+    const token = meta.accessToken
+    const body = {
+      name, objective, status,
+      special_ad_categories: specialAdCategories.filter(c => c !== "NONE"),
+      access_token: token
+    }
+    if (budgetOptimizationOn) {
+      if (dailyBudget) body.daily_budget = String(Math.round(dailyBudget * 100))
+      if (lifetimeBudget) body.lifetime_budget = String(Math.round(lifetimeBudget * 100))
+      if (startTime) body.start_time = startTime
+      if (endTime) body.end_time = endTime
+    }
+    const r = await fetch(`https://graph.facebook.com/v21.0/${accountId}/campaigns`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    })
+    const d = await r.json()
+    if (d.error) return res.status(400).json({ error: d.error.message })
+    res.json({ ok: true, campaignId: d.id, name, objective, status })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
 // Pause or enable a campaign
 app.post("/api/meta/campaign/action", async (req, res) => {
   const { wsId, campaignId, action } = req.body // action: "PAUSED" | "ACTIVE"
@@ -1125,6 +1155,24 @@ app.post("/api/meta/upload-image", async (req, res) => {
     const imageInfo = Object.values(images)[0]
     if (!imageInfo) return res.status(400).json({ error: "Meta no devolvió datos de imagen" })
     res.json({ ok: true, hash: imageInfo.hash, url: imageInfo.url })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// Get ALL Instagram accounts accessible via the ad account (Business Portfolio)
+app.get("/api/meta/ig-accounts", async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: "wsId requerido" })
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.accessToken || !meta?.adAccountId) return res.status(400).json({ error: "Meta Ads no conectado" })
+    const accountId = meta.adAccountId.startsWith("act_") ? meta.adAccountId : "act_" + meta.adAccountId
+    const token = meta.accessToken
+    const r = await fetch(`https://graph.facebook.com/v21.0/${accountId}/instagram_accounts?fields=id,name,username,profile_pic&access_token=${token}`)
+    const d = await r.json()
+    if (d.error) return res.status(400).json({ error: d.error.message })
+    const accounts = (d.data || []).map(a => ({ id: a.id, name: a.name || a.username, username: a.username, profilePic: a.profile_pic }))
+    res.json({ accounts })
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
