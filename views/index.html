@@ -1182,6 +1182,102 @@ body.crealo-landing-mode #content-area { margin:0!important;padding:0!important;
 .crealo-progress-line { flex:1;height:2px;background:var(--border);border-radius:2px;max-width:40px }
 .crealo-progress-line.done { background:var(--green) }
 
+/* CREALO LANDING 3D */
+@keyframes crealFloat { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-18px) rotate(1deg)} }
+@keyframes crealShimmer { 0%{background-position:200% center} 100%{background-position:-200% center} }
+@keyframes crealPulse { 0%,100%{opacity:.6;transform:scale(1)} 50%{opacity:1;transform:scale(1.05)} }
+@keyframes crealOrbit { 0%{transform:rotate(0deg) translateX(120px) rotate(0deg)} 100%{transform:rotate(360deg) translateX(120px) rotate(-360deg)} }
+@keyframes crealGlow { 0%,100%{box-shadow:0 0 20px rgba(41,121,255,.3)} 50%{box-shadow:0 0 60px rgba(41,121,255,.7),0 0 100px rgba(41,121,255,.3)} }
+@keyframes crealFadeUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+@keyframes crealParticle { 0%{transform:translateY(0) translateX(0);opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{transform:translateY(-100vh) translateX(var(--drift));opacity:0} }
+@keyframes crealCountUp { from{opacity:0} to{opacity:1} }
+@keyframes crealBorderSpin { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+
+.creal-hero-title {
+  font-family: var(--fd);
+  font-size: clamp(72px, 12vw, 140px);
+  font-weight: 900;
+  letter-spacing: -.05em;
+  line-height: .9;
+  background: linear-gradient(135deg, #ffffff 0%, #a8c8ff 30%, var(--gold) 60%, #7c4dff 100%);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: crealShimmer 4s linear infinite;
+}
+.creal-card-3d {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 24px;
+  backdrop-filter: blur(20px);
+  transition: transform .3s ease, box-shadow .3s ease;
+  transform-style: preserve-3d;
+}
+.creal-card-3d:hover { transform: translateY(-8px) rotateX(4deg) rotateY(-4deg); box-shadow: 0 40px 80px rgba(0,0,0,.5), 0 0 40px rgba(41,121,255,.2) }
+.creal-mode-card {
+  flex: 1;
+  padding: 32px 28px;
+  border-radius: 20px;
+  border: 2px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+  cursor: pointer;
+  transition: all .25s ease;
+  position: relative;
+  overflow: hidden;
+}
+.creal-mode-card::before {
+  content:'';
+  position:absolute;
+  inset:-2px;
+  border-radius:22px;
+  background: linear-gradient(135deg, var(--gold), #7c4dff, var(--green), var(--gold));
+  background-size: 300% 300%;
+  animation: crealBorderSpin 3s ease infinite;
+  opacity: 0;
+  transition: opacity .3s;
+  z-index: -1;
+}
+.creal-mode-card:hover::before, .creal-mode-card.selected::before { opacity: 1 }
+.creal-mode-card:hover, .creal-mode-card.selected { border-color: transparent; background: rgba(255,255,255,.06); transform: translateY(-4px) }
+.creal-mode-card.selected { background: rgba(41,121,255,.08) }
+.creal-stat-num {
+  font-family: var(--fd);
+  font-size: 42px;
+  font-weight: 900;
+  letter-spacing: -.03em;
+  background: linear-gradient(135deg, #fff 0%, var(--gold) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.creal-floating-badge {
+  position: absolute;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 14px;
+  backdrop-filter: blur(16px);
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  animation: crealFloat 4s ease-in-out infinite;
+  pointer-events: none;
+}
+.creal-particle { position:absolute;width:4px;height:4px;border-radius:50%;background:var(--gold);animation:crealParticle var(--dur,8s) var(--delay,0s) linear infinite }
+.creal-step-pill { display:flex;align-items:center;gap:10px;padding:14px 20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;margin-bottom:10px;transition:all .2s }
+.creal-step-pill:hover { background:rgba(41,121,255,.08);border-color:rgba(41,121,255,.3);transform:translateX(6px) }
+.creal-price-tag { display:inline-flex;align-items:baseline;gap:4px }
+.creal-price-tag .amount { font-family:var(--fd);font-size:36px;font-weight:900;color:#fff }
+.creal-price-tag .period { font-size:13px;color:var(--muted);font-weight:400 }
+.creal-badge-recommended { position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--gold),#7c4dff);color:#fff;font-size:10px;font-weight:700;padding:4px 14px;border-radius:20px;white-space:nowrap;letter-spacing:.06em;text-transform:uppercase }
+.creal-testimonial { background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:24px;transition:all .2s }
+.creal-testimonial:hover { background:rgba(255,255,255,.05);transform:translateY(-3px) }
+.creal-video-mockup { width:220px;height:390px;background:linear-gradient(160deg,#1a1a2e,#16213e,#0f3460);border-radius:24px;border:2px solid rgba(255,255,255,.15);overflow:hidden;position:relative;animation:crealFloat 5s ease-in-out infinite;box-shadow:0 40px 80px rgba(0,0,0,.6),0 0 60px rgba(41,121,255,.2),inset 0 0 40px rgba(41,121,255,.05) }
+.crealo-mode-real-form { display:none;animation:crealFadeUp .4s ease }
+.crealo-mode-real-form.visible { display:block }
+
 /* ── SIDEBAR ── */
 :root{--topbar-h:52px}
 .sidebar{
@@ -3370,32 +3466,287 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
 <div class="page" id="page-crealo" style="padding:0;max-width:100%">
 
   <!-- LANDING VIEW -->
-  <div id="crealo-landing" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:60px 20px;background:linear-gradient(135deg,#0a0a0a 0%,#111 50%,#0d0d0d 100%)">
-    <div style="font-family:var(--fd);font-size:64px;font-weight:800;letter-spacing:-.04em;background:linear-gradient(135deg,#fff 0%,#7ab3ff 60%,var(--gold) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;line-height:1">Crealo</div>
-    <div style="font-size:18px;color:var(--muted2);font-weight:300;margin-bottom:28px;max-width:480px;line-height:1.5">Creá videos UGC con IA que venden</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:40px">
-      <span style="background:rgba(41,121,255,.1);border:1px solid rgba(41,121,255,.25);color:#7ab3ff;font-size:12px;padding:6px 16px;border-radius:20px;font-weight:500">🤖 Avatar IA</span>
-      <span style="background:rgba(52,199,123,.1);border:1px solid rgba(52,199,123,.25);color:var(--green);font-size:12px;padding:6px 16px;border-radius:20px;font-weight:500">✍️ Guión optimizado</span>
-      <span style="background:rgba(201,180,138,.1);border:1px solid rgba(201,180,138,.25);color:var(--gold);font-size:12px;padding:6px 16px;border-radius:20px;font-weight:500">📤 Publicá directo en Meta</span>
+  <div id="crealo-landing" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;background:#080810;overflow:hidden;position:relative">
+
+  <!-- Particles background -->
+  <div id="creal-particles" style="position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0"></div>
+
+  <!-- Ambient glow blobs -->
+  <div style="position:absolute;top:-200px;left:-200px;width:600px;height:600px;background:radial-gradient(circle,rgba(41,121,255,.15) 0%,transparent 70%);pointer-events:none;z-index:0"></div>
+  <div style="position:absolute;bottom:-200px;right:-200px;width:500px;height:500px;background:radial-gradient(circle,rgba(124,77,255,.12) 0%,transparent 70%);pointer-events:none;z-index:0"></div>
+
+  <!-- NAV -->
+  <nav style="width:100%;max-width:1200px;padding:24px 40px;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:10">
+    <div style="font-family:var(--fd);font-size:28px;font-weight:900;letter-spacing:-.04em;background:linear-gradient(135deg,#fff,var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Crealo</div>
+    <div style="display:flex;gap:12px;align-items:center">
+      <span style="font-size:12px;color:var(--muted)">by Soul eCommlab</span>
+      <button onclick="crealLandingCTA()" style="background:var(--gold);color:#fff;border:none;padding:10px 24px;border-radius:24px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--fb)">Empezar →</button>
     </div>
-    <button class="btn btn-primary" style="font-size:15px;padding:14px 36px;border-radius:12px;font-weight:700" onclick="crealLandingCTA()">Empezar gratis →</button>
-    <div style="margin-top:48px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:760px;width:100%">
-      <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:14px;padding:24px 20px;text-align:left">
+  </nav>
+
+  <!-- HERO -->
+  <div style="max-width:1200px;width:100%;padding:60px 40px 40px;display:grid;grid-template-columns:1fr auto;gap:60px;align-items:center;position:relative;z-index:5" id="creal-hero">
+    <div>
+      <!-- Label -->
+      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(41,121,255,.1);border:1px solid rgba(41,121,255,.25);border-radius:24px;padding:6px 16px;margin-bottom:28px">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--gold);animation:crealPulse 2s ease infinite"></span>
+        <span style="font-size:11px;font-weight:600;color:#7ab3ff;letter-spacing:.1em;text-transform:uppercase">IA + Creadores reales · Argentina</span>
+      </div>
+
+      <!-- Title -->
+      <div class="creal-hero-title" style="margin-bottom:24px">
+        Crealo<br><span style="font-size:.55em;font-weight:400;background:linear-gradient(135deg,#888,#ccc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">con IA.</span>
+      </div>
+
+      <p style="font-size:20px;color:rgba(255,255,255,.6);font-weight:300;line-height:1.6;max-width:520px;margin-bottom:40px">
+        Creá videos UGC de alto impacto con avatares IA o creadores reales. Guión optimizado para Meta, score viral incluido.
+      </p>
+
+      <!-- Stats row -->
+      <div style="display:flex;gap:40px;margin-bottom:48px">
+        <div>
+          <div class="creal-stat-num" data-target="2400">0</div>
+          <div style="font-size:12px;color:var(--muted);font-weight:500">Videos creados</div>
+        </div>
+        <div style="width:1px;background:rgba(255,255,255,.08)"></div>
+        <div>
+          <div class="creal-stat-num" data-target="340">0</div>
+          <div style="font-size:12px;color:var(--muted);font-weight:500">Marcas activas</div>
+        </div>
+        <div style="width:1px;background:rgba(255,255,255,.08)"></div>
+        <div>
+          <div class="creal-stat-num" data-target="8.7">0</div>
+          <div style="font-size:12px;color:var(--muted);font-weight:500">Score viral prom.</div>
+        </div>
+      </div>
+
+      <!-- CTA buttons -->
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <button onclick="crealScrollToModes()" style="background:linear-gradient(135deg,var(--gold),#7c4dff);color:#fff;border:none;padding:16px 36px;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--fb);animation:crealGlow 3s ease infinite;transition:transform .2s" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
+          ✨ Crear mi video
+        </button>
+        <button onclick="document.getElementById('creal-howworks').scrollIntoView({behavior:'smooth'})" style="background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.15);padding:16px 28px;border-radius:14px;font-size:15px;font-weight:500;cursor:pointer;font-family:var(--fb);transition:all .2s" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">
+          Ver cómo funciona
+        </button>
+      </div>
+    </div>
+
+    <!-- 3D Video mockup -->
+    <div style="position:relative;flex-shrink:0" id="creal-mockup-wrap">
+      <div class="creal-video-mockup" id="creal-mockup">
+        <!-- Phone screen content -->
+        <div style="padding:20px 16px">
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#7c4dff);margin-bottom:12px;display:flex;align-items:center;justify-content:center;font-size:20px">🎬</div>
+          <div style="height:8px;background:rgba(255,255,255,.2);border-radius:4px;margin-bottom:8px;width:80%"></div>
+          <div style="height:8px;background:rgba(255,255,255,.1);border-radius:4px;margin-bottom:8px;width:60%"></div>
+          <div style="height:8px;background:rgba(255,255,255,.1);border-radius:4px;width:70%"></div>
+        </div>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.8) 100%)"></div>
+        <div style="position:absolute;bottom:20px;left:16px;right:16px">
+          <div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:6px">🔥 ¿Querés esto?</div>
+          <div style="height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin-bottom:8px"><div style="width:75%;height:100%;background:linear-gradient(90deg,var(--gold),#7c4dff);border-radius:2px"></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;gap:12px;font-size:18px">❤️ 💬 📤</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.6)">1.2M vistas</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating badges around mockup -->
+      <div class="creal-floating-badge" style="top:-20px;right:-60px;animation-delay:.5s">✅ Guión con IA</div>
+      <div class="creal-floating-badge" style="bottom:60px;left:-80px;animation-delay:1.5s;animation-duration:5s">🔥 Score viral: 9.2</div>
+      <div class="creal-floating-badge" style="bottom:-20px;right:-40px;animation-delay:1s;animation-duration:6s">📤 Subido a Meta</div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div id="creal-howworks" style="max-width:1200px;width:100%;padding:80px 40px;position:relative;z-index:5">
+    <div style="text-align:center;margin-bottom:56px">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px">El proceso</div>
+      <div style="font-family:var(--fd);font-size:clamp(32px,5vw,52px);font-weight:800;letter-spacing:-.03em;color:#fff">Cómo funciona</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px">
+      <div class="creal-card-3d" style="padding:28px 24px">
+        <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:16px;letter-spacing:.08em">01</div>
+        <div style="font-size:24px;margin-bottom:12px">🔗</div>
+        <div style="font-size:14px;font-weight:600;color:#fff;margin-bottom:8px">Pegá tu URL</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.5">Analizamos tu producto automáticamente</div>
+      </div>
+      <div class="creal-card-3d" style="padding:28px 24px">
+        <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:16px;letter-spacing:.08em">02</div>
         <div style="font-size:24px;margin-bottom:12px">🎯</div>
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Ángulo de venta</div>
-        <div style="font-size:12px;color:var(--muted);font-weight:300;line-height:1.5">6 estrategias probadas para conectar con tu audiencia y convertir</div>
+        <div style="font-size:14px;font-weight:600;color:#fff;margin-bottom:8px">Elegí ángulo</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.5">6 estrategias de venta probadas</div>
       </div>
-      <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:14px;padding:24px 20px;text-align:left">
-        <div style="font-size:24px;margin-bottom:12px">✨</div>
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Guión con Claude IA</div>
-        <div style="font-size:12px;color:var(--muted);font-weight:300;line-height:1.5">3 variaciones de guión listas para grabar en segundos</div>
+      <div class="creal-card-3d" style="padding:28px 24px">
+        <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:16px;letter-spacing:.08em">03</div>
+        <div style="font-size:24px;margin-bottom:12px">✍️</div>
+        <div style="font-size:14px;font-weight:600;color:#fff;margin-bottom:8px">Guión IA</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.5">Claude genera 3 variantes en segundos</div>
       </div>
-      <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:14px;padding:24px 20px;text-align:left">
-        <div style="font-size:24px;margin-bottom:12px">📊</div>
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Score viral</div>
-        <div style="font-size:12px;color:var(--muted);font-weight:300;line-height:1.5">Análisis de rendimiento esperado con tips del algoritmo de Meta</div>
+      <div class="creal-card-3d" style="padding:28px 24px">
+        <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:16px;letter-spacing:.08em">04</div>
+        <div style="font-size:24px;margin-bottom:12px">🎬</div>
+        <div style="font-size:14px;font-weight:600;color:#fff;margin-bottom:8px">Elegí modo</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.5">Avatar IA o creador real</div>
+      </div>
+      <div class="creal-card-3d" style="padding:28px 24px">
+        <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:16px;letter-spacing:.08em">05</div>
+        <div style="font-size:24px;margin-bottom:12px">🚀</div>
+        <div style="font-size:14px;font-weight:600;color:#fff;margin-bottom:8px">Publicá</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.5">Directo a Meta Ads desde la plataforma</div>
       </div>
     </div>
+  </div>
+
+  <!-- MODE SELECTOR -->
+  <div id="creal-modes" style="max-width:1200px;width:100%;padding:40px 40px 80px;position:relative;z-index:5">
+    <div style="text-align:center;margin-bottom:48px">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px">Elegí tu modo</div>
+      <div style="font-family:var(--fd);font-size:clamp(32px,5vw,52px);font-weight:800;letter-spacing:-.03em;color:#fff">IA o Real. Vos elegís.</div>
+      <div style="font-size:16px;color:var(--muted);margin-top:12px;font-weight:300">Dos caminos, el mismo objetivo: videos que venden.</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;position:relative">
+
+      <!-- MODO IA -->
+      <div class="creal-mode-card" id="creal-mode-ia" onclick="crealSelectMode('ia')" style="position:relative">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div style="background:linear-gradient(135deg,rgba(41,121,255,.2),rgba(124,77,255,.2));border:1px solid rgba(41,121,255,.3);padding:8px 16px;border-radius:24px;font-size:12px;font-weight:700;color:#7ab3ff">✨ MODO IA</div>
+          <div style="background:linear-gradient(135deg,var(--gold),#7c4dff);color:#fff;font-size:10px;font-weight:700;padding:4px 12px;border-radius:12px;letter-spacing:.06em">MÁS POPULAR</div>
+        </div>
+        <div class="creal-price-tag" style="margin-bottom:8px">
+          <span class="amount">$29.000</span>
+          <span class="period">/video</span>
+        </div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:24px">Generado en minutos con IA</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:28px">
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8)"><span style="color:var(--green);flex-shrink:0">✓</span>Avatar IA ultrarrealista</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8)"><span style="color:var(--green);flex-shrink:0">✓</span>Guión generado por Claude</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8)"><span style="color:var(--green);flex-shrink:0">✓</span>Render automático en 3 formatos</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8)"><span style="color:var(--green);flex-shrink:0">✓</span>Score viral incluido</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8)"><span style="color:var(--green);flex-shrink:0">✓</span>Publicación directa a Meta Ads</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8)"><span style="color:var(--green);flex-shrink:0">✓</span>Entrega en minutos</div>
+        </div>
+        <button onclick="crealLandingCTA()" style="width:100%;background:linear-gradient(135deg,var(--gold),#7c4dff);color:#fff;border:none;padding:14px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--fb);transition:opacity .2s" onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+          ✨ Empezar con IA →
+        </button>
+      </div>
+
+      <!-- MODO REAL -->
+      <div class="creal-mode-card" id="creal-mode-real" onclick="crealSelectMode('real')" style="position:relative">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div style="background:linear-gradient(135deg,rgba(52,199,123,.15),rgba(52,199,123,.05));border:1px solid rgba(52,199,123,.25);padding:8px 16px;border-radius:24px;font-size:12px;font-weight:700;color:var(--green)">📹 MODO REAL</div>
+          <div style="background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);font-size:10px;font-weight:600;padding:4px 12px;border-radius:12px;letter-spacing:.06em;border:1px solid rgba(255,255,255,.1)">PREMIUM</div>
+        </div>
+        <div class="creal-price-tag" style="margin-bottom:8px">
+          <span class="amount">$75.000</span>
+          <span class="period">/video</span>
+        </div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:24px">Creadora real, resultado premium</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:28px">
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8)"><span style="color:var(--green);flex-shrink:0">✓</span>Creadora real seleccionada</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8)"><span style="color:var(--green);flex-shrink:0">✓</span>Guión optimizado por IA</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8)"><span style="color:var(--green);flex-shrink:0">✓</span>Dirección creativa incluida</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8)"><span style="color:var(--green);flex-shrink:0">✓</span>Múltiples formatos y ratios</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8)"><span style="color:var(--green);flex-shrink:0">✓</span>Revisión y ajustes incluidos</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8)"><span style="color:var(--green);flex-shrink:0">✓</span>Entrega en 5-7 días hábiles</div>
+        </div>
+        <button onclick="crealSelectMode('real');event.stopPropagation()" style="width:100%;background:rgba(52,199,123,.15);color:var(--green);border:1px solid rgba(52,199,123,.3);padding:14px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--fb);transition:all .2s" onmouseover="this.style.background='rgba(52,199,123,.25)'" onmouseout="this.style.background='rgba(52,199,123,.15)'">
+          📹 Solicitar creadora →
+        </button>
+      </div>
+    </div>
+
+    <!-- MODO REAL FORM (expands below) -->
+    <div id="creal-real-form-wrap" class="crealo-mode-real-form" style="margin-top:24px">
+      <div class="creal-card-3d" style="padding:36px 40px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px">
+          <div>
+            <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:4px">📋 Contanos sobre tu proyecto</div>
+            <div style="font-size:13px;color:var(--muted)">Te contactamos por WhatsApp en menos de 24hs</div>
+          </div>
+          <button onclick="crealSelectMode(null)" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--muted);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:var(--fb)">✕ Cerrar</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div>
+            <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Tipo de contenido</label>
+            <select id="creal-real-tipo" class="form-input">
+              <option value="">Seleccioná...</option>
+              <option>Unboxing + review</option>
+              <option>Demostración del producto</option>
+              <option>Testimonio / historia real</option>
+              <option>Tutorial de uso</option>
+              <option>Comparativa antes/después</option>
+              <option>Video de lifestyle</option>
+              <option>Hook de problema/solución</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Perfil de creadora</label>
+            <select id="creal-real-perfil" class="form-input">
+              <option value="">Seleccioná...</option>
+              <option>Joven 18-25, estética trendy</option>
+              <option>Adulta 25-35, lifestyle premium</option>
+              <option>Mamá / familia</option>
+              <option>Fitness / bienestar</option>
+              <option>Profesional / corporativo</option>
+              <option>Cualquier perfil (te sugerimos)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Cantidad de videos</label>
+            <select id="creal-real-cantidad" class="form-input">
+              <option value="1">1 video — $75.000</option>
+              <option value="3">Pack 3 videos — $195.000</option>
+              <option value="5">Pack 5 videos — $300.000</option>
+              <option value="10">Pack 10 videos — $550.000</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Tu nombre</label>
+            <input id="creal-real-nombre" class="form-input" placeholder="Tu nombre o marca">
+          </div>
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">URL del producto (opcional)</label>
+          <input id="creal-real-url" class="form-input" placeholder="https://tu-tienda.com/producto">
+        </div>
+        <button onclick="crealEnviarWA()" style="width:100%;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;padding:16px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--fb);display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity .2s" onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          Contactar por WhatsApp
+        </button>
+        <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--muted)">💬 Respondemos en menos de 24 horas · Sin compromiso</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TESTIMONIALS -->
+  <div style="max-width:1200px;width:100%;padding:40px 40px 80px;position:relative;z-index:5">
+    <div style="text-align:center;margin-bottom:40px">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px">Resultados reales</div>
+      <div style="font-family:var(--fd);font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:-.03em;color:#fff">Lo que dicen nuestros clientes</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px">
+      <div class="creal-testimonial"><div style="font-size:20px;margin-bottom:12px">⭐⭐⭐⭐⭐</div><div style="font-size:14px;color:rgba(255,255,255,.8);line-height:1.6;margin-bottom:16px">"El ROAS nos subió de 2x a 6x en 3 semanas usando los videos de Crealo. El hook de IA es increíble."</div><div style="font-size:12px;font-weight:600;color:var(--muted)">Valentina M. · Fundadora de skincare DTC</div></div>
+      <div class="creal-testimonial"><div style="font-size:20px;margin-bottom:12px">⭐⭐⭐⭐⭐</div><div style="font-size:14px;color:rgba(255,255,255,.8);line-height:1.6;margin-bottom:16px">"En 10 minutos tenía 3 scripts listos y el video generado. Antes pagaba $200 por algo así. Un cambio de juego."</div><div style="font-size:12px;font-weight:600;color:var(--muted)">Martín G. · E-commerce de suplementos</div></div>
+      <div class="creal-testimonial"><div style="font-size:20px;margin-bottom:12px">⭐⭐⭐⭐⭐</div><div style="font-size:14px;color:rgba(255,255,255,.8);line-height:1.6;margin-bottom:16px">"La creadora real que me consiguieron encajó perfectamente con mi marca. El video tuvo 400K views orgánicas."</div><div style="font-size:12px;font-weight:600;color:var(--muted)">Camila R. · Moda y accesorios</div></div>
+    </div>
+  </div>
+
+  <!-- FINAL CTA -->
+  <div style="max-width:900px;width:100%;padding:40px 40px 100px;text-align:center;position:relative;z-index:5">
+    <div style="background:linear-gradient(135deg,rgba(41,121,255,.1),rgba(124,77,255,.08));border:1px solid rgba(255,255,255,.08);border-radius:32px;padding:64px 48px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(41,121,255,.2),transparent);pointer-events:none"></div>
+      <div style="font-family:var(--fd);font-size:clamp(28px,5vw,52px);font-weight:900;letter-spacing:-.03em;color:#fff;margin-bottom:16px;position:relative">Empezá a crear hoy</div>
+      <div style="font-size:16px;color:var(--muted);margin-bottom:36px;font-weight:300;position:relative">Tu primer video en menos de 10 minutos.</div>
+      <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;position:relative">
+        <button onclick="crealLandingCTA()" style="background:linear-gradient(135deg,var(--gold),#7c4dff);color:#fff;border:none;padding:18px 44px;border-radius:16px;font-size:16px;font-weight:700;cursor:pointer;font-family:var(--fb);animation:crealGlow 3s ease infinite" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">✨ Modo IA — $29.000/video</button>
+        <button onclick="crealSelectMode('real');document.getElementById('creal-modes').scrollIntoView({behavior:'smooth'})" style="background:rgba(52,199,123,.1);color:var(--green);border:1px solid rgba(52,199,123,.25);padding:18px 36px;border-radius:16px;font-size:16px;font-weight:600;cursor:pointer;font-family:var(--fb)">📹 Modo Real — $75.000/video</button>
+      </div>
+    </div>
+  </div>
+
   </div>
 
   <!-- APP VIEW — 5-step wizard -->
@@ -4238,6 +4589,7 @@ async function initState(){
       const app=document.getElementById('crealo-app');
       if(landing)landing.style.display='flex';
       if(app)app.style.display='none';
+      setTimeout(crealInitLanding, 200);
       return;
     }
     // Sin sesión: si están en / o ruta de sección, mandar a /login
@@ -13926,6 +14278,11 @@ function initCrealoPage() {
   if (musicCb && musicSel) {
     musicCb.onchange = () => { musicSel.disabled = !musicCb.checked; };
   }
+  // Init landing animations if landing is visible
+  const landing = document.getElementById('crealo-landing');
+  if (landing && landing.style.display !== 'none') {
+    setTimeout(crealInitLanding, 100);
+  }
 }
 
 function crealLandingCTA(){
@@ -13950,6 +14307,91 @@ function crealShowLanding() {
   document.getElementById('crealo-app').style.display = 'none';
   document.getElementById('page-crealo')?.classList.add('landing-fullscreen');
   document.body.classList.add('crealo-landing-mode');
+  setTimeout(crealInitLanding, 100);
+}
+
+// Particles background for Crealo landing
+function crealInitParticles(){
+  const container=document.getElementById('creal-particles');
+  if(!container)return;
+  container.innerHTML='';
+  for(let i=0;i<25;i++){
+    const p=document.createElement('div');
+    p.className='creal-particle';
+    p.style.cssText=`left:${Math.random()*100}%;bottom:-10px;--drift:${(Math.random()-.5)*200}px;--dur:${6+Math.random()*12}s;--delay:-${Math.random()*10}s;width:${2+Math.random()*4}px;height:${2+Math.random()*4}px;opacity:${.3+Math.random()*.7};background:${Math.random()>.5?'var(--gold)':'rgba(124,77,255,.8)'}`;
+    container.appendChild(p);
+  }
+}
+
+// Animated counter for stats
+function crealAnimateStats(){
+  document.querySelectorAll('.creal-stat-num[data-target]').forEach(el=>{
+    const target=parseFloat(el.dataset.target);
+    const isDecimal=target%1!==0;
+    const duration=1800;
+    const start=performance.now();
+    const step=now=>{
+      const p=Math.min((now-start)/duration,1);
+      const ease=1-Math.pow(1-p,3);
+      const val=target*ease;
+      el.textContent=isDecimal?val.toFixed(1):Math.round(val).toLocaleString('es-AR')+(target>=1000?'':'');
+      if(p<1)requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+}
+
+// 3D parallax on mockup (mouse follow)
+function crealInitParallax(){
+  const hero=document.getElementById('creal-hero');
+  const mockup=document.getElementById('creal-mockup');
+  if(!hero||!mockup)return;
+  hero.addEventListener('mousemove',e=>{
+    const r=hero.getBoundingClientRect();
+    const x=((e.clientX-r.left)/r.width-.5)*20;
+    const y=((e.clientY-r.top)/r.height-.5)*-20;
+    mockup.style.transform=`perspective(800px) rotateY(${x}deg) rotateX(${y}deg)`;
+  });
+  hero.addEventListener('mouseleave',()=>{
+    mockup.style.transform='perspective(800px) rotateY(0) rotateX(0)';
+  });
+}
+
+// Scroll to modes section
+function crealScrollToModes(){
+  document.getElementById('creal-modes')?.scrollIntoView({behavior:'smooth'});
+}
+
+// Mode selector
+function crealSelectMode(mode){
+  document.getElementById('creal-mode-ia')?.classList.toggle('selected', mode==='ia');
+  document.getElementById('creal-mode-real')?.classList.toggle('selected', mode==='real');
+  const form=document.getElementById('creal-real-form-wrap');
+  if(form){
+    if(mode==='real'){form.classList.add('visible');setTimeout(()=>form.scrollIntoView({behavior:'smooth',block:'nearest'}),100);}
+    else{form.classList.remove('visible');}
+  }
+}
+
+// WhatsApp redirect for MODO REAL
+function crealEnviarWA(){
+  const tipo=document.getElementById('creal-real-tipo')?.value||'No especificado';
+  const perfil=document.getElementById('creal-real-perfil')?.value||'No especificado';
+  const cantidad=document.getElementById('creal-real-cantidad')?.value||'1';
+  const nombre=document.getElementById('creal-real-nombre')?.value||'';
+  const url=document.getElementById('creal-real-url')?.value||'';
+  if(!tipo||tipo===''||!perfil||perfil===''){notify('Completá tipo de contenido y perfil de creadora');return;}
+  const msg=`Hola! Quiero solicitar videos UGC con Crealo 🎬\n\n*Tipo de contenido:* ${tipo}\n*Perfil de creadora:* ${perfil}\n*Cantidad:* ${cantidad} video(s)\n*Nombre/Marca:* ${nombre||'No indicado'}\n*Producto:* ${url||'No indicado'}\n\n¿Podemos coordinar?`;
+  // UPDATE: replace with your WhatsApp number (country code + number, no + or spaces)
+  const waNum='5491168408965';
+  window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+// Init function called when Crealo landing is shown
+function crealInitLanding(){
+  crealInitParticles();
+  setTimeout(crealAnimateStats,300);
+  setTimeout(crealInitParallax,100);
 }
 
 function crealShowApp() {
