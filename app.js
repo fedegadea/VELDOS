@@ -710,6 +710,74 @@ app.post("/api/meta/campaign/action", async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
+// Delete a campaign
+app.delete("/api/meta/campaign", async (req, res) => {
+  const { wsId, campaignId } = req.body
+  if (!wsId || !campaignId) return res.status(400).json({ error: "wsId y campaignId requeridos" })
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.accessToken) return res.status(400).json({ error: "Meta Ads no conectado" })
+    const r = await fetch(`https://graph.facebook.com/v21.0/${campaignId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ access_token: meta.accessToken })
+    })
+    const d = await r.json()
+    if (d.error) return res.status(400).json({ error: d.error.message })
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// Create a new ad set
+app.post("/api/meta/adset/create", async (req, res) => {
+  const {
+    wsId, campaignId, name, status = "PAUSED",
+    dailyBudget, lifetimeBudget, startTime, endTime,
+    targeting = {}, optimizationGoal = "LINK_CLICKS",
+    billingEvent = "IMPRESSIONS", placements = "auto",
+    publisherPlatforms = []
+  } = req.body
+  if (!wsId || !campaignId || !name) return res.status(400).json({ error: "wsId, campaignId y name requeridos" })
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.accessToken || !meta?.adAccountId) return res.status(400).json({ error: "Meta Ads no conectado" })
+    const accountId = meta.adAccountId.startsWith("act_") ? meta.adAccountId : "act_" + meta.adAccountId
+    const token = meta.accessToken
+
+    const body = {
+      name, campaign_id: campaignId, status,
+      billing_event: billingEvent,
+      optimization_goal: optimizationGoal,
+      bid_strategy: "LOWEST_COST_WITHOUT_CAP",
+      targeting: {
+        geo_locations: { countries: targeting.countries || ["AR"] },
+        age_min: targeting.ageMin || 18,
+        age_max: targeting.ageMax || 65,
+        ...(targeting.genders && targeting.genders.length ? { genders: targeting.genders } : {}),
+        ...(placements === "manual" && publisherPlatforms.length ? {
+          publisher_platforms: publisherPlatforms,
+          facebook_positions: publisherPlatforms.includes("facebook") ? ["feed"] : undefined,
+          instagram_positions: publisherPlatforms.includes("instagram") ? ["stream"] : undefined
+        } : {})
+      },
+      access_token: token
+    }
+    if (dailyBudget) body.daily_budget = String(Math.round(dailyBudget * 100))
+    if (lifetimeBudget) body.lifetime_budget = String(Math.round(lifetimeBudget * 100))
+    if (startTime) body.start_time = startTime
+    if (endTime) body.end_time = endTime
+
+    const r = await fetch(`https://graph.facebook.com/v21.0/${accountId}/adsets`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    })
+    const d = await r.json()
+    if (d.error) return res.status(400).json({ error: d.error.message })
+    res.json({ ok: true, adsetId: d.id, name })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
 // Get ad sets for a campaign (drill-down)
 app.get("/api/meta/adsets", async (req, res) => {
   const { wsId, campaignId } = req.query
@@ -831,7 +899,7 @@ app.get("/api/meta/oauth/start", (req, res) => {
   if (!wsId) return res.status(400).send("wsId requerido")
   if (!META_APP_ID()) return res.status(500).send("META_APP_ID no configurado en el servidor")
   const redirectUri = encodeURIComponent(`${APP_BASE_URL()}/api/meta/oauth/callback`)
-  const scope = encodeURIComponent("ads_read,ads_management,business_management,pages_show_list")
+  const scope = encodeURIComponent("ads_read,ads_management,business_management,pages_show_list,pages_manage_ads,instagram_basic")
   // state = wsId so we know which workspace to update after callback
   const state = encodeURIComponent(wsId)
   const url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${META_APP_ID()}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}&response_type=code`

@@ -6829,7 +6829,19 @@ async function _metaToggleCampaign(id, currentStatus, btn){
       if(pill){pill.className=`meta-status-pill meta-status-${newStatus}`;pill.textContent=newStatus==='ACTIVE'?'🟢 ACTIVE':'⏸️ PAUSED';}
     }
     notify(`${newStatus==='PAUSED'?'⏸️':'▶️'} Campaña ${newStatus==='PAUSED'?'pausada':'activada'}`);
-  }catch(e){notify('❌ Error al cambiar estado: '+e.message);if(btn){btn.disabled=false;btn.textContent=currentStatus==='ACTIVE'?'⏸ Pausar':'▶ Activar';}}
+  }catch(e){notify('❌ Error: '+e.message+(e.message.includes('ermis')||e.message.includes('190')?' — Reconectá Meta desde el panel':''));if(btn){btn.disabled=false;btn.textContent=currentStatus==='ACTIVE'?'⏸ Pausar':'▶ Activar';}}
+}
+
+async function _metaDeleteCampaign(id, name){
+  if(!confirm(`¿Eliminar campaña "${name}"? Esta acción no se puede deshacer.`))return;
+  try{
+    const r=await fetch('/api/meta/campaign',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId:_activeWsId,campaignId:id})});
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    if(S.metaAdsCache?.campaigns)S.metaAdsCache.campaigns=S.metaAdsCache.campaigns.filter(c=>c.id!==id);
+    save();renderMetaAds();
+    notify('🗑 Campaña eliminada');
+  }catch(e){notify('❌ Error al eliminar: '+e.message);}
 }
 
 async function _metaLoadAdSets(campaignId,expandBtn){
@@ -7068,43 +7080,56 @@ function renderMetaAds(){
       <td>${c.conversions||'—'}</td>
       <td>${cpaStr}</td>
       <td>${roasStr}</td>
-      <td>
+      <td style="white-space:nowrap">
         <button class="meta-action-btn ${isActive?'pause':'activate'}" onclick="_metaToggleCampaign('${c.id}','${c.status}',this)">
           ${isActive?'⏸ Pausar':'▶ Activar'}
+        </button>
+        <button class="meta-action-btn" onclick="_metaDeleteCampaign('${c.id}',${JSON.stringify(c.name)})" style="margin-left:4px;background:rgba(255,80,80,.12);color:var(--coral);border-color:rgba(255,80,80,.25)" title="Eliminar campaña">
+          🗑
         </button>
       </td>
     </tr>`;
   }).join('');
 }
 
-// ── Crear Campaña ──
+// ── Crear Campaña (wizard 5 pasos) ──
 let _ccStep=1;
-let _ccObjective=null;
+let _ccData={};
+
+const _ccObjLabels={OUTCOME_AWARENESS:'🔔 Reconocimiento',OUTCOME_TRAFFIC:'🖱️ Tráfico',OUTCOME_ENGAGEMENT:'💬 Interacción',OUTCOME_LEADS:'📋 Clientes potenciales',OUTCOME_SALES:'🛒 Ventas',OUTCOME_APP_PROMOTION:'📱 Promoción de app'};
+const _ccOptGoalMap={OUTCOME_AWARENESS:'REACH',OUTCOME_TRAFFIC:'LINK_CLICKS',OUTCOME_ENGAGEMENT:'POST_ENGAGEMENT',OUTCOME_LEADS:'LEAD_GENERATION',OUTCOME_SALES:'OFFSITE_CONVERSIONS',OUTCOME_APP_PROMOTION:'APP_INSTALLS'};
 
 function openCreateCampaignModal(){
-  _ccStep=1;_ccObjective=null;
+  _ccStep=1;_ccData={};
+  document.getElementById('create-campaign-overlay')?.remove();
   const overlay=document.createElement('div');
   overlay.id='create-campaign-overlay';
   overlay.className='modal-overlay';
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  const stepNames=['Objetivo','Campaña','Conjunto','Anuncio','Publicar'];
   overlay.innerHTML=`
-<div class="modal" style="width:560px;max-width:100%;max-height:90vh;overflow-y:auto;background:var(--s1);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow)">
-  <div class="modal-head" style="padding:20px 24px 0;border-bottom:1px solid var(--border);margin-bottom:0">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:16px">
+<div class="modal" style="width:640px;max-width:100%;max-height:90vh;overflow-y:auto;background:var(--s1);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow)">
+  <div style="padding:20px 24px 0;border-bottom:1px solid var(--border)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:12px">
       <div>
         <div style="font-size:14px;font-weight:700;color:var(--text)">Nueva campaña</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px" id="cc-step-label">Paso 1 de 3 — Objetivo de campaña</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px" id="cc-step-label">Paso 1 de 5 — Objetivo</div>
       </div>
-      <button onclick="document.getElementById('create-campaign-overlay')?.remove()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px 8px;border-radius:6px" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+      <button onclick="document.getElementById('create-campaign-overlay')?.remove()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px 8px;border-radius:6px">✕</button>
     </div>
-    <!-- Step progress -->
-    <div style="display:flex;gap:4px;margin-bottom:0;padding-bottom:0">
-      ${[1,2,3].map(i=>`<div id="cc-prog-${i}" style="flex:1;height:3px;border-radius:2px;background:${i===1?'var(--gold)':'var(--border)'}"></div>`).join('')}
+    <!-- 5-step progress circles -->
+    <div style="display:flex;align-items:center;gap:0;margin-bottom:16px">
+      ${[1,2,3,4,5].map((i,idx)=>`
+        <div style="display:flex;align-items:center;flex:1">
+          <div id="cc-circle-${i}" style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;transition:all .2s;background:${i===1?'var(--gold)':'var(--s3)'};color:${i===1?'#fff':'var(--muted)'};border:2px solid ${i===1?'var(--gold)':'var(--border)'}">${i}</div>
+          <div style="font-size:10px;color:var(--muted);margin-left:4px;white-space:nowrap;display:none" class="cc-step-lbl" id="cc-lbl-${i}">${stepNames[idx]}</div>
+          ${idx<4?`<div id="cc-bar-${i}" style="flex:1;height:2px;margin:0 4px;background:var(--border);border-radius:2px;transition:background .2s"></div>`:''}
+        </div>`).join('')}
     </div>
   </div>
-  <div class="modal-body" style="padding:20px 24px">
+  <div style="padding:20px 24px">
 
-    <!-- Step 1: Objective -->
+    <!-- Step 1: Objetivo -->
     <div id="cc-step-1">
       <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Elegí el objetivo que mejor describe lo que querés lograr con esta campaña.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="cc-obj-grid">
@@ -7128,8 +7153,11 @@ function openCreateCampaignModal(){
       </div>
     </div>
 
-    <!-- Step 2: Name & config -->
+    <!-- Step 2: Campaña -->
     <div id="cc-step-2" style="display:none">
+      <div style="background:rgba(41,121,255,.08);border:1px solid rgba(41,121,255,.2);border-radius:6px;padding:8px 12px;font-size:11px;color:var(--gold);margin-bottom:12px">
+        📘 Cuenta: <strong id="cc-account-name"></strong>
+      </div>
       <div class="form-group" style="margin-bottom:14px">
         <label class="form-label">Nombre de la campaña</label>
         <input class="form-input" id="cc-name" placeholder="Ej: Ventas — Mayo 2026">
@@ -7192,29 +7220,207 @@ function openCreateCampaignModal(){
           </div>
         </div>
       </div>
-      <div class="form-group" style="margin-bottom:14px">
-        <label class="form-label">Estado inicial</label>
-        <div style="display:flex;gap:16px;margin-top:6px">
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
-            <input type="radio" name="cc-status" value="PAUSED" checked style="accent-color:var(--gold)"> ⏸ Pausada
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
-            <input type="radio" name="cc-status" value="ACTIVE" style="accent-color:var(--green)"> 🟢 Activa
-          </label>
-        </div>
-      </div>
       <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
         <button class="btn btn-sm" onclick="_ccGoStep(1)">← Atrás</button>
         <button class="btn btn-primary" onclick="_ccGoStep(3)" style="min-width:120px">Siguiente →</button>
       </div>
     </div>
 
-    <!-- Step 3: Summary -->
+    <!-- Step 3: Conjunto de anuncios -->
     <div id="cc-step-3" style="display:none">
-      <div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px" id="cc-summary"></div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label">Nombre del conjunto de anuncios</label>
+        <input class="form-input" id="cc-adset-name" placeholder="Ej: Tráfico — Conjunto 1">
+      </div>
+      <!-- Adset budget (only if CBO off) -->
+      <div id="cc-adset-budget-section">
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">Presupuesto del conjunto</label>
+          <div style="display:flex;gap:12px;margin-top:6px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+              <input type="radio" name="cc-adset-budget-type" value="daily" checked onchange="_ccData.adsetBudgetType='daily'" style="accent-color:var(--gold)"> Diario
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+              <input type="radio" name="cc-adset-budget-type" value="lifetime" onchange="_ccData.adsetBudgetType='lifetime'" style="accent-color:var(--gold)"> Total
+            </label>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <div style="position:relative">
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px">$</span>
+            <input class="form-input" id="cc-adset-budget-amount" type="number" min="1" step="1" placeholder="Ej: 3000" style="padding-left:24px">
+          </div>
+        </div>
+      </div>
+      <div id="cc-adset-cbo-note" style="display:none;background:rgba(41,121,255,.08);border:1px solid rgba(41,121,255,.2);border-radius:6px;padding:8px 12px;font-size:11px;color:var(--gold);margin-bottom:10px">
+        ℹ️ Presupuesto definido en la campaña (CBO activado)
+      </div>
+      <!-- Schedule -->
+      <div style="display:flex;gap:10px;margin-bottom:12px">
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label class="form-label">Inicio del conjunto</label>
+          <input class="form-input" id="cc-adset-start" type="date">
+        </div>
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label class="form-label">Fin del conjunto <span style="color:var(--muted);font-size:10px">(opcional)</span></label>
+          <input class="form-input" id="cc-adset-end" type="date">
+        </div>
+      </div>
+      <!-- Audience -->
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;margin-top:4px">Audiencia</div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label class="form-label">Países</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px" id="cc-countries-grid">
+          ${[
+            {code:'AR',name:'Argentina'},{code:'MX',name:'México'},{code:'ES',name:'España'},
+            {code:'CO',name:'Colombia'},{code:'CL',name:'Chile'},{code:'UY',name:'Uruguay'},
+            {code:'PE',name:'Perú'},{code:'EC',name:'Ecuador'},{code:'US',name:'USA'},{code:'BR',name:'Brasil'}
+          ].map(c=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;background:var(--s2);border:1px solid var(--border);border-radius:4px;padding:3px 8px">
+            <input type="checkbox" value="${c.code}" ${c.code==='AR'?'checked':''} class="cc-country-cb" style="accent-color:var(--gold);width:12px;height:12px"> ${c.name}
+          </label>`).join('')}
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:12px">
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label class="form-label">Edad mínima</label>
+          <select class="form-input" id="cc-age-min">
+            ${Array.from({length:48},(_,i)=>18+i).map(a=>`<option value="${a}" ${a===18?'selected':''}>${a}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label class="form-label">Edad máxima</label>
+          <select class="form-input" id="cc-age-max">
+            ${[18,21,25,30,35,40,45,50,55,60,65].map(a=>`<option value="${a}" ${a===65?'selected':''}>${a}${a===65?'+':''}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label class="form-label">Género</label>
+          <select class="form-input" id="cc-gender">
+            <option value="0">Todos</option>
+            <option value="1">Hombres</option>
+            <option value="2">Mujeres</option>
+          </select>
+        </div>
+      </div>
+      <!-- Placements -->
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label">Ubicaciones</label>
+        <div style="display:flex;gap:12px;margin-top:6px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+            <input type="radio" name="cc-placements" value="auto" checked onchange="_ccTogglePlacements('auto')" style="accent-color:var(--gold)"> Automático (recomendado)
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+            <input type="radio" name="cc-placements" value="manual" onchange="_ccTogglePlacements('manual')" style="accent-color:var(--gold)"> Manual
+          </label>
+        </div>
+        <div id="cc-manual-placements" style="display:none;margin-top:8px;display:flex;flex-wrap:wrap;gap:8px">
+          ${['facebook','instagram','audience_network','messenger'].map(p=>`<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer">
+            <input type="checkbox" value="${p}" class="cc-placement-cb" checked style="accent-color:var(--gold);width:12px;height:12px"> ${p.charAt(0).toUpperCase()+p.slice(1).replace('_',' ')}
+          </label>`).join('')}
+        </div>
+      </div>
+      <!-- Optimization goal (read-only) -->
+      <div class="form-group" style="margin-bottom:4px">
+        <label class="form-label">Objetivo de optimización</label>
+        <div id="cc-opt-goal-label" style="font-size:12px;color:var(--gold);margin-top:4px;padding:6px 10px;background:var(--s2);border-radius:6px;border:1px solid var(--border)"></div>
+      </div>
       <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
         <button class="btn btn-sm" onclick="_ccGoStep(2)">← Atrás</button>
-        <button class="btn btn-primary" id="cc-submit-btn" onclick="_ccSubmit()" style="min-width:140px;background:var(--gold);color:#fff;border-color:var(--gold)">✦ Crear campaña</button>
+        <button class="btn btn-primary" onclick="_ccGoStep(4)" style="min-width:120px">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Anuncio -->
+    <div id="cc-step-4" style="display:none">
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label">Nombre del anuncio</label>
+        <input class="form-input" id="cc-ad-name" placeholder="Ej: Ventas Mayo — Anuncio 1">
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label">Página de Facebook <span style="color:var(--coral)">*</span></label>
+        <select class="form-input" id="cc-page-id" onchange="_ccOnPageChange(this.value)">
+          <option value="">⏳ Cargando páginas…</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:12px" id="cc-ig-account-group">
+        <label class="form-label">Cuenta de Instagram</label>
+        <select class="form-input" id="cc-ig-actor">
+          <option value="">Sin Instagram (solo Facebook)</option>
+        </select>
+      </div>
+      <!-- Format -->
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label">Formato</label>
+        <div style="display:flex;gap:12px;margin-top:6px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+            <input type="radio" name="cc-format" value="image" checked style="accent-color:var(--gold)"> 🖼 Imagen única
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+            <input type="radio" name="cc-format" value="video" style="accent-color:var(--gold)"> 🎥 Video
+          </label>
+        </div>
+      </div>
+      <!-- Upload zone -->
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label">Imagen / Video</label>
+        <div id="cc-upload-zone" style="border:2px dashed var(--border);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:border-color .2s;background:var(--s2)" onclick="document.getElementById('cc-file-input').click()">
+          <input type="file" id="cc-file-input" accept="image/*,video/*" style="display:none" onchange="_ccHandleFileUpload(this)">
+          <div id="cc-upload-hint">
+            <div style="font-size:24px;margin-bottom:6px">📎</div>
+            <div style="font-size:12px;color:var(--muted)">Clic para subir imagen o video</div>
+          </div>
+          <img id="cc-upload-preview" style="display:none;max-height:120px;border-radius:6px;margin:0 auto" src="">
+          <div id="cc-upload-msg" style="display:none;font-size:11px;margin-top:6px"></div>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px" id="cc-url-group">
+        <label class="form-label">URL de destino <span style="color:var(--coral)">*</span></label>
+        <input class="form-input" id="cc-dest-url" type="url" placeholder="https://tu-sitio.com/pagina">
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label class="form-label">Texto principal <span style="color:var(--muted);font-size:10px">(recomendado: 125 caracteres)</span></label>
+        <textarea class="form-input" id="cc-primary-text" rows="3" placeholder="Ej: Descubrí nuestros productos y aprovechá los mejores precios." style="resize:vertical"></textarea>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:10px">
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label class="form-label">Titular <span style="color:var(--muted);font-size:10px">(40 chars)</span></label>
+          <input class="form-input" id="cc-headline" placeholder="Ej: Comprá ahora">
+        </div>
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label class="form-label">Descripción <span style="color:var(--muted);font-size:10px">(opcional)</span></label>
+          <input class="form-input" id="cc-description" placeholder="Ej: Envío gratis">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:4px">
+        <label class="form-label">Llamada a la acción</label>
+        <select class="form-input" id="cc-cta">
+          <option value="LEARN_MORE">Más información</option>
+          <option value="SHOP_NOW">Comprar ahora</option>
+          <option value="SIGN_UP">Registrarse</option>
+          <option value="CONTACT_US">Contáctenos</option>
+          <option value="GET_QUOTE">Solicitar presupuesto</option>
+          <option value="SUBSCRIBE">Suscribirse</option>
+          <option value="DOWNLOAD">Descargar</option>
+          <option value="BOOK_TRAVEL">Reservar</option>
+          <option value="APPLY_NOW">Solicitar</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
+        <button class="btn btn-sm" onclick="_ccGoStep(3)">← Atrás</button>
+        <button class="btn btn-primary" onclick="_ccGoStep(5)" style="min-width:120px">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Resumen y publicar -->
+    <div id="cc-step-5" style="display:none">
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px" id="cc-summary"></div>
+      <div id="cc-progress-msg" style="display:none;text-align:center;font-size:12px;color:var(--gold);padding:10px 0"></div>
+      <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px">
+        <button class="btn btn-sm" onclick="_ccGoStep(4)" id="cc-back-btn">← Atrás</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm" id="cc-draft-btn" onclick="_ccSubmit('PAUSED')" style="border-color:var(--border2);color:var(--muted)">Guardar como borrador</button>
+          <button class="btn btn-primary" id="cc-submit-btn" onclick="_ccSubmit('ACTIVE')" style="min-width:140px;background:var(--gold);color:#fff;border-color:var(--gold)">🚀 Publicar todo</button>
+        </div>
       </div>
     </div>
 
@@ -7222,10 +7428,24 @@ function openCreateCampaignModal(){
 </div>`;
   document.body.appendChild(overlay);
   overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  // Init defaults
+  _ccData.adsetBudgetType='daily';
+  // Set today as default adset start
+  const today=new Date().toISOString().slice(0,10);
+  setTimeout(()=>{
+    const s=document.getElementById('cc-adset-start');
+    if(s)s.value=today;
+    // Fill account name
+    const an=document.getElementById('cc-account-name');
+    if(an)an.textContent=S.metaIntegration?.adAccountName||S.metaIntegration?.adAccountId||'Conectada';
+    // Init manual placements hidden
+    const mp=document.getElementById('cc-manual-placements');
+    if(mp)mp.style.display='none';
+  },0);
 }
 
 function _ccSelectObjective(id, card){
-  _ccObjective=id;
+  _ccData.objective=id;
   document.querySelectorAll('.cc-obj-card').forEach(c=>{
     c.style.borderColor='var(--border)';c.style.background='var(--s2)';
   });
@@ -7250,12 +7470,16 @@ function _ccToggleBudgetType(type){
   if(type==='lifetime'){
     if(startLabel)startLabel.innerHTML='Fecha de inicio <span style="color:var(--coral);font-size:10px">*requerida</span>';
     if(endHint)endHint.textContent='*requerida';
-    if(datesSection)datesSection.style.display='flex';
   } else {
     if(startLabel)startLabel.innerHTML='Fecha de inicio <span style="color:var(--muted);font-size:10px">(opcional)</span>';
     if(endHint)endHint.textContent='(opcional)';
-    if(datesSection)datesSection.style.display='flex';
   }
+  if(datesSection)datesSection.style.display='flex';
+}
+
+function _ccTogglePlacements(type){
+  const mp=document.getElementById('cc-manual-placements');
+  if(mp)mp.style.display=type==='manual'?'flex':'none';
 }
 
 function _ccUpdateSpecialCats(cb){
@@ -7266,109 +7490,285 @@ function _ccUpdateSpecialCats(cb){
   } else if(cb.value!=='NONE'&&cb.checked){
     NONE.checked=false;
   }
-  // If nothing checked, re-check NONE
   const anyChecked=[...document.querySelectorAll('#cc-special-cats input')].some(el=>el.checked);
   if(!anyChecked)NONE.checked=true;
 }
 
-const _ccObjLabels={OUTCOME_AWARENESS:'🔔 Reconocimiento',OUTCOME_TRAFFIC:'🖱️ Tráfico',OUTCOME_ENGAGEMENT:'💬 Interacción',OUTCOME_LEADS:'📋 Clientes potenciales',OUTCOME_SALES:'🛒 Ventas',OUTCOME_APP_PROMOTION:'📱 Promoción de app'};
+async function _ccOnPageChange(pageId){
+  _ccData.pageId=pageId;
+  const igSel=document.getElementById('cc-ig-actor');
+  if(!igSel||!pageId)return;
+  igSel.innerHTML='<option value="">⏳ Cargando…</option>';
+  try{
+    const [pageR,portfolioR]=await Promise.all([
+      fetch(`/api/meta/ig-account?wsId=${encodeURIComponent(_activeWsId)}&pageId=${pageId}`),
+      fetch(`/api/meta/ig-accounts?wsId=${encodeURIComponent(_activeWsId)}`)
+    ]);
+    const pageD=await pageR.json();
+    const portD=portfolioR.ok?await portfolioR.json():{accounts:[]};
+    const opts=[];const seen=new Set();
+    if(!pageD.error&&pageD.igUserId){
+      seen.add(pageD.igUserId);
+      opts.push({id:pageD.igUserId,label:`📸 ${pageD.igName||pageD.igUserId}${pageD.igUsername?` (@${pageD.igUsername})`:''}`});
+    }
+    (portD.accounts||[]).forEach(a=>{if(!seen.has(a.id)){seen.add(a.id);opts.push({id:a.id,label:`📸 ${a.name||a.id}${a.username?` (@${a.username})`:''}`});}});
+    igSel.innerHTML=opts.map(o=>`<option value="${o.id}">${o.label}</option>`).join('')+`<option value="">Sin Instagram (solo Facebook)</option>`;
+    if(opts.length>0){igSel.value=opts[0].id;_ccData.igActorId=opts[0].id;}else{_ccData.igActorId='';}
+  }catch(e){igSel.innerHTML='<option value="">Sin Instagram (solo Facebook)</option>';}
+}
+
+async function _ccHandleFileUpload(input){
+  const file=input.files[0];if(!file)return;
+  const zone=document.getElementById('cc-upload-zone');
+  const hint=document.getElementById('cc-upload-hint');
+  const msg=document.getElementById('cc-upload-msg');
+  const preview=document.getElementById('cc-upload-preview');
+  if(zone)zone.style.borderColor='var(--gold)';
+  if(hint)hint.style.display='none';
+  if(msg){msg.style.display='block';msg.style.color='var(--muted)';msg.textContent='⏳ Subiendo…';}
+  _ccData.imageHash=null;_ccData.imageUrl=null;
+  const localUrl=URL.createObjectURL(file);
+  if(preview&&file.type.startsWith('image/')){preview.src=localUrl;preview.style.display='block';}
+  const reader=new FileReader();
+  reader.onload=async(e)=>{
+    const base64=e.target.result.split(',')[1];
+    try{
+      const r=await fetch('/api/meta/upload-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId:_activeWsId,base64,fileName:file.name,mimeType:file.type})});
+      const d=await r.json();
+      if(!r.ok||d.error)throw new Error(d.error||'Error al subir');
+      _ccData.imageHash=d.hash;_ccData.imageUrl=d.url;
+      if(msg){msg.textContent='✅ Imagen subida correctamente';msg.style.color='var(--green)';}
+      if(zone)zone.style.borderColor='var(--green)';
+    }catch(ex){
+      if(msg){msg.textContent='❌ '+ex.message;msg.style.color='var(--coral)';}
+      if(zone)zone.style.borderColor='var(--coral)';
+    }
+  };
+  reader.readAsDataURL(file);
+}
 
 function _ccGoStep(n){
-  // Validate step 1
-  if(n===2&&!_ccObjective){notify('Seleccioná un objetivo de campaña');return;}
-  // Validate step 2 → 3
-  if(n===3){
+  const obj=_ccData.objective;
+  if(n>=2&&!obj){notify('Seleccioná un objetivo de campaña');return;}
+  if(n>=3){
     const name=(document.getElementById('cc-name')?.value||'').trim();
     if(!name){notify('Ingresá un nombre para la campaña');return;}
-    const cbo=document.getElementById('cc-cbo')?.checked;
-    if(cbo){
-      const budget=parseFloat(document.getElementById('cc-budget-amount')?.value||'0');
-      if(!budget||budget<1){notify('Ingresá un presupuesto válido');return;}
+    _ccData.campaignName=name;
+    const cboOn=document.getElementById('cc-cbo')?.checked||false;
+    _ccData.cboOn=cboOn;
+    _ccData.cboBudgetType=_ccBudgetType;
+    _ccData.cboBudgetAmount=parseFloat(document.getElementById('cc-budget-amount')?.value||'0');
+    if(cboOn){
+      if(!_ccData.cboBudgetAmount||_ccData.cboBudgetAmount<1){notify('Ingresá un presupuesto válido');return;}
       if(_ccBudgetType==='lifetime'){
         if(!document.getElementById('cc-start-date')?.value){notify('Para presupuesto total es requerida la fecha de inicio');return;}
         if(!document.getElementById('cc-end-date')?.value){notify('Para presupuesto total es requerida la fecha de fin');return;}
       }
     }
-    // Build summary
-    const cboOn=document.getElementById('cc-cbo')?.checked;
-    const budgetType=_ccBudgetType;
-    const budget=document.getElementById('cc-budget-amount')?.value||'';
-    const status=document.querySelector('input[name="cc-status"]:checked')?.value||'PAUSED';
-    const cats=[...document.querySelectorAll('#cc-special-cats input:checked')].map(el=>el.value).filter(v=>v!=='NONE');
-    const startDate=document.getElementById('cc-start-date')?.value||'';
-    const endDate=document.getElementById('cc-end-date')?.value||'';
-    const summary=document.getElementById('cc-summary');
-    if(summary){
-      summary.innerHTML=`
-        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:12px">Resumen de la campaña</div>
-        ${[
-          ['Objetivo',_ccObjLabels[_ccObjective]||_ccObjective],
-          ['Nombre',name],
-          ['Estado inicial',status==='ACTIVE'?'🟢 Activa':'⏸ Pausada'],
-          cboOn?['CBO','Activado — Meta distribuye el presupuesto']:[],
-          cboOn?['Presupuesto',`$${budget} ARS ${budgetType==='daily'?'/ día':'total'}`]:[],
-          startDate?['Fecha inicio',startDate]:[],
-          endDate?['Fecha fin',endDate]:[],
-          cats.length?['Categorías especiales',cats.join(', ')]:['Categorías especiales','Ninguna'],
-        ].filter(r=>r.length).map(r=>`<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--muted)">${r[0]}</span><span style="color:var(--text);font-weight:600;text-align:right;max-width:280px">${r[1]}</span></div>`).join('')}
-      `;
-    }
+    _ccData.startTime=document.getElementById('cc-start-date')?.value?new Date(document.getElementById('cc-start-date').value+'T00:00:00').toISOString():null;
+    _ccData.endTime=document.getElementById('cc-end-date')?.value?new Date(document.getElementById('cc-end-date').value+'T23:59:59').toISOString():null;
+    _ccData.specialAdCats=[...document.querySelectorAll('#cc-special-cats input:checked')].map(el=>el.value).filter(v=>v!=='NONE');
   }
-  // Animate step change
+  if(n>=4){
+    // Adset step validation + collect
+    const adsetName=(document.getElementById('cc-adset-name')?.value||'').trim();
+    if(!adsetName){notify('Ingresá un nombre para el conjunto de anuncios');return;}
+    _ccData.adsetName=adsetName;
+    if(!_ccData.cboOn){
+      const adsetBudget=parseFloat(document.getElementById('cc-adset-budget-amount')?.value||'0');
+      if(!adsetBudget||adsetBudget<1){notify('Ingresá un presupuesto para el conjunto de anuncios');return;}
+      _ccData.adsetBudgetAmount=adsetBudget;
+    }
+    _ccData.adsetStartTime=document.getElementById('cc-adset-start')?.value?new Date(document.getElementById('cc-adset-start').value+'T00:00:00').toISOString():new Date().toISOString();
+    _ccData.adsetEndTime=document.getElementById('cc-adset-end')?.value?new Date(document.getElementById('cc-adset-end').value+'T23:59:59').toISOString():null;
+    _ccData.countries=[...document.querySelectorAll('.cc-country-cb:checked')].map(el=>el.value);
+    if(!_ccData.countries.length){notify('Seleccioná al menos un país');return;}
+    _ccData.ageMin=parseInt(document.getElementById('cc-age-min')?.value||'18');
+    _ccData.ageMax=parseInt(document.getElementById('cc-age-max')?.value||'65');
+    _ccData.gender=document.getElementById('cc-gender')?.value||'0';
+    _ccData.placements=document.querySelector('input[name="cc-placements"]:checked')?.value||'auto';
+    _ccData.publisherPlatforms=_ccData.placements==='manual'?[...document.querySelectorAll('.cc-placement-cb:checked')].map(el=>el.value):[];
+    _ccData.optimizationGoal=_ccOptGoalMap[obj]||'LINK_CLICKS';
+  }
+  if(n>=5){
+    // Ad step validation + collect
+    const adName=(document.getElementById('cc-ad-name')?.value||'').trim();
+    const pageId=document.getElementById('cc-page-id')?.value||'';
+    const primaryText=(document.getElementById('cc-primary-text')?.value||'').trim();
+    const headline=(document.getElementById('cc-headline')?.value||'').trim();
+    const destUrl=(document.getElementById('cc-dest-url')?.value||'').trim();
+    const noUrlObjectives=['OUTCOME_ENGAGEMENT','OUTCOME_LEADS'];
+    if(!adName){notify('Ingresá un nombre para el anuncio');return;}
+    if(!pageId){notify('Seleccioná una Página de Facebook');return;}
+    if(!_ccData.imageHash&&!_ccData.imageUrl){notify('Subí una imagen o video para el anuncio');return;}
+    if(!primaryText){notify('Ingresá el texto principal del anuncio');return;}
+    if(!headline){notify('Ingresá el titular del anuncio');return;}
+    if(!noUrlObjectives.includes(obj)&&!destUrl){notify('Ingresá la URL de destino');return;}
+    _ccData.adName=adName;
+    _ccData.pageId=pageId;
+    _ccData.igActorId=document.getElementById('cc-ig-actor')?.value||'';
+    _ccData.primaryText=primaryText;
+    _ccData.headline=headline;
+    _ccData.description=document.getElementById('cc-description')?.value||'';
+    _ccData.destinationUrl=destUrl;
+    _ccData.ctaType=document.getElementById('cc-cta')?.value||'LEARN_MORE';
+    // Build summary
+    const cboLabel=_ccData.cboOn?`CBO: $${_ccData.cboBudgetAmount} ${_ccData.cboBudgetType==='daily'?'/ día':'total'}`:'Sin CBO';
+    const adsetBudgetLabel=_ccData.cboOn?'(presupuesto de campaña)':`$${_ccData.adsetBudgetAmount} ${_ccData.adsetBudgetType==='lifetime'?'total':'/ día'}`;
+    const summary=document.getElementById('cc-summary');
+    if(summary){summary.innerHTML=`
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:12px">Resumen</div>
+      ${[
+        ['Objetivo',_ccObjLabels[obj]||obj],
+        ['Campaña',_ccData.campaignName],
+        ['Presupuesto campaña',cboLabel],
+        ['Conjunto',_ccData.adsetName],
+        ['Presupuesto conjunto',adsetBudgetLabel],
+        ['Países',(_ccData.countries||[]).join(', ')],
+        ['Anuncio',_ccData.adName],
+        ['Página',document.getElementById('cc-page-id')?.selectedOptions?.[0]?.text||pageId],
+      ].map(r=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--muted)">${r[0]}</span><span style="color:var(--text);font-weight:600;text-align:right;max-width:300px">${r[1]}</span></div>`).join('')}
+    `;}
+  }
   _ccStep=n;
-  document.getElementById('cc-step-1').style.display=n===1?'block':'none';
-  document.getElementById('cc-step-2').style.display=n===2?'block':'none';
-  document.getElementById('cc-step-3').style.display=n===3?'block':'none';
-  document.getElementById('cc-step-label').textContent=`Paso ${n} de 3 — ${n===1?'Objetivo de campaña':n===2?'Nombre y configuración':'Resumen'}`;
-  // Progress bars
-  [1,2,3].forEach(i=>{const bar=document.getElementById(`cc-prog-${i}`);if(bar)bar.style.background=i<=n?'var(--gold)':'var(--border)';});
-  // Pre-fill name on step 2
+  [1,2,3,4,5].forEach(i=>{
+    const el=document.getElementById(`cc-step-${i}`);
+    if(el)el.style.display=i===n?'block':'none';
+    const circle=document.getElementById(`cc-circle-${i}`);
+    if(circle){circle.style.background=i<n?'var(--green)':i===n?'var(--gold)':'var(--s3)';circle.style.color=i<=n?'#fff':'var(--muted)';circle.style.borderColor=i<n?'var(--green)':i===n?'var(--gold)':'var(--border)';}
+    if(i<5){const bar=document.getElementById(`cc-bar-${i}`);if(bar)bar.style.background=i<n?'var(--gold)':'var(--border)';}
+  });
+  const stepLabels=['Objetivo','Campaña','Conjunto de anuncios','Anuncio','Resumen y publicar'];
+  const lbl=document.getElementById('cc-step-label');
+  if(lbl)lbl.textContent=`Paso ${n} de 5 — ${stepLabels[n-1]}`;
+  // On entering step 2 — auto-fill name and fill account name
   if(n===2){
     const nameInput=document.getElementById('cc-name');
-    if(nameInput&&!nameInput.value&&_ccObjective){
+    if(nameInput&&!nameInput.value&&obj){
       const monthNames=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
       const now=new Date();
       const labels={OUTCOME_AWARENESS:'Reconocimiento',OUTCOME_TRAFFIC:'Tráfico',OUTCOME_ENGAGEMENT:'Interacción',OUTCOME_LEADS:'Clientes potenciales',OUTCOME_SALES:'Ventas',OUTCOME_APP_PROMOTION:'Promoción de app'};
-      nameInput.value=`${labels[_ccObjective]||_ccObjective} — ${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+      nameInput.value=`${labels[obj]||obj} — ${monthNames[now.getMonth()]} ${now.getFullYear()}`;
     }
+    const an=document.getElementById('cc-account-name');
+    if(an)an.textContent=S.metaIntegration?.adAccountName||S.metaIntegration?.adAccountId||'Conectada';
+  }
+  // On entering step 3 — populate adset defaults and show/hide budget section
+  if(n===3){
+    const adsetNameInput=document.getElementById('cc-adset-name');
+    if(adsetNameInput&&!adsetNameInput.value&&obj){
+      const objShort={OUTCOME_AWARENESS:'Reconocimiento',OUTCOME_TRAFFIC:'Tráfico',OUTCOME_ENGAGEMENT:'Interacción',OUTCOME_LEADS:'Clientes potenciales',OUTCOME_SALES:'Ventas',OUTCOME_APP_PROMOTION:'App'};
+      adsetNameInput.value=`${objShort[obj]||obj} — Conjunto 1`;
+    }
+    const adsetBudSec=document.getElementById('cc-adset-budget-section');
+    const adsetCboNote=document.getElementById('cc-adset-cbo-note');
+    if(_ccData.cboOn){
+      if(adsetBudSec)adsetBudSec.style.display='none';
+      if(adsetCboNote)adsetCboNote.style.display='block';
+    }else{
+      if(adsetBudSec)adsetBudSec.style.display='block';
+      if(adsetCboNote)adsetCboNote.style.display='none';
+    }
+    const optGoalEl=document.getElementById('cc-opt-goal-label');
+    if(optGoalEl)optGoalEl.textContent=_ccOptGoalMap[obj]||'LINK_CLICKS';
+  }
+  // On entering step 4 — load pages
+  if(n===4){
+    const adNameInput=document.getElementById('cc-ad-name');
+    if(adNameInput&&!adNameInput.value&&_ccData.campaignName){adNameInput.value=`${_ccData.campaignName} — Anuncio 1`;}
+    // Load pages
+    const pageSel=document.getElementById('cc-page-id');
+    if(pageSel&&pageSel.innerHTML.includes('Cargando')){
+      fetch(`/api/meta/pages?wsId=${encodeURIComponent(_activeWsId)}`).then(r=>r.json()).then(d=>{
+        if(d.pages&&d.pages.length){
+          pageSel.innerHTML=d.pages.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+          _ccData.pageId=d.pages[0].id;
+          _ccOnPageChange(d.pages[0].id);
+        }else{pageSel.innerHTML='<option value="">No se encontraron páginas</option>';}
+      }).catch(()=>{pageSel.innerHTML='<option value="">Error al cargar páginas</option>';});
+    }
+    // URL group visibility
+    const noUrlObjectives=['OUTCOME_ENGAGEMENT','OUTCOME_LEADS'];
+    const urlGroup=document.getElementById('cc-url-group');
+    if(urlGroup)urlGroup.style.display=noUrlObjectives.includes(obj)?'none':'block';
   }
 }
 
-async function _ccSubmit(){
-  const btn=document.getElementById('cc-submit-btn');
-  if(btn){btn.disabled=true;btn.textContent='⏳ Creando…';}
+async function _ccSubmit(publishStatus){
+  const submitBtn=document.getElementById('cc-submit-btn');
+  const draftBtn=document.getElementById('cc-draft-btn');
+  const backBtn=document.getElementById('cc-back-btn');
+  const progressMsg=document.getElementById('cc-progress-msg');
+  if(submitBtn){submitBtn.disabled=true;submitBtn.textContent='⏳ Creando campaña…';}
+  if(draftBtn)draftBtn.disabled=true;
+  if(backBtn)backBtn.disabled=true;
+  if(progressMsg)progressMsg.style.display='block';
+  const setProgress=(msg)=>{if(progressMsg)progressMsg.textContent=msg;};
   try{
-    const name=(document.getElementById('cc-name')?.value||'').trim();
-    const cboOn=document.getElementById('cc-cbo')?.checked||false;
-    const budgetAmount=parseFloat(document.getElementById('cc-budget-amount')?.value||'0');
-    const status=document.querySelector('input[name="cc-status"]:checked')?.value||'PAUSED';
-    const startDate=document.getElementById('cc-start-date')?.value||'';
-    const endDate=document.getElementById('cc-end-date')?.value||'';
-    const cats=[...document.querySelectorAll('#cc-special-cats input:checked')].map(el=>el.value);
-    const payload={
-      wsId:_activeWsId, name, objective:_ccObjective, status,
-      specialAdCategories:cats, budgetOptimizationOn:cboOn,
-    };
-    if(cboOn&&budgetAmount>0){
-      if(_ccBudgetType==='daily')payload.dailyBudget=budgetAmount;
-      else payload.lifetimeBudget=budgetAmount;
-    }
-    if(cboOn&&startDate)payload.startTime=new Date(startDate+'T00:00:00').toISOString();
-    if(cboOn&&endDate)payload.endTime=new Date(endDate+'T23:59:59').toISOString();
-    const r=await fetch('/api/meta/campaign/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    const d=await r.json();
-    if(!r.ok||d.error)throw new Error(d.error||'Error al crear campaña');
-    // Add to cache so it appears immediately
-    if(!S.metaAdsCache)S.metaAdsCache={};
-    if(!S.metaAdsCache.campaigns)S.metaAdsCache.campaigns=[];
-    S.metaAdsCache.campaigns.unshift({id:d.campaignId,name:d.name,status:d.status,objective:d.objective,spend:0,impressions:0,clicks:0,ctr:0,cpc:0,cpm:0,reach:0,conversions:0,roas:null,cpa:null,frequency:0,cpp:0,dailyBudget:null,lifetimeBudget:null,budgetRemaining:null});
+    const campaignStatus=publishStatus==='ACTIVE'?'ACTIVE':'PAUSED';
+    setProgress('⏳ Creando campaña…');
+    const campaignRes=await fetch('/api/meta/campaign/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      wsId:_activeWsId,
+      name:_ccData.campaignName,
+      objective:_ccData.objective,
+      status:campaignStatus,
+      dailyBudget:_ccData.cboBudgetType==='daily'&&_ccData.cboOn?_ccData.cboBudgetAmount:undefined,
+      lifetimeBudget:_ccData.cboBudgetType==='lifetime'&&_ccData.cboOn?_ccData.cboBudgetAmount:undefined,
+      startTime:_ccData.startTime||undefined,
+      endTime:_ccData.endTime||undefined,
+      specialAdCategories:_ccData.specialAdCats||[],
+      budgetOptimizationOn:_ccData.cboOn
+    })});
+    const campaignData=await campaignRes.json();
+    if(!campaignRes.ok||campaignData.error)throw new Error('Campaña: '+(campaignData.error||'Error'));
+    setProgress('⏳ Creando conjunto de anuncios…');
+    const adsetRes=await fetch('/api/meta/adset/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      wsId:_activeWsId,
+      campaignId:campaignData.campaignId,
+      name:_ccData.adsetName,
+      status:campaignStatus,
+      dailyBudget:_ccData.adsetBudgetType==='daily'&&!_ccData.cboOn?_ccData.adsetBudgetAmount:undefined,
+      lifetimeBudget:_ccData.adsetBudgetType==='lifetime'&&!_ccData.cboOn?_ccData.adsetBudgetAmount:undefined,
+      startTime:_ccData.adsetStartTime||new Date().toISOString(),
+      endTime:_ccData.adsetEndTime||undefined,
+      targeting:{countries:_ccData.countries||['AR'],ageMin:_ccData.ageMin||18,ageMax:_ccData.ageMax||65,genders:_ccData.gender==='1'?[1]:_ccData.gender==='2'?[2]:[]},
+      optimizationGoal:_ccData.optimizationGoal,
+      placements:_ccData.placements,
+      publisherPlatforms:_ccData.publisherPlatforms||[]
+    })});
+    const adsetData=await adsetRes.json();
+    if(!adsetRes.ok||adsetData.error)throw new Error('Conjunto: '+(adsetData.error||'Error'));
+    setProgress('⏳ Creando anuncio…');
+    const adRes=await fetch('/api/meta/ad/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      wsId:_activeWsId,
+      adsetId:adsetData.adsetId,
+      name:_ccData.adName,
+      pageId:_ccData.pageId,
+      ctaType:_ccData.ctaType||'LEARN_MORE',
+      status:campaignStatus,
+      destinationUrl:_ccData.destinationUrl||'',
+      creativeType:'manual',
+      imageUrl:_ccData.imageUrl||'',
+      imageHash:_ccData.imageHash||'',
+      primaryText:_ccData.primaryText||'',
+      headline:_ccData.headline||'',
+      description:_ccData.description||'',
+      igActorId:_ccData.igActorId||''
+    })});
+    const adData=await adRes.json();
+    if(!adRes.ok||adData.error)throw new Error('Anuncio: '+(adData.error||'Error'));
+    // Update cache and refresh
+    if(S.metaAdsCache){S.metaAdsCache.campaigns=null;S.metaAdsCache.lastSync=null;}
     save();
-    renderMetaAds();
     document.getElementById('create-campaign-overlay')?.remove();
-    notify('✅ Campaña creada correctamente');
+    notify(`✅ ${publishStatus==='ACTIVE'?'Campaña publicada':'Borrador guardado'}: ${_ccData.campaignName}`);
+    syncMetaAds();
   }catch(e){
     notify('❌ Error: '+e.message);
-    if(btn){btn.disabled=false;btn.textContent='✦ Crear campaña';}
+    if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='🚀 Publicar todo';}
+    if(draftBtn)draftBtn.disabled=false;
+    if(backBtn)backBtn.disabled=false;
+    if(progressMsg)progressMsg.style.display='none';
   }
 }
 
