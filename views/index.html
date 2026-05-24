@@ -1152,6 +1152,18 @@ tr:hover .tx-del{color:var(--muted)}
 .pilar-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);flex-shrink:0}
 
 /* ── CREALO ── */
+/* Landing full-screen: cubre sidebar, topnav y todo el chrome del workspace */
+body.crealo-landing-mode #sidebar,
+body.crealo-landing-mode #topbar,
+body.crealo-landing-mode .topnav,
+body.crealo-landing-mode [class*="topnav"],
+body.crealo-landing-mode .area-bar,
+body.crealo-landing-mode #area-bar { display:none!important }
+body.crealo-landing-mode .main-content,
+body.crealo-landing-mode #main-content,
+body.crealo-landing-mode .content-area,
+body.crealo-landing-mode #content-area { margin:0!important;padding:0!important;left:0!important;width:100%!important }
+#page-crealo.landing-fullscreen { position:fixed;inset:0;z-index:400;overflow-y:auto;background:var(--bg) }
 .crealo-step { display:none }
 .crealo-step.active { display:block }
 .crealo-angle-card { padding:16px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s;background:var(--s2) }
@@ -4216,10 +4228,12 @@ async function initState(){
   } else {
     // Sin sesión — excepción: /crealo es landing pública, no requiere auth
     if(location.pathname==='/crealo'){
-      // Mostrar landing de Crealo sin auth
+      // Mostrar landing de Crealo sin auth — full-screen sin chrome del workspace
       document.getElementById('ws-overlay')?.classList.add('hidden');
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-      document.getElementById('page-crealo')?.classList.add('active');
+      const pageCrealo=document.getElementById('page-crealo');
+      pageCrealo?.classList.add('active','landing-fullscreen');
+      document.body.classList.add('crealo-landing-mode');
       const landing=document.getElementById('crealo-landing');
       const app=document.getElementById('crealo-app');
       if(landing)landing.style.display='flex';
@@ -4542,6 +4556,17 @@ function applyRoute(){
       switchMetaTab(tab);
     }
     if(r.area==='crealo') initCrealoPage();
+  }
+
+  // Crealo landing full-screen mode — oculta el chrome del workspace
+  const pageCrealo=document.getElementById('page-crealo');
+  const crealLanding=document.getElementById('crealo-landing');
+  if(r.area==='crealo' && crealLanding && crealLanding.style.display!=='none'){
+    pageCrealo?.classList.add('landing-fullscreen');
+    document.body.classList.add('crealo-landing-mode');
+  } else {
+    pageCrealo?.classList.remove('landing-fullscreen');
+    document.body.classList.remove('crealo-landing-mode');
   }
 
   // Mobile nav active state
@@ -13923,11 +13948,15 @@ function crealLandingCTA(){
 function crealShowLanding() {
   document.getElementById('crealo-landing').style.display = 'flex';
   document.getElementById('crealo-app').style.display = 'none';
+  document.getElementById('page-crealo')?.classList.add('landing-fullscreen');
+  document.body.classList.add('crealo-landing-mode');
 }
 
 function crealShowApp() {
   document.getElementById('crealo-landing').style.display = 'none';
   document.getElementById('crealo-app').style.display = 'block';
+  document.getElementById('page-crealo')?.classList.remove('landing-fullscreen');
+  document.body.classList.remove('crealo-landing-mode');
   _crealData = { product:{}, angle:'', duration:'30', tone:'Casual y cercano', language:'Español (Argentina)', selectedScript:null, avatarId:'placeholder_1', voiceId:'es-AR-female', format:'9:16', music:'none', videoResult:null };
   crealGoStep(1);
   crealLoadAvatars();
