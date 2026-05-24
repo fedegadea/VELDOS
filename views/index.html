@@ -1278,6 +1278,102 @@ body.crealo-landing-mode #content-area { margin:0!important;padding:0!important;
 .crealo-mode-real-form { display:none;animation:crealFadeUp .4s ease }
 .crealo-mode-real-form.visible { display:block }
 
+/* ── SOUL LANDING ── */
+body.soul-landing-mode #sidebar,
+body.soul-landing-mode #topbar,
+body.soul-landing-mode .topnav,
+body.soul-landing-mode .area-bar,
+body.soul-landing-mode #area-bar { display:none!important }
+body.soul-landing-mode .main-content,
+body.soul-landing-mode #main-content { margin:0!important;padding:0!important;left:0!important;width:100%!important }
+#page-landing.soul-landing-fullscreen { position:fixed;inset:0;z-index:400;overflow-y:auto;background:#05050f }
+
+@keyframes soulFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
+@keyframes soulShimmer { 0%{background-position:200% center} 100%{background-position:-200% center} }
+@keyframes soulPulse { 0%,100%{opacity:.5;transform:scale(1)} 50%{opacity:1;transform:scale(1.08)} }
+@keyframes soulGlow { 0%,100%{box-shadow:0 0 30px rgba(41,121,255,.35)} 50%{box-shadow:0 0 80px rgba(41,121,255,.8),0 0 120px rgba(41,121,255,.25)} }
+@keyframes soulSlideUp { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:translateY(0)} }
+@keyframes soulParticle { 0%{transform:translateY(0);opacity:0} 8%{opacity:.8} 92%{opacity:.8} 100%{transform:translateY(-110vh) translateX(var(--sdrift,0px));opacity:0} }
+@keyframes soulBorder { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+@keyframes soulRotate { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes soulGrid { 0%{opacity:.3} 50%{opacity:.6} 100%{opacity:.3} }
+
+.soul-logo-text {
+  font-family: var(--fd);
+  font-size: clamp(64px, 10vw, 120px);
+  font-weight: 900;
+  letter-spacing: -.05em;
+  line-height: .92;
+  background: linear-gradient(135deg, #ffffff 0%, #b8d4ff 25%, var(--gold) 55%, #c084fc 85%, #ffffff 100%);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: soulShimmer 5s linear infinite;
+}
+.soul-feat-card {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 20px;
+  padding: 28px 24px;
+  transition: all .3s ease;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+}
+.soul-feat-card::before {
+  content:'';position:absolute;inset:0;border-radius:20px;
+  background: linear-gradient(135deg,rgba(41,121,255,.06),rgba(124,77,255,.04));
+  opacity:0;transition:opacity .3s;
+}
+.soul-feat-card:hover { transform:translateY(-6px) rotateX(3deg);box-shadow:0 24px 60px rgba(0,0,0,.5),0 0 30px rgba(41,121,255,.15);border-color:rgba(41,121,255,.25) }
+.soul-feat-card:hover::before { opacity:1 }
+.soul-metric-card {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  padding: 24px 20px;
+  text-align:center;
+  transition: all .25s;
+}
+.soul-metric-card:hover { background:rgba(41,121,255,.08);border-color:rgba(41,121,255,.25);transform:translateY(-4px) }
+.soul-section-label {
+  font-size: 11px; font-weight: 700; color: var(--gold);
+  letter-spacing: .12em; text-transform: uppercase; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.soul-section-label::before, .soul-section-label::after {
+  content:''; flex:1; height:1px; background:linear-gradient(90deg,transparent,rgba(41,121,255,.3),transparent);
+}
+.soul-plan-card {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 24px;
+  padding: 36px 32px;
+  transition: all .25s;
+  position:relative;
+}
+.soul-plan-card.featured {
+  background: rgba(41,121,255,.08);
+  border-color: rgba(41,121,255,.4);
+  box-shadow: 0 0 60px rgba(41,121,255,.15);
+}
+.soul-plan-card:hover { transform:translateY(-6px) }
+.soul-nav-pill {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 24px;
+  backdrop-filter: blur(20px);
+}
+.soul-gradient-border {
+  position:relative;padding:2px;border-radius:18px;
+  background:linear-gradient(135deg,var(--gold),#7c4dff,var(--green),var(--gold));
+  background-size:300% 300%;animation:soulBorder 4s ease infinite;
+}
+.soul-gradient-border > * { border-radius:16px;background:#05050f }
+.soul-tag { display:inline-flex;align-items:center;gap:6px;background:rgba(41,121,255,.1);border:1px solid rgba(41,121,255,.2);color:#7ab3ff;font-size:11px;font-weight:600;padding:5px 14px;border-radius:20px;letter-spacing:.05em }
+.soul-particle { position:absolute;border-radius:50%;animation:soulParticle var(--sdur,10s) var(--sdelay,0s) linear infinite }
+
 /* ── SIDEBAR ── */
 :root{--topbar-h:52px}
 .sidebar{
@@ -1791,6 +1887,282 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     </div>
   </div>
 </div>
+
+<!-- ══ SOUL ECOMMLAB LANDING ══ PUBLIC — no auth required ══ -->
+<div class="page" id="page-landing" style="padding:0;max-width:100%">
+<div style="min-height:100vh;background:#05050f;overflow:hidden;color:#fff;position:relative">
+
+  <!-- Grid background -->
+  <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(41,121,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(41,121,255,.04) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0;animation:soulGrid 4s ease infinite"></div>
+
+  <!-- Particles -->
+  <div id="soul-particles" style="position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:1"></div>
+
+  <!-- Ambient orbs -->
+  <div style="position:absolute;top:-300px;left:-150px;width:700px;height:700px;background:radial-gradient(circle,rgba(41,121,255,.12) 0%,transparent 65%);pointer-events:none;z-index:1"></div>
+  <div style="position:absolute;top:200px;right:-200px;width:500px;height:500px;background:radial-gradient(circle,rgba(124,77,255,.1) 0%,transparent 65%);pointer-events:none;z-index:1"></div>
+  <div style="position:absolute;bottom:-100px;left:30%;width:600px;height:400px;background:radial-gradient(circle,rgba(52,199,123,.06) 0%,transparent 65%);pointer-events:none;z-index:1"></div>
+
+  <!-- NAV -->
+  <nav class="soul-nav-pill" style="position:sticky;top:16px;margin:16px 40px;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;z-index:100">
+    <div style="font-family:var(--fd);font-size:22px;font-weight:900;letter-spacing:-.04em">Soul <em style="font-style:italic;color:var(--gold)">eCommlab</em></div>
+    <div style="display:flex;gap:32px" id="soul-nav-links">
+      <a onclick="document.getElementById('soul-features').scrollIntoView({behavior:'smooth'})" style="color:rgba(255,255,255,.6);text-decoration:none;font-size:13px;cursor:pointer;transition:color .2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.6)'">Funciones</a>
+      <a onclick="document.getElementById('soul-pricing').scrollIntoView({behavior:'smooth'})" style="color:rgba(255,255,255,.6);text-decoration:none;font-size:13px;cursor:pointer;transition:color .2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.6)'">Precios</a>
+      <a href="/crealo" onclick="navigate('crealo');return false" style="color:rgba(255,255,255,.6);text-decoration:none;font-size:13px;cursor:pointer;transition:color .2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.6)'">Crealo ✨</a>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button onclick="soulLandingLogin()" style="background:none;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);padding:9px 20px;border-radius:24px;font-size:13px;cursor:pointer;font-family:var(--fb);transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.4)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.15)';this.style.color='rgba(255,255,255,.7)'">Entrar</button>
+      <button onclick="soulLandingLogin()" style="background:linear-gradient(135deg,var(--gold),#7c4dff);color:#fff;border:none;padding:9px 22px;border-radius:24px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--fb);transition:transform .2s" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">Empezar gratis →</button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <div style="max-width:1100px;margin:0 auto;padding:80px 40px 60px;text-align:center;position:relative;z-index:5">
+    <div class="soul-tag" style="margin-bottom:28px">
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:soulPulse 2s ease infinite"></span>
+      Sistema operativo para marcas de ecommerce
+    </div>
+
+    <div class="soul-logo-text" style="margin-bottom:24px">
+      Todo tu negocio.<br>Un solo lugar.
+    </div>
+
+    <p style="font-size:clamp(16px,2.5vw,22px);color:rgba(255,255,255,.55);font-weight:300;line-height:1.65;max-width:620px;margin:0 auto 48px">
+      Marketing, finanzas, CRM, stock, Meta Ads y videos UGC con IA — integrados en una plataforma diseñada para marcas que venden en serio.
+    </p>
+
+    <!-- CTA -->
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:64px">
+      <div class="soul-gradient-border">
+        <button onclick="soulLandingLogin()" style="background:#05050f;color:#fff;border:none;padding:16px 40px;border-radius:16px;font-size:16px;font-weight:700;cursor:pointer;font-family:var(--fb);transition:background .2s" onmouseover="this.style.background='rgba(41,121,255,.12)'" onmouseout="this.style.background='#05050f'">
+          ✦ Empezar gratis — 14 días sin tarjeta
+        </button>
+      </div>
+      <button onclick="document.getElementById('soul-features').scrollIntoView({behavior:'smooth'})" style="background:rgba(255,255,255,.05);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.1);padding:16px 28px;border-radius:16px;font-size:15px;cursor:pointer;font-family:var(--fb);transition:all .2s" onmouseover="this.style.background='rgba(255,255,255,.09)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,.05)';this.style.color='rgba(255,255,255,.7)'">
+        Ver cómo funciona ↓
+      </button>
+    </div>
+
+    <!-- Dashboard mockup -->
+    <div style="position:relative;max-width:900px;margin:0 auto">
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:20px;overflow:hidden;backdrop-filter:blur(10px);box-shadow:0 60px 120px rgba(0,0,0,.8),0 0 80px rgba(41,121,255,.12);transform:perspective(1200px) rotateX(6deg)" id="soul-mockup-dash">
+        <!-- Fake top bar -->
+        <div style="background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.06);padding:12px 20px;display:flex;align-items:center;gap:8px">
+          <div style="width:10px;height:10px;border-radius:50%;background:rgba(255,85,85,.5)"></div>
+          <div style="width:10px;height:10px;border-radius:50%;background:rgba(255,193,7,.4)"></div>
+          <div style="width:10px;height:10px;border-radius:50%;background:rgba(52,199,123,.4)"></div>
+          <div style="flex:1;text-align:center;font-size:11px;color:rgba(255,255,255,.3)">soul-ecommlab.com/inicio</div>
+        </div>
+        <!-- Fake dashboard content -->
+        <div style="padding:24px;display:grid;grid-template-columns:180px 1fr;gap:16px;min-height:320px">
+          <!-- Sidebar -->
+          <div style="background:rgba(255,255,255,.02);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px">
+            <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Soul eCommlab</div>
+            <div style="font-size:11px;padding:7px 12px;border-radius:8px;color:rgba(255,255,255,.9);background:rgba(41,121,255,.15);border:1px solid rgba(41,121,255,.25)">📋 Checklist</div>
+            <div style="font-size:11px;padding:7px 12px;border-radius:8px;color:rgba(255,255,255,.5)">✅ To Do</div>
+            <div style="font-size:11px;padding:7px 12px;border-radius:8px;color:rgba(255,255,255,.5)">📅 Planning</div>
+            <div style="font-size:11px;padding:7px 12px;border-radius:8px;color:rgba(255,255,255,.5)">🎨 Marca</div>
+            <div style="font-size:11px;padding:7px 12px;border-radius:8px;color:rgba(255,255,255,.5)">🛒 Producto</div>
+            <div style="font-size:11px;padding:7px 12px;border-radius:8px;color:rgba(255,255,255,.5)">💰 Finanzas</div>
+            <div style="font-size:11px;padding:7px 12px;border-radius:8px;color:rgba(255,255,255,.5)">👥 CRM</div>
+            <div style="font-size:11px;padding:7px 12px;border-radius:8px;color:rgba(255,255,255,.5)">📘 Meta Ads</div>
+            <div style="font-size:11px;padding:7px 12px;border-radius:8px;color:rgba(255,255,255,.5)">🎬 Crealo</div>
+          </div>
+          <!-- Main content -->
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+              <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:14px 12px"><div style="font-size:18px;font-weight:800;color:var(--green);font-family:var(--fd)">$4.2M</div><div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">Facturación</div></div>
+              <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:14px 12px"><div style="font-size:18px;font-weight:800;color:var(--gold);font-family:var(--fd)">6.8x</div><div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">ROAS Meta</div></div>
+              <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:14px 12px"><div style="font-size:18px;font-weight:800;color:#a78bfa;font-family:var(--fd)">347</div><div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">Clientes activos</div></div>
+              <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:14px 12px"><div style="font-size:18px;font-weight:800;color:var(--green);font-family:var(--fd)">92%</div><div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">Stock saludable</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;flex:1">
+              <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:16px">
+                <div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:12px;font-weight:600">Ventas últimos 30 días</div>
+                <div style="display:flex;align-items:flex-end;gap:6px;height:80px">
+                  <div style="flex:1;height:30%;background:linear-gradient(180deg,rgba(41,121,255,.6),rgba(41,121,255,.2));border-radius:4px 4px 0 0"></div>
+                  <div style="flex:1;height:50%;background:linear-gradient(180deg,rgba(41,121,255,.6),rgba(41,121,255,.2));border-radius:4px 4px 0 0"></div>
+                  <div style="flex:1;height:40%;background:linear-gradient(180deg,rgba(41,121,255,.6),rgba(41,121,255,.2));border-radius:4px 4px 0 0"></div>
+                  <div style="flex:1;height:70%;background:linear-gradient(180deg,rgba(41,121,255,.6),rgba(41,121,255,.2));border-radius:4px 4px 0 0"></div>
+                  <div style="flex:1;height:60%;background:linear-gradient(180deg,rgba(41,121,255,.6),rgba(41,121,255,.2));border-radius:4px 4px 0 0"></div>
+                  <div style="flex:1;height:90%;background:linear-gradient(180deg,rgba(41,121,255,.6),rgba(41,121,255,.2));border-radius:4px 4px 0 0"></div>
+                  <div style="flex:1;height:75%;background:linear-gradient(180deg,rgba(41,121,255,.6),rgba(41,121,255,.2));border-radius:4px 4px 0 0"></div>
+                  <div style="flex:1;height:100%;background:linear-gradient(180deg,rgba(41,121,255,.6),rgba(41,121,255,.2));border-radius:4px 4px 0 0"></div>
+                  <div style="flex:1;height:85%;background:linear-gradient(180deg,rgba(41,121,255,.6),rgba(41,121,255,.2));border-radius:4px 4px 0 0"></div>
+                  <div style="flex:1;height:95%;background:linear-gradient(180deg,rgba(41,121,255,.6),rgba(41,121,255,.2));border-radius:4px 4px 0 0"></div>
+                  <div style="flex:1;height:110%;background:linear-gradient(180deg,rgba(41,121,255,.6),rgba(41,121,255,.2));border-radius:4px 4px 0 0"></div>
+                  <div style="flex:1;height:88%;background:linear-gradient(180deg,rgba(41,121,255,.6),rgba(41,121,255,.2));border-radius:4px 4px 0 0"></div>
+                </div>
+              </div>
+              <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:16px">
+                <div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:10px;font-weight:600">Pipeline CRM</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:10px;color:rgba(255,255,255,.5)">Leads</span><span style="font-size:13px;font-weight:700;color:#fff">24</span><div style="width:40px;height:4px;border-radius:2px;background:rgba(41,121,255,.6)"></div></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:10px;color:rgba(255,255,255,.5)">Caliente</span><span style="font-size:13px;font-weight:700;color:#fff">11</span><div style="width:40px;height:4px;border-radius:2px;background:rgba(255,193,7,.6)"></div></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:10px;color:rgba(255,255,255,.5)">Clientes</span><span style="font-size:13px;font-weight:700;color:#fff">89</span><div style="width:40px;height:4px;border-radius:2px;background:rgba(52,199,123,.6)"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Glow under mockup -->
+      <div style="position:absolute;bottom:-40px;left:10%;right:10%;height:100px;background:radial-gradient(ellipse,rgba(41,121,255,.3),transparent 70%);filter:blur(20px);pointer-events:none"></div>
+    </div>
+
+    <!-- Social proof -->
+    <div style="display:flex;align-items:center;justify-content:center;gap:32px;margin-top:56px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="display:flex">
+          <div style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:14px;margin-left:-6px">🟣</div>
+          <div style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:14px;margin-left:-6px">🔵</div>
+          <div style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:14px;margin-left:-6px">🟢</div>
+          <div style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:14px;margin-left:-6px">🟡</div>
+          <div style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:14px;margin-left:-6px">🔴</div>
+        </div>
+        <span style="font-size:13px;color:rgba(255,255,255,.5)">+200 marcas usan Soul eCommlab</span>
+      </div>
+      <div style="width:1px;height:20px;background:rgba(255,255,255,.1)"></div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="color:var(--gold);font-size:15px">★★★★★</span>
+        <span style="font-size:13px;color:rgba(255,255,255,.5)">4.9/5 promedio</span>
+      </div>
+      <div style="width:1px;height:20px;background:rgba(255,255,255,.1)"></div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5)">🇦🇷 Hecho para marcas argentinas</div>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <div id="soul-features" style="max-width:1100px;margin:0 auto;padding:100px 40px 60px;position:relative;z-index:5">
+    <div style="text-align:center;margin-bottom:60px">
+      <div class="soul-section-label" style="justify-content:center">Todo lo que necesitás</div>
+      <div style="font-family:var(--fd);font-size:clamp(32px,5vw,52px);font-weight:900;letter-spacing:-.03em;margin-bottom:16px">Un sistema. Sin límites.</div>
+      <div style="font-size:17px;color:rgba(255,255,255,.5);font-weight:300;max-width:500px;margin:0 auto">Cada herramienta diseñada para que tu marca escale sin volverse loca.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+      <div class="soul-feat-card" style="grid-column:span 1">
+        <div style="font-size:32px;margin-bottom:16px">📘</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px">Meta Ads integrado</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.6">Creá y gestioná campañas, conjuntos y anuncios directo desde la plataforma. Score de rendimiento, presupuesto en un clic.</div>
+      </div>
+      <div class="soul-feat-card">
+        <div style="font-size:32px;margin-bottom:16px">🎬</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px">Crealo — Videos UGC con IA</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.6">Avatar IA + guión generado por Claude + render automático. Tu video listo para publicar en Meta en minutos.</div>
+        <a href="/crealo" onclick="navigate('crealo');return false" style="display:inline-flex;align-items:center;gap:4px;margin-top:14px;font-size:12px;color:var(--gold);text-decoration:none;font-weight:600">Ver Crealo →</a>
+      </div>
+      <div class="soul-feat-card">
+        <div style="font-size:32px;margin-bottom:16px">💰</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px">Finanzas en tiempo real</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.6">Ingresos, egresos, ROAS, margen. Todo visible en un dashboard que tu contador va a envidiar.</div>
+      </div>
+      <div class="soul-feat-card">
+        <div style="font-size:32px;margin-bottom:16px">👥</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px">CRM + Pipeline</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.6">Seguí leads, clientes y prospectos. Pipeline visual, historial completo, importación desde CSV.</div>
+      </div>
+      <div class="soul-feat-card">
+        <div style="font-size:32px;margin-bottom:16px">📦</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px">Stock inteligente</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.6">Alertas de quiebre, rotación de inventario, variantes por talle y color. Nunca más quedarte sin stock en el momento equivocado.</div>
+      </div>
+      <div class="soul-feat-card">
+        <div style="font-size:32px;margin-bottom:16px">🤖</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px">Automatizaciones</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.6">Reglas automáticas para Meta Ads: pausar campañas, ajustar presupuestos y recibir alertas según tus KPIs.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- METRICS / SOCIAL PROOF -->
+  <div style="max-width:1100px;margin:0 auto;padding:40px 40px 100px;position:relative;z-index:5">
+    <div style="text-align:center;margin-bottom:48px">
+      <div class="soul-section-label" style="justify-content:center">Resultados reales</div>
+      <div style="font-family:var(--fd);font-size:clamp(28px,4vw,44px);font-weight:900;letter-spacing:-.03em">Marcas que ya escalan con Soul</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:40px">
+      <div class="soul-metric-card"><div style="font-family:var(--fd);font-size:40px;font-weight:900;color:var(--gold)" data-soul-stat="200">0</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px">Marcas activas</div></div>
+      <div class="soul-metric-card"><div style="font-family:var(--fd);font-size:40px;font-weight:900;color:var(--green)" data-soul-stat="6.8">0</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px">ROAS promedio</div></div>
+      <div class="soul-metric-card"><div style="font-family:var(--fd);font-size:40px;font-weight:900;color:#a78bfa" data-soul-stat="98">0</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px">% satisfacción</div></div>
+      <div class="soul-metric-card"><div style="font-family:var(--fd);font-size:40px;font-weight:900;color:var(--gold)" data-soul-stat="14">0</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px">Días gratis para empezar</div></div>
+    </div>
+    <!-- Testimonials row -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+      <div class="soul-feat-card"><div style="font-size:18px;margin-bottom:10px">⭐⭐⭐⭐⭐</div><div style="font-size:13px;color:rgba(255,255,255,.75);line-height:1.6;margin-bottom:14px">"Antes usaba 6 herramientas distintas. Ahora todo en Soul. Recuperé 3 horas por día fácil."</div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.4)">Sofía P. · Dueña de marca de indumentaria</div></div>
+      <div class="soul-feat-card"><div style="font-size:18px;margin-bottom:10px">⭐⭐⭐⭐⭐</div><div style="font-size:13px;color:rgba(255,255,255,.75);line-height:1.6;margin-bottom:14px">"El módulo de Meta Ads me cambió la vida. Veo exactamente qué campañas matar y cuáles escalar."</div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.4)">Luciano M. · E-commerce de suplementos</div></div>
+      <div class="soul-feat-card"><div style="font-size:18px;margin-bottom:10px">⭐⭐⭐⭐⭐</div><div style="font-size:13px;color:rgba(255,255,255,.75);line-height:1.6;margin-bottom:14px">"Crealo me hizo ahorrar $300.000 en producción de contenido el primer mes. Increíble."</div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.4)">Valentina R. · Fundadora de skincare</div></div>
+    </div>
+  </div>
+
+  <!-- PRICING -->
+  <div id="soul-pricing" style="max-width:900px;margin:0 auto;padding:40px 40px 100px;position:relative;z-index:5">
+    <div style="text-align:center;margin-bottom:56px">
+      <div class="soul-section-label" style="justify-content:center">Precios</div>
+      <div style="font-family:var(--fd);font-size:clamp(28px,4vw,48px);font-weight:900;letter-spacing:-.03em;margin-bottom:14px">Simple y transparente</div>
+      <div style="font-size:15px;color:rgba(255,255,255,.5);font-weight:300">Sin sorpresas. Sin letra chica.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div class="soul-plan-card">
+        <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px">Starter</div>
+        <div style="font-family:var(--fd);font-size:52px;font-weight:900;letter-spacing:-.04em;margin-bottom:4px">Gratis</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:28px">14 días · Sin tarjeta</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:32px">
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.7)"><span style="color:var(--green)">✓</span>1 proyecto</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.7)"><span style="color:var(--green)">✓</span>Todas las funciones incluidas</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.7)"><span style="color:var(--green)">✓</span>Meta Ads básico</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.7)"><span style="color:var(--green)">✓</span>CRM hasta 100 contactos</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.7)"><span style="color:var(--green)">✓</span>Soporte por email</div>
+        </div>
+        <button onclick="soulLandingLogin()" style="width:100%;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.15);padding:14px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--fb);transition:all .2s" onmouseover="this.style.background='rgba(255,255,255,.14)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">Empezar gratis →</button>
+      </div>
+      <div class="soul-plan-card featured">
+        <div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--gold),#7c4dff);color:#fff;font-size:10px;font-weight:700;padding:5px 18px;border-radius:20px;white-space:nowrap;letter-spacing:.08em;text-transform:uppercase">MÁS POPULAR</div>
+        <div style="font-size:13px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px">Pro</div>
+        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px">
+          <div style="font-family:var(--fd);font-size:52px;font-weight:900;letter-spacing:-.04em">$XX</div>
+          <div style="font-size:15px;color:rgba(255,255,255,.5)">/mes</div>
+        </div>
+        <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:28px">Todo incluido</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:32px">
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8)"><span style="color:var(--green)">✓</span>Proyectos ilimitados</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8)"><span style="color:var(--green)">✓</span>Meta Ads completo + campañas</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8)"><span style="color:var(--green)">✓</span>Crealo IA (videos UGC)</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8)"><span style="color:var(--green)">✓</span>CRM ilimitado</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8)"><span style="color:var(--green)">✓</span>Automatizaciones avanzadas</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8)"><span style="color:var(--green)">✓</span>Soporte prioritario</div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8)"><span style="color:var(--green)">✓</span>Acceso a nuevas funciones</div>
+        </div>
+        <button onclick="soulLandingLogin()" style="width:100%;background:linear-gradient(135deg,var(--gold),#7c4dff);color:#fff;border:none;padding:14px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--fb);animation:soulGlow 3s ease infinite;transition:transform .2s" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">Empezar prueba gratis →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINAL CTA -->
+  <div style="max-width:900px;margin:0 auto;padding:20px 40px 100px;position:relative;z-index:5">
+    <div style="background:linear-gradient(135deg,rgba(41,121,255,.1),rgba(124,77,255,.08));border:1px solid rgba(255,255,255,.08);border-radius:32px;padding:72px 48px;text-align:center;position:relative;overflow:hidden">
+      <div style="position:absolute;top:-80px;left:50%;transform:translateX(-50%);width:300px;height:300px;background:radial-gradient(circle,rgba(41,121,255,.18),transparent);pointer-events:none"></div>
+      <div style="font-family:var(--fd);font-size:clamp(28px,5vw,56px);font-weight:900;letter-spacing:-.03em;margin-bottom:16px;position:relative">Tu marca en su máximo nivel.</div>
+      <div style="font-size:17px;color:rgba(255,255,255,.5);margin-bottom:40px;font-weight:300;position:relative">Empezá hoy. 14 días gratis. Sin tarjeta.</div>
+      <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;position:relative">
+        <button onclick="soulLandingLogin()" style="background:linear-gradient(135deg,var(--gold),#7c4dff);color:#fff;border:none;padding:18px 48px;border-radius:16px;font-size:17px;font-weight:700;cursor:pointer;font-family:var(--fb);animation:soulGlow 3s ease infinite" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">✦ Crear cuenta gratis</button>
+        <a href="/crealo" onclick="navigate('crealo');return false" style="background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.12);padding:18px 32px;border-radius:16px;font-size:16px;font-weight:500;cursor:pointer;font-family:var(--fb);text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:all .2s" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">🎬 Ver Crealo</a>
+      </div>
+      <div style="margin-top:24px;font-size:12px;color:rgba(255,255,255,.3)">Sin tarjeta de crédito · Cancelás cuando quieras · Soporte en español</div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div style="border-top:1px solid rgba(255,255,255,.05);padding:32px 40px;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:5;max-width:1100px;margin:0 auto">
+    <div style="font-family:var(--fd);font-size:18px;font-weight:900;letter-spacing:-.03em">Soul <em style="font-style:italic;color:var(--gold)">eCommlab</em></div>
+    <div style="font-size:12px;color:rgba(255,255,255,.3)">© 2026 Soul eCommlab · Hecho en Argentina 🇦🇷</div>
+    <div style="display:flex;gap:20px">
+      <a href="/crealo" onclick="navigate('crealo');return false" style="font-size:12px;color:rgba(255,255,255,.4);text-decoration:none;cursor:pointer" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.4)'">Crealo</a>
+      <a onclick="soulLandingLogin()" style="font-size:12px;color:rgba(255,255,255,.4);text-decoration:none;cursor:pointer" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.4)'">Entrar</a>
+    </div>
+  </div>
+
+</div>
+</div>
+<!-- ══ /SOUL ECOMMLAB LANDING ══ -->
 
 <!-- ══ CHECKLIST ══ NOTA: NO arranca .active — todas las pages quedan ocultas
      hasta que _enterWorkspace() → applyRoute() active la correcta.
@@ -4592,6 +4964,15 @@ async function initState(){
       setTimeout(crealInitLanding, 200);
       return;
     }
+    if(location.pathname==='/landing'){
+      document.getElementById('ws-overlay')?.classList.add('hidden');
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      const pageLanding=document.getElementById('page-landing');
+      pageLanding?.classList.add('active','soul-landing-fullscreen');
+      document.body.classList.add('soul-landing-mode');
+      setTimeout(soulLandingInit, 200);
+      return;
+    }
     // Sin sesión: si están en / o ruta de sección, mandar a /login
     if(location.pathname!=='/login'){
       try{history.replaceState({},'','/login');}catch(e){}
@@ -4796,10 +5177,10 @@ let _activeFinTab='movimientos';
 
 const _PLAN_TABS=new Set(['calendario','semana','ideas','biblioteca','briefs','canjes','collabs','estrategia']);
 const _FIN_TABS =new Set(['movimientos','ingresos','gastos','comisiones','kpis','cashflow','config','presupuesto','capital']);
-const _AREA_LABELS={inicio:'Inicio',marketing:'Marketing',finanzas:'Finanzas',crm:'CRM',flows:'Flows',hojas:'Hojas',operaciones:'Operaciones',stock:'Stock',integraciones:'Integraciones',crealo:'Crealo'};
+const _AREA_LABELS={inicio:'Inicio',marketing:'Marketing',finanzas:'Finanzas',crm:'CRM',flows:'Flows',hojas:'Hojas',operaciones:'Operaciones',stock:'Stock',integraciones:'Integraciones',crealo:'Crealo',landing:'Landing'};
 
 // Lista de rutas válidas — usada también para el fallback (rutas no válidas → /checklist)
-const _VALID_TOP_SEGMENTS=new Set(['inicio','checklist','todo','planning','marca','producto','finanzas','crm','flows','hojas','operaciones','stock','integraciones','meta','crealo','login','projects']);
+const _VALID_TOP_SEGMENTS=new Set(['inicio','checklist','todo','planning','marca','producto','finanzas','crm','flows','hojas','operaciones','stock','integraciones','meta','crealo','login','projects','landing']);
 
 function parseRoute(pathname){
   const clean=(pathname||'/').replace(/^\/+|\/+$/g,'');
@@ -4819,6 +5200,7 @@ function parseRoute(pathname){
   }
   if(seg==='meta') return{area:'meta',page:'meta',metaTab:s2||'ads'};
   if(seg==='crealo') return{area:'crealo',page:'crealo'};
+  if(seg==='landing') return{area:'landing',page:'landing'};
   const direct={crm:1,flows:1,hojas:1,operaciones:1,stock:1,integraciones:1};
   if(direct[seg]) return{area:seg,page:seg};
   // Ruta desconocida → checklist (único fallback permitido)
@@ -4919,6 +5301,17 @@ function applyRoute(){
   } else {
     pageCrealo?.classList.remove('landing-fullscreen');
     document.body.classList.remove('crealo-landing-mode');
+  }
+
+  // Soul landing full-screen mode
+  const pageSoulLanding=document.getElementById('page-landing');
+  if(r.area==='landing'){
+    pageSoulLanding?.classList.add('soul-landing-fullscreen');
+    document.body.classList.add('soul-landing-mode');
+    setTimeout(soulLandingInit,100);
+  } else {
+    pageSoulLanding?.classList.remove('soul-landing-fullscreen');
+    document.body.classList.remove('soul-landing-mode');
   }
 
   // Mobile nav active state
@@ -5343,8 +5736,8 @@ function getInitialPath(){
   const p=location.pathname;
   // / es válido por sí mismo — initState decide si redirige a /projects o /login
   if(!p||p==='/') return '/';
-  // /sistema y /landing son redirects históricos → /
-  if(p==='/sistema'||p==='/landing') return '/';
+  // /sistema es redirect histórico → /
+  if(p==='/sistema') return '/';
   const seg=p.replace(/^\/+|\/+$/g,'').split('/')[0];
   if(_VALID_TOP_SEGMENTS.has(seg)||_PLAN_TABS.has(seg)) return p;
   // 3) Ruta desconocida → / (initState la enruta según sesión)
@@ -14392,6 +14785,66 @@ function crealInitLanding(){
   crealInitParticles();
   setTimeout(crealAnimateStats,300);
   setTimeout(crealInitParallax,100);
+}
+
+// ── SOUL LANDING functions ──
+function soulLandingLogin(){
+  if(_authUser||_authToken){
+    try{history.replaceState({},'','/projects');}catch(e){}
+    checkSubscriptionAndProceed();
+  } else {
+    try{history.replaceState({},'','/login');}catch(e){}
+    document.getElementById('ws-overlay')?.classList.add('hidden');
+    document.getElementById('page-landing')?.classList.remove('soul-landing-fullscreen');
+    document.body.classList.remove('soul-landing-mode');
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('auth-screen').style.display='flex';
+    _proceedAfterAuth=async()=>{
+      try{history.replaceState({},'','/projects');}catch(e){}
+      await checkSubscriptionAndProceed();
+    };
+  }
+}
+
+function soulLandingInit(){
+  // Particles
+  const container=document.getElementById('soul-particles');
+  if(container&&!container.dataset.init){
+    container.dataset.init='1';
+    container.innerHTML='';
+    for(let i=0;i<20;i++){
+      const p=document.createElement('div');
+      p.className='soul-particle';
+      const size=2+Math.random()*3;
+      p.style.cssText=`left:${Math.random()*100}%;bottom:-${size}px;width:${size}px;height:${size}px;--sdrift:${(Math.random()-.5)*150}px;--sdur:${8+Math.random()*14}s;--sdelay:-${Math.random()*12}s;background:${Math.random()>.6?'rgba(41,121,255,.7)':Math.random()>.5?'rgba(124,77,255,.6)':'rgba(52,199,123,.5)'};opacity:${.3+Math.random()*.5}`;
+      container.appendChild(p);
+    }
+  }
+  // Animate stats
+  document.querySelectorAll('[data-soul-stat]').forEach(el=>{
+    const target=parseFloat(el.dataset.soulStat);
+    const isFloat=target%1!==0;
+    const dur=1600;
+    const start=performance.now();
+    const step=now=>{
+      const p=Math.min((now-start)/dur,1);
+      const ease=1-Math.pow(1-p,3);
+      el.textContent=isFloat?(target*ease).toFixed(1):Math.round(target*ease)+(target>=100?'%':'');
+      if(p<1)requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+  // Dashboard 3D tilt on scroll
+  const dash=document.getElementById('soul-mockup-dash');
+  if(dash){
+    let tilt=6;
+    const onScroll=()=>{
+      const scrolled=window.scrollY;
+      tilt=Math.max(0,6-scrolled/80);
+      dash.style.transform=`perspective(1200px) rotateX(${tilt}deg)`;
+    };
+    window.addEventListener('scroll',onScroll,{passive:true});
+  }
 }
 
 function crealShowApp() {
