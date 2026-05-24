@@ -1077,6 +1077,49 @@ app.get("/api/meta/ig-posts", async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
+// Upload image to Meta adimages API and return hash + URL
+app.post("/api/meta/upload-image", async (req, res) => {
+  const { wsId, base64, fileName = "image.jpg", mimeType = "image/jpeg" } = req.body
+  if (!wsId || !base64) return res.status(400).json({ error: "Faltan campos: wsId, base64" })
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.accessToken || !meta?.adAccountId) return res.status(400).json({ error: "Meta Ads no conectado" })
+    const accountId = meta.adAccountId.startsWith("act_") ? meta.adAccountId : "act_" + meta.adAccountId
+    const token = meta.accessToken
+    const r = await fetch(`https://graph.facebook.com/v21.0/${accountId}/adimages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bytes: base64, name: fileName, access_token: token })
+    })
+    const d = await r.json()
+    if (d.error) return res.status(400).json({ error: "Error al subir imagen: " + d.error.message })
+    // Response: { images: { "filename": { hash, url, ... } } }
+    const images = d.images || {}
+    const imageInfo = Object.values(images)[0]
+    if (!imageInfo) return res.status(400).json({ error: "Meta no devolvió datos de imagen" })
+    res.json({ ok: true, hash: imageInfo.hash, url: imageInfo.url })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// Get Instagram Business Account linked to a Facebook page
+app.get("/api/meta/ig-account", async (req, res) => {
+  const { wsId, pageId } = req.query
+  if (!wsId || !pageId) return res.status(400).json({ error: "Faltan parámetros: wsId, pageId" })
+  try {
+    const ws = await getWorkspace(wsId)
+    const meta = ws?.data?.metaIntegration
+    if (!meta?.accessToken) return res.status(400).json({ error: "Meta Ads no conectado" })
+    const token = meta.accessToken
+    const r = await fetch(`https://graph.facebook.com/v21.0/${pageId}?fields=instagram_business_account%7Bid%2Cname%2Cusername%7D&access_token=${token}`)
+    const d = await r.json()
+    if (d.error) return res.status(400).json({ error: d.error.message })
+    const igAccount = d.instagram_business_account
+    if (!igAccount) return res.json({ igUserId: null, igName: null, igUsername: null })
+    res.json({ igUserId: igAccount.id, igName: igAccount.name || null, igUsername: igAccount.username || null })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
 // Create a new ad (creative + ad) — supports manual image or existing IG post
 app.post("/api/meta/ad/create", async (req, res) => {
   const {
@@ -1084,16 +1127,21 @@ app.post("/api/meta/ad/create", async (req, res) => {
     ctaType = "SHOP_NOW", status = "PAUSED", destinationUrl = "",
     creativeType = "manual",
     // Manual fields
-    imageUrl = "", primaryText = "", headline = "", description = "",
+    imageUrl = "", imageHash = "", primaryText = "", headline = "", description = "",
     // IG post fields
-    igMediaId = "", igUserId = ""
+    igMediaId = "", igUserId = "",
+    // Shared: IG actor for placement
+    igActorId = ""
   } = req.body
 
   if (!wsId || !adsetId || !name || !pageId) {
     return res.status(400).json({ error: "Faltan campos requeridos: adsetId, name, pageId" })
   }
-  if (creativeType === "manual" && (!imageUrl || !primaryText || !headline || !destinationUrl)) {
-    return res.status(400).json({ error: "Para creativo manual: imageUrl, primaryText, headline y destinationUrl son requeridos" })
+  if (creativeType === "manual" && (!imageHash && !imageUrl)) {
+    return res.status(400).json({ error: "Para creativo manual: se requiere imagen (imageHash o imageUrl)" })
+  }
+  if (creativeType === "manual" && (!primaryText || !headline || !destinationUrl)) {
+    return res.status(400).json({ error: "Para creativo manual: primaryText, headline y destinationUrl son requeridos" })
   }
   if (creativeType === "igpost" && !igMediaId) {
     return res.status(400).json({ error: "Para publicación de Instagram: igMediaId es requerido" })
@@ -1113,17 +1161,19 @@ app.post("/api/meta/ad/create", async (req, res) => {
       creativeBody = {
         name: `${name} — creative`,
         source_instagram_media_id: igMediaId,
-        ...(igUserId ? { instagram_actor_id: igUserId } : {}),
+        ...(igActorId || igUserId ? { instagram_actor_id: igActorId || igUserId } : {}),
         access_token: token
       }
     } else {
-      // Manual image/video creative
+      // Manual image/video creative — prefer image_hash (uploaded) over image_url
+      const imageField = imageHash ? { image_hash: imageHash } : { image_url: imageUrl }
       creativeBody = {
         name: `${name} — creative`,
         object_story_spec: {
           page_id: pageId,
+          ...(igActorId ? { instagram_actor_id: igActorId } : {}),
           link_data: {
-            image_url: imageUrl,
+            ...imageField,
             message: primaryText,
             name: headline,
             ...(description ? { description } : {}),

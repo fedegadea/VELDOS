@@ -804,6 +804,11 @@ tr:hover .tx-del{color:var(--muted)}
 .meta-ig-post.selected{border-color:var(--gold);box-shadow:0 0 0 2px rgba(41,121,255,.3)}
 .meta-ig-post-type{position:absolute;top:3px;right:3px;font-size:9px;background:rgba(0,0,0,.65);color:#fff;padding:1px 4px;border-radius:3px}
 .meta-ig-post-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px}
+.meta-upload-zone{border:2px dashed var(--border);border-radius:var(--radius-sm);padding:20px 16px;text-align:center;cursor:pointer;transition:all .15s;min-height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--s2);position:relative;overflow:hidden;gap:4px}
+.meta-upload-zone:hover{border-color:var(--gold);background:rgba(41,121,255,.04)}
+.meta-upload-zone.uploading{border-color:var(--gold);opacity:.7;pointer-events:none}
+.meta-upload-zone.uploaded{border-color:var(--green);background:rgba(52,199,123,.05)}
+.meta-upload-preview{width:100%;max-height:160px;object-fit:cover;border-radius:6px;margin-bottom:6px;display:block}
 
 /* ── Meta Create Ad Modal ── */
 .meta-create-step{display:none}.meta-create-step.active{display:block}
@@ -7044,6 +7049,80 @@ let _metaCreateStep=1;
 let _mcCreativeType='manual';
 let _mcSelectedIgPostId=null;
 let _mcIgUserId=null;
+let _mcIgActorId=null;   // selected IG actor for ad placement
+let _mcImageHash=null;   // hash from Meta image upload (preferred over URL)
+
+async function _mcLoadIgAccount(pageId){
+  const group=document.getElementById('mc-ig-account-group');
+  const sel=document.getElementById('mc-ig-account');
+  if(!group||!sel)return;
+  if(!pageId){group.style.display='none';_mcIgUserId=null;_mcIgActorId=null;return;}
+  // Reload IG posts grid if igpost type is active
+  const grid=document.getElementById('mc-ig-grid-wrap');
+  if(grid)delete grid.dataset.loaded;
+  try{
+    const r=await fetch(`/api/meta/ig-account?wsId=${encodeURIComponent(_activeWsId)}&pageId=${pageId}`);
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error);
+    if(d.igUserId){
+      _mcIgUserId=d.igUserId;
+      sel.innerHTML=`<option value="${d.igUserId}">📸 ${d.igName||d.igUserId}${d.igUsername?` (@${d.igUsername})`:''}</option><option value="">Solo Facebook (sin Instagram)</option>`;
+      group.style.display='block';
+      _mcIgActorId=d.igUserId;
+    } else {
+      sel.innerHTML='<option value="">Sin cuenta de Instagram vinculada a esta página</option>';
+      group.style.display='block';
+      _mcIgUserId=null;_mcIgActorId=null;
+    }
+  }catch(e){
+    group.style.display='none';
+    _mcIgUserId=null;_mcIgActorId=null;
+  }
+}
+
+function _mcOnIgAccountChange(val){
+  _mcIgActorId=val||null;
+}
+
+async function _mcHandleFileUpload(input){
+  const file=input.files[0];
+  if(!file)return;
+  const zone=document.getElementById('mc-upload-zone');
+  const hint=document.getElementById('mc-upload-hint');
+  const msg=document.getElementById('mc-upload-msg');
+  const preview=document.getElementById('mc-upload-preview');
+  if(zone)zone.className='meta-upload-zone uploading';
+  if(hint)hint.style.display='none';
+  if(msg){msg.style.display='block';msg.style.color='var(--muted)';msg.textContent='⏳ Subiendo…';}
+  _mcImageHash=null;
+  // Show local preview immediately
+  const localUrl=URL.createObjectURL(file);
+  if(preview&&file.type.startsWith('image/')){preview.src=localUrl;preview.style.display='block';}
+  // Read as base64
+  const reader=new FileReader();
+  reader.onload=async(e)=>{
+    const base64=e.target.result.split(',')[1];
+    try{
+      const r=await fetch('/api/meta/upload-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId:_activeWsId,base64,fileName:file.name,mimeType:file.type})});
+      const d=await r.json();
+      if(!r.ok||d.error)throw new Error(d.error||'Error al subir');
+      _mcImageHash=d.hash||null;
+      // Also set URL input so it shows something
+      const urlIn=document.getElementById('mc-image-url');
+      if(urlIn&&d.url)urlIn.value=d.url;
+      if(zone)zone.className='meta-upload-zone uploaded';
+      if(msg){msg.style.display='block';msg.style.color='var(--green)';msg.textContent='✅ '+file.name+' — listo';}
+      _mcUpdatePreview();
+      notify('✅ Imagen subida a Meta');
+    }catch(e){
+      if(zone)zone.className='meta-upload-zone';
+      if(hint)hint.style.display='block';
+      if(msg){msg.style.display='block';msg.style.color='var(--coral)';msg.textContent='⚠️ '+e.message;}
+      notify('Error al subir imagen: '+e.message);
+    }
+  };
+  reader.readAsDataURL(file);
+}
 
 function _mcSelectCreativeType(type){
   _mcCreativeType=type;
@@ -7121,6 +7200,8 @@ async function openCreateAdModal(preselectedAdsetId){
   _mcCreativeType='manual';
   _mcSelectedIgPostId=null;
   _mcIgUserId=null;
+  _mcIgActorId=null;
+  _mcImageHash=null;
   // Load pages first
   try{
     const r=await fetch(`/api/meta/pages?wsId=${encodeURIComponent(_activeWsId)}`);
@@ -7160,7 +7241,20 @@ async function openCreateAdModal(preselectedAdsetId){
           <label class="form-label">Nombre del anuncio</label>
           <input class="form-input" id="mc-name" placeholder="Ej: Promo Mayo — Imagen Feed">
         </div>
-        ${pageOpts?`<div class="form-group"><label class="form-label">Página de Facebook</label><select class="form-input" id="mc-page">${pageOpts}</select></div>`:'<div class="form-group"><label class="form-label">ID de página de Facebook</label><input class="form-input" id="mc-page" placeholder="123456789012345" value=""></div>'}
+        <div class="form-group">
+          <label class="form-label">Página de Facebook</label>
+          ${pageOpts
+            ? `<select class="form-input" id="mc-page" onchange="_mcLoadIgAccount(this.value)">${pageOpts}</select>`
+            : `<div style="background:rgba(255,193,7,.08);border:1px solid rgba(255,193,7,.2);border-radius:var(--radius-sm);padding:8px 12px;font-size:11px;color:#f5c842;margin-bottom:8px">⚠️ No se encontraron páginas. Verificá que tu cuenta tenga páginas con acceso de administrador.</div>
+               <input class="form-input" id="mc-page" placeholder="ID de la página de Facebook (ej: 123456789)">`
+          }
+        </div>
+        <div class="form-group" id="mc-ig-account-group" style="display:none">
+          <label class="form-label">Cuenta de Instagram <span style="color:var(--muted);font-size:10px">Para mostrar el anuncio en Instagram</span></label>
+          <select class="form-input" id="mc-ig-account" onchange="_mcOnIgAccountChange(this.value)">
+            <option value="">Sin Instagram (solo Facebook)</option>
+          </select>
+        </div>
         <button class="btn btn-primary" style="width:100%" onclick="_mcNextStep(1)">Siguiente →</button>
       </div>
 
@@ -7184,8 +7278,23 @@ async function openCreateAdModal(preselectedAdsetId){
         <!-- Manual image/video fields -->
         <div id="mc-content-manual">
           <div class="form-group">
-            <label class="form-label">URL de imagen o video <span style="color:var(--muted);font-size:10px">Recomendado: 1080×1080px o 1080×1920px</span></label>
-            <input class="form-input" id="mc-image-url" placeholder="https://tusitio.com/imagen.jpg" oninput="_mcUpdatePreview()">
+            <label class="form-label">Imagen o Video <span style="color:var(--muted);font-size:10px">Recomendado: 1080×1080px · JPG, PNG, MP4</span></label>
+            <div class="meta-upload-zone" id="mc-upload-zone" onclick="document.getElementById('mc-file-input').click()">
+              <input type="file" id="mc-file-input" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4" style="display:none" onchange="_mcHandleFileUpload(this)">
+              <img id="mc-upload-preview" src="" style="display:none" class="meta-upload-preview" alt="">
+              <div id="mc-upload-hint">
+                <div style="font-size:28px;margin-bottom:6px">🖼️</div>
+                <div style="font-size:12px;font-weight:600;color:var(--text)">Hacé clic para subir imagen o video</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:2px">JPG · PNG · GIF · MP4 · máx 30MB</div>
+              </div>
+              <div id="mc-upload-msg" style="display:none;font-size:11px;color:var(--green)">✅ Archivo listo</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+              <div style="flex:1;height:1px;background:var(--border)"></div>
+              <span style="font-size:10px;color:var(--muted);white-space:nowrap">o pegá una URL</span>
+              <div style="flex:1;height:1px;background:var(--border)"></div>
+            </div>
+            <input class="form-input" id="mc-image-url" placeholder="https://tusitio.com/imagen.jpg" style="margin-top:8px;font-size:11px" oninput="_mcUpdatePreview()">
           </div>
           <div class="form-group">
             <label class="form-label">Texto principal <span style="color:var(--muted);font-size:10px">≤125 chars recomendado</span></label>
@@ -7276,6 +7385,9 @@ async function openCreateAdModal(preselectedAdsetId){
   // Auto-load adsets if campaign selected
   const campaignSel=document.getElementById('mc-campaign');
   if(campaignSel&&campaignSel.value)_mcLoadAdsets(campaignSel.value, preselectedAdsetId);
+  // Auto-load IG account for first page
+  const pageSel=document.getElementById('mc-page');
+  if(pageSel&&pageSel.value&&pageSel.tagName==='SELECT')_mcLoadIgAccount(pageSel.value);
 }
 
 async function _mcLoadAdsets(campaignId, preselectedId){
@@ -7319,7 +7431,8 @@ function _mcNextStep(direction){
       const img=(document.getElementById('mc-image-url')?.value||'').trim();
       const body=(document.getElementById('mc-primary-text')?.value||'').trim();
       const hl=(document.getElementById('mc-headline')?.value||'').trim();
-      if(!img||!body||!hl){notify('Completá imagen, texto principal y titular');return;}
+      const hasImg=_mcImageHash||img;
+      if(!hasImg||!body||!hl){notify('Completá imagen (subí un archivo o pegá URL), texto principal y titular');return;}
     }
     _metaCreateStep=3;
   }else if(direction===3){
@@ -7383,11 +7496,14 @@ async function createMetaAd(){
   if(_mcCreativeType==='igpost'){
     payload.igMediaId=_mcSelectedIgPostId||(document.getElementById('mc-ig-post-id')?.value||'').trim();
     payload.igUserId=_mcIgUserId||'';
+    payload.igActorId=_mcIgActorId||'';
   } else {
     payload.imageUrl=(document.getElementById('mc-image-url')?.value||'').trim();
+    payload.imageHash=_mcImageHash||'';
     payload.primaryText=(document.getElementById('mc-primary-text')?.value||'').trim();
     payload.headline=(document.getElementById('mc-headline')?.value||'').trim();
     payload.description=(document.getElementById('mc-description')?.value||'').trim();
+    payload.igActorId=_mcIgActorId||'';
   }
   try{
     const r=await fetch('/api/meta/ad/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
