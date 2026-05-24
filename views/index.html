@@ -3102,13 +3102,9 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
         <!-- Manual fallback -->
         <details style="margin-bottom:4px">
           <summary style="font-size:11px;color:var(--muted2);cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:6px">
-            <span>🔧</span> Conectar con token manual
+            <span>🔧</span> Ingresar Account ID manualmente
           </summary>
-          <div style="margin-top:12px">
-            <div class="form-group"><label class="form-label">Access Token <a href="https://developers.facebook.com/tools/explorer/" target="_blank" style="color:var(--gold);font-size:10px;margin-left:6px">→ Obtener token</a></label><input class="form-input" id="meta-token-input" placeholder="EAAxxxxx…" style="font-family:monospace;font-size:11px"></div>
-            <div class="form-group"><label class="form-label">Ad Account ID</label><input class="form-input" id="meta-account-input" placeholder="act_1234567890 o solo los números"></div>
-            <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="connectMetaAds()">Conectar manualmente</button>
-          </div>
+          <div style="margin-top:12px" id="meta-manual-form"></div>
         </details>
 
         <p style="font-size:10px;color:var(--muted);margin-top:14px;line-height:1.7">
@@ -6622,6 +6618,23 @@ async function _selectMetaAccount(accountId, accountName, rowEl){
 }
 
 // ── Ads Performance ──
+
+// Conexión manual solo con Account ID (reutiliza el token ya guardado)
+async function connectMetaAdsManual(){
+  const accountId=(document.getElementById('meta-account-input')?.value||'').trim();
+  if(!accountId){notify('Ingresá el Ad Account ID');return;}
+  if(!S.metaIntegration?.accessToken){notify('No hay token guardado. Usá "Conectar con Facebook" primero.');return;}
+  const btn=event?.target;if(btn){btn.disabled=true;btn.textContent='Conectando…';}
+  try{
+    const r=await fetch('/api/meta/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId:_activeWsId,accessToken:S.metaIntegration.accessToken,adAccountId:accountId})});
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Error');
+    S.metaIntegration.adAccountId=accountId.replace('act_','');
+    save();notify('✅ Cuenta conectada');renderMetaAds();syncMetaAds();
+  }catch(e){notify('Error: '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='Conectar cuenta';}}
+}
+
 async function connectMetaAds(){
   const token=(document.getElementById('meta-token-input')?.value||'').trim();
   const accountId=(document.getElementById('meta-account-input')?.value||'').trim();
@@ -6822,6 +6835,24 @@ function renderMetaAds(){
   const dashEl=document.getElementById('meta-ads-dash');
   if(connectEl)connectEl.style.display=connected?'none':'block';
   if(dashEl)dashEl.style.display=connected?'block':'none';
+  // Render manual form depending on whether token already exists
+  const manualForm=document.getElementById('meta-manual-form');
+  if(manualForm){
+    const hasToken=!!(S.metaIntegration?.accessToken);
+    if(hasToken){
+      manualForm.innerHTML=`
+        <div style="background:rgba(52,199,123,.08);border:1px solid rgba(52,199,123,.2);border-radius:var(--radius-sm);padding:10px 14px;font-size:11px;color:var(--green);margin-bottom:12px">
+          ✅ Token activo — solo ingresá el Ad Account ID
+        </div>
+        <div class="form-group"><label class="form-label">Ad Account ID</label><input class="form-input" id="meta-account-input" placeholder="act_1234567890 o solo los números"></div>
+        <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="connectMetaAdsManual()">Conectar cuenta</button>`;
+    } else {
+      manualForm.innerHTML=`
+        <div class="form-group"><label class="form-label">Access Token <a href="https://developers.facebook.com/tools/explorer/" target="_blank" style="color:var(--gold);font-size:10px;margin-left:6px">→ Obtener token</a></label><input class="form-input" id="meta-token-input" placeholder="EAAxxxxx…" style="font-family:monospace;font-size:11px"></div>
+        <div class="form-group"><label class="form-label">Ad Account ID</label><input class="form-input" id="meta-account-input" placeholder="act_1234567890 o solo los números"></div>
+        <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="connectMetaAds()">Conectar manualmente</button>`;
+    }
+  }
   if(!connected)return;
 
   // Account bar
