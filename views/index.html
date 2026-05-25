@@ -3852,7 +3852,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <div style="font-family:var(--fd);font-size:28px;font-weight:900;letter-spacing:-.04em;background:linear-gradient(135deg,#fff,var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Crealo</div>
     <div style="display:flex;gap:12px;align-items:center">
       <span style="font-size:12px;color:var(--muted)">by Soul eCommlab</span>
-      <button onclick="crealLandingCTA()" style="background:var(--gold);color:#fff;border:none;padding:10px 24px;border-radius:24px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--fb)">Empezar →</button>
+      <button onclick="crealScrollToModes()" style="background:var(--gold);color:#fff;border:none;padding:10px 24px;border-radius:24px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--fb)">Empezar →</button>
     </div>
   </nav>
 
@@ -4063,7 +4063,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
 
         <!-- UGC con IA -->
-        <div class="creal-mode-card" onclick="crealLandingCTA()" style="cursor:pointer;position:relative">
+        <div class="creal-mode-card" onclick="crealContactar('ugc-ia')" style="cursor:pointer;position:relative">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
             <div style="background:linear-gradient(135deg,rgba(41,121,255,.2),rgba(124,77,255,.2));border:1px solid rgba(41,121,255,.3);padding:8px 16px;border-radius:24px;font-size:12px;font-weight:700;color:#7ab3ff">✨ UGC con IA</div>
             <div style="background:linear-gradient(135deg,var(--gold),#7c4dff);color:#fff;font-size:10px;font-weight:700;padding:4px 12px;border-radius:12px;letter-spacing:.06em">MÁS POPULAR</div>
@@ -4078,8 +4078,8 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
             <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:rgba(255,255,255,.85)"><span style="color:var(--green);flex-shrink:0;font-size:14px">✓</span>Publicación directa a Meta Ads</div>
             <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:rgba(255,255,255,.85)"><span style="color:var(--green);flex-shrink:0;font-size:14px">✓</span>Entrega en minutos</div>
           </div>
-          <button style="width:100%;background:linear-gradient(135deg,var(--gold),#7c4dff);color:#fff;border:none;padding:15px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--fb);transition:opacity .2s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-            ✨ Empezar ahora →
+          <button onclick="crealContactar('ugc-ia');event.stopPropagation()" style="width:100%;background:linear-gradient(135deg,var(--gold),#7c4dff);color:#fff;border:none;padding:15px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--fb);transition:opacity .2s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+            ✨ Quiero este →
           </button>
         </div>
 
@@ -4179,7 +4179,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
       <div style="font-size:16px;color:var(--muted);margin-bottom:36px;font-weight:300;position:relative;max-width:500px;margin-left:auto;margin-right:auto">Elegí cómo querés el contenido y nosotros lo producimos. Sin estrés, sin excusas.</div>
       <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;position:relative">
         <button onclick="crealScrollToModes()" style="background:linear-gradient(135deg,var(--gold),#7c4dff);color:#fff;border:none;padding:18px 44px;border-radius:16px;font-size:16px;font-weight:700;cursor:pointer;font-family:var(--fb);animation:crealGlow 3s ease infinite" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">✦ Ver opciones →</button>
-        <button onclick="crealLandingCTA()" style="background:rgba(41,121,255,.12);color:#7ab3ff;border:1px solid rgba(41,121,255,.25);padding:18px 36px;border-radius:16px;font-size:16px;font-weight:600;cursor:pointer;font-family:var(--fb)">✨ Empezar con IA — $29k/video</button>
+        <button onclick="crealContactar('ugc-ia')" style="background:rgba(41,121,255,.12);color:#7ab3ff;border:1px solid rgba(41,121,255,.25);padding:18px 36px;border-radius:16px;font-size:16px;font-weight:600;cursor:pointer;font-family:var(--fb)">✨ UGC con IA — $29k/video</button>
       </div>
     </div>
   </div>
@@ -14853,9 +14853,10 @@ function crealContactar(tipo){
   const form = document.getElementById('creal-contact-form');
   const title = document.getElementById('creal-form-title');
   const labels = {
+    'ugc-ia':        '✨ UGC con IA — contanos sobre tu marca',
     'dia-filmacion': '🎬 Un día de filmación — contanos sobre vos',
-    'creadora-pro': '🌟 Te conseguimos la creadora ideal',
-    'ugc-real': '📹 UGC Real — contanos sobre tu marca',
+    'creadora-pro':  '🌟 Te conseguimos la creadora ideal',
+    'ugc-real':      '📹 UGC Real — contanos sobre tu marca',
   };
   if(title) title.textContent = labels[tipo] || '📋 Contanos sobre tu proyecto';
   if(form){
@@ -14884,9 +14885,10 @@ function crealEnviarWA(){
   const url=document.getElementById('creal-real-url')?.value||'';
   if(!tipo||tipo===''){notify('Seleccioná el tipo de contenido');return;}
   const modoLabel = {
-    'dia-filmacion':'Un día de filmación (todo el mes)',
-    'creadora-pro':'Conseguir creadora (sin aparecer yo)',
-    'ugc-real':'UGC Real con creadora para mi marca',
+    'ugc-ia':        'UGC con IA ($29.000/video)',
+    'dia-filmacion': 'Un día de filmación — contenido para todo el mes',
+    'creadora-pro':  'Conseguir creadora (sin aparecer yo)',
+    'ugc-real':      'UGC Real con creadora para mi marca ($75.000/video)',
   }[_crealContactTipo||''] || 'Consulta general';
   const msg=`Hola! Me interesa Crealo 🎬\n\n*Opción elegida:* ${modoLabel}\n*Tipo de contenido:* ${tipo}\n*Cantidad:* ${cantidad==='mes'?'Pack mensual':cantidad+' video(s)'}\n*Nombre/Marca:* ${nombre||'No indicado'}\n*Producto/URL:* ${url||'No indicado'}\n\n¿Podemos hablar?`;
   const waNum='5491168408965';
