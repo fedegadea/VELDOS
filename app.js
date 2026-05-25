@@ -1357,10 +1357,20 @@ app.post("/api/meta/ad/create", async (req, res) => {
 })
 
 // ── Crealo — AI UGC Video Creation ──────────────────────────────────────────
-const Anthropic = require('@anthropic-ai/sdk')
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' })
+// Lazy-load Anthropic SDK so a missing package doesn't crash the whole server
 const CREATOMATE_KEY = () => process.env.CREATOMATE_API_KEY || ''
 const HEYGEN_KEY = () => process.env.HEYGEN_API_KEY || ''
+let _anthropic = null
+function getAnthropic () {
+  if (_anthropic) return _anthropic
+  try {
+    const Anthropic = require('@anthropic-ai/sdk')
+    _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' })
+    return _anthropic
+  } catch (e) {
+    throw new Error('Anthropic SDK no disponible: ' + e.message)
+  }
+}
 
 // POST /api/crealo/analyze-product — fetch URL, extract OG/meta tags
 app.post('/api/crealo/analyze-product', async (req, res) => {
@@ -1439,7 +1449,7 @@ Respondé SOLO con JSON válido:
 }`
 
   try {
-    const message = await anthropic.messages.create({
+    const message = await getAnthropic().messages.create({
       model: 'claude-sonnet-4-5',
       max_tokens: 1500,
       messages: [{ role: 'user', content: prompt }]
@@ -1659,7 +1669,7 @@ Respondé SOLO con JSON válido:
 }`
 
   try {
-    const message = await anthropic.messages.create({
+    const message = await getAnthropic().messages.create({
       model: 'claude-sonnet-4-5',
       max_tokens: 800,
       messages: [{ role: 'user', content: prompt }]
