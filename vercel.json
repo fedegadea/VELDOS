@@ -3,13 +3,24 @@
   "builds": [
     {
       "src": "app.js",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": {
+        "maxLambdaSize": "50mb",
+        "maxDuration": 30,
+        "includeFiles": "views/**"
+      }
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
       "dest": "app.js"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/flows/cron",
+      "schedule": "0 12 * * *"
     }
   ]
 }
