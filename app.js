@@ -300,6 +300,15 @@ async function patchWorkspace(wsId, data) {
       data.flows = cur.flows
     }
 
+    // ── Guard tokens: nunca perder sesiones activas en un save del admin ──
+    if (cur.tokens && typeof cur.tokens === 'object' && Object.keys(cur.tokens).length) {
+      if (!data.tokens || typeof data.tokens !== 'object') data.tokens = {}
+      // Merge: server tokens que el cliente no tiene
+      for (const [tok, entry] of Object.entries(cur.tokens)) {
+        if (!(tok in data.tokens)) data.tokens[tok] = entry
+      }
+    }
+
     // ── Guard tienda.productos: nunca sobreescribir productos existentes con array vacío/ausente ──
     // Si el save no incluye productos (ej: guardar solo settings/config), preservar los del servidor.
     if (cur.tienda?.productos?.length) {
@@ -2879,8 +2888,21 @@ app.get('/api/identity/me', async (req, res) => {
   const tokenEntry = (data.tokens || {})[token]
   if (!tokenEntry) return res.status(401).json({ error: 'Token inválido' })
 
+  // Expirar tokens con más de 365 días sin uso
+  const TOKEN_TTL_MS = 365 * 24 * 60 * 60 * 1000
+  const lastUsed = tokenEntry.lastUsed || tokenEntry.createdAt
+  if (lastUsed && Date.now() - new Date(lastUsed).getTime() > TOKEN_TTL_MS) {
+    delete data.tokens[token]
+    patchWorkspace(wsId, data).catch(() => {})
+    return res.status(401).json({ error: 'Sesión expirada' })
+  }
+
   const user = (data.usuarios || []).find(u => u.id === tokenEntry.userId)
   if (!user) return res.status(404).json({ error: 'Usuario no encontrado' })
+
+  // Renovar lastUsed para mantener la sesión activa
+  data.tokens[token].lastUsed = new Date().toISOString()
+  patchWorkspace(wsId, data).catch(() => {})
 
   res.json({ ok: true, user: _userPublic(user) })
 })
@@ -3567,11 +3589,10 @@ app.post('/api/store/capture-contact', async (req, res) => {
     _invalidateWsCache(wsId)
     res.json({ ok: true, contactId: crmContact.id })
 
-    // ── Disparar flow new_lead solo para contactos nuevos ─────────────────────
-    if (isNewContact) {
-      _processImmediateFlows(wsId, data, crmContact, ['new_lead'], {})
-        .catch(e2 => console.error('[flows] new_lead error:', e2.message))
-    }
+    // ── Disparar flow new_lead — para todos (nuevo o existente que llena el form)
+    // flowDone con clave nl_${creado} evita que se repita para el mismo contacto
+    _processImmediateFlows(wsId, data, crmContact, ['new_lead'], {})
+      .catch(e2 => console.error('[flows] new_lead error:', e2.message))
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
