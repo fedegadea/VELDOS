@@ -12186,12 +12186,14 @@ function upsertCRMFromTN(order,fecha,total){
   const nota=`🛍 Compra TN #${order.number||''} — $${(parseFloat(total)||0).toLocaleString('es-AR')}`;
   if(existing){
     existing.valor=(parseFloat(existing.valor)||0)+total;
-    existing.cantidadCompras=(parseInt(existing.cantidadCompras)||parseInt(existing.cantCompras)||0)+1;
+    existing.valorTotal=(parseFloat(existing.valorTotal)||0)+total;
+    existing.cantCompras=(parseInt(existing.cantCompras)||parseInt(existing.cantidadCompras)||0)+1;
+    existing.cantidadCompras=existing.cantCompras;
     existing.ultimaCompra=fecha;
     existing.ultimoContacto=fecha;
     existing.tn_customer_id=order.customer.id;
     if(existing.estado==='Nuevo'||existing.estado==='Contactado'||existing.estado==='Interesado') existing.estado='Cliente';
-    else if(existing.estado==='Cliente'&&existing.cantidadCompras>=2) existing.estado='Recurrente';
+    else if(existing.estado==='Cliente'&&existing.cantCompras>=2) existing.estado='Recurrente';
     if(!existing.id)existing.id='c_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
     if(!existing.contactos)existing.contactos=[];
     existing.contactos.push({fecha,nota,tipo:'compra'});
