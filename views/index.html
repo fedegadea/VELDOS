@@ -7500,11 +7500,13 @@ function saveFlow(){
   if(!name){notify('Poné un nombre');return;}
   const msgSteps=_flowSteps.filter(s=>s.type==='message');
   if(!msgSteps.length){notify('Agregá al menos un mensaje al flow');return;}
-  const _fflowVal=parseInt(document.getElementById('fflow-days').value)||0;
-  const _fflowUnit=document.getElementById('fflow-days-unit')?.value||'dias';
+  const _ffTrigType=document.getElementById('fflow-trigger').value;
+  const _ffImmediate=['payment_confirmed','order_placed','new_lead','birthday'];
+  const _fflowVal=_ffImmediate.includes(_ffTrigType)?0:(parseInt(document.getElementById('fflow-days').value)||0);
+  const _fflowUnit=_ffImmediate.includes(_ffTrigType)?'minutos':(document.getElementById('fflow-days-unit')?.value||'dias');
   const _fflowMinutes=_fflowUnit==='minutos'?_fflowVal:_fflowUnit==='horas'?_fflowVal*60:_fflowVal*60*24;
   const trigger={
-    type:document.getElementById('fflow-trigger').value,
+    type:_ffTrigType,
     days:_fflowUnit==='minutos'?_fflowVal/1440:_fflowUnit==='horas'?_fflowVal/24:_fflowVal,
     delayMinutes:_fflowMinutes,
     delayUnit:_fflowUnit,

@@ -1242,9 +1242,12 @@ async function _processImmediateFlows(wsId, d, crmContact, triggerTypes, extra =
       const delayVal  = trig.delayValue != null ? Number(trig.delayValue) : Number(trig.days || 0)
       const delayUnit = trig.delayUnit || 'dias'
       const delayMs   = delayUnit === 'minutos' ? delayVal * 60000 : delayUnit === 'horas' ? delayVal * 3600000 : delayVal * 86400000
+      // Triggers marcados como "inmediatos" ignoran el delay configurado (el admin oculta el campo pero el valor por defecto es 1)
+      const ALWAYS_IMMEDIATE = ['new_lead', 'payment_confirmed', 'order_placed', 'birthday']
+      const effectiveDelayMs = ALWAYS_IMMEDIATE.includes(trigType) ? 0 : delayMs
       // Delays de hasta 10 minutos se consideran "inmediatos" y se procesan en el momento
       const IMMEDIATE_THRESHOLD_MS = 10 * 60 * 1000 // 10 minutos
-      if (delayMs > IMMEDIATE_THRESHOLD_MS) {
+      if (effectiveDelayMs > IMMEDIATE_THRESHOLD_MS) {
         console.log(`[flows] skip flow "${f.name||f.id}": delay=${delayVal}${delayUnit} (lo maneja el cron)`)
         continue
       }

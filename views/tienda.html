@@ -3000,6 +3000,13 @@ function _trackPixelPurchase(ordenId, total, items) {
 let _captureData = { nombre: '', tel: '', email: '' }
 let _capturePendingProductId = null
 const CAPTURE_KEY = 'vlcap_' + WS
+// Limpiar estado de captura para testing via ?reset_capture=1
+if (new URLSearchParams(location.search).get('reset_capture') === '1') {
+  try { localStorage.removeItem(CAPTURE_KEY) } catch(e) {}
+  try { localStorage.removeItem('vlid_tok') } catch(e) {}
+  _idToken = null
+  _idUser = null
+}
 
 function _shouldShowCapture() {
   const captureMode = settings.captureMode || 'form'
