@@ -2768,9 +2768,7 @@ app.post('/api/identity/request-otp', async (req, res) => {
   let emailOk = false
   if (!wappOk && email && process.env.RESEND_API_KEY) {
     try {
-      const { Resend } = require('resend')
-      const resend = new Resend(process.env.RESEND_API_KEY)
-      await resend.emails.send({
+      await _resendSend({
         from: 'VELDOS <noreply@soul-ecommlab.com>',
         to: email,
         subject: 'Tu código de verificación',
@@ -4554,11 +4552,29 @@ app.delete('/api/store/pages/:id', async (req, res) => {
 // EMAIL — /api/email/*   (usa Resend)
 // ════════════════════════════════════════════════════
 
+// Usa fetch() directo a la API REST de Resend — no depende del paquete npm
+async function _resendSend({ from, to, subject, html, replyTo }) {
+  const key = process.env.RESEND_API_KEY
+  if (!key) throw new Error('RESEND_API_KEY no configurado')
+  const body = { from, to: Array.isArray(to) ? to : [to], subject, html }
+  if (replyTo) body.reply_to = replyTo
+  const r = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data?.message || data?.name || `Resend error ${r.status}`)
+  return data
+}
 function _getResend() {
   const key = process.env.RESEND_API_KEY
   if (!key) throw new Error('RESEND_API_KEY no configurado')
-  const { Resend } = require('resend')
-  return new Resend(key)
+  return {
+    emails: {
+      send: (params) => _resendSend(params).then(data => ({ data, error: null })).catch(e => ({ data: null, error: { message: e.message } }))
+    }
+  }
 }
 
 function _buildFrom(fromName) {
