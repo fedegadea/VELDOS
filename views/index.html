@@ -7348,7 +7348,7 @@ function renderFlowSteps() {
           </div>
         </div>
         ${_provSel}
-        ${ta('Hola {nombre}! Te escribimos desde…','variables: {nombre} {apellido} {ultimaCompra} {cantCompras} {valor} {dias}','')}
+        ${ta('Hola {nombre}! Te escribimos desde…','variables: {nombre} {apellido} {ultimaCompra} {cantCompras} {valor} {dias} {ultimoProducto} {numeroPedido}','')}
         ${ta('',s.template,'template')}
       </div>`;
 
@@ -13297,7 +13297,7 @@ function openModal(tipo,data,idx){
 
       <!-- BUILDER DE PASOS -->
       <div class="form-group">
-        <label class="form-label" style="margin-bottom:10px">Pasos del flow <span style="font-weight:300;color:var(--muted);text-transform:none">— variables: {nombre} {apellido} {ultimaCompra} {cantCompras} {valor} {dias}</span></label>
+        <label class="form-label" style="margin-bottom:10px">Pasos del flow <span style="font-weight:300;color:var(--muted);text-transform:none">— variables: {nombre} {apellido} {ultimaCompra} {cantCompras} {valor} {dias} {ultimoProducto} {numeroPedido}</span></label>
         <div id="fflow-steps-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:4px">
           <button type="button" onclick="addFlowStep('message')" style="padding:8px;border-radius:8px;border:1px dashed rgba(77,184,122,.4);background:rgba(77,184,122,.05);color:var(--green);font-size:11px;font-weight:600;cursor:pointer">+ 💬 WhatsApp</button>
@@ -19905,6 +19905,7 @@ function crealPublishToMeta() {
       <div class="dif-card">
         <div class="dif-card-title">✨ Personalizar formulario</div>
         <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Paso 1 — Nombre</div>
           <div class="form-group" style="margin:0"><label class="form-label">Emoji decorativo</label>
             <input class="form-input" id="cf-emoji" placeholder="✨" maxlength="4" oninput="renderCaptureFormPreview()"></div>
           <div class="form-group" style="margin:0"><label class="form-label">Título</label>
@@ -19915,6 +19916,27 @@ function crealPublishToMeta() {
             <input class="form-input" id="cf-boton" placeholder="Siguiente →" oninput="renderCaptureFormPreview()"></div>
           <div class="form-group" style="margin:0"><label class="form-label">Color de acento</label>
             <input type="color" id="cf-color" value="#111111" oninput="renderCaptureFormPreview()" style="width:100%;height:36px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--s2)"></div>
+
+          <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:8px">Paso 2 — WhatsApp</div>
+          <div class="form-group" style="margin:0"><label class="form-label">Título</label>
+            <input class="form-input" id="cf-s2-titulo" placeholder="Tu WhatsApp"></div>
+          <div class="form-group" style="margin:0"><label class="form-label">Subtítulo</label>
+            <input class="form-input" id="cf-s2-subtitulo" placeholder="Te avisamos cuando haya novedades y descuentos"></div>
+          <div class="form-group" style="margin:0"><label class="form-label">Placeholder del campo</label>
+            <input class="form-input" id="cf-s2-placeholder" placeholder="11 1234-5678"></div>
+          <div class="form-group" style="margin:0"><label class="form-label">Texto del botón</label>
+            <input class="form-input" id="cf-s2-boton" placeholder="Siguiente →"></div>
+
+          <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:8px">Paso 3 — Email</div>
+          <div class="form-group" style="margin:0"><label class="form-label">Título</label>
+            <input class="form-input" id="cf-s3-titulo" placeholder="Tu email"></div>
+          <div class="form-group" style="margin:0"><label class="form-label">Subtítulo</label>
+            <input class="form-input" id="cf-s3-subtitulo" placeholder="Para enviarte confirmaciones y ofertas especiales"></div>
+          <div class="form-group" style="margin:0"><label class="form-label">Placeholder del campo</label>
+            <input class="form-input" id="cf-s3-placeholder" placeholder="tu@email.com"></div>
+          <div class="form-group" style="margin:0"><label class="form-label">Texto del botón</label>
+            <input class="form-input" id="cf-s3-boton" placeholder="Ver el producto →"></div>
+
           <button class="btn btn-primary" onclick="saveCaptureFormSettings()" style="width:100%;padding:11px;margin-top:4px">💾 Guardar configuración</button>
         </div>
       </div>
@@ -22192,6 +22214,14 @@ function loadCaptureTabSettings() {
   f('cf-subtitulo', cfg.subtitulo || '');
   f('cf-boton', cfg.boton || '');
   if (cfg.color) { const el = document.getElementById('cf-color'); if(el) el.value = cfg.color; }
+  // Paso 2
+  const s2 = cfg.paso2 || {};
+  f('cf-s2-titulo', s2.titulo || ''); f('cf-s2-subtitulo', s2.subtitulo || '');
+  f('cf-s2-placeholder', s2.placeholder || ''); f('cf-s2-boton', s2.boton || '');
+  // Paso 3
+  const s3 = cfg.paso3 || {};
+  f('cf-s3-titulo', s3.titulo || ''); f('cf-s3-subtitulo', s3.subtitulo || '');
+  f('cf-s3-placeholder', s3.placeholder || ''); f('cf-s3-boton', s3.boton || '');
   renderCaptureFormPreview();
 }
 
@@ -22237,12 +22267,15 @@ function renderCaptureFormPreview() {
 function saveCaptureFormSettings() {
   if (!S.tienda) S.tienda = {};
   if (!S.tienda.settings) S.tienda.settings = {};
+  const g = id => document.getElementById(id)?.value?.trim() || '';
   S.tienda.settings.captureSettings = {
-    emoji: document.getElementById('cf-emoji')?.value?.trim() || '',
-    titulo: document.getElementById('cf-titulo')?.value?.trim() || '',
-    subtitulo: document.getElementById('cf-subtitulo')?.value?.trim() || '',
-    boton: document.getElementById('cf-boton')?.value?.trim() || '',
+    emoji: g('cf-emoji'),
+    titulo: g('cf-titulo'),
+    subtitulo: g('cf-subtitulo'),
+    boton: g('cf-boton'),
     color: document.getElementById('cf-color')?.value || '#111111',
+    paso2: { titulo: g('cf-s2-titulo'), subtitulo: g('cf-s2-subtitulo'), placeholder: g('cf-s2-placeholder'), boton: g('cf-s2-boton') },
+    paso3: { titulo: g('cf-s3-titulo'), subtitulo: g('cf-s3-subtitulo'), placeholder: g('cf-s3-placeholder'), boton: g('cf-s3-boton') },
   };
   save();
   notify('✅ Configuración del formulario guardada');

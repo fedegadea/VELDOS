@@ -3040,29 +3040,27 @@ function _openProductDirect(id) {
 
 function _applyCaptureSettings() {
   const cfg = settings.captureSettings || {}
-  if (cfg.titulo) {
-    const el = document.querySelector('#capture-step-1 h2')
-    if (el) el.textContent = cfg.titulo
-  }
-  if (cfg.subtitulo) {
-    const el = document.querySelector('#capture-step-1 p')
-    if (el) el.textContent = cfg.subtitulo
-  }
-  if (cfg.boton) {
-    const el = document.getElementById('capture-btn-1')
-    if (el) el.textContent = cfg.boton
-  }
+  // Paso 1
+  if (cfg.titulo) { const el = document.querySelector('#capture-step-1 h2'); if (el) el.textContent = cfg.titulo }
+  if (cfg.subtitulo) { const el = document.querySelector('#capture-step-1 p'); if (el) el.textContent = cfg.subtitulo }
+  if (cfg.boton) { const el = document.getElementById('capture-btn-1'); if (el) el.textContent = cfg.boton }
+  if (cfg.emoji) { const el = document.querySelector('#capture-step-1 div[style*="font-size:28px"]'); if (el) el.textContent = cfg.emoji }
   if (cfg.color) {
     const card = document.getElementById('capture-card')
-    if (card) {
-      const btns = card.querySelectorAll('button[style*="background"]')
-      btns.forEach(b => { b.style.background = cfg.color })
-    }
+    if (card) card.querySelectorAll('button[style*="background"]').forEach(b => { b.style.background = cfg.color })
   }
-  if (cfg.emoji) {
-    const el = document.querySelector('#capture-step-1 div[style*="font-size:28px"]')
-    if (el) el.textContent = cfg.emoji
-  }
+  // Paso 2 (WhatsApp)
+  const s2 = cfg.paso2 || {}
+  if (s2.titulo) { const el = document.getElementById('capture-greeting'); if (el) el.textContent = s2.titulo }
+  if (s2.subtitulo) { const el = document.querySelector('#capture-step-2 p'); if (el) el.textContent = s2.subtitulo }
+  if (s2.placeholder) { const el = document.getElementById('capture-tel'); if (el) el.placeholder = s2.placeholder }
+  if (s2.boton) { const el = document.querySelector('#capture-step-2 button'); if (el) el.textContent = s2.boton }
+  // Paso 3 (Email)
+  const s3 = cfg.paso3 || {}
+  if (s3.titulo) { const el = document.querySelector('#capture-step-3 h2'); if (el) el.textContent = s3.titulo }
+  if (s3.subtitulo) { const el = document.querySelector('#capture-step-3 p'); if (el) el.textContent = s3.subtitulo }
+  if (s3.placeholder) { const el = document.getElementById('capture-email'); if (el) el.placeholder = s3.placeholder }
+  if (s3.boton) { const el = document.querySelector('#capture-step-3 button:not(#capture-btn-1)'); if (el) el.textContent = s3.boton }
 }
 
 function _showCapture(productId) {
@@ -3080,7 +3078,8 @@ function captureNext(step) {
     const nombre = document.getElementById('capture-nombre').value.trim()
     if (!nombre) { document.getElementById('capture-nombre').style.borderColor = 'var(--red)'; return }
     _captureData.nombre = nombre
-    document.getElementById('capture-greeting').textContent = `¡Hola ${nombre}! Tu WhatsApp`
+    const _s2title = (settings.captureSettings?.paso2?.titulo) || 'Tu WhatsApp'
+    document.getElementById('capture-greeting').textContent = `¡Hola ${nombre}! ${_s2title}`
     document.getElementById('capture-step-1').style.display = 'none'
     document.getElementById('capture-step-2').style.display = ''
     setTimeout(() => document.getElementById('capture-tel').focus(), 100)

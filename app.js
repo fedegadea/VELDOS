@@ -1189,7 +1189,7 @@ async function _serverSendWa(d, phone, text, providerId) {
 // triggerTypes: array de strings ('after_purchase','post_purchase','payment_confirmed','order_placed','new_lead','cart_abandon')
 // extra: { total, lineas, cartItems } — datos adicionales según el evento
 async function _processImmediateFlows(wsId, d, crmContact, triggerTypes, extra = {}) {
-  const { total = 0, lineas = [], cartItems = [] } = extra
+  const { total = 0, lineas = [], cartItems = [], numeroPedido = '', ultimoProducto = '' } = extra
   console.log(`[flows] _processImmediateFlows called wsId=${wsId} triggers=${JSON.stringify(triggerTypes)} contact=${crmContact?.id||'?'} nombre="${crmContact?.nombre||''}"`)
   try {
     const freshWs = await getWorkspace(wsId)
@@ -1261,14 +1261,16 @@ async function _processImmediateFlows(wsId, d, crmContact, triggerTypes, extra =
       const ultimaCompraFmt = ultimaCompra.split('-').reverse().join('/')
 
       const _applyVars = str => (str || '')
-        .replace(/\{nombre\}/gi,       crmContact.nombre || '')
-        .replace(/\{apellido\}/gi,     crmContact.apellido || '')
-        .replace(/\{ultimaCompra\}/gi, ultimaCompraFmt)
-        .replace(/\{cantCompras\}/gi,  cantCompras)
-        .replace(/\{valor\}/gi,        valorStr)
-        .replace(/\{productos\}/gi,    productosStr)
-        .replace(/\{dias\}/gi,         '0')
-        .replace(/\{carrito\}/gi,      productosStr)
+        .replace(/\{nombre\}/gi,          crmContact.nombre || '')
+        .replace(/\{apellido\}/gi,        crmContact.apellido || '')
+        .replace(/\{ultimaCompra\}/gi,    ultimaCompraFmt)
+        .replace(/\{cantCompras\}/gi,     cantCompras)
+        .replace(/\{valor\}/gi,           valorStr)
+        .replace(/\{productos\}/gi,       productosStr)
+        .replace(/\{dias\}/gi,            '0')
+        .replace(/\{carrito\}/gi,         productosStr)
+        .replace(/\{ultimoProducto\}/gi,  ultimoProducto || crmContact.ultimoProducto || '')
+        .replace(/\{numeroPedido\}/gi,    numeroPedido   || crmContact.ultimoPedido   || '')
 
       for (let si = 0; si < f.steps.length; si++) {
         const step = f.steps[si]
@@ -3691,6 +3693,7 @@ app.post('/api/store/checkout', async (req, res) => {
       d.crm[crmIdx].cantCompras = (parseInt(d.crm[crmIdx].cantCompras) || 0) + 1
       d.crm[crmIdx].valorTotal  = (parseFloat(d.crm[crmIdx].valorTotal) || 0) + total
       d.crm[crmIdx].ultimaCompra = fechaCompra
+      d.crm[crmIdx].ultimoPedido = String(numero || '')
       d.crm[crmIdx].etapa = 'cliente'
       d.crm[crmIdx].estado = 'Cliente'  // asegurar que estado quede seteado
       // Deduplicación: mismo teléfono/email = mismo cliente aunque cambie el nombre
@@ -3877,7 +3880,7 @@ app.post('/api/store/checkout', async (req, res) => {
     if (_purchaseCrmContact) {
       _processImmediateFlows(wsId, d, _purchaseCrmContact,
         ['after_purchase', 'post_purchase', 'payment_confirmed', 'order_placed'],
-        { total, lineas }
+        { total, lineas, numeroPedido: String(orden.numero || orden.id || '') }
       ).catch(() => {})
     }
 
@@ -4178,6 +4181,12 @@ app.post('/api/store/evento', async (req, res) => {
     t.eventos.push({ tipo, sessionId: sessionId || null, metadata: metadata || {}, contactId: contactId || null, ts: new Date().toISOString() })
     // Keep last 2000 events max
     if (t.eventos.length > 2000) t.eventos = t.eventos.slice(-2000)
+    // Actualizar último producto visitado en CRM cuando hay contactId
+    if (tipo === 'view_product' && contactId && metadata?.productoNombre) {
+      const telClean = String(contactId).replace(/\D/g, '')
+      const contact = (d.crm || []).find(c => (c.tel || '').replace(/\D/g, '') === telClean || c.id === contactId)
+      if (contact) contact.ultimoProducto = metadata.productoNombre
+    }
     await saveTienda(wsId, t, d)
     res.json({ ok: true })
   } catch (e) {
@@ -5247,6 +5256,8 @@ app.get('/api/flows/cron', async (req, res) => {
             .replace(/\{cantCompras\}/gi, String(c.cantCompras || 1))
             .replace(/\{valor\}/gi, valorStr)
             .replace(/\{dias\}/gi, String(Math.round(delayMs / 86400000)))
+            .replace(/\{ultimoProducto\}/gi, c.ultimoProducto || '')
+            .replace(/\{numeroPedido\}/gi,   c.ultimoPedido   || '')
         }
 
         const _pushHistoryCron = (f, c, key, channel, status, mensaje, error) => {
@@ -5500,6 +5511,7 @@ app.get('/api/store/payway-return', async (req, res) => {
     if (crmIdx >= 0) {
       const contacto = d.crm[crmIdx]
       contacto.ultimaCompra = hoy
+      contacto.ultimoPedido = String(orden.numero || orderId || '')
       contacto.cantCompras  = (parseInt(contacto.cantCompras || 0)) + 1
       contacto.valorTotal   = Math.round((parseFloat(contacto.valorTotal || 0) + totalOrden) * 100) / 100
     } else {
@@ -5507,7 +5519,7 @@ app.get('/api/store/payway-return', async (req, res) => {
         id: 'c_' + Date.now().toString(36),
         nombre: cliente.nombre || '', apellido: cliente.apellido || '',
         email: emailClean, tel: telClean,
-        creado: hoy, ultimaCompra: hoy,
+        creado: hoy, ultimaCompra: hoy, ultimoPedido: String(orden.numero || orderId || ''),
         cantCompras: 1, valorTotal: totalOrden, estado: 'Cliente'
       })
       crmIdx = d.crm.length - 1
