@@ -295,6 +295,11 @@ async function patchWorkspace(wsId, data) {
         .slice(-500)
     }
 
+    // ── Guard flows: nunca sobreescribir flows si el save no los incluye ──
+    if (cur.flows?.length && !data.flows?.length) {
+      data.flows = cur.flows
+    }
+
     // ── Guard tienda.productos: nunca sobreescribir productos existentes con array vacío/ausente ──
     // Si el save no incluye productos (ej: guardar solo settings/config), preservar los del servidor.
     if (cur.tienda?.productos?.length) {
@@ -5074,6 +5079,29 @@ app.post('/api/flows/test', async (req, res) => {
     const freshHistory = (freshWs2?.data?.flowHistory || []).slice(-10)
 
     res.json({ ok: true, diag: diagBefore, recentHistory: freshHistory })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// POST /api/flows/reset-done — limpia flowDone y flowHistory sin tocar flows ni CRM
+app.post('/api/flows/reset-done', async (req, res) => {
+  const { wsId } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const ws = await getWorkspace(wsId)
+    if (!ws) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const d = ws.data || {}
+    // Limpiar flowDone y flowHistory preservando TODO lo demás (flows, CRM, tienda, etc.)
+    const updatedData = { ...d, flowDone: {}, flowHistory: [] }
+    await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${encodeURIComponent(wsId)}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SUPA_KEY(), 'Authorization': 'Bearer ' + SUPA_KEY(), 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ data: updatedData })
+    })
+    _invalidateWsCache(wsId)
+    const prevCount = Object.keys(d.flowDone || {}).length
+    res.json({ ok: true, cleared: prevCount, flows: (d.flows || []).length, contacts: (d.crm || []).length })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
