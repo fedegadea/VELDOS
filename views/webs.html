@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diseño Web Profesional — Soul eCommlab</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230a0a1a'/><text x='16' y='22' text-anchor='middle' font-family='system-ui,sans-serif' font-size='18' font-weight='800' fill='%2389AACC'>S</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;scroll-behavior:smooth}
+body{background:#06060e;color:#fff;font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.6;overflow-x:hidden}
+
+/* ── NAV ── */
+#webs-nav{position:fixed;top:0;left:0;right:0;z-index:900;display:flex;justify-content:center;padding:14px 20px;pointer-events:none}
+#webs-nav-pill{pointer-events:all;display:inline-flex;align-items:center;gap:4px;background:rgba(8,8,20,.85);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.09);border-radius:100px;padding:5px 6px;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+.nav-logo{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#89AACC,#4E85BF);padding:1.5px;cursor:pointer;flex-shrink:0}
+.nav-logo-inner{width:100%;height:100%;border-radius:50%;background:#06060e;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#89AACC;font-style:italic;font-family:'DM Serif Display',Georgia,serif}
+.nav-sep{width:1px;height:18px;background:rgba(255,255,255,.08);margin:0 2px}
+.nav-btn{background:none;border:none;color:rgba(255,255,255,.45);font-size:12px;padding:6px 13px;border-radius:100px;cursor:pointer;font-family:inherit;transition:all .2s}
+.nav-btn:hover{color:#fff;background:rgba(255,255,255,.07)}
+.nav-cta{background:linear-gradient(135deg,#89AACC,#4E85BF);border:none;color:#fff;font-size:12px;padding:7px 18px;border-radius:100px;cursor:pointer;font-family:inherit;font-weight:700;transition:transform .2s,box-shadow .2s}
+.nav-cta:hover{transform:scale(1.05);box-shadow:0 4px 20px rgba(78,133,191,.5)}
+
+/* ── CANVAS BG ── */
+#webs-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.45}
+.orb{position:fixed;pointer-events:none;z-index:0;border-radius:50%}
+
+/* ── SECTIONS ── */
+section,div.marquee-wrap,div.sticky-bar-wrap{position:relative;z-index:1}
+
+/* ── HERO ── */
+#webs-hero{min-height:100vh;display:flex;align-items:center;padding:110px 24px 70px}
+.hero-inner{width:100%;max-width:1120px;margin:0 auto;display:flex;align-items:center;gap:56px}
+.hero-copy{flex:1;min-width:300px}
+.hero-badge{display:inline-flex;align-items:center;gap:9px;background:rgba(137,170,204,.07);border:1px solid rgba(137,170,204,.18);border-radius:100px;padding:7px 18px;margin-bottom:30px}
+.hero-badge-dot{width:6px;height:6px;border-radius:50%;background:#89AACC;animation:websPulse 2s ease infinite}
+.hero-badge-text{font-size:11px;text-transform:uppercase;letter-spacing:.22em;color:#89AACC;font-weight:600}
+h1.hero-title{font-size:clamp(44px,7.5vw,84px);font-weight:900;line-height:.96;letter-spacing:-.05em;color:#fff;margin-bottom:18px}
+.hi{font-style:italic;background:linear-gradient(90deg,#89AACC,#4E85BF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-p{font-size:clamp(14px,1.8vw,17px);color:rgba(255,255,255,.48);line-height:1.72;max-width:460px;margin-bottom:42px}
+.hero-p em{color:rgba(255,255,255,.72);font-style:normal}
+.hero-btns{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:44px}
+.btn-primary{background:linear-gradient(135deg,#89AACC,#4E85BF);color:#fff;border:none;padding:17px 34px;border-radius:100px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .2s,box-shadow .2s;box-shadow:0 10px 36px rgba(78,133,191,.38)}
+.btn-primary:hover{transform:translateY(-3px) scale(1.03);box-shadow:0 18px 50px rgba(78,133,191,.55)}
+.btn-secondary{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.11);color:#fff;padding:17px 34px;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-secondary:hover{background:rgba(255,255,255,.08);border-color:rgba(137,170,204,.35)}
+.hero-badges{display:flex;flex-wrap:wrap;gap:9px}
+.hero-badge-item{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:100px;padding:7px 15px;font-size:12px;color:rgba(255,255,255,.55)}
+.mockup-col{flex:1;min-width:300px;max-width:500px;position:relative}
+.browser-card{border-radius:16px;background:#10101e;border:1px solid rgba(255,255,255,.09);overflow:hidden;animation:websFloat 7s ease-in-out infinite,websGlow 5s ease infinite}
+.browser-bar{background:#161626;padding:11px 14px;display:flex;align-items:center;gap:7px;border-bottom:1px solid rgba(255,255,255,.06)}
+.dot-r{width:10px;height:10px;border-radius:50%;background:#FF5F57}
+.dot-y{width:10px;height:10px;border-radius:50%;background:#FFBD2E}
+.dot-g{width:10px;height:10px;border-radius:50%;background:#28CA41}
+.url-bar{flex:1;background:rgba(255,255,255,.05);border-radius:7px;height:22px;margin-left:8px;display:flex;align-items:center;padding:0 10px;gap:6px}
+.url-dot{width:7px;height:7px;border-radius:50%;background:rgba(137,170,204,.4)}
+.url-text{font-size:10px;color:rgba(255,255,255,.28)}
+.screen{background:#0c0c1e}
+.screen-hero{padding:24px 22px 18px;border-bottom:1px solid rgba(255,255,255,.04)}
+.scroll-hint{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;z-index:2}
+.scroll-label{font-size:10px;text-transform:uppercase;letter-spacing:.28em;color:rgba(255,255,255,.22)}
+.scroll-line{width:1px;height:38px;background:rgba(255,255,255,.1);overflow:hidden;position:relative}
+.scroll-inner{position:absolute;inset:0;background:linear-gradient(to bottom,transparent,#89AACC,transparent);animation:websScrollLine 1.6s ease-in-out infinite}
+
+/* ── STATS ── */
+#webs-stats{padding:64px 24px;border-top:1px solid rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.05)}
+.stats-grid{max-width:860px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:36px;text-align:center}
+.stat-num{font-size:clamp(38px,6vw,56px);font-weight:900;letter-spacing:-.05em;background:linear-gradient(135deg,#89AACC,#4E85BF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-label{font-size:11px;color:rgba(255,255,255,.36);margin-top:7px;text-transform:uppercase;letter-spacing:.12em}
+
+/* ── SERVICES ── */
+#webs-services{padding:88px 24px}
+.services-inner{max-width:1120px;margin:0 auto}
+.section-tag{display:inline-flex;align-items:center;gap:10px;margin-bottom:18px}
+.tag-line{width:28px;height:1px;background:rgba(255,255,255,.18)}
+.tag-text{font-size:11px;text-transform:uppercase;letter-spacing:.28em;color:rgba(255,255,255,.32)}
+.section-title{font-size:clamp(32px,5vw,56px);font-weight:900;letter-spacing:-.04em;color:#fff;line-height:1;margin-bottom:14px}
+.section-sub{font-size:15px;color:rgba(255,255,255,.38);max-width:480px;margin:0 auto}
+.services-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;align-items:start;margin-top:60px}
+
+/* ── SERVICE CARD ── */
+.service-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:32px 28px;position:relative;overflow:hidden;cursor:pointer;transition:border-color .3s,background .3s}
+.service-card-bg{position:absolute;inset:-1px;border-radius:25px;background:linear-gradient(135deg,#89AACC,#4E85BF,#89AACC,#4E85BF);background-size:300% 300%;animation:websGradientBorder 4s ease infinite;z-index:0;opacity:0;transition:opacity .3s}
+.service-card-bg-gold{background:linear-gradient(135deg,#ffd764,#ffaa00,#ffd764,#ffaa00);background-size:300% 300%;animation:websGradientBorder 4s ease infinite}
+.service-card-inner{position:absolute;inset:1px;border-radius:23px;background:#0d0d1f;z-index:1}
+.service-card>*{position:relative;z-index:2}
+.service-card:hover .service-card-bg,.service-card.featured .service-card-bg{opacity:1}
+.card-icon{width:50px;height:50px;border-radius:14px;background:rgba(137,170,204,.1);border:1px solid rgba(137,170,204,.18);display:flex;align-items:center;justify-content:center;font-size:24px}
+.card-badge{font-size:10px;font-weight:700;padding:4px 12px;border-radius:100px;text-transform:uppercase;letter-spacing:.1em}
+.price-blue{font-size:clamp(38px,5vw,52px);font-weight:900;letter-spacing:-.04em;background:linear-gradient(135deg,#89AACC,#4E85BF,#89AACC);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:websShimmer 3s linear infinite}
+.price-gold{font-size:clamp(38px,5vw,52px);font-weight:900;letter-spacing:-.04em;background:linear-gradient(135deg,#ffd764,#ffaa00,#ffd764);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:websShimmer 3s linear infinite}
+.check-blue{color:#89AACC;flex-shrink:0}
+.check-gold{color:#ffd764;flex-shrink:0}
+.card-btn-blue{width:100%;background:rgba(137,170,204,.1);color:#89AACC;border:1px solid rgba(137,170,204,.22);padding:14px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s}
+.card-btn-blue:hover{background:rgba(137,170,204,.18)}
+.card-btn-main{width:100%;background:linear-gradient(135deg,#89AACC,#4E85BF);color:#fff;border:none;padding:14px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:box-shadow .2s,transform .2s;box-shadow:0 8px 28px rgba(78,133,191,.38)}
+.card-btn-main:hover{box-shadow:0 14px 44px rgba(78,133,191,.6);transform:translateY(-2px)}
+.card-btn-gold{width:100%;background:rgba(255,215,100,.08);color:rgba(255,215,100,.88);border:1px solid rgba(255,215,100,.2);padding:14px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s}
+.card-btn-gold:hover{background:rgba(255,215,100,.16)}
+
+/* ── MAINTENANCE NOTE ── */
+.maint-note{margin-top:30px;padding:20px 28px;background:rgba(137,170,204,.04);border:1px solid rgba(137,170,204,.1);border-radius:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center;text-align:center}
+
+/* ── FORM ── */
+#webs-demo{padding:80px 24px}
+.form-wrap{max-width:800px;margin:0 auto}
+.form-card{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);border-radius:28px;padding:clamp(32px,6vw,58px);position:relative;overflow:hidden}
+.webs-inp{width:100%;padding:14px 16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:#fff;font-size:14px;font-family:inherit;outline:none;transition:border-color .25s,box-shadow .25s;box-sizing:border-box}
+.webs-inp:focus{border-color:rgba(137,170,204,.6);box-shadow:0 0 0 3px rgba(137,170,204,.08)}
+.webs-inp::placeholder{color:rgba(255,255,255,.28)}
+select.webs-inp{color:#111;background-color:rgba(255,255,255,.92)}
+select.webs-inp option{color:#111;background:#fff}
+.form-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.12em;display:block;margin-bottom:7px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.btn-wa{width:100%;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;padding:18px;border-radius:16px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;transition:box-shadow .2s,transform .2s;box-shadow:0 10px 36px rgba(37,211,102,.28)}
+.btn-wa:hover{box-shadow:0 16px 50px rgba(37,211,102,.48);transform:translateY(-2px)}
+
+/* ── PROCESS ── */
+#webs-process{padding:80px 24px}
+.process-inner{max-width:660px;margin:0 auto}
+.step{display:flex;gap:22px;padding-bottom:36px}
+.step-num{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#89AACC,#4E85BF);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0}
+.step-line{width:2px;flex:1;background:linear-gradient(to bottom,rgba(137,170,204,.5),transparent);margin-top:8px;min-height:36px}
+.step-title{font-size:17px;font-weight:800;color:#fff;margin-bottom:7px}
+.step-text{font-size:13px;color:rgba(255,255,255,.42);line-height:1.65}
+
+/* ── MARQUEE ── */
+.marquee-wrap{overflow:hidden;padding:28px 0;border-top:1px solid rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.05)}
+.marquee-track{display:flex;white-space:nowrap;animation:websMarquee 28s linear infinite}
+.marquee-text{display:inline-flex;gap:0;color:rgba(255,255,255,.12);font-size:13px;font-weight:700;letter-spacing:.15em;text-transform:uppercase}
+
+/* ── FOOTER CTA ── */
+#webs-footer-cta{padding:88px 24px 130px;text-align:center;overflow:hidden}
+.footer-bg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:640px;height:320px;background:radial-gradient(ellipse,rgba(78,133,191,.1) 0%,transparent 68%);pointer-events:none}
+.footer-watermark{font-size:clamp(56px,12vw,120px);font-weight:900;letter-spacing:-.06em;color:rgba(255,255,255,.04);line-height:1;margin-bottom:-28px;user-select:none;font-family:'DM Serif Display',Georgia,serif;font-style:italic}
+.footer-title{font-size:clamp(36px,6vw,64px);font-weight:900;letter-spacing:-.05em;color:#fff;line-height:1;margin-bottom:20px;position:relative}
+.footer-sub{font-size:16px;color:rgba(255,255,255,.38);margin-bottom:44px;line-height:1.6}
+.btn-footer{background:linear-gradient(135deg,#89AACC,#4E85BF);color:#fff;border:none;padding:20px 52px;border-radius:100px;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 12px 44px rgba(78,133,191,.4);transition:transform .2s,box-shadow .2s;animation:websGlow 3s ease infinite}
+.btn-footer:hover{transform:scale(1.04) translateY(-4px);box-shadow:0 20px 60px rgba(78,133,191,.6)}
+
+/* ── STICKY BAR ── */
+#webs-sticky-bar{position:fixed;bottom:0;left:0;right:0;z-index:900;padding:12px 20px;background:rgba(6,6,14,.94);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid rgba(137,170,204,.12);display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.sticky-btn{background:linear-gradient(135deg,#89AACC,#4E85BF);color:#fff;border:none;padding:10px 26px;border-radius:100px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+
+/* ── REVEAL ── */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .75s ease,transform .75s ease}
+.reveal.in{opacity:1;transform:none}
+
+/* ── KEYFRAMES ── */
+@keyframes websPulse{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.15)}}
+@keyframes websFloat{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-18px) rotate(1.5deg)}}
+@keyframes websGlow{0%,100%{box-shadow:0 0 40px rgba(137,170,204,.15),0 40px 100px rgba(0,0,0,.6)}50%{box-shadow:0 0 80px rgba(137,170,204,.3),0 40px 100px rgba(0,0,0,.6)}}
+@keyframes websShimmer{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes websOrb{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(50px,-40px) scale(1.08)}66%{transform:translate(-30px,25px) scale(.96)}}
+@keyframes websScrollLine{0%{transform:translateY(-100%);opacity:0}50%{opacity:1}100%{transform:translateY(200%);opacity:0}}
+@keyframes websGradientBorder{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes websMagnetic{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes websMarquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes websRoleIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ── MOBILE ── */
+@media(max-width:900px){
+  .hero-inner{flex-direction:column;gap:36px}
+  .mockup-col{display:none}
+  .services-grid{grid-template-columns:1fr!important}
+  .service-card.featured{transform:none!important}
+  .form-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- CANVAS BG -->
+<canvas id="webs-canvas"></canvas>
+
+<!-- AMBIENT ORBS -->
+<div class="orb" style="top:-15%;left:-8%;width:55vw;height:55vw;max-width:680px;max-height:680px;background:radial-gradient(circle,rgba(78,133,191,.07) 0%,transparent 68%);animation:websOrb 22s ease infinite"></div>
+<div class="orb" style="bottom:-20%;right:-8%;width:48vw;height:48vw;max-width:580px;max-height:580px;background:radial-gradient(circle,rgba(137,170,204,.05) 0%,transparent 68%);animation:websOrb 28s ease infinite reverse"></div>
+
+<!-- NAV PILL -->
+<nav id="webs-nav">
+  <div id="webs-nav-pill">
+    <div class="nav-logo" onclick="goTo('webs-hero')">
+      <div class="nav-logo-inner">S</div>
+    </div>
+    <div class="nav-sep"></div>
+    <button class="nav-btn" onclick="goTo('webs-services')">Precios</button>
+    <button class="nav-btn" onclick="goTo('webs-process')">Proceso</button>
+    <button class="nav-cta" onclick="goTo('webs-demo')">Demo gratis ↗</button>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<section id="webs-hero">
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <div class="hero-badge">
+        <div class="hero-badge-dot"></div>
+        <span class="hero-badge-text">Diseño web profesional</span>
+      </div>
+      <h1 class="hero-title">
+        Tu web.<br>
+        <span id="webs-role" class="hi">Lista en 5 días.</span>
+      </h1>
+      <p class="hero-p">Diseñamos, desarrollamos y mantenemos tu presencia digital. Desde una <em>landing page</em> hasta plataformas completas de Real State y Autos.</p>
+      <div class="hero-btns">
+        <button class="btn-primary" onclick="goTo('webs-demo')">🎨 Demo gratis →</button>
+        <button class="btn-secondary" onclick="goTo('webs-services')">Ver precios</button>
+      </div>
+      <div class="hero-badges">
+        <div class="hero-badge-item">⚡ 5 días hábiles</div>
+        <div class="hero-badge-item">💳 30% anticipo</div>
+        <div class="hero-badge-item">🎨 Demo gratis</div>
+      </div>
+    </div>
+
+    <!-- Browser mockup -->
+    <div class="mockup-col">
+      <div class="browser-card">
+        <div class="browser-bar">
+          <div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div>
+          <div class="url-bar"><div class="url-dot"></div><div class="url-text">tu-marca.com</div></div>
+        </div>
+        <div class="screen">
+          <div class="screen-hero">
+            <div style="width:55%;height:7px;background:linear-gradient(90deg,#89AACC,#4E85BF);border-radius:4px;margin-bottom:9px"></div>
+            <div style="width:75%;height:5px;background:rgba(255,255,255,.07);border-radius:3px;margin-bottom:5px"></div>
+            <div style="width:45%;height:5px;background:rgba(255,255,255,.05);border-radius:3px;margin-bottom:18px"></div>
+            <div style="display:flex;gap:8px">
+              <div style="width:84px;height:26px;background:linear-gradient(135deg,#89AACC,#4E85BF);border-radius:100px"></div>
+              <div style="width:72px;height:26px;background:rgba(255,255,255,.06);border-radius:100px;border:1px solid rgba(255,255,255,.09)"></div>
+            </div>
+          </div>
+          <div style="padding:14px 22px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div style="height:64px;background:rgba(255,255,255,.04);border-radius:10px;border:1px solid rgba(137,170,204,.12);padding:9px"><div style="width:50%;height:4px;background:rgba(137,170,204,.35);border-radius:2px;margin-bottom:5px"></div><div style="width:70%;height:3px;background:rgba(255,255,255,.05);border-radius:2px"></div></div>
+            <div style="height:64px;background:rgba(255,255,255,.04);border-radius:10px;border:1px solid rgba(137,170,204,.12);padding:9px"><div style="width:65%;height:4px;background:rgba(137,170,204,.28);border-radius:2px;margin-bottom:5px"></div><div style="width:45%;height:3px;background:rgba(255,255,255,.05);border-radius:2px"></div></div>
+            <div style="height:64px;background:rgba(137,170,204,.06);border-radius:10px;border:1px solid rgba(137,170,204,.22);padding:9px"><div style="width:70%;height:4px;background:rgba(137,170,204,.5);border-radius:2px;margin-bottom:5px"></div><div style="width:40%;height:3px;background:rgba(255,255,255,.07);border-radius:2px"></div></div>
+          </div>
+          <div style="padding:4px 22px 18px;display:flex;align-items:flex-end;gap:5px;height:72px">
+            <div style="flex:1;background:rgba(78,133,191,.18);border-radius:3px 3px 0 0;height:38%"></div>
+            <div style="flex:1;background:rgba(78,133,191,.25);border-radius:3px 3px 0 0;height:54%"></div>
+            <div style="flex:1;background:rgba(137,170,204,.35);border-radius:3px 3px 0 0;height:68%"></div>
+            <div style="flex:1;background:rgba(78,133,191,.22);border-radius:3px 3px 0 0;height:48%"></div>
+            <div style="flex:1;background:rgba(137,170,204,.42);border-radius:3px 3px 0 0;height:82%"></div>
+            <div style="flex:1;background:rgba(78,133,191,.2);border-radius:3px 3px 0 0;height:44%"></div>
+            <div style="flex:1;background:linear-gradient(to top,#89AACC,#4E85BF);border-radius:3px 3px 0 0;height:96%;box-shadow:0 0 16px rgba(137,170,204,.35)"></div>
+          </div>
+        </div>
+      </div>
+      <div style="position:absolute;top:6%;right:-22px;background:rgba(8,8,22,.95);backdrop-filter:blur(12px);border:1px solid rgba(137,170,204,.2);border-radius:14px;padding:11px 15px;box-shadow:0 10px 36px rgba(0,0,0,.55);animation:websMagnetic 3.5s ease infinite">
+        <div style="font-size:22px;font-weight:900;color:#89AACC;line-height:1">+300%</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.38);margin-top:3px">Más conversiones</div>
+      </div>
+      <div style="position:absolute;bottom:12%;left:-26px;background:rgba(8,8,22,.95);backdrop-filter:blur(12px);border:1px solid rgba(137,170,204,.18);border-radius:14px;padding:11px 15px;box-shadow:0 10px 36px rgba(0,0,0,.55);animation:websMagnetic 4.5s ease infinite .6s">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <div style="width:7px;height:7px;border-radius:50%;background:#28CA41;animation:websPulse 2s ease infinite"></div>
+          <div style="font-size:12px;font-weight:600;color:#fff">En línea</div>
+        </div>
+        <div style="font-size:10px;color:rgba(255,255,255,.35)">tu-marca.com</div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-hint">
+    <div class="scroll-label">Scroll</div>
+    <div class="scroll-line"><div class="scroll-inner"></div></div>
+  </div>
+</section>
+
+<!-- ── STATS ── -->
+<section id="webs-stats">
+  <div class="stats-grid">
+    <div class="reveal"><div class="stat-num" data-stat="5">0</div><div class="stat-label">Días hábiles</div></div>
+    <div class="reveal" style="transition-delay:.08s"><div class="stat-num" data-stat="30">0</div><div class="stat-label">% anticipo</div></div>
+    <div class="reveal" style="transition-delay:.16s"><div class="stat-num" data-stat="50">0</div><div class="stat-label">Webs entregadas</div></div>
+    <div class="reveal" style="transition-delay:.24s"><div class="stat-num" data-stat="99">0</div><div class="stat-label">% satisfacción</div></div>
+  </div>
+</section>
+
+<!-- ── SERVICES ── -->
+<section id="webs-services">
+  <div class="services-inner">
+    <div style="text-align:center" class="reveal">
+      <div class="section-tag"><div class="tag-line"></div><span class="tag-text">Planes</span><div class="tag-line"></div></div>
+      <h2 class="section-title">Elegí tu <span class="hi">plan ideal</span></h2>
+      <p class="section-sub">Todos incluyen demo personalizada gratis antes de arrancar</p>
+    </div>
+
+    <div class="services-grid">
+
+      <!-- LANDING PAGE -->
+      <div class="service-card reveal" onclick="goTo('webs-demo');setTipo('Landing Page (\$200 USD)')">
+        <div class="service-card-bg"></div>
+        <div class="service-card-inner"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:26px">
+          <div class="card-icon">🌐</div>
+          <span class="card-badge" style="color:rgba(255,255,255,.38);background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09)">Starter</span>
+        </div>
+        <div style="font-size:19px;font-weight:800;color:#fff;margin-bottom:6px">Landing Page</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.38);margin-bottom:22px;line-height:1.55">Página de presentación o ventas, lista para convertir visitas en clientes</div>
+        <div style="margin-bottom:6px"><span class="price-blue">$200</span><span style="font-size:14px;color:rgba(255,255,255,.32);margin-left:5px">USD</span></div>
+        <div style="font-size:11px;color:rgba(255,255,255,.28);margin-bottom:26px">Pago único · mantenimiento $29 USD/mes</div>
+        <div style="display:flex;flex-direction:column;gap:11px;margin-bottom:28px">
+          <div style="display:flex;gap:10px;font-size:13px;color:rgba(255,255,255,.72)"><span class="check-blue">✓</span>Diseño personalizado desde cero</div>
+          <div style="display:flex;gap:10px;font-size:13px;color:rgba(255,255,255,.72)"><span class="check-blue">✓</span>Mobile-first responsive</div>
+          <div style="display:flex;gap:10px;font-size:13px;color:rgba(255,255,255,.72)"><span class="check-blue">✓</span>Dominio + hosting incluido</div>
+          <div style="display:flex;gap:10px;font-size:13px;color:rgba(255,255,255,.72)"><span class="check-blue">✓</span>Formulario de contacto</div>
+          <div style="display:flex;gap:10px;font-size:13px;color:rgba(255,255,255,.72)"><span class="check-blue">✓</span>1 revisión semanal incluida</div>
+        </div>
+        <button class="card-btn-blue">Quiero este →</button>
+      </div>
+
+      <!-- ECOMMERCE (featured) -->
+      <div class="service-card featured reveal" style="transition-delay:.1s" onclick="goTo('webs-demo');setTipo('eCommerce Tienda Nube (\$400 USD)')">
+        <div class="service-card-bg"></div>
+        <div class="service-card-inner"></div>
+        <div style="display:inline-block;background:linear-gradient(90deg,#89AACC,#4E85BF);color:#fff;font-size:10px;font-weight:700;padding:5px 20px;border-radius:100px;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;margin-bottom:14px">MÁS SOLICITADO</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:26px;margin-top:10px">
+          <div class="card-icon" style="background:rgba(137,170,204,.14);border-color:rgba(137,170,204,.28)">🛒</div>
+          <span class="card-badge" style="color:#89AACC;background:rgba(137,170,204,.1);border:1px solid rgba(137,170,204,.22)">eCommerce</span>
+        </div>
+        <div style="font-size:19px;font-weight:800;color:#fff;margin-bottom:6px">Tienda Online</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.38);margin-bottom:22px;line-height:1.55">eCommerce completo en Tienda Nube, configurado y listo para vender</div>
+        <div style="margin-bottom:6px"><span class="price-blue">$400</span><span style="font-size:14px;color:rgba(255,255,255,.32);margin-left:5px">USD</span></div>
+        <div style="font-size:11px;color:rgba(255,255,255,.28);margin-bottom:26px">Pago único · mantenimiento $29 USD/mes</div>
+        <div style="display:flex;flex-direction:column;gap:11px;margin-bottom:28px">
+          <div style="display:flex;gap:10px;font-size:13px;color:rgba(255,255,255,.72)"><span class="check-blue">✓</span>Tienda Nube configurada</div>
+          <div style="display:flex;gap:10px;font-size:13px;color:rgba(255,255,255,.72)"><span class="check-blue">✓</span>Diseño personalizado</div>
+          <div style="display:flex;gap:10px;font-size:13px;color:rgba(255,255,255,.72)"><span class="check-blue">✓</span>Carrito + checkout completo</div>
+          <div style="display:flex;gap:10px;font-size:13px;color:rgba(255,255,255,.72)"><span class="check-blue">✓</span>Integración de pagos (MP, etc.)</div>
+          <div style="display:flex;gap:10px;font-size:13px;color:rgba(255,255,255,.72)"><span class="check-blue">✓</span>1 revisión mensual incluida</div>
+        </div>
+        <button class="card-btn-main">Quiero este →</button>
+      </div>
+
+      <!-- REAL STATE / AUTOS -->
+      <div class="service-card reveal" style="transition-delay:.2s" onclick="goTo('webs-demo');setTipo('Plataforma Real State / Autos (\$700 USD)')">
+        <div class="service-card-bg service-card-bg-gold"></div>
+        <div class="service-card-inner"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:26px">
+          <div class="card-icon" style="background:rgba(255,215,100,.08);border-color:rgba(255,215,100,.16)">🏢</div>
+          <span class="card-badge" style="color:rgba(255,215,100,.82);background:rgba(255,215,100,.07);border:1px solid rgba(255,215,100,.16)">Premium</span>
+        </div>
+        <div style="font-size:19px;font-weight:800;color:#fff;margin-bottom:6px">Real State / Autos</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.38);margin-bottom:22px;line-height:1.55">Plataforma completa con panel administrador para propiedades o vehículos</div>
+        <div style="margin-bottom:6px"><span class="price-gold">$700</span><span style="font-size:14px;color:rgba(255,255,255,.32);margin-left:5px">USD</span></div>
+        <div style="font-size:11px;color:rgba(255,255,255,.28);margin-bottom:26px">Pago único · mantenimiento $29 USD/mes</div>
+        <div style="display:flex;flex-direction:column;gap:11px;margin-bottom:18px">
+          <div style="display:flex;gap:10px;font-size:13px;color:rgba(255,255,255,.72)"><span class="check-gold">✓</span>Personalización total</div>
+          <div style="display:flex;gap:10px;font-size:13px;color:rgba(255,255,255,.72)"><span class="check-gold">✓</span>Panel administrador completo</div>
+          <div style="display:flex;gap:10px;font-size:13px;color:rgba(255,255,255,.72)"><span class="check-gold">✓</span>Fichas de propiedades / autos</div>
+          <div style="display:flex;gap:10px;font-size:13px;color:rgba(255,255,255,.72)"><span class="check-gold">✓</span>Búsqueda y filtros avanzados</div>
+          <div style="display:flex;gap:10px;font-size:13px;color:rgba(255,255,255,.72)"><span class="check-gold">✓</span>1 revisión mensual incluida</div>
+        </div>
+        <div style="background:rgba(255,215,100,.05);border:1px solid rgba(255,215,100,.14);border-radius:12px;padding:12px 14px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:rgba(255,215,100,.82)">+ CRM personalizado</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.32);margin-top:3px">Gestión de leads y clientes</div>
+          </div>
+          <div style="font-size:15px;font-weight:800;color:rgba(255,215,100,.9);white-space:nowrap">+$700 USD</div>
+        </div>
+        <button class="card-btn-gold">Quiero este →</button>
+      </div>
+
+      <!-- PERSONALIZADA -->
+      <div class="service-card reveal" style="transition-delay:.3s" onclick="goTo('webs-demo');setTipo('Web personalizada — consultar precio')">
+        <div class="service-card-bg" style="background:linear-gradient(135deg,#a78bfa,#7c3aed,#a78bfa,#7c3aed);background-size:300% 300%"></div>
+        <div class="service-card-inner"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:26px">
+          <div class="card-icon" style="background:rgba(167,139,250,.1);border-color:rgba(167,139,250,.2)">✨</div>
+          <span class="card-badge" style="color:rgba(167,139,250,.9);background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.18)">A medida</span>
+        </div>
+        <div style="font-size:19px;font-weight:800;color:#fff;margin-bottom:6px">Para tu negocio</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.38);margin-bottom:22px;line-height:1.55">¿Tenés una idea que no entra en ningún plan? Lo construimos desde cero según lo que necesitás</div>
+        <div style="margin-bottom:6px;font-size:clamp(28px,4vw,40px);font-weight:900;letter-spacing:-.04em;background:linear-gradient(135deg,#a78bfa,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">A consultar</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.28);margin-bottom:26px">Te cotizamos por WhatsApp según tu necesidad</div>
+        <div style="display:flex;flex-direction:column;gap:11px;margin-bottom:28px">
+          <div style="display:flex;gap:10px;font-size:13px;color:rgba(255,255,255,.72)"><span style="color:#a78bfa;flex-shrink:0">✓</span>Desarrollo totalmente personalizado</div>
+          <div style="display:flex;gap:10px;font-size:13px;color:rgba(255,255,255,.72)"><span style="color:#a78bfa;flex-shrink:0">✓</span>Sin limitaciones de funcionalidades</div>
+          <div style="display:flex;gap:10px;font-size:13px;color:rgba(255,255,255,.72)"><span style="color:#a78bfa;flex-shrink:0">✓</span>Presupuesto sin compromiso</div>
+          <div style="display:flex;gap:10px;font-size:13px;color:rgba(255,255,255,.72)"><span style="color:#a78bfa;flex-shrink:0">✓</span>Respondemos en menos de 24hs</div>
+        </div>
+        <button style="width:100%;background:rgba(167,139,250,.12);color:rgba(167,139,250,.9);border:1px solid rgba(167,139,250,.22);padding:14px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s" onmouseover="this.style.background='rgba(167,139,250,.22)'" onmouseout="this.style.background='rgba(167,139,250,.12)'">Consultar por WhatsApp →</button>
+      </div>
+
+    </div><!-- /services-grid -->
+
+    <div class="maint-note reveal">
+      <div style="font-size:24px">🔧</div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:4px">Mantenimiento: <span style="color:#89AACC">$29 USD/mes</span></div>
+        <div style="font-size:12px;color:rgba(255,255,255,.36)">Incluye 1 revisión mensual · Pasás todas las correcciones juntas · Respondemos en 24hs · Cancelá cuando quieras</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── DEMO FORM ── -->
+<section id="webs-demo">
+  <div class="form-wrap">
+    <div class="form-card">
+      <div style="position:absolute;top:-80px;left:50%;transform:translateX(-50%);width:420px;height:220px;background:radial-gradient(ellipse,rgba(137,170,204,.1) 0%,transparent 68%);pointer-events:none"></div>
+      <div style="text-align:center;margin-bottom:42px;position:relative" class="reveal">
+        <div style="display:inline-flex;align-items:center;gap:10px;background:rgba(137,170,204,.07);border:1px solid rgba(137,170,204,.18);border-radius:100px;padding:7px 18px;margin-bottom:18px">
+          <span style="font-size:18px">🎨</span>
+          <span style="font-size:11px;text-transform:uppercase;letter-spacing:.22em;color:#89AACC;font-weight:600">100% gratis · sin compromiso</span>
+        </div>
+        <h2 style="font-size:clamp(28px,4.5vw,48px);font-weight:900;letter-spacing:-.04em;color:#fff;line-height:1.05;margin-bottom:14px">Pedí tu <span class="hi">demo personalizada</span></h2>
+        <p style="font-size:15px;color:rgba(255,255,255,.42);max-width:460px;margin:0 auto;line-height:1.65">Te mostramos cómo quedaría <strong style="color:rgba(255,255,255,.7)">tu web antes de pagar</strong>. Diseño real, personalizado para tu negocio.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px" class="reveal">
+        <div class="form-grid">
+          <div>
+            <label class="form-label">Nombre / Marca</label>
+            <input id="webs-nombre" class="webs-inp" placeholder="Tu nombre o marca">
+          </div>
+          <div>
+            <label class="form-label">Tipo de web</label>
+            <select id="webs-tipo" class="webs-inp" style="-webkit-appearance:none;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%228%22><path fill=%22%2389AACC%22 d=%22M1 1l5 5 5-5%22 stroke=%22%2389AACC%22 stroke-width=%221.5%22 fill=%22none%22/></svg>');background-repeat:no-repeat;background-position:right 14px center;padding-right:36px">
+              <option value="">Elegí una opción...</option>
+              <option value="Landing Page ($200 USD)">🌐 Landing Page — $200 USD</option>
+              <option value="eCommerce Tienda Nube ($400 USD)">🛒 eCommerce Tienda Nube — $400 USD</option>
+              <option value="Plataforma Real State ($700 USD)">🏠 Plataforma Real State — $700 USD</option>
+              <option value="Plataforma Autos ($700 USD)">🚗 Plataforma Autos — $700 USD</option>
+              <option value="Real State + CRM ($1.400 USD)">🏠 Real State + CRM — $1.400 USD</option>
+              <option value="Autos + CRM ($1.400 USD)">🚗 Autos + CRM — $1.400 USD</option>
+              <option value="Web personalizada — consultar precio">✨ Para mi negocio — consultar precio</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="form-label">¿A qué te dedicás?</label>
+          <input id="webs-rubro" class="webs-inp" placeholder="Ej: vendo ropa, soy inmobiliario, concesionaria de autos...">
+        </div>
+        <div>
+          <label class="form-label">URL de referencia (opcional)</label>
+          <input id="webs-url" class="webs-inp" placeholder="https://sitio-que-te-gusta.com — para el estilo">
+        </div>
+        <button class="btn-wa" onclick="enviarDemo()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          Pedir mi demo gratis por WhatsApp
+        </button>
+        <div style="text-align:center;font-size:11px;color:rgba(255,255,255,.2)">Sin compromiso · Respondemos en menos de 24hs · Diseño 100% gratis</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PROCESO ── -->
+<section id="webs-process">
+  <div class="process-inner">
+    <div style="text-align:center;margin-bottom:56px" class="reveal">
+      <div class="section-tag"><div class="tag-line"></div><span class="tag-text">Proceso</span><div class="tag-line"></div></div>
+      <h2 class="section-title">Cómo <span class="hi">trabajamos</span></h2>
+    </div>
+    <div style="display:flex;flex-direction:column">
+      <div class="step reveal">
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0"><div class="step-num">1</div><div class="step-line"></div></div>
+        <div style="padding-top:10px"><div class="step-title">Demo de diseño gratis 🎨</div><div class="step-text">Completás el formulario y te enviamos un diseño visual personalizado de tu web. Sin costo, sin compromiso.</div></div>
+      </div>
+      <div class="step reveal" style="transition-delay:.1s">
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0"><div class="step-num">2</div><div class="step-line"></div></div>
+        <div style="padding-top:10px"><div class="step-title">Aprobás y abonás el 30% 💳</div><div class="step-text">Si el diseño te convence, arrancamos. Solo necesitamos el 30% de anticipo para iniciar el desarrollo.</div></div>
+      </div>
+      <div class="step reveal" style="transition-delay:.2s">
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0"><div class="step-num">3</div><div class="step-line"></div></div>
+        <div style="padding-top:10px"><div class="step-title">Desarrollo en 5 días hábiles ⚡</div><div class="step-text">Desarrollamos tu web completa en 5 días hábiles. Te actualizamos el progreso constantemente.</div></div>
+      </div>
+      <div class="step reveal" style="transition-delay:.3s">
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0"><div class="step-num">4</div><div class="step-line"></div></div>
+        <div style="padding-top:10px"><div class="step-title">Revisión y ajustes ✏️</div><div class="step-text">Te entregamos la web para revisar. Pasás todas las correcciones de una sola vez y las aplicamos.</div></div>
+      </div>
+      <div class="step reveal" style="transition-delay:.4s">
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0"><div class="step-num">5</div></div>
+        <div style="padding-top:10px"><div class="step-title">Lanzamiento + resto del pago 🚀</div><div class="step-text">Publicamos tu web. Abonás el 70% restante solo cuando estás conforme con el resultado.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── MARQUEE ── -->
+<div class="marquee-wrap">
+  <div class="marquee-track">
+    <span class="marquee-text">LANDING PAGE&nbsp;&nbsp;·&nbsp;&nbsp;ECOMMERCE&nbsp;&nbsp;·&nbsp;&nbsp;REAL STATE&nbsp;&nbsp;·&nbsp;&nbsp;AUTOS&nbsp;&nbsp;·&nbsp;&nbsp;CRM&nbsp;&nbsp;·&nbsp;&nbsp;5 DÍAS HÁBILES&nbsp;&nbsp;·&nbsp;&nbsp;30% ANTICIPO&nbsp;&nbsp;·&nbsp;&nbsp;DEMO GRATIS&nbsp;&nbsp;·&nbsp;&nbsp;LANDING PAGE&nbsp;&nbsp;·&nbsp;&nbsp;ECOMMERCE&nbsp;&nbsp;·&nbsp;&nbsp;REAL STATE&nbsp;&nbsp;·&nbsp;&nbsp;AUTOS&nbsp;&nbsp;·&nbsp;&nbsp;CRM&nbsp;&nbsp;·&nbsp;&nbsp;5 DÍAS HÁBILES&nbsp;&nbsp;·&nbsp;&nbsp;30% ANTICIPO&nbsp;&nbsp;·&nbsp;&nbsp;DEMO GRATIS&nbsp;&nbsp;·&nbsp;&nbsp;</span>
+    <span class="marquee-text">LANDING PAGE&nbsp;&nbsp;·&nbsp;&nbsp;ECOMMERCE&nbsp;&nbsp;·&nbsp;&nbsp;REAL STATE&nbsp;&nbsp;·&nbsp;&nbsp;AUTOS&nbsp;&nbsp;·&nbsp;&nbsp;CRM&nbsp;&nbsp;·&nbsp;&nbsp;5 DÍAS HÁBILES&nbsp;&nbsp;·&nbsp;&nbsp;30% ANTICIPO&nbsp;&nbsp;·&nbsp;&nbsp;DEMO GRATIS&nbsp;&nbsp;·&nbsp;&nbsp;LANDING PAGE&nbsp;&nbsp;·&nbsp;&nbsp;ECOMMERCE&nbsp;&nbsp;·&nbsp;&nbsp;REAL STATE&nbsp;&nbsp;·&nbsp;&nbsp;AUTOS&nbsp;&nbsp;·&nbsp;&nbsp;CRM&nbsp;&nbsp;·&nbsp;&nbsp;5 DÍAS HÁBILES&nbsp;&nbsp;·&nbsp;&nbsp;30% ANTICIPO&nbsp;&nbsp;·&nbsp;&nbsp;DEMO GRATIS&nbsp;&nbsp;·&nbsp;&nbsp;</span>
+  </div>
+</div>
+
+<!-- ── FOOTER CTA ── -->
+<section id="webs-footer-cta">
+  <div class="footer-bg"></div>
+  <div style="position:relative;max-width:680px;margin:0 auto" class="reveal">
+    <div class="footer-watermark">webs</div>
+    <h2 class="footer-title">¿Hablamos?</h2>
+    <p class="footer-sub">Tu competencia ya tiene web.<br><span style="color:rgba(255,255,255,.68)">¿Vos?</span></p>
+    <button class="btn-footer" onclick="goTo('webs-demo')">Pedí tu demo gratis →</button>
+    <div style="margin-top:20px;font-size:12px;color:rgba(255,255,255,.18)">Sin compromiso · Diseño personalizado · Respondemos en 24hs</div>
+  </div>
+</section>
+
+<!-- ── STICKY BAR ── -->
+<div id="webs-sticky-bar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="width:8px;height:8px;border-radius:50%;background:#89AACC;animation:websPulse 2s ease infinite"></div>
+    <span style="font-size:13px;color:rgba(255,255,255,.7);font-weight:500">Diseño web profesional · 5 días hábiles</span>
+  </div>
+  <button class="sticky-btn" onclick="goTo('webs-demo')">Demo gratis →</button>
+</div>
+
+<script>
+// ── SCROLL HELPER ──
+function goTo(id){
+  document.getElementById(id)?.scrollIntoView({behavior:'smooth'});
+}
+function setTipo(val){
+  const sel=document.getElementById('webs-tipo');
+  if(sel)sel.value=val;
+}
+
+// ── ENVIAR DEMO ──
+function enviarDemo(){
+  const nombre=(document.getElementById('webs-nombre')?.value||'').trim();
+  const tipo=document.getElementById('webs-tipo')?.value||'';
+  const rubro=(document.getElementById('webs-rubro')?.value||'').trim();
+  const url=(document.getElementById('webs-url')?.value||'').trim();
+  if(!nombre){alert('Por favor ingresá tu nombre o marca');return;}
+  if(!tipo){alert('Por favor elegí el tipo de web');return;}
+  const msg=`Hola! Quiero solicitar mi demo de diseño gratis 🎨\n\n*Nombre/Marca:* ${nombre}\n*Tipo de web:* ${tipo}\n*Rubro:* ${rubro||'No indicado'}\n*Referencia:* ${url||'No indicada'}\n\n¿Pueden mostrarme cómo quedaría mi web?`;
+  window.open(`https://wa.me/5493456431651?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+// ── CANVAS ──
+(function(){
+  const canvas=document.getElementById('webs-canvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  let W=canvas.width=window.innerWidth,H=canvas.height=window.innerHeight;
+  window.addEventListener('resize',()=>{W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;});
+  const pts=Array.from({length:55},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.28,vy:(Math.random()-.5)*.28,r:1+Math.random()*1.8,o:.18+Math.random()*.4}));
+  const draw=()=>{
+    ctx.clearRect(0,0,W,H);
+    for(let i=0;i<pts.length;i++){
+      for(let j=i+1;j<pts.length;j++){
+        const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);
+        if(d<115){ctx.strokeStyle=`rgba(137,170,204,${(1-d/115)*.12})`;ctx.lineWidth=.8;ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.stroke();}
+      }
+    }
+    pts.forEach(p=>{ctx.fillStyle=`rgba(137,170,204,${p.o})`;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>W)p.vx*=-1;if(p.y<0||p.y>H)p.vy*=-1;});
+    requestAnimationFrame(draw);
+  };
+  draw();
+})();
+
+// ── STICKY BAR ──
+(function(){
+  const bar=document.getElementById('webs-sticky-bar');
+  window.addEventListener('scroll',()=>{
+    if(bar)bar.style.display=window.scrollY>500?'flex':'none';
+  },{passive:true});
+})();
+
+// ── SCROLL REVEAL ──
+(function(){
+  const obs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.1,rootMargin:'0px 0px -40px 0px'});
+  document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+})();
+
+// ── STAT COUNTERS ──
+(function(){
+  const sobs=new IntersectionObserver(entries=>entries.forEach(e=>{
+    if(!e.isIntersecting||e.target._counted)return;
+    e.target._counted=true;
+    e.target.querySelectorAll('[data-stat]').forEach(el=>{
+      const tgt=parseInt(el.dataset.stat),dur=1400,s=performance.now();
+      const t=now=>{const p=Math.min((now-s)/dur,1),ease=1-Math.pow(1-p,3),v=Math.round(tgt*ease);el.textContent=v+(tgt>=50?'+':tgt===99?'%':'');if(p<1)requestAnimationFrame(t);};
+      requestAnimationFrame(t);
+    });
+  }),{threshold:.6});
+  const ss=document.getElementById('webs-stats');
+  if(ss)sobs.observe(ss);
+})();
+
+// ── ROLE CYCLE ──
+(function(){
+  const el=document.getElementById('webs-role');
+  if(!el)return;
+  const roles=['Lista en 5 días.','Para tu negocio.','Que vende sola.','Profesional y elegante.'];
+  let i=0;
+  setInterval(()=>{
+    i=(i+1)%roles.length;
+    el.style.opacity='0';el.style.transform='translateY(8px)';
+    setTimeout(()=>{el.textContent=roles[i];el.style.transition='opacity .35s ease,transform .35s ease';el.style.opacity='1';el.style.transform='translateY(0)';},320);
+  },2600);
+})();
+
+// ── 3D CARD TILT ──
+(function(){
+  document.querySelectorAll('.service-card').forEach(card=>{
+    card.addEventListener('mousemove',e=>{
+      const r=card.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;
+      card.style.transform=`perspective(900px) rotateX(${-y*10}deg) rotateY(${x*10}deg) translateZ(8px)`;
+    });
+    card.addEventListener('mouseleave',()=>{card.style.transform='';});
+  });
+})();
+</script>
+</body>
+</html>
