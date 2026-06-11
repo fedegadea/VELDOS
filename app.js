@@ -3,12 +3,77 @@ const express = require("express")
 const path = require("path")
 const app = express()
 
-app.use(express.static(path.join(__dirname, "/public")))
-app.use(express.json())
+// Cache largo para imágenes y assets estáticos (Supabase CDN)
+app.use(express.static(path.join(__dirname, "/public"), {
+  maxAge: '7d',
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, filePath) => {
+    if (/\.(jpg|jpeg|png|webp|gif|svg|ico|woff|woff2|ttf)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400')
+    }
+  }
+}))
+app.use(express.json({ limit: '10mb' }))
 
 // Shared constants
 const SUPA_URL = "https://vlkxtrqktdcfqmebrtwa.supabase.co"
 const SUPA_KEY = () => process.env.SUPA_SERVICE_KEY || ""
+
+// ── Caché de dominios propios → wsId ──────────────────────────
+const _domainCache = new Map() // domain → { wsId, expiresAt }
+const DOMAIN_CACHE_TTL = 5 * 60 * 1000 // 5 minutos
+
+async function _wsIdByDomain(host) {
+  const now = Date.now()
+  const cached = _domainCache.get(host)
+  if (cached && cached.expiresAt > now) return cached.wsId
+
+  // Buscar en todos los workspaces (solo trae id y el campo de dominio)
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/workspaces?select=id,data`, {
+      headers: { "apikey": SUPA_KEY(), "Authorization": "Bearer " + SUPA_KEY() }
+    })
+    const rows = await r.json()
+    if (!Array.isArray(rows)) return null
+    const match = rows.find(w => {
+      const d = w.data?.tienda?.settings?.customDomain || ''
+      return d && d.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase() === host.toLowerCase()
+    })
+    const wsId = match?.id || null
+    if (wsId) _domainCache.set(host, { wsId, expiresAt: now + DOMAIN_CACHE_TTL })
+    return wsId
+  } catch(e) { return null }
+}
+
+// Middleware: detectar dominio propio y servir tienda con wsId inyectado
+app.use(async (req, res, next) => {
+  const host = req.hostname
+  // Ignorar dominios propios del sistema
+  if (!host || host === 'localhost' || host.endsWith('.vercel.app') || host === 'soul-ecommlab.com' || host.endsWith('.soul-ecommlab.com')) {
+    return next()
+  }
+  const wsId = await _wsIdByDomain(host)
+  if (!wsId) return next()
+
+  // Servir tienda.html con wsId inyectado
+  const fs = require('fs')
+  const path = require('path')
+  try {
+    let html = fs.readFileSync(path.join(__dirname, 'views/tienda.html'), 'utf8')
+    // Inyectar wsId como variable global antes del script principal
+    html = html.replace(
+      'const WS = P.get(\'ws\') || \'\'',
+      `const WS = (typeof __VELDOS_WS__ !== 'undefined' ? __VELDOS_WS__ : null) || P.get('ws') || ''`
+    )
+    html = html.replace('<head>', `<head>\n<script>var __VELDOS_WS__='${wsId}';</script>`)
+    res.setHeader('Content-Type', 'text/html; charset=utf-8')
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+    res.send(html)
+  } catch(e) {
+    next()
+  }
+})
 
 // Mercado Pago
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN || "TEST-PLACEHOLDER"
@@ -22,6 +87,9 @@ const APP_BASE_URL    = () => (process.env.APP_BASE_URL    || "http://localhost:
 app.get("/landing", (req, res) => {
   res.sendFile(__dirname + "/views/landing.html")
 })
+
+// Crealo — landing pública de generador de videos UGC
+app.get("/crealo", serveApp)
 
 // Sistema principal — redirect legacy /sistema to root
 app.get("/sistema", (req, res) => {
@@ -53,7 +121,7 @@ app.post("/api/mp/create-preference", async (req, res) => {
         items: [{
           title: "Soul eCommlab — Suscripción mensual",
           quantity: 1,
-          unit_price: 39000,
+          unit_price: 89000,
           currency_id: "ARS"
         }],
         payer: { email: email || "" },
@@ -109,18 +177,166 @@ app.get("/api/mp/success", (req, res) => {
 const TN_CLIENT_ID     = process.env.TN_CLIENT_ID     || "31250"
 const TN_CLIENT_SECRET = process.env.TN_CLIENT_SECRET || "747a564acf2fad835b6021e2928b5af84743f706b91c5643"
 
-// Helper: fetch workspace from Supabase by id
+// ── Caché en memoria para getWorkspace ───────────────────────────
+// Vercel serverless: cada lambda es una instancia separada, pero dentro de
+// la misma instancia caliente pueden llegar múltiples requests. TTL corto
+// evita docenas de round-trips a Supabase bajo carga.
+const _wsCache = new Map() // wsId → { ws, expiresAt }
+const WS_CACHE_TTL = 8000  // 8 segundos
+
+function _invalidateWsCache(wsId) {
+  _wsCache.delete(wsId)
+}
+
 async function getWorkspace(wsId) {
+  const now = Date.now()
+  const cached = _wsCache.get(wsId)
+  if (cached && cached.expiresAt > now) return cached.ws
+
   const r = await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${encodeURIComponent(wsId)}&select=id,data`, {
     headers: { "apikey": SUPA_KEY(), "Authorization": "Bearer " + SUPA_KEY() }
   })
-  const rows = await r.json()
-  return rows?.[0] || null
+  // Proteger contra respuestas no-JSON (ej: HTML de rate-limit de Supabase)
+  const text = await r.text()
+  let rows
+  try { rows = JSON.parse(text) } catch(e) {
+    throw new Error(`Supabase respuesta inesperada (${r.status}): ${text.slice(0,120)}`)
+  }
+  const ws = rows?.[0] || null
+  if (ws) _wsCache.set(wsId, { ws, expiresAt: now + WS_CACHE_TTL })
+  return ws
 }
 
-// Helper: patch workspace data in Supabase
+// Helper: patch workspace data in Supabase — merge-safe para ordenes y CRM
 async function patchWorkspace(wsId, data) {
-  await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${encodeURIComponent(wsId)}`, {
+  _invalidateWsCache(wsId)
+
+  // Leer estado actual del servidor para mergear campos críticos
+  try {
+    const current = await getWorkspace(wsId)
+    const cur = current?.data || {}
+
+    // ── Merge tienda.ordenes: preservar órdenes del servidor que el cliente no tiene ──
+    if (cur.tienda?.ordenes?.length) {
+      const clientOrdenes = data.tienda?.ordenes || []
+      const clientIds = new Set(clientOrdenes.map(o => o.id))
+      const serverOnly = cur.tienda.ordenes.filter(o => !clientIds.has(o.id))
+      if (serverOnly.length) {
+        if (!data.tienda) data.tienda = {}
+        data.tienda.ordenes = [...clientOrdenes, ...serverOnly]
+      }
+    }
+
+    // ── Asignar IDs a contactos que no tienen — crítico para que los flows funcionen por contacto ──
+    if (data.crm?.length) {
+      data.crm.forEach(c => {
+        if (!c.id) c.id = 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6)
+      })
+    }
+
+    // ── Merge CRM: preservar contactos del servidor que el cliente no tiene + mergear valores ──
+    if (cur.crm?.length) {
+      if (!data.crm) data.crm = []
+      const clientCrmMap = {}
+      data.crm.forEach(c => { if (c.id) clientCrmMap[c.id] = c })
+      // Preservar contactos del servidor que el cliente no conoce (e.g. creados por checkout)
+      const serverOnlyCrm = cur.crm.filter(c => c.id && !clientCrmMap[c.id])
+      if (serverOnlyCrm.length) data.crm = [...data.crm, ...serverOnlyCrm]
+      // Mergear campos de compra en contactos que ambos tienen
+      const serverCrmMap = {}
+      cur.crm.forEach(c => { if (c.id) serverCrmMap[c.id] = c })
+      data.crm = data.crm.map(c => {
+        const srv = c.id ? serverCrmMap[c.id] : null
+        if (!srv) return c
+        return {
+          ...c,
+          cantCompras: Math.max(parseInt(c.cantCompras)||0, parseInt(srv.cantCompras)||0),
+          valorTotal:  Math.max(parseFloat(c.valorTotal)||0, parseFloat(srv.valorTotal)||0),
+          ultimaCompra: !c.ultimaCompra ? srv.ultimaCompra
+                      : !srv.ultimaCompra ? c.ultimaCompra
+                      : c.ultimaCompra > srv.ultimaCompra ? c.ultimaCompra : srv.ultimaCompra
+        }
+      })
+    }
+
+    // ── Merge flowDone: preservar entradas completadas del servidor que el cliente no tiene ──
+    if (cur.flowDone && typeof cur.flowDone === 'object') {
+      if (!data.flowDone || typeof data.flowDone !== 'object') data.flowDone = {}
+      for (const [k, v] of Object.entries(cur.flowDone)) {
+        if (!(k in data.flowDone)) data.flowDone[k] = v
+      }
+    }
+
+    // ── GUARD: nunca sobreescribir CRM con array vacío si el server tiene contactos ──
+    if (cur.crm?.length && (!data.crm || data.crm.length === 0)) {
+      data.crm = cur.crm
+    }
+
+    // ── Merge finanzas: nunca perder entradas del servidor (ej: ventas web creadas por checkout) ──
+    if (cur.finanzas?.length) {
+      if (!data.finanzas) data.finanzas = []
+      const clientFinIds = new Set(data.finanzas.map(f => f.id).filter(Boolean))
+      const serverOnlyFin = cur.finanzas.filter(f => f.id && !clientFinIds.has(f.id))
+      if (serverOnlyFin.length) data.finanzas = [...data.finanzas, ...serverOnlyFin]
+    }
+
+    // ── Merge flowHistory: nunca perder entradas del servidor ──
+    if (cur.flowHistory?.length) {
+      if (!data.flowHistory) data.flowHistory = []
+      const clientFhIds = new Set(data.flowHistory.map(h => h.id).filter(Boolean))
+      const serverOnlyFh = cur.flowHistory.filter(h => h.id && !clientFhIds.has(h.id))
+      if (serverOnlyFh.length) data.flowHistory = [...data.flowHistory, ...serverOnlyFh]
+    }
+    // Trim flowHistory: solo últimos 30 días, máx 500 entradas
+    if (data.flowHistory?.length) {
+      const cutoff30d = Date.now() - 30 * 864e5
+      data.flowHistory = data.flowHistory
+        .filter(h => !h.date || new Date(h.date).getTime() > cutoff30d)
+        .slice(-500)
+    }
+
+    // ── Guard tienda.productos: nunca sobreescribir productos existentes con array vacío/ausente ──
+    // Si el save no incluye productos (ej: guardar solo settings/config), preservar los del servidor.
+    if (cur.tienda?.productos?.length) {
+      if (!data.tienda) data.tienda = {}
+      if (!data.tienda.productos?.length) {
+        data.tienda.productos = cur.tienda.productos
+      } else {
+        // Merge por ID: preservar productos del servidor que el cliente no incluyó
+        const clientProdIds = new Set(data.tienda.productos.map(p => p.id).filter(Boolean))
+        const serverOnlyProds = cur.tienda.productos.filter(p => p.id && !clientProdIds.has(p.id))
+        if (serverOnlyProds.length) {
+          data.tienda.productos = [...data.tienda.productos, ...serverOnlyProds]
+        }
+      }
+    }
+
+    // ── Guard tienda.secciones: preservar secciones si el save no las incluye ──
+    if (cur.tienda?.secciones?.length && !data.tienda?.secciones?.length) {
+      if (!data.tienda) data.tienda = {}
+      data.tienda.secciones = cur.tienda.secciones
+    }
+
+    // ── Guard tienda.settings: deep-merge para no perder configuraciones (ej: payway, popup) ──
+    if (cur.tienda?.settings && Object.keys(cur.tienda.settings).length) {
+      if (!data.tienda) data.tienda = {}
+      if (!data.tienda.settings || !Object.keys(data.tienda.settings).length) {
+        data.tienda.settings = cur.tienda.settings
+      } else {
+        data.tienda.settings = { ...cur.tienda.settings, ...data.tienda.settings }
+      }
+    }
+
+    // ── Guard pendingPaywayOrders: preservar órdenes pendientes del servidor ──
+    if (cur.pendingPaywayOrders && Object.keys(cur.pendingPaywayOrders).length) {
+      if (!data.pendingPaywayOrders) data.pendingPaywayOrders = {}
+      for (const [k, v] of Object.entries(cur.pendingPaywayOrders)) {
+        if (!(k in data.pendingPaywayOrders)) data.pendingPaywayOrders[k] = v
+      }
+    }
+  } catch(e) { /* si falla el merge, continuar con el guardado normal */ }
+
+  const saveRes = await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${encodeURIComponent(wsId)}`, {
     method: "PATCH",
     headers: {
       "apikey": SUPA_KEY(), "Authorization": "Bearer " + SUPA_KEY(),
@@ -128,6 +344,10 @@ async function patchWorkspace(wsId, data) {
     },
     body: JSON.stringify({ data })
   })
+  if (!saveRes.ok) {
+    const errText = await saveRes.text().catch(() => '')
+    console.error(`[patchWorkspace] Save failed for ${wsId}: ${saveRes.status} ${errText.slice(0, 200)}`)
+  }
 }
 
 // Step 1: Redirect user to TN OAuth page with wsId in state
@@ -467,19 +687,25 @@ app.post("/api/tn/webhook", async (req, res) => {
       const existing = email ? data.crm.find(c => c.email === email || c.tn_customer_id === o.customer.id) : null
       if (existing) {
         existing.valor = (parseFloat(existing.valor) || 0) + parseFloat(o.total || 0)
+        existing.valorTotal = (parseFloat(existing.valorTotal) || 0) + parseFloat(o.total || 0)
         existing.cantCompras = (parseInt(existing.cantCompras) || 0) + 1
         existing.compra = fecha
+        existing.ultimaCompra = fecha   // ← usado por flows
+        existing.etapa = existing.etapa || 'cliente'
+        if (!existing.tel && o.customer.phone) existing.tel = o.customer.phone
       } else {
         data.crm.push({
+          id: 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,5),
           nombre: o.customer.name || "Cliente TN", email,
           tel: o.customer.phone || "", ig: "",
-          estado: "Cliente", tipo: "cliente",
+          estado: "Cliente", etapa: "cliente", tipo: "cliente",
           valor: parseFloat(o.total) || 0,
-          ultContacto: fecha, compra: fecha, cantCompras: 1,
+          valorTotal: parseFloat(o.total) || 0,
+          ultContacto: fecha, compra: fecha, ultimaCompra: fecha, cantCompras: 1,
           canal: "Tienda Nube",
           ciudad: o.shipping_address?.city || "",
           provincia: o.shipping_address?.province || "",
-          marketing: "", newsletter: "no", tags: "tiendanube",
+          marketing: "", newsletter: "no", tags: ["tiendanube"],
           notas: "Importado automáticamente desde Tienda Nube",
           creado: new Date().toISOString().slice(0, 10),
           tn_customer_id: o.customer.id
@@ -488,6 +714,31 @@ app.post("/api/tn/webhook", async (req, res) => {
     }
     // Save back to Supabase
     await patchWorkspace(target.id, data)
+    _invalidateWsCache(target.id)
+
+    // ── Disparar flows inmediatos ──────────────────────────────────────────────
+    // Buscar el contacto recién actualizado/creado para pasarlo al motor de flows
+    if (o.customer) {
+      try {
+        const freshWs2 = await getWorkspace(target.id)
+        const freshD2  = freshWs2?.data || data
+        const emailCust = (o.customer.email || '').toLowerCase()
+        const crmContact = freshD2.crm?.find(c =>
+          (emailCust && c.email?.toLowerCase() === emailCust) ||
+          c.tn_customer_id === o.customer.id
+        )
+        if (crmContact) {
+          const totalOrden = parseFloat(o.total) || 0
+          const lineas = (o.products || []).map(p => ({ nombre: p.name, qty: p.quantity || 1 }))
+          _processImmediateFlows(target.id, freshD2, crmContact,
+            ['after_purchase', 'post_purchase', 'payment_confirmed'],
+            { total: totalOrden, lineas }
+          ).catch(e2 => console.error('[flows] TN webhook flows error:', e2.message))
+        }
+      } catch (fe) {
+        console.error('[flows] TN webhook flows lookup error:', fe.message)
+      }
+    }
   } catch(e) {
     console.error("TN webhook error:", e)
   }
@@ -824,6 +1075,650 @@ app.get("/api/meta/adlibrary", async (req, res) => {
     if (data.error) return res.status(400).json({ error: data.error.message })
     res.json({ ads: data.data || [] })
   } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ════════════════════════════════════════════════════
+// WA PROVIDERS — endpoint unificado multi-proveedor
+// ════════════════════════════════════════════════════
+
+// GET /api/wa/providers — listar proveedores configurados del workspace
+app.get('/api/wa/providers', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const ws = await getWorkspace(wsId)
+    const providers = ws?.data?.waProviders || []
+    // Nunca devolver tokens/secrets en texto plano
+    const safe = providers.map(p => ({
+      id: p.id, name: p.name, type: p.type, enabled: p.enabled,
+      phone: p.phone || null,
+      hasConfig: !!(p.config?.apiKey || p.config?.instanceId || p.config?.token || p.config?.phoneNumberId)
+    }))
+    res.json({ providers: safe })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── Helper: enviar WA desde el servidor usando el proveedor configurado en el workspace
+async function _serverSendWa(d, phone, text, providerId) {
+  const providers = (d.waProviders || []).filter(p => p.enabled && p.type !== 'local')
+  const provider = providerId ? (providers.find(p => p.id === providerId) || providers[0]) : providers[0]
+  if (!provider) throw new Error('No hay proveedor WA habilitado')
+
+  const cleanPhone = String(phone).replace(/\D/g, '')
+  if (!cleanPhone) throw new Error('Teléfono vacío')
+
+  if (provider.type === 'greenapi') {
+    const { instanceId, apiToken } = provider.config || {}
+    if (!instanceId || !apiToken) throw new Error('Green API: faltan instanceId y apiToken')
+    const chatId = cleanPhone.startsWith('549') ? `${cleanPhone}@c.us` : `549${cleanPhone}@c.us`
+    const r = await fetch(`https://api.green-api.com/waInstance${instanceId}/sendMessage/${apiToken}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId, message: text })
+    })
+    const result = await r.json()
+    if (!r.ok || result.error) throw new Error(result.error || 'Green API error')
+    return { ok: true }
+  }
+
+  if (provider.type === 'waha') {
+    const { serverUrl, apiKey, session } = provider.config || {}
+    if (!serverUrl) throw new Error('WAHA: falta serverUrl')
+    const headers = { 'Content-Type': 'application/json' }
+    if (apiKey) headers['X-Api-Key'] = apiKey
+    const sess = (session || 'default').trim()
+    const chatId = cleanPhone.includes('@') ? cleanPhone : `${cleanPhone}@c.us`
+    const base = serverUrl.replace(/\/$/, '')
+    const _wahaFetch = (url, body, timeoutMs = 6000) => {
+      const ctrl = new AbortController()
+      const timer = setTimeout(() => ctrl.abort(), timeoutMs)
+      return fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: ctrl.signal })
+        .finally(() => clearTimeout(timer))
+    }
+    // WAHA v2026: POST /api/sendText con session en body
+    const r = await _wahaFetch(`${base}/api/sendText`, { session: sess, chatId, text })
+    if (r.ok) { await r.json().catch(() => {}); return { ok: true } }
+    // Solo intentar fallback si fue error de ruta (404/405), no timeout ni error de servidor
+    if (r.status === 404 || r.status === 405) {
+      const r2 = await _wahaFetch(`${base}/api/${sess}/sendText`, { chatId, text })
+      const result2 = await r2.json().catch(() => ({}))
+      if (!r2.ok) throw new Error(result2?.message || result2?.error || 'WAHA error ' + r2.status)
+      return { ok: true }
+    }
+    const err = await r.json().catch(() => ({}))
+    throw new Error(err?.message || err?.error || 'WAHA error ' + r.status)
+  }
+
+  if (provider.type === 'waba') {
+    const { phoneNumberId, accessToken } = provider.config || {}
+    if (!phoneNumberId || !accessToken) throw new Error('WABA: faltan phoneNumberId y accessToken')
+    const r = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+      body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to: cleanPhone, type: 'text', text: { body: text } })
+    })
+    const result = await r.json()
+    if (!r.ok || result.error) throw new Error(result?.error?.message || 'WABA error')
+    return { ok: true }
+  }
+
+  if (provider.type === 'twilio') {
+    const { accountSid, authToken, from } = provider.config || {}
+    if (!accountSid || !authToken || !from) throw new Error('Twilio: faltan accountSid, authToken, from')
+    const body = new URLSearchParams({ From: `whatsapp:+${from}`, To: `whatsapp:+${cleanPhone}`, Body: text })
+    const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64'), 'Content-Type': 'application/x-www-form-urlencoded' },
+      body
+    })
+    const result = await r.json()
+    if (!r.ok || result.error_code) throw new Error(result.error_message || 'Twilio error')
+    return { ok: true }
+  }
+
+  throw new Error(`Proveedor desconocido: ${provider.type}`)
+}
+
+// ── Auto-procesar flows con trigger after_purchase/post_purchase y delay=0 al completarse una compra
+// Se llama en background (sin await) — no bloquea la respuesta al cliente
+// ── Motor central de flows inmediatos ──────────────────────────────────────────
+// triggerTypes: array de strings ('after_purchase','post_purchase','payment_confirmed','order_placed','new_lead','cart_abandon')
+// extra: { total, lineas, cartItems } — datos adicionales según el evento
+async function _processImmediateFlows(wsId, d, crmContact, triggerTypes, extra = {}) {
+  const { total = 0, lineas = [], cartItems = [] } = extra
+  console.log(`[flows] _processImmediateFlows called wsId=${wsId} triggers=${JSON.stringify(triggerTypes)} contact=${crmContact?.id||'?'} nombre="${crmContact?.nombre||''}"`)
+  try {
+    const freshWs = await getWorkspace(wsId)
+    const freshD = freshWs?.data || d
+
+    const allFlows = freshD.flows || []
+    // enabled puede ser true (bool) o "true" (string) — tolerar ambos
+    const flows = allFlows.filter(f => f.enabled === true || f.enabled === 'true')
+    console.log(`[flows] workspace flows total=${allFlows.length} enabled=${flows.length}`)
+    if (!flows.length) {
+      console.log(`[flows] no hay flows habilitados — abortando`)
+      return
+    }
+
+    if (!freshD.flowDone) freshD.flowDone = {}
+    const today = new Date().toISOString().slice(0, 10)
+    const ultimaCompra = crmContact.ultimaCompra || today
+    const creado = crmContact.creado || today
+    // Usar teléfono o email como fallback si no hay ID — evita que contactos sin ID compartan keys
+    const cid = crmContact.id || (crmContact.tel || '').replace(/\D/g,'') || (crmContact.email || '').replace(/[^a-z0-9]/gi,'') || 'anon'
+    let changed = false
+
+    // Key prefix por tipo de trigger — evita duplicados entre distintos eventos
+    const triggerKeyMap = {
+      after_purchase:    ultimaCompra,
+      post_purchase:     `pp_${ultimaCompra}`,
+      payment_confirmed: `pc_${ultimaCompra}`,
+      order_placed:      `op_${ultimaCompra}`,
+      new_lead:          `nl_${creado}`,
+      cart_abandon:      `ca_${ultimaCompra}`,
+    }
+
+    for (const f of flows) {
+      const trig = f.trigger || {}
+      const trigType = trig.type
+      if (!triggerTypes.includes(trigType)) {
+        console.log(`[flows] skip flow "${f.name||f.id}": trigType="${trigType}" no está en ${JSON.stringify(triggerTypes)}`)
+        continue
+      }
+
+      const delayVal  = trig.delayValue != null ? Number(trig.delayValue) : Number(trig.days || 0)
+      const delayUnit = trig.delayUnit || 'dias'
+      const delayMs   = delayUnit === 'minutos' ? delayVal * 60000 : delayUnit === 'horas' ? delayVal * 3600000 : delayVal * 86400000
+      // Delays de hasta 10 minutos se consideran "inmediatos" y se procesan en el momento
+      const IMMEDIATE_THRESHOLD_MS = 10 * 60 * 1000 // 10 minutos
+      if (delayMs > IMMEDIATE_THRESHOLD_MS) {
+        console.log(`[flows] skip flow "${f.name||f.id}": delay=${delayVal}${delayUnit} (lo maneja el cron)`)
+        continue
+      }
+
+      if (f.filter?.estados?.length) {
+        const estado = crmContact.estado || 'Cliente'
+        if (!f.filter.estados.includes(estado)) {
+          console.log(`[flows] skip flow "${f.name||f.id}": estado="${estado}" no en filtro ${JSON.stringify(f.filter.estados)}`)
+          continue
+        }
+      }
+
+      const triggerKey = triggerKeyMap[trigType] || ultimaCompra
+      const hasMsg = (f.steps || []).some(s => s.type === 'message' || s.type === 'email' || s.type === 'both')
+      if (!hasMsg) {
+        console.log(`[flows] skip flow "${f.name||f.id}": sin steps de mensaje (steps=${JSON.stringify((f.steps||[]).map(s=>s.type))})`)
+        continue
+      }
+
+      const cantCompras   = String(crmContact.cantCompras || 1)
+      const valorStr      = total ? `$${Math.round(total).toLocaleString('es-AR')}` : ''
+      const productosStr  = (lineas.length ? lineas : cartItems).map(l => l.nombre || l.name).filter(Boolean).join(', ')
+      const ultimaCompraFmt = ultimaCompra.split('-').reverse().join('/')
+
+      const _applyVars = str => (str || '')
+        .replace(/\{nombre\}/gi,       crmContact.nombre || '')
+        .replace(/\{apellido\}/gi,     crmContact.apellido || '')
+        .replace(/\{ultimaCompra\}/gi, ultimaCompraFmt)
+        .replace(/\{cantCompras\}/gi,  cantCompras)
+        .replace(/\{valor\}/gi,        valorStr)
+        .replace(/\{productos\}/gi,    productosStr)
+        .replace(/\{dias\}/gi,         '0')
+        .replace(/\{carrito\}/gi,      productosStr)
+
+      for (let si = 0; si < f.steps.length; si++) {
+        const step = f.steps[si]
+        const isWA    = step.type === 'message' && step.action === 'whatsapp'
+        const isEmail = step.type === 'email'
+        const isBoth  = step.type === 'both'
+        if (!isWA && !isEmail && !isBoth) continue
+
+        const key = `${f.id}|${cid}|${triggerKey}|step${si}`
+        if (freshD.flowDone[key]) continue
+
+        const _pushHistory = (channel, status, mensaje, error) => {
+          if (!freshD.flowHistory) freshD.flowHistory = []
+          freshD.flowHistory.push({
+            id: 'fh_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,5),
+            date: new Date().toISOString(),
+            flowId: f.id, flowName: f.name || f.id,
+            contactId: cid, contactNombre: crmContact.nombre || '',
+            contactTel: crmContact.tel || '', contactEmail: crmContact.email || '',
+            channel, status, error: error || null,
+            mensaje: (mensaje || '').slice(0, 300),
+            flowDoneKey: key, origen: 'auto', triggerType: trigType
+          })
+          changed = true
+        }
+
+        if (isWA || isBoth) {
+          const phone = (crmContact.tel || '').replace(/\D/g, '')
+          const rawMsg = step.template || step.templateWA || ''
+          if (rawMsg && phone) {
+            const text = _applyVars(rawMsg)
+            try {
+              await _serverSendWa(freshD, phone, text, step.waProviderId)
+              freshD.flowDone[key] = Date.now()
+              _pushHistory('whatsapp', 'sent', text, null)
+              console.log(`[flows] WA sent → "${f.name||f.id}" (${trigType}) → ${crmContact.nombre||phone}`)
+            } catch (e) {
+              _pushHistory('whatsapp', 'failed', text, e.message)
+              console.error(`[flows] WA error → "${f.name||f.id}" (${trigType}):`, e.message)
+            }
+          }
+        }
+
+        if ((isEmail || isBoth) && step.autoSend !== false) {
+          const email = (crmContact.email || '').trim()
+          const rawBody    = step.template || step.templateEmail || ''
+          const rawSubject = step.subject || ''
+          if (!process.env.RESEND_API_KEY) {
+            _pushHistory('email', 'failed', rawBody.slice(0,100), 'RESEND_API_KEY no configurado en Vercel')
+          } else if (rawBody && email) {
+            const bodyText    = _applyVars(rawBody)
+            const subjectText = _applyVars(rawSubject) || 'Mensaje automático'
+            try {
+              const resend = _getResend()
+              const emailSettings = { ...(freshD.tienda?.settings || {}), ...(freshD.store?.settings || {}) }
+              const fromDomain = emailSettings.emailFromDomain || process.env.EMAIL_FROM_DOMAIN || 'resend.dev'
+              const fromUser   = emailSettings.emailFromUser   || process.env.EMAIL_FROM_USER   || 'onboarding'
+              const fromName   = emailSettings.emailFromName   || ''
+              const fromAddr   = `${fromUser}@${fromDomain}`
+              const from       = fromName ? `${fromName} <${fromAddr}>` : fromAddr
+              console.log(`[flows] email attempt → from=${from} to=${email}`)
+              const result     = await resend.emails.send({ from, to: [email], subject: subjectText, html: bodyText })
+              if (result.error) throw new Error(result.error.message || JSON.stringify(result.error))
+              if (!freshD.flowDone[key]) freshD.flowDone[key] = Date.now()
+              _pushHistory('email', 'sent', subjectText, null)
+              console.log(`[flows] email sent → "${f.name||f.id}" (${trigType}) → ${email}`)
+            } catch (e) {
+              _pushHistory('email', 'failed', subjectText, e.message)
+              console.error(`[flows] email error → "${f.name||f.id}" (${trigType}):`, e.message)
+            }
+          }
+        }
+      }
+    }
+
+    if (changed) {
+      await patchWorkspace(wsId, freshD)
+      _invalidateWsCache(wsId)
+    }
+  } catch (e) {
+    console.error(`[flows] _processImmediateFlows(${triggerTypes}) error:`, e.message)
+  }
+}
+
+// Backward compat — purchases disparan todos los triggers de compra
+async function _processFlowsOnPurchase(wsId, d, crmContact, total, lineas) {
+  return _processImmediateFlows(wsId, d, crmContact,
+    ['after_purchase', 'post_purchase', 'payment_confirmed'],
+    { total, lineas }
+  )
+}
+
+// POST /api/wa/providers — guardar proveedores del workspace
+app.post('/api/wa/providers', async (req, res) => {
+  const { wsId, providers } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const ws = await getWorkspace(wsId)
+    if (!ws) return res.status(404).json({ error: 'WS no encontrado' })
+    const data = { ...(ws.data || {}), waProviders: providers }
+    await patchWorkspace(wsId, data)
+    _invalidateWsCache(wsId)
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// POST /api/wa/send — enviar mensaje por el proveedor indicado
+app.post('/api/wa/send', async (req, res) => {
+  const { wsId, providerId, to, text, typing } = req.body
+  if (!wsId || !to || !text) return res.status(400).json({ error: 'Faltan campos: wsId, to, text' })
+
+  const phone = String(to).replace(/\D/g, '')
+
+  try {
+    // Si providerId = 'local', reenviar al servidor local del cliente (no desde aquí)
+    if (!providerId || providerId === 'local') {
+      return res.status(400).json({ error: 'El proveedor "local" se envía directo desde el browser a localhost:3001. Usá un proveedor cloud.' })
+    }
+
+    const ws = await getWorkspace(wsId)
+    const provider = (ws?.data?.waProviders || []).find(p => p.id === providerId)
+    if (!provider) return res.status(404).json({ error: 'Proveedor no encontrado' })
+    if (!provider.enabled) return res.status(400).json({ error: 'Proveedor deshabilitado' })
+
+    let result
+
+    // ── Green API (cloud, informal)
+    if (provider.type === 'greenapi') {
+      const { instanceId, apiToken } = provider.config || {}
+      if (!instanceId || !apiToken) return res.status(400).json({ error: 'Green API: faltan instanceId y apiToken' })
+      const chatId = phone.startsWith('549') ? phone + '@c.us' : `549${phone}@c.us`
+      const r = await fetch(`https://api.green-api.com/waInstance${instanceId}/sendMessage/${apiToken}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId, message: text })
+      })
+      result = await r.json()
+      if (!r.ok || result.error) throw new Error(result.error || 'Green API error')
+    }
+
+    // ── WAHA (WhatsApp HTTP API - Docker self-hosted)
+    else if (provider.type === 'waha') {
+      const { serverUrl, apiKey, session } = provider.config || {}
+      if (!serverUrl) return res.status(400).json({ error: 'WAHA: falta serverUrl' })
+      const headers = { 'Content-Type': 'application/json' }
+      if (apiKey) headers['X-Api-Key'] = apiKey
+      const sess = (session || 'default').trim()
+      const chatId = phone.includes('@') ? phone : `${phone}@c.us`
+      const base = serverUrl.replace(/\/$/, '')
+
+      // Verificar que la sesión esté conectada antes de enviar
+      const statusChk = await fetch(`${base}/api/sessions/${sess}`, { headers }).catch(() => null)
+      const stData = statusChk?.ok ? await statusChk.json().catch(() => ({})) : {}
+      const stVal = stData.status || stData.engine?.status || stData.state || ''
+      console.log(`[wa/send] session="${sess}" status="${stVal}" chatId="${chatId}"`)
+      const CONNECTED_ST = ['WORKING','AUTHENTICATED','CONNECTED','ONLINE']
+      if (statusChk && !CONNECTED_ST.includes(stVal)) {
+        return res.status(400).json({ error: `WAHA no conectado — estado actual: "${stVal || 'desconocido'}". Escaneá el QR primero.` })
+      }
+
+      // Intentar enviar — probar múltiples formatos de endpoint con timeout de 12s cada uno
+      const fetchWithTimeout = (url, opts, ms = 12000) => {
+        const ctrl = new AbortController()
+        const t = setTimeout(() => ctrl.abort(), ms)
+        return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(t))
+      }
+      const attempts = [
+        // WAHA v2026 / v1: session en body (endpoint principal)
+        { url: `${base}/api/sendText`,         body: { session: sess, chatId, text } },
+        // WAHA v2: session en URL path
+        { url: `${base}/api/${sess}/sendText`, body: { chatId, text } },
+        // WAHA v2 alternativo: session en ambos lados
+        { url: `${base}/api/${sess}/sendText`, body: { session: sess, chatId, text } },
+      ]
+      let lastErr = 'WAHA error'
+      let sent = false
+      for (const att of attempts) {
+        let r, rawResp
+        try {
+          r = await fetchWithTimeout(att.url, { method: 'POST', headers, body: JSON.stringify(att.body) })
+          rawResp = await r.text().catch(() => '')
+        } catch(fetchErr) {
+          console.log(`[wa/send] ${att.url} → ${fetchErr.name === 'AbortError' ? 'TIMEOUT' : fetchErr.message}`)
+          lastErr = fetchErr.name === 'AbortError' ? 'Timeout enviando mensaje' : fetchErr.message
+          continue
+        }
+        console.log(`[wa/send] ${att.url} → HTTP ${r.status} | ${rawResp.slice(0,150)}`)
+        if (r.ok) {
+          result = JSON.parse(rawResp || '{}')
+          sent = true
+          break
+        }
+        let errData; try { errData = JSON.parse(rawResp) } catch(e) { errData = {} }
+        lastErr = errData.message || errData.error || errData.details || rawResp.slice(0,100) || `HTTP ${r.status}`
+      }
+      if (!sent) throw new Error(lastErr)
+    }
+
+    // ── Meta WhatsApp Business API (oficial)
+    else if (provider.type === 'waba') {
+      const { phoneNumberId, accessToken, templateName, templateLang } = provider.config || {}
+      if (!phoneNumberId || !accessToken) return res.status(400).json({ error: 'WABA: faltan phoneNumberId y accessToken' })
+      // Si hay template configurado, enviarlo como template; si no, texto libre (solo dentro de 24hs de contacto)
+      let msgPayload
+      if (templateName) {
+        msgPayload = {
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: phone,
+          type: 'template',
+          template: {
+            name: templateName,
+            language: { code: templateLang || 'es_AR' },
+            components: text ? [{
+              type: 'body',
+              parameters: [{ type: 'text', text }]
+            }] : []
+          }
+        }
+      } else {
+        msgPayload = {
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: phone,
+          type: 'text',
+          text: { body: text }
+        }
+      }
+      const r = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+        body: JSON.stringify(msgPayload)
+      })
+      result = await r.json()
+      if (!r.ok || result.error) throw new Error(result?.error?.message || 'WABA error')
+    }
+
+    // ── Twilio WhatsApp
+    else if (provider.type === 'twilio') {
+      const { accountSid, authToken, from } = provider.config || {}
+      if (!accountSid || !authToken || !from) return res.status(400).json({ error: 'Twilio: faltan accountSid, authToken, from' })
+      const body = new URLSearchParams({ From: `whatsapp:+${from}`, To: `whatsapp:+${phone}`, Body: text })
+      const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64'), 'Content-Type': 'application/x-www-form-urlencoded' },
+        body
+      })
+      result = await r.json()
+      if (!r.ok || result.error_code) throw new Error(result.error_message || 'Twilio error')
+    }
+
+    else {
+      return res.status(400).json({ error: `Tipo de proveedor desconocido: ${provider.type}` })
+    }
+
+    res.json({ ok: true, result })
+  } catch(e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── GET /api/wa/waha-session — estado de sesión WAHA (proxy)
+app.get('/api/wa/waha-session', async (req, res) => {
+  const { serverUrl, apiKey, session } = req.query
+  if (!serverUrl) return res.status(400).json({ error: 'falta serverUrl' })
+  const sess = (session || 'default').trim()
+  const headers = {}
+  if (apiKey) headers['X-Api-Key'] = apiKey
+  res.setHeader('Cache-Control', 'no-store')
+  try {
+    const url = `${serverUrl.replace(/\/$/, '')}/api/sessions/${sess}`
+    const r = await fetch(url, { headers })
+    const text = await r.text()
+    console.log(`[waha-session] ${url} → HTTP ${r.status} | ${text.slice(0, 200)}`)
+    let data; try { data = JSON.parse(text) } catch(e) { data = { rawText: text } }
+    res.json(data)
+  } catch(e) {
+    console.error('[waha-session] fetch error:', e.message)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── GET /api/wa/waha-qr — imagen QR de sesión WAHA (proxy, evita CORS)
+app.get('/api/wa/waha-qr', async (req, res) => {
+  const { serverUrl, apiKey, session } = req.query
+  if (!serverUrl) return res.status(400).json({ error: 'falta serverUrl' })
+  const sess = (session || 'default').trim()
+  const headers = {}
+  if (apiKey) headers['X-Api-Key'] = apiKey
+  const base = serverUrl.replace(/\/$/, '')
+
+  async function tryQRUrl(url) {
+    const r = await fetch(url, { headers })
+    if (!r.ok) return null
+    const ct = r.headers.get('content-type') || ''
+    if (ct.includes('image')) {
+      return { buf: Buffer.from(await r.arrayBuffer()), ct: 'image/png' }
+    }
+    if (ct.includes('json') || ct.includes('text')) {
+      const json = await r.json().catch(() => null)
+      if (!json) return null
+      // WAHA v2+ devuelve { mimetype, data } donde data es base64 puro o data-URI
+      const b64raw = json.data || json.qr || json.image || json.base64
+      if (b64raw) {
+        const b64clean = String(b64raw).replace(/^data:[^;]+;base64,/, '')
+        return { buf: Buffer.from(b64clean, 'base64'), ct: 'image/png' }
+      }
+    }
+    return null
+  }
+
+  try {
+    // 1. QR como imagen binaria (WAHA v1)
+    const r1 = await tryQRUrl(`${base}/api/${sess}/auth/qr?format=image`)
+    if (r1) {
+      res.setHeader('Content-Type', r1.ct)
+      res.setHeader('Cache-Control', 'no-store')
+      return res.send(r1.buf)
+    }
+    // 2. QR como JSON base64 (WAHA v2+)
+    const r2 = await tryQRUrl(`${base}/api/${sess}/auth/qr`)
+    if (r2) {
+      res.setHeader('Content-Type', r2.ct)
+      res.setHeader('Cache-Control', 'no-store')
+      return res.send(r2.buf)
+    }
+    // 3. Screenshot como último recurso
+    const r3 = await fetch(`${base}/api/screenshot`, { headers })
+    if (r3.ok) {
+      const buf = Buffer.from(await r3.arrayBuffer())
+      res.setHeader('Content-Type', r3.headers.get('content-type') || 'image/png')
+      res.setHeader('Cache-Control', 'no-store')
+      return res.send(buf)
+    }
+    res.status(404).json({ error: 'QR no disponible — sesión ya conectada o WAHA no responde' })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── GET /api/wa/waha-diag — diagnóstico completo de la sesión WAHA
+app.get('/api/wa/waha-diag', async (req, res) => {
+  const { serverUrl, apiKey, session } = req.query
+  if (!serverUrl) return res.status(400).json({ error: 'falta serverUrl' })
+  const sess = (session || 'default').trim()
+  const headers = {}
+  if (apiKey) headers['X-Api-Key'] = apiKey
+  const base = serverUrl.replace(/\/$/, '')
+  const diag = { serverUrl, session: sess, checks: [] }
+
+  const chk = async (label, url, method = 'GET', body = null) => {
+    try {
+      const opts = { method, headers: { ...headers, 'Content-Type': 'application/json' } }
+      if (body) opts.body = JSON.stringify(body)
+      const r = await fetch(url, opts)
+      const text = await r.text().catch(() => '')
+      let data; try { data = JSON.parse(text) } catch(e) { data = { raw: text.slice(0, 200) } }
+      diag.checks.push({ label, url, status: r.status, ok: r.ok, data })
+      return { ok: r.ok, data, status: r.status }
+    } catch(e) {
+      diag.checks.push({ label, url, error: e.message })
+      return { ok: false, error: e.message }
+    }
+  }
+
+  // 1. Estado de la sesión
+  const s = await chk('session_status', `${base}/api/sessions/${sess}`)
+  const st = s.data?.status || s.data?.engine?.status || s.data?.state || 'UNKNOWN'
+  diag.sessionStatus = st
+
+  // 2. Listar todas las sesiones
+  await chk('sessions_list', `${base}/api/sessions`)
+
+  // 3. Versión de WAHA
+  await chk('waha_version', `${base}/api/version`)
+  await chk('waha_health', `${base}/health`)
+  await chk('waha_root', `${base}/`)
+
+  res.json(diag)
+})
+
+// ── POST /api/wa/waha-start — iniciar/reiniciar sesión WAHA (proxy)
+app.post('/api/wa/waha-start', async (req, res) => {
+  const { serverUrl, apiKey, session } = req.body
+  if (!serverUrl) return res.status(400).json({ error: 'falta serverUrl' })
+  const sess = (session || 'default').trim()
+  const headers = { 'Content-Type': 'application/json' }
+  if (apiKey) headers['X-Api-Key'] = apiKey
+  const base = serverUrl.replace(/\/$/, '')
+  const CONNECTED = ['WORKING', 'AUTHENTICATED', 'CONNECTED', 'ONLINE']
+  const NEEDS_QR  = ['SCAN_QR_CODE', 'QR', 'UNPAIRED', 'UNPAIRED_IDLE']
+
+  const fetchTimeout = (url, opts, ms = 6000) => {
+    const ctrl = new AbortController()
+    const t = setTimeout(() => ctrl.abort(), ms)
+    return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(t))
+  }
+
+  const getStatus = async () => {
+    const r = await fetchTimeout(`${base}/api/sessions/${sess}`, { headers }, 5000).catch(() => null)
+    if (!r) return null
+    const text = await r.text().catch(() => '{}')
+    const d = JSON.parse(text || '{}')
+    const st = d.status || d.engine?.status || d.state || ''
+    console.log(`[waha-start] poll → HTTP ${r.status} state="${st}" raw=${text.slice(0,120)}`)
+    return { ok: r.ok, st, d }
+  }
+
+  try {
+    // 0. Check de conectividad rápido — si WAHA no responde, fallar inmediato
+    const ping = await fetchTimeout(`${base}/api/version`, { headers }, 5000).catch(() => null)
+    if (!ping) {
+      console.error(`[waha-start] WAHA no responde en ${base} — servidor caído o inaccesible`)
+      return res.status(503).json({ error: `El servidor WAHA en ${base} no responde. Reiniciá el container Docker (docker restart waha).` })
+    }
+
+    // 1. Ver estado actual
+    const cur = await getStatus()
+    if (cur?.ok) {
+      if (CONNECTED.includes(cur.st)) return res.json({ ok: true, alreadyConnected: true })
+      if (NEEDS_QR.includes(cur.st))  return res.json({ ok: true, needsQR: true })
+      // Cualquier otro estado (FAILED, STOPPED, STARTING…) → borrar y recrear
+      // WAHA v2026 no tiene /stop ni /start: se usa DELETE + POST con start:true
+      console.log(`[waha-start] estado "${cur.st}" → reseteando sesión`)
+      await fetchTimeout(`${base}/api/sessions/${sess}`, { method: 'DELETE', headers }, 5000).catch(() => {})
+      await new Promise(r => setTimeout(r, 600))
+    }
+    // Crear sesión con start:true (funciona tanto si existía antes como si no)
+    const createR = await fetchTimeout(`${base}/api/sessions`, {
+      method: 'POST', headers,
+      body: JSON.stringify({ name: sess, start: true, config: { webhooks: [] } })
+    }, 6000).catch(() => null)
+    console.log(`[waha-start] create+start HTTP ${createR?.status}`)
+
+    // 2. Esperar hasta 25s a que WAHA llegue a SCAN_QR_CODE o CONNECTED
+    for (let i = 0; i < 10; i++) {
+      await new Promise(r => setTimeout(r, 2500))
+      const s = await getStatus()
+      if (!s) continue
+      if (CONNECTED.includes(s.st)) return res.json({ ok: true, alreadyConnected: true })
+      if (NEEDS_QR.includes(s.st))  return res.json({ ok: true, needsQR: true })
+    }
+
+    // 3. Timeout — devolver igual para que el front muestre el QR y siga polling
+    console.log('[waha-start] timeout esperando QR — devolviendo needsQR=true de todos modos')
+    res.json({ ok: true, needsQR: true, timeout: true })
+  } catch(e) {
+    console.error('[waha-start] error:', e.message)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// POST /api/wa/test — probar un proveedor con un mensaje de test
+app.post('/api/wa/test', async (req, res) => {
+  req.body.text = req.body.text || '✅ Test desde VELDOS — proveedor funcionando correctamente'
+  // Reutilizar la misma lógica
+  const orig = res.json.bind(res)
+  return require('express').Router().post('/api/wa/send', async (...args) => {}); // forward
 })
 
 // WhatsApp — connect phone number
@@ -1681,6 +2576,2939 @@ Respondé SOLO con JSON válido:
   } catch (e) {
     res.status(500).json({ error: 'Error analizando guión: ' + e.message })
   }
+})
+
+// ════════════════════════════════════════════════════
+// IDENTITY SYSTEM — OTP + User Memory + XP + Niveles
+// ════════════════════════════════════════════════════
+
+// WhatsApp server — en Vercel, setear WAPP_URL con URL publica (ngrok, etc.)
+const WAPP_URL = process.env.WAPP_URL || 'http://localhost:3001'
+
+const _otpMemory = new Map() // phone -> { code, expires, attempts }
+const BYPASS_OTP = true  // ← poner en false para activar verificación real
+
+function _genOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000))
+}
+
+function _genToken() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  let t = ''
+  for (let i = 0; i < 48; i++) t += chars[Math.floor(Math.random() * chars.length)]
+  return t
+}
+
+function _genUserId() {
+  return 'u_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8)
+}
+
+function _normalizeAR(raw) {
+  // Normaliza número argentino a formato internacional sin +
+  // Acepta: 1155667788, 01155667788, 541155667788, +541155667788
+  let n = raw.toString().replace(/\D/g, '')
+  if (n.startsWith('0')) n = n.slice(1) // quitar 0 inicial
+  if (n.length === 10 && !n.startsWith('54')) n = '549' + n
+  else if (n.length === 11 && n.startsWith('0')) n = '549' + n.slice(1)
+  else if (n.length === 10) n = '549' + n
+  else if (n.startsWith('54') && n.length === 12) n = '549' + n.slice(2)
+  return n
+}
+
+function _calcUserScore(user) {
+  if (!user || !Array.isArray(user.historial)) return 0
+  const weights = {
+    page_view: 1,
+    section_view: 2,
+    product_view: 5,
+    product_hover: 3,
+    like_product: 8,
+    unlike_product: -2,
+    add_to_cart: 15,
+    combo_add: 20,
+    checkout_start: 25,
+    checkout_complete: 80,
+    order_placed: 100,
+    scroll_depth: 1,
+    time_on_page: 0.5,
+    share: 12,
+    review: 20,
+  }
+  let xp = 0
+  for (const ev of user.historial) {
+    xp += (weights[ev.evento] || 1)
+  }
+  return Math.round(xp)
+}
+
+function _calcNivel(xp) {
+  if (xp >= 500) return { nivel: 'VIP',        emoji: '👑', minXp: 500, nextXp: null }
+  if (xp >= 250) return { nivel: 'Miembro',    emoji: '⭐', minXp: 250, nextXp: 500 }
+  if (xp >= 100) return { nivel: 'Conocedor',  emoji: '💎', minXp: 100, nextXp: 250 }
+  if (xp >= 30)  return { nivel: 'Explorador', emoji: '🧭', minXp: 30,  nextXp: 100 }
+  return           { nivel: 'Visitante',  emoji: '👋', minXp: 0,   nextXp: 30  }
+}
+
+function _calcFunnel(user) {
+  if (!user || !Array.isArray(user.historial)) return 'lead'
+  const evs = new Set(user.historial.map(e => e.evento))
+  if (evs.has('order_placed') || evs.has('checkout_complete')) return 'cliente'
+  if (evs.has('checkout_start')) return 'prospecto'
+  if (evs.has('add_to_cart') || evs.has('combo_add')) return 'interesado'
+  return 'lead'
+}
+
+function _calcBadges(user) {
+  if (!user || !Array.isArray(user.historial)) return []
+  const badges = []
+  const evs = user.historial.map(e => e.evento)
+  const evSet = new Set(evs)
+  if (evSet.has('order_placed') || evSet.has('checkout_complete')) badges.push({ id: 'primera_compra', label: 'Primera compra', emoji: '🛍' })
+  const likes = evs.filter(e => e === 'like_product').length
+  if (likes >= 5) badges.push({ id: 'curadora', label: 'Curadora', emoji: '❤️' })
+  if (likes >= 1) badges.push({ id: 'primer_like', label: 'Primer Like', emoji: '💖' })
+  if (evSet.has('share')) badges.push({ id: 'embajadora', label: 'Embajadora', emoji: '📣' })
+  const carts = evs.filter(e => e === 'add_to_cart' || e === 'combo_add').length
+  if (carts >= 3) badges.push({ id: 'exploradora', label: 'Exploradora', emoji: '✨' })
+  if (user.historial.length >= 50) badges.push({ id: 'leal', label: 'Cliente Leal', emoji: '🌟' })
+  return badges
+}
+
+function _userPublic(user) {
+  const xp = _calcUserScore(user)
+  const nivelInfo = _calcNivel(xp)
+  return {
+    id: user.id,
+    nombre: user.nombre || null,
+    telefono: user.telefono || null,
+    email: user.email || null,
+    xp,
+    nivel: nivelInfo.nivel,
+    nivelEmoji: nivelInfo.emoji,
+    nivelMinXp: nivelInfo.minXp,
+    nivelNextXp: nivelInfo.nextXp,
+    funnel: _calcFunnel(user),
+    badges: _calcBadges(user),
+    historial: (user.historial || []).slice(-20),
+    fechaAlta: user.fechaAlta || null,
+    ultimaVisita: user.ultimaVisita || null,
+    totalEventos: (user.historial || []).length,
+  }
+}
+
+// ── POST /api/identity/request-otp ──────────────────
+app.post('/api/identity/request-otp', async (req, res) => {
+  const { wsId, telefono, nombre, email, utm } = req.body
+  if (!wsId || !telefono) return res.status(400).json({ error: 'Faltan campos' })
+
+  const phone = _normalizeAR(telefono)
+
+  // BYPASS: registrar/loguear sin código
+  if (BYPASS_OTP) {
+    const supaHeaders = { 'apikey': SUPA_KEY(), 'Authorization': 'Bearer ' + SUPA_KEY(), 'Content-Type': 'application/json', 'Prefer': 'return=representation' }
+    let ws
+    try {
+      const r = await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${encodeURIComponent(wsId)}&select=id,data`, { headers: supaHeaders })
+      const arr = await r.json()
+      ws = arr[0]
+    } catch (e) { return res.status(500).json({ error: 'Error cargando workspace' }) }
+    if (!ws) return res.status(404).json({ error: 'Workspace no encontrado' })
+
+    const data = ws.data || {}
+    if (!data.usuarios) data.usuarios = []
+    let user = data.usuarios.find(u => u.telefono === phone)
+    const now = new Date().toISOString()
+    if (!user) {
+      user = { id: _genUserId(), telefono: phone, nombre: nombre || '', email: email || '', historial: [], fechaAlta: now, ultimaVisita: now, utm: utm || {} }
+      data.usuarios.push(user)
+    } else {
+      user.ultimaVisita = now
+      if (nombre && !user.nombre) user.nombre = nombre
+      if (email && !user.email) user.email = email
+    }
+    const token = _genToken()
+    if (!data.tokens) data.tokens = {}
+    data.tokens[token] = { userId: user.id, wsId, createdAt: now }
+    try {
+      await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${encodeURIComponent(wsId)}`, {
+        method: 'PATCH', headers: supaHeaders, body: JSON.stringify({ data }),
+      })
+    } catch (e) { return res.status(500).json({ error: 'Error guardando usuario' }) }
+    return res.json({ ok: true, bypass: true, token, user: _userPublic(user) })
+  }
+
+  const code = _genOtp()
+  _otpMemory.set(phone, { code, expires: Date.now() + 10 * 60 * 1000, attempts: 0 })
+
+  const msgText = `Tu código de verificación es: *${code}*\n_Válido por 10 minutos._`
+
+  // Intentar enviar por WhatsApp
+  let wappOk = false
+  try {
+    const ctrl = new AbortController()
+    const tid = setTimeout(() => ctrl.abort(), 8000)
+    const r = await fetch(WAPP_URL + '/api/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: phone, text: msgText, typing: true }),
+      signal: ctrl.signal,
+    })
+    clearTimeout(tid)
+    if (r.ok) wappOk = true
+  } catch (e) {
+    console.log('[OTP] WhatsApp no disponible:', e.message)
+  }
+
+  // Fallback por email si WhatsApp falla y hay email
+  let emailOk = false
+  if (!wappOk && email && process.env.RESEND_API_KEY) {
+    try {
+      const { Resend } = require('resend')
+      const resend = new Resend(process.env.RESEND_API_KEY)
+      await resend.emails.send({
+        from: 'VELDOS <noreply@soul-ecommlab.com>',
+        to: email,
+        subject: 'Tu código de verificación',
+        html: `<p>Tu código es: <strong style="font-size:24px;letter-spacing:4px">${code}</strong></p><p>Válido por 10 minutos.</p>`,
+      })
+      emailOk = true
+    } catch (e) {
+      console.log('[OTP] Email fallback falló:', e.message)
+    }
+  }
+
+  if (!wappOk && !emailOk) {
+    // En dev: mostrar código en consola
+    console.log(`[OTP DEV] Código para ${phone}: ${code}`)
+    return res.json({ ok: true, channel: 'dev', dev_code: process.env.NODE_ENV !== 'production' ? code : undefined })
+  }
+
+  res.json({ ok: true, channel: wappOk ? 'whatsapp' : 'email' })
+})
+
+// ── POST /api/identity/verify-otp ───────────────────
+app.post('/api/identity/verify-otp', async (req, res) => {
+  const { wsId, telefono, codigo } = req.body
+  if (!wsId || !telefono || !codigo) return res.status(400).json({ error: 'Faltan campos' })
+
+  const phone = _normalizeAR(telefono)
+  const entry = _otpMemory.get(phone)
+
+  if (!entry) return res.status(400).json({ error: 'No hay código pendiente. Solicitá uno nuevo.' })
+  if (Date.now() > entry.expires) {
+    _otpMemory.delete(phone)
+    return res.status(400).json({ error: 'Código expirado. Solicitá uno nuevo.' })
+  }
+  entry.attempts = (entry.attempts || 0) + 1
+  if (entry.attempts > 5) {
+    _otpMemory.delete(phone)
+    return res.status(400).json({ error: 'Demasiados intentos. Solicitá un nuevo código.' })
+  }
+  if (entry.code !== String(codigo).trim()) {
+    return res.status(400).json({ error: 'Código incorrecto.' })
+  }
+
+  _otpMemory.delete(phone)
+
+  // Buscar o crear usuario en Supabase
+  const supaHeaders = { 'apikey': SUPA_KEY(), 'Authorization': 'Bearer ' + SUPA_KEY(), 'Content-Type': 'application/json', 'Prefer': 'return=representation' }
+
+  let ws
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${encodeURIComponent(wsId)}&select=id,data`, { headers: supaHeaders })
+    const arr = await r.json()
+    ws = arr[0]
+  } catch (e) {
+    return res.status(500).json({ error: 'Error cargando workspace' })
+  }
+  if (!ws) return res.status(404).json({ error: 'Workspace no encontrado' })
+
+  const data = ws.data || {}
+  if (!data.usuarios) data.usuarios = []
+
+  let user = data.usuarios.find(u => u.telefono === phone)
+  const now = new Date().toISOString()
+  if (!user) {
+    user = { id: _genUserId(), telefono: phone, historial: [], fechaAlta: now, ultimaVisita: now }
+    data.usuarios.push(user)
+  } else {
+    user.ultimaVisita = now
+  }
+
+  const token = _genToken()
+  if (!data.tokens) data.tokens = {}
+  data.tokens[token] = { userId: user.id, wsId, createdAt: now }
+
+  try {
+    await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${encodeURIComponent(wsId)}`, {
+      method: 'PATCH',
+      headers: supaHeaders,
+      body: JSON.stringify({ data }),
+    })
+  } catch (e) {
+    return res.status(500).json({ error: 'Error guardando usuario' })
+  }
+
+  res.json({ ok: true, token, user: _userPublic(user) })
+})
+
+// ── GET /api/identity/me ─────────────────────────────
+app.get('/api/identity/me', async (req, res) => {
+  const auth = req.headers.authorization || ''
+  const token = auth.replace('Bearer ', '').trim()
+  const wsId = req.query.wsId
+  if (!token || !wsId) return res.status(401).json({ error: 'No autorizado' })
+
+  const supaHeaders = { 'apikey': SUPA_KEY(), 'Authorization': 'Bearer ' + SUPA_KEY(), 'Content-Type': 'application/json' }
+  let ws
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${encodeURIComponent(wsId)}&select=id,data`, { headers: supaHeaders })
+    const arr = await r.json()
+    ws = arr[0]
+  } catch (e) {
+    return res.status(500).json({ error: 'Error' })
+  }
+  if (!ws) return res.status(404).json({ error: 'Workspace no encontrado' })
+
+  const data = ws.data || {}
+  const tokenEntry = (data.tokens || {})[token]
+  if (!tokenEntry) return res.status(401).json({ error: 'Token inválido' })
+
+  const user = (data.usuarios || []).find(u => u.id === tokenEntry.userId)
+  if (!user) return res.status(404).json({ error: 'Usuario no encontrado' })
+
+  res.json({ ok: true, user: _userPublic(user) })
+})
+
+// ── POST /api/identity/track ─────────────────────────
+app.post('/api/identity/track', async (req, res) => {
+  const auth = req.headers.authorization || ''
+  const token = auth.replace('Bearer ', '').trim()
+  const { wsId, evento, datos } = req.body
+  if (!token || !wsId || !evento) return res.status(400).json({ error: 'Faltan campos' })
+
+  const supaHeaders = { 'apikey': SUPA_KEY(), 'Authorization': 'Bearer ' + SUPA_KEY(), 'Content-Type': 'application/json' }
+  let ws
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${encodeURIComponent(wsId)}&select=id,data`, { headers: supaHeaders })
+    const arr = await r.json()
+    ws = arr[0]
+  } catch (e) {
+    return res.status(500).json({ error: 'Error' })
+  }
+  if (!ws) return res.status(404).json({ error: 'Workspace no encontrado' })
+
+  const data = ws.data || {}
+  const tokenEntry = (data.tokens || {})[token]
+  if (!tokenEntry) return res.status(401).json({ error: 'Token inválido' })
+
+  const user = (data.usuarios || []).find(u => u.id === tokenEntry.userId)
+  if (!user) return res.status(404).json({ error: 'Usuario no encontrado' })
+
+  if (!user.historial) user.historial = []
+  user.historial.push({ evento, datos: datos || {}, ts: new Date().toISOString() })
+  user.ultimaVisita = new Date().toISOString()
+
+  try {
+    await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${encodeURIComponent(wsId)}`, {
+      method: 'PATCH',
+      headers: supaHeaders,
+      body: JSON.stringify({ data }),
+    })
+  } catch (e) {
+    return res.status(500).json({ error: 'Error guardando evento' })
+  }
+
+  const xp = _calcUserScore(user)
+  res.json({ ok: true, xp, nivel: _calcNivel(xp) })
+})
+
+// ── POST /api/identity/journey ───────────────────────
+app.post('/api/identity/journey', async (req, res) => {
+  const { wsId, token, evento, datos, ts } = req.body
+  if (!wsId || !token || !evento) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const ws = await getWorkspace(wsId)
+    const data = ws?.data || {}
+    const tokenEntry = (data.tokens||{})[token]
+    if (!tokenEntry) return res.status(401).json({ error: 'Token inválido' })
+    const user = (data.usuarios||[]).find(u => u.id === tokenEntry.userId)
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' })
+
+    if (!user.journey) user.journey = []
+    const now = ts || new Date().toISOString()
+    const entry = { evento, datos: datos||{}, ts: now }
+    user.journey.push(entry)
+    if (user.journey.length > 1000) user.journey = user.journey.slice(-1000)
+
+    // Update summary fields based on event
+    if (evento === 'session_start') {
+      user.ultimaVisita = now
+      user.totalVisitas = (user.totalVisitas||0) + 1
+      if (datos?.device) user.dispositivo = datos.device
+      if (datos?.utm?.utm_source) user.utmSource = datos.utm.utm_source
+    }
+
+    if (evento === 'heartbeat') {
+      user.tiempoTotalSeg = (user.tiempoTotalSeg||0) + 60
+    }
+
+    if (evento === 'view_product') {
+      if (!user.productosVisitados) user.productosVisitados = []
+      const existing = user.productosVisitados.find(p => p.id === datos?.productoId)
+      if (existing) {
+        existing.vistas = (existing.vistas||1) + 1
+        existing.ultimaVista = now
+      } else {
+        user.productosVisitados.push({ id: datos?.productoId, nombre: datos?.productoNombre, precio: datos?.precio, categoria: datos?.categoria, vistas: 1, ultimaVista: now })
+      }
+      if (user.productosVisitados.length > 100) user.productosVisitados = user.productosVisitados.slice(-100)
+      user.ultimoProductoVisto = datos?.productoNombre
+      user.ultimaVisita = now
+    }
+
+    if (evento === 'add_cart') {
+      user.ultimoCarrito = now
+      user.carritoAbandonado = false
+      user.totalAgregadosCarrito = (user.totalAgregadosCarrito||0) + 1
+    }
+
+    if (evento === 'cart_abandon') {
+      user.carritoAbandonado = true
+      user.ultimoAbandonoCarrito = now
+      user.totalAbandonos = (user.totalAbandonos||0) + 1
+      user.valorAbandonado = datos?.total || 0
+    }
+
+    if (evento === 'purchase') {
+      user.carritoAbandonado = false
+      user.cantCompras = (user.cantCompras||0) + 1
+      user.ultimaCompra = now
+      user.valorTotalCompras = (user.valorTotalCompras||0) + (datos?.total||0)
+      user.ultimaVisita = now
+      // Sync to CRM if phone exists
+      if (user.telefono) {
+        const phone = user.telefono.replace(/\D/g,'')
+        const crmContact = (data.crm||[]).find(c => (c.tel||'').replace(/\D/g,'') === phone)
+        if (crmContact) {
+          crmContact.cantCompras = user.cantCompras
+          crmContact.valorTotal = user.valorTotalCompras
+          crmContact.ultimaCompra = now
+          crmContact.etapa = 'cliente'
+        }
+      }
+    }
+
+    await patchWorkspace(wsId, data)
+    _invalidateWsCache(wsId)
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── GET /api/identity/analytics — aggregate analytics for admin ──
+app.get('/api/identity/analytics', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  res.set('Cache-Control', 'no-store')
+  // Forzar lectura fresca — invalidar caché para ver datos de compras recientes
+  _invalidateWsCache(wsId)
+  try {
+    const ws = await getWorkspace(wsId)
+    const data = ws?.data || {}
+    // Cruzar cantCompras con d.crm para mayor precisión
+    const crmMap = {}
+    ;(data.crm || []).forEach(c => {
+      const tel = (c.tel || '').replace(/\D/g,'')
+      const email = (c.email || '').toLowerCase()
+      const key = tel || email
+      if (key) crmMap[key] = c
+    })
+    const usuarios = (data.usuarios || []).map(u => {
+      // Si el usuario tiene compras en CRM pero no en usuarios, sincronizar
+      const tel = (u.telefono || '').replace(/\D/g,'')
+      const email = (u.email || '').toLowerCase()
+      const crmContact = crmMap[tel] || crmMap[email]
+      if (crmContact && (crmContact.cantCompras || 0) > (u.cantCompras || 0)) {
+        return { ...u, cantCompras: crmContact.cantCompras, valorTotalCompras: crmContact.valorTotal || u.valorTotalCompras }
+      }
+      return u
+    })
+    const now = new Date()
+    const hoy = now.toISOString().slice(0,10)
+    const hace7 = new Date(now-7*864e5).toISOString()
+    const hace30 = new Date(now-30*864e5).toISOString()
+
+    const stats = {
+      totalClientes: usuarios.length,
+      activosHoy: usuarios.filter(u => u.ultimaVisita?.startsWith(hoy)).length,
+      activos7dias: usuarios.filter(u => u.ultimaVisita > hace7).length,
+      activos30dias: usuarios.filter(u => u.ultimaVisita > hace30).length,
+      carritoAbandonado: usuarios.filter(u => u.carritoAbandonado).length,
+      compradores: usuarios.filter(u => u.cantCompras > 0).length,
+      revenueTotal: usuarios.reduce((s,u) => s+(u.valorTotalCompras||0), 0),
+      topProductos: (() => {
+        const map = {}
+        usuarios.forEach(u => (u.productosVisitados||[]).forEach(p => {
+          if (!p || !p.id) return
+          if (!map[p.id]) map[p.id] = { nombre: p.nombre, vistas: 0 }
+          map[p.id].vistas += p.vistas||1
+        }))
+        return Object.values(map).sort((a,b)=>b.vistas-a.vistas).slice(0,10)
+      })(),
+      clientesAbandonaron: usuarios
+        .filter(u => u.carritoAbandonado && u.telefono)
+        .map(u => ({ nombre: u.nombre, tel: u.telefono, valor: u.valorAbandonado, fecha: u.ultimoAbandonoCarrito }))
+        .slice(0,20)
+    }
+    res.json({ ok: true, stats, usuarios: usuarios.map(u => ({
+      id: u.id, nombre: u.nombre, telefono: u.telefono, email: u.email,
+      ultimaVisita: u.ultimaVisita, totalVisitas: u.totalVisitas,
+      cantCompras: u.cantCompras, valorTotalCompras: u.valorTotalCompras,
+      carritoAbandonado: u.carritoAbandonado, ultimoAbandonoCarrito: u.ultimoAbandonoCarrito,
+      productosVisitados: (u.productosVisitados||[]).slice(-10),
+      tiempoTotalMin: Math.round((u.tiempoTotalSeg||0)/60),
+      dispositivo: u.dispositivo, etapa: u.etapa,
+      ultimoProductoVisto: u.ultimoProductoVisto
+    })) })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── POST /api/identity/sync-crm — bidirectional sync ──────────────────
+app.post('/api/identity/sync-crm', async (req, res) => {
+  const { wsId } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const ws = await getWorkspace(wsId)
+    if (!ws) return res.status(404).json({ error: 'WS no encontrado' })
+    const data = ws.data || {}
+    const usuarios = data.usuarios || []
+    if (!data.crm) data.crm = []
+    let synced = 0, created = 0
+
+    usuarios.forEach(u => {
+      const telClean = (u.telefono || '').replace(/\D/g,'')
+      const emailClean = (u.email || '').toLowerCase().trim()
+      if (!telClean && !emailClean) return // sin identificador, no sincronizar
+
+      // Buscar contacto en CRM por tel o email
+      let contact = null
+      if (telClean) contact = data.crm.find(c => (c.tel||'').replace(/\D/g,'') === telClean)
+      if (!contact && emailClean) contact = data.crm.find(c => (c.email||'').toLowerCase().trim() === emailClean)
+
+      if (contact) {
+        // Actualizar contacto existente con datos de identidad
+        // Siempre tomar el máximo de compras (evita regresiones)
+        const uCompras = u.cantCompras || 0
+        const cCompras = parseInt(contact.cantCompras) || 0
+        if (uCompras > cCompras) {
+          contact.cantCompras = uCompras
+          contact.valorTotal = Math.max(parseFloat(contact.valorTotal)||0, u.valorTotalCompras||0)
+          if (u.ultimaCompra) contact.ultimaCompra = u.ultimaCompra
+          contact.etapa = 'cliente'
+        }
+        // Enriquecer contacto con datos faltantes
+        if (!contact.email && emailClean) contact.email = emailClean
+        if (!contact.tel && telClean) contact.tel = telClean
+        if (!contact.nombre && u.nombre) contact.nombre = u.nombre
+        if (u.carritoAbandonado) contact.carritoAbandonado = true
+        if (u.productosVisitados?.length) {
+          contact.productosVisitados = u.productosVisitados.map(p => p.nombre || p).filter(Boolean).slice(0, 10)
+        }
+        synced++
+      } else if (u.cantCompras > 0 || u.nombre) {
+        // Crear nuevo contacto en CRM solo si tiene compras o tiene nombre
+        const nameParts = (u.nombre || '').trim().split(' ')
+        data.crm.push({
+          id: 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,5),
+          nombre: nameParts[0] || '',
+          apellido: nameParts.slice(1).join(' ') || '',
+          email: emailClean,
+          tel: telClean,
+          etapa: u.cantCompras > 0 ? 'cliente' : 'lead',
+          cantCompras: u.cantCompras || 0,
+          valorTotal: u.valorTotalCompras || 0,
+          ultimaCompra: u.ultimaCompra || null,
+          carritoAbandonado: u.carritoAbandonado || false,
+          productosVisitados: (u.productosVisitados||[]).map(p => p.nombre || p).filter(Boolean).slice(0, 10),
+          canal: 'Tienda propia',
+          origen: 'clientes_web',
+          creado: u.fechaAlta || new Date().toISOString().slice(0,10),
+        })
+        created++
+      }
+
+      // Reverse: también actualizar identity user con datos del CRM
+      if (contact) {
+        const cCompras = parseInt(contact.cantCompras) || 0
+        if (cCompras > (u.cantCompras || 0)) {
+          u.cantCompras = cCompras
+          u.valorTotalCompras = Math.max(u.valorTotalCompras||0, parseFloat(contact.valorTotal)||0)
+          if (contact.ultimaCompra) u.ultimaCompra = contact.ultimaCompra
+          u.etapa = 'cliente'
+        }
+      }
+    })
+
+    await patchWorkspace(wsId, data)
+    _invalidateWsCache(wsId)
+    res.json({ ok: true, synced, created, total: usuarios.length })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── GET /api/identity/users (admin) ─────────────────
+app.get('/api/identity/users', async (req, res) => {
+  const wsId = req.query.wsId
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+
+  const supaHeaders = { 'apikey': SUPA_KEY(), 'Authorization': 'Bearer ' + SUPA_KEY(), 'Content-Type': 'application/json' }
+  let ws
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${encodeURIComponent(wsId)}&select=id,data`, { headers: supaHeaders })
+    const arr = await r.json()
+    ws = arr[0]
+  } catch (e) {
+    return res.status(500).json({ error: 'Error' })
+  }
+  if (!ws) return res.status(404).json({ error: 'Workspace no encontrado' })
+
+  const usuarios = ((ws.data || {}).usuarios || []).map(_userPublic)
+  res.json({ ok: true, total: usuarios.length, usuarios })
+})
+
+// ── GET /api/identity/user/:id (admin) ──────────────
+app.get('/api/identity/user/:id', async (req, res) => {
+  const { id } = req.params
+  const wsId = req.query.wsId
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+
+  const supaHeaders = { 'apikey': SUPA_KEY(), 'Authorization': 'Bearer ' + SUPA_KEY(), 'Content-Type': 'application/json' }
+  let ws
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${encodeURIComponent(wsId)}&select=id,data`, { headers: supaHeaders })
+    const arr = await r.json()
+    ws = arr[0]
+  } catch (e) {
+    return res.status(500).json({ error: 'Error' })
+  }
+  if (!ws) return res.status(404).json({ error: 'Workspace no encontrado' })
+
+  const user = ((ws.data || {}).usuarios || []).find(u => u.id === id)
+  if (!user) return res.status(404).json({ error: 'Usuario no encontrado' })
+
+  res.json({ ok: true, user: _userPublic(user) })
+})
+
+// ── PATCH /api/identity/user/:id (admin) ─────────────
+app.patch('/api/identity/user/:id', async (req, res) => {
+  const { id } = req.params
+  const wsId = req.query.wsId
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+
+  const supaHeaders = { 'apikey': SUPA_KEY(), 'Authorization': 'Bearer ' + SUPA_KEY(), 'Content-Type': 'application/json' }
+  let ws
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${encodeURIComponent(wsId)}&select=id,data`, { headers: supaHeaders })
+    const arr = await r.json()
+    ws = arr[0]
+  } catch (e) {
+    return res.status(500).json({ error: 'Error' })
+  }
+  if (!ws) return res.status(404).json({ error: 'Workspace no encontrado' })
+
+  const data = ws.data || {}
+  const idx = (data.usuarios || []).findIndex(u => u.id === id)
+  if (idx === -1) return res.status(404).json({ error: 'Usuario no encontrado' })
+
+  const allowed = ['nombre', 'email', 'notas', 'tags']
+  for (const k of allowed) {
+    if (req.body[k] !== undefined) data.usuarios[idx][k] = req.body[k]
+  }
+
+  try {
+    await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${encodeURIComponent(wsId)}`, {
+      method: 'PATCH',
+      headers: supaHeaders,
+      body: JSON.stringify({ data }),
+    })
+  } catch (e) {
+    return res.status(500).json({ error: 'Error guardando' })
+  }
+
+  res.json({ ok: true, user: _userPublic(data.usuarios[idx]) })
+})
+
+
+// ════════════════════════════════════════════════════
+// STORE ROUTES — /api/store/*
+// ════════════════════════════════════════════════════
+
+// Helper to get tienda sub-data from workspace
+async function getTienda(wsId) {
+  const ws = await getWorkspace(wsId)
+  if (!ws) return null
+  const d = ws.data || {}
+  if (!d.tienda) d.tienda = {}
+  return { ws, d, t: d.tienda }
+}
+
+async function saveTienda(wsId, tienda, d) {
+  const updated = { ...d, tienda }
+  await patchWorkspace(wsId, updated)
+}
+
+// ── GET /api/store/public — public store data for storefront
+app.get('/api/store/public', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  // Sin cache — siempre leer la data más fresca de Supabase
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+  res.set('Pragma', 'no-cache')
+  res.set('Expires', '0')
+  try {
+    const { t } = await getTienda(wsId).then(r => r || {}).catch(() => ({}))
+    if (!t) return res.status(404).json({ error: 'Tienda no encontrada' })
+    const tSettings = t.settings || {}
+    // Construir config pública de PayWay (sin private key) con fallback a env vars
+    const pwCfg = tSettings.payway || {}
+    const paywayPublic = {
+      siteId:     pwCfg.siteId     || process.env.PAYWAY_SITE_ID     || '',
+      templateId: pwCfg.templateId || process.env.PAYWAY_TEMPLATE_ID || '',
+      publicKey:  pwCfg.publicKey  || process.env.PAYWAY_PUBLIC_KEY  || '',
+      sandbox:    pwCfg.sandbox    || false,
+      activo:     !!(pwCfg.siteId || process.env.PAYWAY_SITE_ID),
+    }
+    res.json({
+      settings:  { ...tSettings, payway: paywayPublic },
+      productos: (t.productos || []).filter(p => p.activo !== false),
+      secciones: t.secciones || [],
+      paginas:   (t.paginas  || []).filter(p => p.activo !== false),
+      guias:     t.guias     || [],
+    })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── GET /api/store/products — list all products (admin)
+app.get('/api/store/products', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    res.json({ productos: result.t.productos || [] })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── POST /api/store/products — create product (admin)
+app.post('/api/store/products', async (req, res) => {
+  const { wsId, producto } = req.body
+  if (!wsId || !producto) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const { t, d } = result
+    if (!t.productos) t.productos = []
+    const newProd = { ...producto, id: 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,6), createdAt: new Date().toISOString() }
+    t.productos.push(newProd)
+    await saveTienda(wsId, t, d)
+    res.json({ ok: true, producto: newProd })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── PUT /api/store/products/:id — update product (admin)
+app.put('/api/store/products/:id', async (req, res) => {
+  const { id } = req.params
+  const { wsId, producto } = req.body
+  if (!wsId || !producto) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const { t, d } = result
+    const idx = (t.productos || []).findIndex(p => p.id === id)
+    if (idx === -1) return res.status(404).json({ error: 'Producto no encontrado' })
+    t.productos[idx] = { ...t.productos[idx], ...producto, id, updatedAt: new Date().toISOString() }
+    await saveTienda(wsId, t, d)
+    res.json({ ok: true, producto: t.productos[idx] })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── DELETE /api/store/products/:id — delete product (admin)
+app.delete('/api/store/products/:id', async (req, res) => {
+  const { id } = req.params
+  const { wsId } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const { t, d } = result
+    t.productos = (t.productos || []).filter(p => p.id !== id)
+    await saveTienda(wsId, t, d)
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ════════════════════════════════════════════════════
+// DIFUSION JOBS — persistencia para reanudar envíos
+// ════════════════════════════════════════════════════
+
+// GET /api/store/dif-jobs — obtener jobs del workspace
+app.get('/api/store/dif-jobs', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  res.set('Cache-Control', 'no-store')
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    res.json({ jobs: result.t.difJobs || [] })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// POST /api/store/dif-job — crear o actualizar un job (checkpoint)
+app.post('/api/store/dif-job', async (req, res) => {
+  const { wsId, job } = req.body
+  if (!wsId || !job || !job.id) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const { t, d } = result
+    if (!t.difJobs) t.difJobs = []
+    const idx = t.difJobs.findIndex(j => j.id === job.id)
+    if (idx >= 0) t.difJobs[idx] = { ...t.difJobs[idx], ...job } // merge: preserva indices si el checkpoint no los trae
+    else t.difJobs.push(job)
+    // Conservar solo los últimos 30 jobs
+    if (t.difJobs.length > 30) t.difJobs = t.difJobs.slice(-30)
+    await saveTienda(wsId, t, d)
+    _invalidateWsCache(wsId)
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ════════════════════════════════════════════════════
+// WA QUEUE — cola de mensajes con rate limiting
+// ════════════════════════════════════════════════════
+
+app.get('/api/store/wa-queue', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  res.set('Cache-Control', 'no-store')
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'WS no encontrado' })
+    res.json({ queue: result.t.waQueue || [], config: result.t.waQueueConfig || {} })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+app.post('/api/store/wa-queue', async (req, res) => {
+  const { wsId, queue, config } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'WS no encontrado' })
+    const { t, d } = result
+    if (queue !== undefined) {
+      // Conservar solo pendientes + últimos 200 enviados
+      const sent = (queue || []).filter(i => i.status !== 'pending').slice(-200)
+      const pending = (queue || []).filter(i => i.status === 'pending')
+      t.waQueue = [...pending, ...sent]
+    }
+    if (config !== undefined) t.waQueueConfig = config
+    await saveTienda(wsId, t, d)
+    _invalidateWsCache(wsId)
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── GET /api/store/guias — list size guides
+app.get('/api/store/guias', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    res.json({ guias: result.t.guias || [] })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── POST /api/store/guias — save size guides
+app.post('/api/store/guias', async (req, res) => {
+  const { wsId, guias } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const { t, d } = result
+    t.guias = guias || []
+    await saveTienda(wsId, t, d)
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── POST /api/store/sections — save page builder sections
+app.post('/api/store/sections', async (req, res) => {
+  const { wsId, secciones } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const { t, d } = result
+    t.secciones = secciones || []
+    await saveTienda(wsId, t, d)
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── GET /api/store/settings — read store settings
+app.get('/api/store/settings', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    res.json({ settings: result.t.settings || {} })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── POST /api/store/settings — save store settings
+app.post('/api/store/settings', async (req, res) => {
+  const { wsId, settings } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const { t, d } = result
+    t.settings = { ...(t.settings || {}), ...settings }
+    await saveTienda(wsId, t, d)
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── POST /api/store/capture-contact — direct lead capture (no OTP) ──
+app.post('/api/store/capture-contact', async (req, res) => {
+  const { wsId, nombre, tel, email, utm } = req.body
+  if (!wsId || (!tel && !email)) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const ws = await getWorkspace(wsId)
+    if (!ws) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const data = ws.data || {}
+
+    // ── Upsert CRM contact ──
+    if (!data.crm) data.crm = []
+    const phone = tel ? tel.replace(/\D/g, '') : ''
+    const emailLow = (email || '').toLowerCase().trim()
+    let crmContact = data.crm.find(c =>
+      (phone && c.tel && c.tel.replace(/\D/g, '') === phone) ||
+      (emailLow && c.email && c.email.toLowerCase() === emailLow)
+    )
+    const now = new Date().toISOString().slice(0, 10)
+    const isNewContact = !crmContact
+    if (!crmContact) {
+      crmContact = {
+        id: 'c' + Date.now(),
+        nombre: nombre || '',
+        email: emailLow || '',
+        tel: phone,
+        etapa: 'prospecto',
+        estado: 'Nuevo',
+        tags: ['tienda'],
+        fechaAlta: now,
+        creado: now,
+        ultimoContacto: now,
+        contactos: [{ fecha: now, nota: 'Captura en tienda', tipo: 'auto' }]
+      }
+      data.crm.push(crmContact)
+    } else {
+      if (nombre && !crmContact.nombre) crmContact.nombre = nombre
+      if (emailLow && !crmContact.email) crmContact.email = emailLow
+      if (phone && !crmContact.tel) crmContact.tel = phone
+      crmContact.ultimoContacto = now
+    }
+
+    // ── Upsert "Contactos de Mi Tienda" static list ──
+    if (!data.difListas) data.difListas = []
+    let lista = data.difListas.find(l => l.nombre === 'Contactos de Mi Tienda')
+    if (!lista) {
+      lista = {
+        id: 'dl_tienda',
+        nombre: 'Contactos de Mi Tienda',
+        tipo: 'estatica',
+        filtros: {},
+        contactIds: [],
+        creado: now,
+        ultimaDifusion: null
+      }
+      data.difListas.push(lista)
+    }
+    if (!lista.contactIds) lista.contactIds = []
+    if (!lista.contactIds.includes(crmContact.id)) {
+      lista.contactIds.push(crmContact.id)
+    }
+
+    await patchWorkspace(wsId, data)
+    _invalidateWsCache(wsId)
+    res.json({ ok: true, contactId: crmContact.id })
+
+    // ── Disparar flow new_lead solo para contactos nuevos ─────────────────────
+    if (isNewContact) {
+      _processImmediateFlows(wsId, data, crmContact, ['new_lead'], {})
+        .catch(e2 => console.error('[flows] new_lead error:', e2.message))
+    }
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── POST /api/store/checkout — submit order from storefront
+app.post('/api/store/checkout', async (req, res) => {
+  const { wsId, items, cliente, envio, ecid } = req.body
+  if (!wsId || !items || !cliente) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const { t, d } = result
+
+    const productos = t.productos || []
+    // Compute total
+    let total = 0
+    const lineas = items.map(item => {
+      const p = productos.find(x => x.id === item.id) || {}
+      const precio = Number(p.precio || 0)
+      const cantidad = Number(item.cantidad || 1)
+      total += precio * cantidad
+      return { id: item.id, nombre: p.nombre || item.id, precio, cantidad }
+    })
+
+    // Decrement stock
+    items.forEach(item => {
+      const idx = productos.findIndex(p => p.id === item.id)
+      if (idx >= 0 && productos[idx].stock != null) {
+        productos[idx].stock = Math.max(0, (productos[idx].stock || 0) - Number(item.cantidad || 1))
+      }
+    })
+    t.productos = productos
+
+    // Apply coupon discount if provided
+    const cuponCodigo = req.body.cuponCodigo
+    const descuento = Number(req.body.descuento) || 0
+    if (descuento > 0 && descuento < total) total = Math.max(0, total - descuento)
+
+    // Add shipping cost to total
+    const envioAmt = Number(envio) || 0
+    total = total + envioAmt
+
+    // Save order
+    if (!t.ordenes) t.ordenes = []
+    const numero = (t.ordenes.length || 0) + 1
+    const orden = {
+      id: 'o_' + Date.now().toString(36),
+      numero,
+      cliente,
+      envio: envio || null,
+      metodoEnvio: cliente.envioTipo || (envio != null ? 'envio' : 'retiro'),
+      envioNombre: cliente.envioMethodName || '',
+      lineas,
+      total,
+      estado: 'pendiente',
+      fecha: new Date().toISOString(),
+      cupon: cuponCodigo || undefined,
+      descuento: descuento || undefined,
+      metodoPago: req.body.metodoPago || 'transferencia',
+      ecid: ecid || undefined,
+    }
+    t.ordenes.push(orden)
+
+    // PayWay payment processing
+    const paywayToken = req.body.paywayToken
+    const paywayBin   = req.body.paywayBin || ''
+    const cuotas      = Number(req.body.cuotas) || 1
+    if (paywayToken && t.settings?.payway?.privateKey) {
+      const pw = t.settings.payway
+      const pwUrl = pw.sandbox
+        ? 'https://developers.decidir.com/api/v2/payments'
+        : 'https://live.decidir.com/api/v2/payments'
+      const pwBody = {
+        site_transaction_id: orden.id,
+        token: paywayToken,
+        customer: { id: cliente.tel || cliente.email || 'guest', email: cliente.email || '' },
+        payment_method_id: 1, // PayWay auto-detecta con el bin/token
+        bin: paywayBin,
+        amount: Math.round(total * 100), // centavos
+        currency: 'ARS',
+        installments: cuotas,
+        description: `Pedido #${numero}`,
+        payment_type: 'single',
+        sub_payments: []
+      }
+      if (pw.siteId) pwBody.site_id = String(pw.siteId)
+      try {
+        const pwRes = await fetch(pwUrl, {
+          method: 'POST',
+          headers: { 'apikey': pw.privateKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify(pwBody)
+        })
+        const pwData = await pwRes.json()
+        if (pwData.status === 'approved' || pwData.status === 'pre_approved') {
+          orden.estado = 'pagado'
+          orden.metodoPago = 'tarjeta'
+          orden.paywayId = pwData.id
+        } else {
+          // Pago rechazado — no guardar la orden
+          return res.status(402).json({ error: 'Pago rechazado: ' + (pwData.status_details?.[0]?.response?.message || pwData.status || 'Error') })
+        }
+      } catch(e) {
+        return res.status(500).json({ error: 'Error procesando pago: ' + e.message })
+      }
+    }
+
+    // ── Sincronizar cliente al CRM ──────────────────────────────
+    if (!d.crm) d.crm = []
+    const telClean = (cliente.tel || '').replace(/\D/g, '')
+    const emailClean = (cliente.email || '').toLowerCase().trim()
+    const fechaCompra = new Date().toISOString().slice(0, 10)
+
+    let crmIdx = -1
+    if (telClean) crmIdx = d.crm.findIndex(c => (c.tel || '').replace(/\D/g,'') === telClean)
+    if (crmIdx === -1 && emailClean) crmIdx = d.crm.findIndex(c => (c.email||'').toLowerCase() === emailClean)
+
+    if (crmIdx >= 0) {
+      d.crm[crmIdx].cantCompras = (parseInt(d.crm[crmIdx].cantCompras) || 0) + 1
+      d.crm[crmIdx].valorTotal  = (parseFloat(d.crm[crmIdx].valorTotal) || 0) + total
+      d.crm[crmIdx].ultimaCompra = fechaCompra
+      d.crm[crmIdx].etapa = 'cliente'
+      d.crm[crmIdx].estado = 'Cliente'  // asegurar que estado quede seteado
+      // Deduplicación: mismo teléfono/email = mismo cliente aunque cambie el nombre
+      // → actualizar nombre al más reciente (el de esta compra)
+      if (cliente.nombre) d.crm[crmIdx].nombre = cliente.nombre
+      if (cliente.apellido !== undefined) d.crm[crmIdx].apellido = cliente.apellido || d.crm[crmIdx].apellido || ''
+      if (!d.crm[crmIdx].email && emailClean) d.crm[crmIdx].email = emailClean
+      if (!d.crm[crmIdx].tel && telClean) d.crm[crmIdx].tel = telClean
+    } else {
+      d.crm.push({
+        id: 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,5),
+        nombre: cliente.nombre || '', apellido: cliente.apellido || '',
+        email: emailClean, tel: telClean,
+        estado: 'Cliente', etapa: 'cliente',
+        cantCompras: 1, valorTotal: total, ultimaCompra: fechaCompra,
+        creado: fechaCompra, canal: 'Tienda propia', origen: 'checkout',
+      })
+    }
+
+    // ── FINANZAS: registrar ingreso + costo de mercadería ───────────
+    if (!d.finanzas) d.finanzas = []
+    const productosNombres = lineas.map(l => `${l.nombre}${l.cantidad > 1 ? ' x'+l.cantidad : ''}`).join(', ')
+    const totalUnidades = lineas.reduce((s, l) => s + (l.cantidad || 1), 0)
+    const finId = Date.now().toString(36)
+
+    // Ingreso por ventas
+    d.finanzas.push({
+      id:        'fin_' + finId,
+      tipo:      'ingreso',
+      fecha:     fechaCompra,
+      concepto:  `Venta #${numero} — ${cliente.nombre || 'Cliente'}`,
+      categoria: 'Ventas tienda',
+      monto:     total,
+      medioPago: 'Transferencia',
+      cuotas:    1,
+      unidades:  totalUnidades,
+      notas:     productosNombres,
+      ordenId:   orden.id,
+      ordenNum:  numero,
+    })
+
+    // Costo de mercadería vendida (si los productos tienen costo cargado)
+    let totalCosto = 0
+    lineas.forEach(l => {
+      const prod = productos.find(p => p.id === l.id)
+      if (prod && prod.costo && Number(prod.costo) > 0) {
+        totalCosto += Number(prod.costo) * (l.cantidad || 1)
+      }
+    })
+    if (totalCosto > 0) {
+      d.finanzas.push({
+        id:        'fin_' + finId + '_c',
+        tipo:      'gasto',
+        fecha:     fechaCompra,
+        concepto:  `CMV Venta #${numero} — ${productosNombres}`,
+        categoria: 'Costo de mercadería',
+        monto:     totalCosto,
+        medioPago: '—',
+        cuotas:    1,
+        unidades:  totalUnidades,
+        notas:     `Costo asociado a venta #${numero}`,
+        ordenId:   orden.id,
+        ordenNum:  numero,
+      })
+    }
+
+    // ── CLIENTES WEB (usuarios): actualizar o crear siempre ──────────
+    // Buscar por tel O por email — no requerir tel para sincronizar
+    if (!d.usuarios) d.usuarios = []
+    let userIdx = -1
+    if (telClean) {
+      userIdx = d.usuarios.findIndex(u =>
+        u.telefono && u.telefono.replace(/\D/g,'') === telClean
+      )
+    }
+    if (userIdx === -1 && emailClean) {
+      userIdx = d.usuarios.findIndex(u =>
+        u.email && u.email.toLowerCase() === emailClean
+      )
+    }
+    if (userIdx === -1 && cliente.nombre) {
+      userIdx = d.usuarios.findIndex(u =>
+        u.nombre && u.nombre.toLowerCase() === (cliente.nombre || '').toLowerCase()
+      )
+    }
+
+    const purchaseJourneyEntry = {
+      evento: 'purchase',
+      datos: { ordenId: orden.id, total, items: lineas.length, productos: productosNombres },
+      ts: new Date().toISOString()
+    }
+
+    if (userIdx >= 0) {
+      // Actualizar usuario existente — SIEMPRE sumar compra
+      d.usuarios[userIdx].cantCompras = (d.usuarios[userIdx].cantCompras || 0) + 1
+      d.usuarios[userIdx].valorTotalCompras = (d.usuarios[userIdx].valorTotalCompras || 0) + total
+      d.usuarios[userIdx].ultimaCompra = new Date().toISOString()
+      d.usuarios[userIdx].etapa = 'cliente'
+      d.usuarios[userIdx].carritoAbandonado = false
+      if (!d.usuarios[userIdx].nombre && cliente.nombre) d.usuarios[userIdx].nombre = cliente.nombre
+      if (!d.usuarios[userIdx].email && emailClean) d.usuarios[userIdx].email = emailClean
+      if (!d.usuarios[userIdx].telefono && telClean) d.usuarios[userIdx].telefono = telClean
+      if (!d.usuarios[userIdx].journey) d.usuarios[userIdx].journey = []
+      d.usuarios[userIdx].journey.push(purchaseJourneyEntry)
+      if (d.usuarios[userIdx].journey.length > 500) d.usuarios[userIdx].journey = d.usuarios[userIdx].journey.slice(-500)
+    } else {
+      // Crear nuevo usuario aunque no tenga tel (el email o nombre alcanzan)
+      d.usuarios.push({
+        id: 'u_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,5),
+        telefono: telClean || '',
+        nombre: cliente.nombre || '',
+        email: emailClean || '',
+        etapa: 'cliente',
+        fechaAlta: new Date().toISOString(),
+        ultimaVisita: new Date().toISOString(),
+        ultimaCompra: new Date().toISOString(),
+          cantCompras: 1,
+          valorTotalCompras: total,
+          carritoAbandonado: false,
+          dispositivo: 'web',
+          journey: [{
+            evento: 'purchase',
+            datos: { ordenId: orden.id, total, items: lineas.length },
+            ts: new Date().toISOString()
+          }]
+        })
+    }
+
+    // Auto-sync: asegurar que el CRM tenga los datos correctos de este comprador
+    {
+      const telC = telClean
+      const emailC = emailClean
+      if (telC || emailC) {
+        let crmContact = null
+        if (telC) crmContact = d.crm.find(c => (c.tel||'').replace(/\D/g,'') === telC)
+        if (!crmContact && emailC) crmContact = d.crm.find(c => (c.email||'').toLowerCase() === emailC)
+        // Ya fue creado/actualizado arriba en el bloque CRM — aquí solo aseguramos consistency con d.usuarios
+        const identUser = d.usuarios?.find(u => {
+          const ut = (u.telefono||'').replace(/\D/g,'')
+          const ue = (u.email||'').toLowerCase()
+          return (telC && ut === telC) || (emailC && ue === emailC)
+        })
+        if (crmContact && identUser) {
+          // Mantener CRM en sincronía con identity
+          crmContact.cantCompras = identUser.cantCompras || crmContact.cantCompras
+          crmContact.valorTotal = identUser.valorTotalCompras || crmContact.valorTotal
+          crmContact.ultimaCompra = identUser.ultimaCompra || crmContact.ultimaCompra
+        }
+      }
+    }
+
+    // ── Descontar stock de los productos vendidos ─────────────────────
+    if (lineas && lineas.length > 0) {
+      ;(t.secciones || []).forEach(sec => {
+        ;(sec.productos || []).forEach(prod => {
+          const lineaVendida = lineas.find(l => l.id === prod.id || l.nombre === prod.nombre)
+          if (lineaVendida && prod.stock != null && prod.stock !== '') {
+            const stockActual = parseInt(prod.stock) || 0
+            const qty = lineaVendida.cantidad || 1
+            prod.stock = String(Math.max(0, stockActual - qty))
+          }
+        })
+      })
+      // (stock de t.productos ya fue decrementado al inicio del checkout, no repetir)
+    }
+
+    // ── Email campaign attribution — registrar conversión ──────────────
+    if (ecid && Array.isArray(d.emailCampaigns)) {
+      const camp = d.emailCampaigns.find(c => c.id === ecid)
+      if (camp) {
+        camp.conversions = (camp.conversions || 0) + 1
+        camp.revenue = (camp.revenue || 0) + total
+      }
+    }
+
+    // Capturar referencia al contacto CRM antes de guardar (para flow automation)
+    const _purchaseCrmContact = crmIdx >= 0 ? d.crm[crmIdx] : d.crm[d.crm.length - 1]
+
+    // ── GUARDAR TODO EN UN SOLO patchWorkspace — orden + CRM + finanzas + usuarios ──
+    await saveTienda(wsId, t, d)
+    _invalidateWsCache(wsId)
+
+    // Disparar flows automáticos en background — no bloquea la respuesta al cliente
+    if (_purchaseCrmContact) {
+      _processImmediateFlows(wsId, d, _purchaseCrmContact,
+        ['after_purchase', 'post_purchase', 'payment_confirmed', 'order_placed'],
+        { total, lineas }
+      ).catch(() => {})
+    }
+
+    // Return transfer info from settings
+    const tf = (t.settings || {}).transferencia || {}
+    res.json({ ok: true, numero, nombre: cliente.nombre, total, transferencia: tf, orden })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── GET /api/store/campaigns — list email campaigns with stats
+app.get('/api/store/campaigns', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    res.json({ campaigns: result.d.emailCampaigns || [] })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── POST /api/workspace/save — merge-safe save desde el browser (evita race conditions)
+// Reemplaza el supaUpsert directo del browser — toda escritura pasa por patchWorkspace
+app.post('/api/workspace/save', async (req, res) => {
+  const { wsId, data } = req.body
+  if (!wsId || !data) return res.status(400).json({ error: 'Falta wsId o data' })
+  try {
+    await patchWorkspace(wsId, data)
+    _invalidateWsCache(wsId)
+    res.json({ ok: true })
+  } catch(e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── GET /api/workspace/crm — returns fresh CRM from Supabase for flow computation
+app.get('/api/workspace/crm', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const ws = await getWorkspace(wsId)
+    res.json({ crm: ws?.data?.crm || [] })
+  } catch(e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── GET /api/store/orders — list orders (admin)
+app.get('/api/store/orders', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    res.json({ ordenes: result.t.ordenes || [] })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── PATCH /api/store/orders/:id — update order fields (admin)
+app.patch('/api/store/orders/:id', async (req, res) => {
+  const { id } = req.params
+  const { wsId, estado, metodoEnvio, metodoPago, tags, timeline, preparado, etiquetaGenerada } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const { t, d } = result
+    const idx = (t.ordenes || []).findIndex(o => o.id === id || String(o.numero) === String(id))
+    if (idx === -1) return res.status(404).json({ error: 'Orden no encontrada' })
+    if (estado !== undefined)          t.ordenes[idx].estado          = estado
+    if (metodoEnvio !== undefined)     t.ordenes[idx].metodoEnvio     = metodoEnvio
+    if (metodoPago !== undefined)      t.ordenes[idx].metodoPago      = metodoPago
+    if (tags !== undefined)            t.ordenes[idx].tags            = tags
+    if (timeline !== undefined)        t.ordenes[idx].timeline        = timeline
+    if (preparado !== undefined)       t.ordenes[idx].preparado       = preparado
+    if (etiquetaGenerada !== undefined) t.ordenes[idx].etiquetaGenerada = etiquetaGenerada
+    t.ordenes[idx].updatedAt = new Date().toISOString()
+    await saveTienda(wsId, t, d)
+    res.json({ ok: true, orden: t.ordenes[idx] })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── POST /api/store/products/:id/review — add review to product
+app.post('/api/store/products/:id/review', async (req, res) => {
+  const { id } = req.params
+  const { wsId, review } = req.body
+  if (!wsId || !review) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const { t, d } = result
+    const idx = (t.productos || []).findIndex(p => p.id === id)
+    if (idx === -1) return res.status(404).json({ error: 'Producto no encontrado' })
+    if (!t.productos[idx].reviews) t.productos[idx].reviews = []
+    t.productos[idx].reviews.unshift(review)
+    // Max 100 reviews per product
+    if (t.productos[idx].reviews.length > 100) t.productos[idx].reviews = t.productos[idx].reviews.slice(0, 100)
+    await saveTienda(wsId, t, d)
+    _invalidateWsCache(wsId)
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── POST /api/store/orders/:id/nota — add internal note to order
+app.post('/api/store/orders/:id/nota', async (req, res) => {
+  const { id } = req.params
+  const { wsId, nota } = req.body
+  if (!wsId || !nota) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const { t, d } = result
+    const idx = (t.ordenes || []).findIndex(o => o.id === id || String(o.numero) === String(id))
+    if (idx === -1) return res.status(404).json({ error: 'Orden no encontrada' })
+    if (!t.ordenes[idx].notas) t.ordenes[idx].notas = []
+    t.ordenes[idx].notas.push(nota)
+    t.ordenes[idx].updatedAt = new Date().toISOString()
+    await saveTienda(wsId, t, d)
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ════════════════════════════════════════════════════
+// ANDREANI — /api/andreani/*
+// ════════════════════════════════════════════════════
+
+const ANDREANI_URL = 'https://apis.andreani.com'
+
+async function andreaniLogin(creds) {
+  const basic = Buffer.from(`${creds.usuario}:${creds.clave}`).toString('base64')
+  const r = await fetch(`${ANDREANI_URL}/login`, {
+    method: 'GET',
+    headers: { 'Authorization': `Basic ${basic}` }
+  })
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}))
+    throw new Error(err.message || err.error || 'Credenciales Andreani inválidas')
+  }
+  const xAuth = r.headers.get('x-authorization')
+  if (!xAuth) throw new Error('No se recibió token de Andreani — verificá usuario y clave')
+  return xAuth
+}
+
+// POST /api/andreani/cotizar
+app.post('/api/andreani/cotizar', async (req, res) => {
+  const { wsId, cpDestino, kilos, alto, ancho, largo } = req.body
+  if (!wsId || !cpDestino) return res.status(400).json({ error: 'Faltan campos (wsId, cpDestino)' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const cfg = result.t.settings?.andreani
+    if (!cfg?.usuario || !cfg?.clave) return res.status(400).json({ error: 'Andreani no configurado — ingresá usuario y clave en Checkout' })
+    const token = await andreaniLogin(cfg)
+    const tarBody = {
+      cpDestino: String(cpDestino).padStart(4, '0'),
+      bultos: [{ kilos: Number(kilos) || 0.5, alto: Number(alto) || 10, ancho: Number(ancho) || 15, largo: Number(largo) || 20 }]
+    }
+    if (cfg.contrato) tarBody.contrato = cfg.contrato
+    const r = await fetch(`${ANDREANI_URL}/v2/tarifas`, {
+      method: 'POST',
+      headers: { 'x-authorization': token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(tarBody)
+    })
+    const data = await r.json()
+    if (!r.ok) return res.status(r.status).json({ error: data.message || 'Error Andreani', detail: data })
+    res.json({ ok: true, tarifas: Array.isArray(data) ? data : [data] })
+  } catch(e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// POST /api/andreani/crear-envio
+app.post('/api/andreani/crear-envio', async (req, res) => {
+  const { wsId, ordenId, kilos, alto, ancho, largo, cpDestino, valorDeclarado } = req.body
+  if (!wsId || !ordenId) return res.status(400).json({ error: 'Faltan campos (wsId, ordenId)' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const { t, d } = result
+    const cfg = t.settings?.andreani
+    if (!cfg?.usuario || !cfg?.clave) return res.status(400).json({ error: 'Andreani no configurado' })
+    const orden = (t.ordenes || []).find(o => o.id === ordenId)
+    if (!orden) return res.status(404).json({ error: 'Orden no encontrada' })
+
+    const token = await andreaniLogin(cfg)
+    const rem = cfg.remitente || {}
+    const cliente = orden.cliente || {}
+    const dir = (orden.envio?.direccion) || {}
+
+    const body = {
+      ...(cfg.contrato ? { contrato: cfg.contrato } : {}),
+      remitente: {
+        nombreCompleto: rem.nombre || t.settings?.nombre || 'Remitente',
+        email: rem.email || t.settings?.emailContacto || '',
+        documentoTipo: 'DNI',
+        documentoNumero: rem.dni || '00000000',
+        telefonos: [{ tipo: 'celular', numero: (rem.tel || '').replace(/\D/g, '') }],
+        domicilio: {
+          calle: rem.calle || '',
+          numero: rem.nro || 'S/N',
+          cp: String(rem.cp || '').padStart(4, '0'),
+          localidad: rem.localidad || '',
+          region: rem.provincia || '',
+          pais: 'ARG'
+        }
+      },
+      destinatario: {
+        nombreCompleto: (`${cliente.nombre || ''} ${cliente.apellido || ''}`).trim() || 'Destinatario',
+        email: cliente.email || '',
+        documentoTipo: 'DNI',
+        documentoNumero: cliente.dni || '00000000',
+        telefonos: [{ tipo: 'celular', numero: (cliente.tel || '').replace(/\D/g, '') }],
+        domicilio: {
+          calle: dir.calle || '',
+          numero: dir.nro || 'S/N',
+          cp: String(cpDestino || dir.cp || '').padStart(4, '0'),
+          localidad: dir.ciudad || '',
+          region: dir.provincia || '',
+          pais: 'ARG'
+        }
+      },
+      bultos: [{
+        kilos: Number(kilos) || 0.5,
+        alto: Number(alto) || 10,
+        ancho: Number(ancho) || 15,
+        largo: Number(largo) || 20,
+        volumen: 0,
+        valorDeclarado: Number(valorDeclarado) || orden.total || 0,
+        referencia: `ORD-${orden.numero}`
+      }]
+    }
+
+    const r = await fetch(`${ANDREANI_URL}/v2/ordenes-de-envio`, {
+      method: 'POST',
+      headers: { 'x-authorization': token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    const data = await r.json()
+    if (!r.ok) return res.status(r.status).json({ error: data.message || data.error || 'Error Andreani', detail: data })
+
+    const numeroAndreani = data.numero || data.id || data.nroAndreani || ''
+
+    // Persist tracking on order
+    const idx = t.ordenes.findIndex(o => o.id === ordenId)
+    if (idx >= 0) {
+      t.ordenes[idx].andreani = { numero: numeroAndreani, createdAt: new Date().toISOString() }
+      t.ordenes[idx].estado = 'enviado'
+      t.ordenes[idx].tracking = numeroAndreani
+    }
+    await saveTienda(wsId, t, d)
+    res.json({ ok: true, numero: numeroAndreani })
+  } catch(e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// GET /api/andreani/etiqueta — proxy PDF label to client
+app.get('/api/andreani/etiqueta', async (req, res) => {
+  const { wsId, numero } = req.query
+  if (!wsId || !numero) return res.status(400).json({ error: 'Faltan parámetros' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const cfg = result.t.settings?.andreani
+    if (!cfg?.usuario || !cfg?.clave) return res.status(400).json({ error: 'Andreani no configurado' })
+    const token = await andreaniLogin(cfg)
+    const r = await fetch(`${ANDREANI_URL}/v2/ordenes-de-envio/${encodeURIComponent(numero)}/etiquetas`, {
+      headers: { 'x-authorization': token }
+    })
+    if (!r.ok) return res.status(r.status).send('Error obteniendo etiqueta')
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `attachment; filename="andreani-${numero}.pdf"`)
+    const buf = await r.arrayBuffer()
+    res.end(Buffer.from(buf))
+  } catch(e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── POST /api/store/evento — track storefront analytics event
+app.post('/api/store/evento', async (req, res) => {
+  const { wsId, tipo, sessionId, metadata, contactId } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) { res.json({ ok: true }); return } // silent fail for analytics
+    const { t, d } = result
+    if (!t.eventos) t.eventos = []
+    t.eventos.push({ tipo, sessionId: sessionId || null, metadata: metadata || {}, contactId: contactId || null, ts: new Date().toISOString() })
+    // Keep last 2000 events max
+    if (t.eventos.length > 2000) t.eventos = t.eventos.slice(-2000)
+    await saveTienda(wsId, t, d)
+    res.json({ ok: true })
+  } catch (e) {
+    res.json({ ok: true }) // silent fail for analytics
+  }
+})
+
+// ── GET /api/store/analytics — summary analytics (admin)
+app.get('/api/store/analytics', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.json({ eventos: [], ordenes: [], resumen: {} })
+    const { t } = result
+    const eventos = t.eventos || []
+    const ordenes = t.ordenes || []
+    const totalVentas = ordenes.reduce((s, o) => s + (o.total || 0), 0)
+    res.json({
+      resumen: {
+        totalEventos: eventos.length,
+        totalOrdenes: ordenes.length,
+        totalVentas,
+        visitantes: new Set(eventos.filter(e => e.sessionId).map(e => e.sessionId)).size,
+      },
+      ordenes: ordenes.slice(-50),
+    })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── GET /api/store/analytics/events — raw events + computed funnel (admin)
+app.get('/api/store/analytics/events', async (req, res) => {
+  const { wsId, days } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.json({ eventos: [], funnel: { views:0, carts:0, checkouts:0, orders:0 }, totalViews:0, convRate:0, topProductsViews:[] })
+    const { t } = result
+    const all = t.eventos || []
+    const since = days ? new Date(Date.now() - Number(days) * 864e5).toISOString() : null
+    const filtered = since ? all.filter(e => e.ts >= since) : all
+
+    // ── Funnel ─────────────────────────────────────────────────
+    const views     = filtered.filter(e => e.tipo === 'view_product').length
+    const carts     = filtered.filter(e => e.tipo === 'add_cart').length
+    const checkouts = filtered.filter(e => e.tipo === 'checkout_start').length
+    const abandons  = filtered.filter(e => e.tipo === 'cart_abandon').length
+    const purchases = filtered.filter(e => e.tipo === 'purchase' || e.tipo === 'checkout_complete').length
+    // Sesiones únicas para tasa de conversión
+    const uniqueSessions = new Set(filtered.filter(e => e.sessionId).map(e => e.sessionId)).size
+    const convRate = uniqueSessions > 0 ? purchases / uniqueSessions : 0
+
+    // ── Top productos por vistas ────────────────────────────────
+    const viewMap = {}
+    filtered.filter(e => e.tipo === 'view_product' && e.metadata?.productoNombre).forEach(e => {
+      const n = e.metadata.productoNombre
+      viewMap[n] = (viewMap[n] || 0) + 1
+    })
+    const topProductsViews = Object.entries(viewMap)
+      .map(([nombre, views]) => ({ nombre, views }))
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 10)
+
+    res.json({
+      eventos: filtered.slice(-500),
+      funnel: { views, carts, checkouts, orders: purchases, abandons },
+      totalViews: views,
+      convRate,
+      topProductsViews,
+    })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── POST /api/store/domain — guardar dominio propio ──────────────
+app.post('/api/store/domain', async (req, res) => {
+  const { wsId, domain } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const { t, d } = result
+    if (!t.settings) t.settings = {}
+
+    const cleanDomain = (domain || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '')
+    t.settings.customDomain = cleanDomain || null
+
+    await saveTienda(wsId, t, d)
+    _invalidateWsCache(wsId)
+    // Invalidar caché de dominio
+    if (cleanDomain) _domainCache.delete(cleanDomain)
+
+    // Intentar agregar el dominio a Vercel para SSL automático
+    const vercelToken = process.env.VERCEL_TOKEN || ''
+    if (vercelToken && cleanDomain) {
+      try {
+        await fetch(`https://api.vercel.com/v10/projects/prj_o15setadfvqN4GsFKDCEgm4RbLtV/domains`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + vercelToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: cleanDomain })
+        })
+      } catch(e) { /* No bloquear si Vercel API falla */ }
+    }
+
+    res.json({ ok: true, domain: cleanDomain })
+  } catch(e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── GET /api/store/domain-check — verificar DNS ──────────────────
+app.get('/api/store/domain-check', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'No encontrado' })
+    const domain = result.t.settings?.customDomain || ''
+    if (!domain) return res.json({ ok: false, error: 'No hay dominio configurado' })
+
+    // Verificar que el dominio resuelve a nuestra app
+    const testUrl = `https://${domain}/api/store/ping`
+    try {
+      const r = await fetch(testUrl, { signal: AbortSignal.timeout(8000) })
+      const d = await r.json()
+      if (d.ok) return res.json({ ok: true, domain, status: 'connected' })
+    } catch(e) {}
+
+    // DNS no resuelve todavía
+    res.json({ ok: false, domain, status: 'pending', message: 'El dominio todavía no apunta a este servidor. Puede tardar hasta 24hs en propagarse.' })
+  } catch(e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── GET /api/store/ping — health check para verificación de dominio ──
+app.get('/api/store/ping', (req, res) => res.json({ ok: true }))
+
+// ── POST /api/store/upload — upload image from URL/base64 to Supabase
+app.post('/api/store/upload', async (req, res) => {
+  const { wsId, base64, filename, mimeType } = req.body
+  if (!wsId || !base64) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const buf = Buffer.from(base64, 'base64')
+    const ext = (filename || 'file').split('.').pop() || 'jpg'
+    const name = 'store/' + wsId + '/' + Date.now() + '.' + ext
+    const r = await fetch(`${SUPA_URL}/storage/v1/object/tienda-assets/${name}`, {
+      method: 'POST',
+      headers: { 'apikey': SUPA_KEY(), 'Authorization': 'Bearer ' + SUPA_KEY(), 'Content-Type': mimeType || 'image/jpeg', 'x-upsert': 'true' },
+      body: buf,
+    })
+    if (!r.ok) throw new Error('Error subiendo a storage: ' + r.status)
+    const url = `${SUPA_URL}/storage/v1/object/public/tienda-assets/${name}`
+    res.json({ ok: true, url })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── POST /api/store/upload-binary — binary upload (multipart)
+app.post('/api/store/upload-binary', async (req, res) => {
+  // Reads raw body as buffer
+  const wsId = req.query.wsId || req.headers['x-ws-id'] || ''
+  const ct = req.headers['content-type'] || 'image/jpeg'
+  const fname = req.headers['x-filename'] || ''
+  // Derive extension: prefer x-filename header, then content-type
+  let ext = fname.includes('.') ? fname.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '') : ''
+  if (!ext) {
+    if (ct.includes('png')) ext = 'png'
+    else if (ct.includes('webp')) ext = 'webp'
+    else if (ct.includes('mp4') || ct.includes('mpeg')) ext = 'mp4'
+    else if (ct.includes('quicktime') || ct.includes('mov')) ext = 'mov'
+    else if (ct.includes('webm')) ext = 'webm'
+    else ext = 'jpg'
+  }
+  const name = 'store/' + (wsId || 'shared') + '/' + Date.now() + '.' + ext
+  try {
+    const chunks = []
+    for await (const chunk of req) chunks.push(chunk)
+    const buf = Buffer.concat(chunks)
+    const r = await fetch(`${SUPA_URL}/storage/v1/object/tienda-assets/${name}`, {
+      method: 'POST',
+      headers: { 'apikey': SUPA_KEY(), 'Authorization': 'Bearer ' + SUPA_KEY(), 'Content-Type': ct, 'x-upsert': 'true' },
+      body: buf,
+    })
+    if (!r.ok) { const txt = await r.text(); throw new Error('Storage error: ' + txt) }
+    const url = `${SUPA_URL}/storage/v1/object/public/tienda-assets/${name}`
+    res.json({ ok: true, url })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── Old OTP routes — redirect to new identity system (backward compat)
+app.post('/api/store/otp/send', async (req, res) => {
+  // Forward to identity system
+  const { wsId, tel } = req.body
+  if (!wsId || !tel) return res.status(400).json({ error: 'Faltan campos' })
+  // Use the identity OTP handler internally
+  req.body = { wsId, telefono: tel }
+  // Simulate internal call
+  try {
+    const phone = tel.toString().replace(/\D/g, '')
+    const code = String(Math.floor(100000 + Math.random() * 900000))
+    // Store in memory (reuse _otpMemory if available, else just log)
+    if (typeof _otpMemory !== 'undefined') {
+      _otpMemory.set(phone, { code, expires: Date.now() + 10 * 60 * 1000, attempts: 0 })
+    }
+    console.log('[OTP legacy] code for', phone, ':', code)
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post('/api/store/otp/verify', async (req, res) => {
+  const { wsId, tel, code } = req.body
+  if (!wsId || !tel || !code) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const phone = tel.toString().replace(/\D/g, '')
+    const entry = typeof _otpMemory !== 'undefined' ? _otpMemory.get(phone) : null
+    if (!entry || entry.code !== String(code).trim()) {
+      return res.status(400).json({ error: 'Código incorrecto' })
+    }
+    _otpMemory.delete(phone)
+    res.json({ ok: true, verified: true })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+
+// ── GET /api/store/orders/mine — pedidos del cliente por teléfono
+app.get('/api/store/orders/mine', async (req, res) => {
+  const { wsId, tel } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.json({ ordenes: [] })
+    const phone = (tel || '').replace(/\D/g, '')
+    const ordenes = (result.t.ordenes || []).filter(o => {
+      const t = o.cliente?.tel || o.cliente?.whatsapp || ''
+      return t.replace(/\D/g, '').includes(phone) || phone.includes(t.replace(/\D/g, ''))
+    })
+    res.json({ ordenes })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── POST /api/store/returns — solicitud de cambio/devolución
+app.post('/api/store/returns', async (req, res) => {
+  const { wsId, orderId, tipo, motivo, telefono, nombre, email } = req.body
+  if (!wsId || !orderId || !motivo) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const { t, d } = result
+    if (!t.solicitudes) t.solicitudes = []
+    const sol = {
+      id: 'sol_' + Date.now().toString(36),
+      orderId, tipo: tipo || 'cambio', motivo,
+      telefono: telefono || '', nombre: nombre || '', email: email || '',
+      estado: 'pendiente',
+      fecha: new Date().toISOString(),
+    }
+    t.solicitudes.push(sol)
+    // Buscar orden para referencia
+    const orden = (t.ordenes || []).find(o => o.id === orderId)
+    await saveTienda(wsId, t, d)
+    // Notificar por WhatsApp al vendedor si está configurado
+    const wappVendedor = (t.settings || {}).whatsapp
+    if (wappVendedor && process.env.WAPP_URL) {
+      const msg = `📦 *Nueva solicitud de ${tipo || 'cambio'}*\n\n*De:* ${nombre || telefono}\n*Pedido:* #${orden?.numero || orderId}\n*Motivo:* ${motivo}\n\n_Respondé desde el panel de operaciones._`
+      fetch(process.env.WAPP_URL + '/api/send', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: wappVendedor, text: msg })
+      }).catch(() => {})
+    }
+    // Confirmar al cliente por WhatsApp
+    if (telefono && process.env.WAPP_URL) {
+      const msgCliente = `✅ *Recibimos tu solicitud de ${tipo || 'cambio'}*\n\nHola ${nombre || ''}! Ya registramos tu pedido. Te contactamos a la brevedad para coordinar. ¡Gracias por elegirnos! 🙏`
+      fetch(process.env.WAPP_URL + '/api/send', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: telefono.replace(/\D/g, ''), text: msgCliente })
+      }).catch(() => {})
+    }
+    res.json({ ok: true, id: sol.id })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── GET /api/store/returns — listar solicitudes (admin)
+app.get('/api/store/returns', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.json({ solicitudes: [] })
+    res.json({ solicitudes: result.t.solicitudes || [] })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── PATCH /api/store/returns/:id — actualizar estado (admin)
+app.patch('/api/store/returns/:id', async (req, res) => {
+  const { id } = req.params
+  const { wsId, estado, nota } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const { t, d } = result
+    const idx = (t.solicitudes || []).findIndex(s => s.id === id)
+    if (idx === -1) return res.status(404).json({ error: 'Solicitud no encontrada' })
+    t.solicitudes[idx].estado = estado || t.solicitudes[idx].estado
+    if (nota) t.solicitudes[idx].nota = nota
+    t.solicitudes[idx].updatedAt = new Date().toISOString()
+    await saveTienda(wsId, t, d)
+    res.json({ ok: true, solicitud: t.solicitudes[idx] })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── GET /api/store/pages — páginas (admin)
+app.get('/api/store/pages', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.json({ paginas: [] })
+    res.json({ paginas: result.t.paginas || [] })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── POST /api/store/pages — crear/actualizar página
+app.post('/api/store/pages', async (req, res) => {
+  const { wsId, pagina } = req.body
+  if (!wsId || !pagina) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const { t, d } = result
+    if (!t.paginas) t.paginas = []
+    if (pagina.id) {
+      const idx = t.paginas.findIndex(p => p.id === pagina.id)
+      if (idx >= 0) { t.paginas[idx] = { ...t.paginas[idx], ...pagina }; }
+      else t.paginas.push(pagina)
+    } else {
+      const slug = (pagina.titulo || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 40)
+      t.paginas.push({ ...pagina, id: 'pg_' + Date.now().toString(36), slug: pagina.slug || slug, activo: true })
+    }
+    await saveTienda(wsId, t, d)
+    res.json({ ok: true, paginas: t.paginas })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── DELETE /api/store/pages/:id
+app.delete('/api/store/pages/:id', async (req, res) => {
+  const { id } = req.params
+  const { wsId } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const { t, d } = result
+    t.paginas = (t.paginas || []).filter(p => p.id !== id)
+    await saveTienda(wsId, t, d)
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ════════════════════════════════════════════════════
+// EMAIL — /api/email/*   (usa Resend)
+// ════════════════════════════════════════════════════
+
+function _getResend() {
+  const key = process.env.RESEND_API_KEY
+  if (!key) throw new Error('RESEND_API_KEY no configurado')
+  const { Resend } = require('resend')
+  return new Resend(key)
+}
+
+function _buildFrom(fromName) {
+  // Si hay dominio propio configurado usa ese; si no el sandbox de Resend
+  const domain = process.env.EMAIL_FROM_DOMAIN || 'resend.dev'
+  const user   = process.env.EMAIL_FROM_USER   || 'onboarding'
+  const addr   = `${user}@${domain}`
+  return fromName ? `${fromName} <${addr}>` : addr
+}
+
+// ── POST /api/email/test — envía un email de prueba
+app.post('/api/email/test', async (req, res) => {
+  const { to, subject, html, from, replyTo } = req.body
+  if (!to || !subject || !html) return res.status(400).json({ error: 'Faltan campos: to, subject, html' })
+  try {
+    const resend = _getResend()
+    const payload = {
+      from:    from    || _buildFrom(),
+      to:      [to],
+      subject,
+      html,
+    }
+    if (replyTo) payload.reply_to = replyTo
+    const result = await resend.emails.send(payload)
+    if (result.error) throw new Error(result.error.message || JSON.stringify(result.error))
+    res.json({ ok: true, id: result.data?.id })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── POST /api/email/send — envía un email a un contacto
+app.post('/api/email/send', async (req, res) => {
+  const { to, subject, html, from, replyTo, nombre } = req.body
+  if (!to || !subject || !html) return res.status(400).json({ error: 'Faltan campos: to, subject, html' })
+  try {
+    const resend = _getResend()
+    // Personalizar con nombre si viene
+    const htmlFinal = nombre
+      ? html.replace(/\{nombre\}/g, nombre).replace(/\{name\}/g, nombre)
+      : html
+    const payload = {
+      from:    from    || _buildFrom(),
+      to:      [to],
+      subject: nombre ? subject.replace(/\{nombre\}/g, nombre) : subject,
+      html:    htmlFinal,
+    }
+    if (replyTo) payload.reply_to = replyTo
+    const result = await resend.emails.send(payload)
+    if (result.error) throw new Error(result.error.message || JSON.stringify(result.error))
+    res.json({ ok: true, id: result.data?.id })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── POST /api/email/flow — envía email desde un flow (con variables de contacto)
+app.post('/api/email/flow', async (req, res) => {
+  const { wsId, to, subject, html, from, replyTo, contacto } = req.body
+  if (!to || !subject || !html) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const resend = _getResend()
+    // Reemplazar todas las variables {nombre}, {apellido}, etc.
+    const vars = contacto || {}
+    const replace = (s) => s
+      .replace(/\{nombre\}/g,      vars.nombre      || '')
+      .replace(/\{apellido\}/g,    vars.apellido     || '')
+      .replace(/\{email\}/g,       vars.email        || '')
+      .replace(/\{tel\}/g,         vars.tel          || '')
+      .replace(/\{ultimaCompra\}/g,vars.ultimaCompra || '')
+      .replace(/\{cantCompras\}/g, String(vars.cantCompras || 0))
+      .replace(/\{valor\}/g,       String(vars.valorTotal  || 0))
+      .replace(/\{etapa\}/g,       vars.etapa        || '')
+    // Determine from address: workspace settings > env vars > sandbox
+    let resolvedFrom = from
+    if (!resolvedFrom && wsId) {
+      try {
+        const ws = await getWorkspace(wsId)
+        const emailSettings = { ...(ws?.data?.tienda?.settings || {}), ...(ws?.data?.store?.settings || {}) }
+        const fromDomain = emailSettings.emailFromDomain || process.env.EMAIL_FROM_DOMAIN || 'resend.dev'
+        const fromUser = emailSettings.emailFromUser || process.env.EMAIL_FROM_USER || 'onboarding'
+        const fromName = emailSettings.emailFromName || ''
+        const addr = `${fromUser}@${fromDomain}`
+        resolvedFrom = fromName ? `${fromName} <${addr}>` : addr
+      } catch(e) { resolvedFrom = _buildFrom() }
+    }
+    if (!resolvedFrom) resolvedFrom = _buildFrom()
+    const payload = {
+      from:    resolvedFrom,
+      to:      [to],
+      subject: replace(subject),
+      html:    replace(html),
+    }
+    if (replyTo) payload.reply_to = replyTo
+    const result = await resend.emails.send(payload)
+    if (result.error) throw new Error(result.error.message || JSON.stringify(result.error))
+    res.json({ ok: true, id: result.data?.id })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// Tienda pública — debe estar ANTES del catch-all
+app.get('/tienda', (req, res) => {
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+  res.set('Pragma', 'no-cache')
+  res.set('Expires', '0')
+  res.sendFile(__dirname + '/views/tienda.html')
+})
+
+// ══════════════════════════════════════════════════════════════
+// ── GOOGLE DRIVE INTEGRATION ────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+const GDRIVE_CLIENT_ID     = () => (process.env.GDRIVE_CLIENT_ID     || '').trim()
+const GDRIVE_CLIENT_SECRET = () => (process.env.GDRIVE_CLIENT_SECRET || '').trim()
+const GDRIVE_REDIRECT      = () => (process.env.GDRIVE_REDIRECT || (APP_BASE_URL() + '/api/drive/callback')).trim()
+
+// Refresh a Google access token using a refresh token
+async function _driveRefreshToken(refreshToken) {
+  const r = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: GDRIVE_CLIENT_ID(),
+      client_secret: GDRIVE_CLIENT_SECRET(),
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token'
+    }).toString()
+  })
+  const d = await r.json()
+  if (!d.access_token) throw new Error('No se pudo refrescar el token de Drive')
+  return d.access_token
+}
+
+// Helper: get a valid access token for Drive (refreshes if needed)
+async function _driveAccessToken(wsId) {
+  const ws = await getWorkspace(wsId)
+  if (!ws) throw new Error('Workspace no encontrado')
+  const di = ws.data?.driveIntegration
+  if (!di?.accessToken && !di?.refreshToken) throw new Error('Drive no conectado')
+  let token = di.accessToken
+  // If no access token or looks expired, try refresh
+  if (!token && di.refreshToken) {
+    token = await _driveRefreshToken(di.refreshToken)
+    const d2 = ws.data || {}
+    d2.driveIntegration = { ...di, accessToken: token }
+    await patchWorkspace(wsId, d2)
+  }
+  return { token, ws }
+}
+
+// GET /api/drive/connect — start OAuth
+app.get('/api/drive/connect', (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).send('Falta wsId')
+  if (!GDRIVE_CLIENT_ID()) return res.status(500).send('GDRIVE_CLIENT_ID no configurado')
+  const params = new URLSearchParams({
+    client_id: GDRIVE_CLIENT_ID(),
+    redirect_uri: GDRIVE_REDIRECT(),
+    response_type: 'code',
+    scope: 'https://www.googleapis.com/auth/drive.readonly',
+    access_type: 'offline',
+    prompt: 'consent',
+    state: wsId
+  })
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`)
+})
+
+// GET /api/drive/callback — OAuth callback
+app.get('/api/drive/callback', async (req, res) => {
+  const { code, state: wsId, error } = req.query
+  if (error) return res.redirect(`/?driveOAuth=error&msg=${encodeURIComponent(error)}`)
+  if (!code || !wsId) return res.redirect('/?driveOAuth=error&msg=missing_params')
+  try {
+    const r = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: GDRIVE_CLIENT_ID(),
+        client_secret: GDRIVE_CLIENT_SECRET(),
+        redirect_uri: GDRIVE_REDIRECT(),
+        grant_type: 'authorization_code',
+        code
+      }).toString()
+    })
+    const d = await r.json()
+    if (!d.access_token) throw new Error(d.error_description || 'Token inválido')
+    const ws = await getWorkspace(wsId)
+    if (!ws) throw new Error('Workspace no encontrado')
+    const data = ws.data || {}
+    data.driveIntegration = {
+      accessToken: d.access_token,
+      refreshToken: d.refresh_token || data.driveIntegration?.refreshToken || '',
+      connectedAt: new Date().toISOString()
+    }
+    await patchWorkspace(wsId, data)
+    res.redirect(`/?driveOAuth=ok&wsId=${encodeURIComponent(wsId)}`)
+  } catch(e) {
+    console.error('[Drive OAuth]', e.message)
+    res.redirect(`/?driveOAuth=error&msg=${encodeURIComponent(e.message)}`)
+  }
+})
+
+// GET /api/drive/files — list image/video files from Drive
+app.get('/api/drive/files', async (req, res) => {
+  const { wsId, folderId, pageToken, search } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const { token, ws } = await _driveAccessToken(wsId)
+    const mimeFilter = "(mimeType contains 'image/' or mimeType contains 'video/') and trashed = false"
+    const searchFilter = search ? ` and name contains '${search.replace(/'/g, "\\'")}'` : ''
+    const folderFilter = folderId ? ` and '${folderId}' in parents` : ''
+    const params = new URLSearchParams({
+      fields: 'files(id,name,mimeType,thumbnailLink,modifiedTime,size,parents),nextPageToken',
+      orderBy: 'modifiedTime desc',
+      pageSize: '48',
+      q: mimeFilter + folderFilter + searchFilter,
+    })
+    if (pageToken) params.set('pageToken', pageToken)
+    const r = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    const d = await r.json()
+    // If 401, try token refresh
+    if (d.error?.code === 401) {
+      const refreshToken = ws.data?.driveIntegration?.refreshToken
+      if (!refreshToken) return res.status(401).json({ error: 'Token expirado, reconectá Drive' })
+      const newToken = await _driveRefreshToken(refreshToken)
+      const wsData = ws.data || {}
+      wsData.driveIntegration = { ...wsData.driveIntegration, accessToken: newToken }
+      await patchWorkspace(wsId, wsData)
+      const r2 = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
+        headers: { Authorization: `Bearer ${newToken}` }
+      })
+      const d2 = await r2.json()
+      if (d2.error) return res.status(400).json({ error: d2.error.message })
+      return res.json({ files: d2.files || [], nextPageToken: d2.nextPageToken || null })
+    }
+    if (d.error) return res.status(400).json({ error: d.error.message })
+    res.json({ files: d.files || [], nextPageToken: d.nextPageToken || null })
+  } catch(e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// GET /api/drive/thumbnail — proxy a Drive file thumbnail
+app.get('/api/drive/thumbnail', async (req, res) => {
+  const { wsId, fileId } = req.query
+  if (!wsId || !fileId) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const { token } = await _driveAccessToken(wsId)
+    const metaR = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=thumbnailLink,mimeType,name`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    const meta = await metaR.json()
+    if (meta.error) return res.status(404).send('Sin thumbnail')
+    if (meta.thumbnailLink) {
+      return res.redirect(meta.thumbnailLink.replace(/=s\d+$/, '=s400'))
+    }
+    res.status(404).send('Sin thumbnail')
+  } catch(e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// POST /api/drive/to-meta — download Drive file and upload to Meta Ads as image
+app.post('/api/drive/to-meta', async (req, res) => {
+  const { wsId, fileId, fileName } = req.body
+  if (!wsId || !fileId) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const { token, ws } = await _driveAccessToken(wsId)
+
+    // Get file metadata
+    const metaR = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=name,mimeType,size`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    const meta = await metaR.json()
+    if (meta.error) throw new Error(meta.error.message)
+    const mimeType = meta.mimeType || 'image/jpeg'
+    const name = fileName || meta.name || 'archivo'
+
+    // Check size (Meta limit: 30MB for images, 1GB for video - we cap at 30MB here)
+    if (parseInt(meta.size || 0) > 31457280) throw new Error('Archivo demasiado grande (máx 30MB)')
+
+    // Download file binary
+    const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (!fileRes.ok) throw new Error('No se pudo descargar el archivo de Drive')
+
+    // Convert to base64
+    const buffer = await fileRes.arrayBuffer()
+    const base64 = Buffer.from(buffer).toString('base64')
+
+    // Upload to Meta via existing upload-image logic
+    const metaAccess = ws.data?.metaIntegration?.accessToken
+    const adAccountId = ws.data?.metaIntegration?.adAccountId
+    if (!metaAccess || !adAccountId) throw new Error('Meta Ads no conectado')
+
+    const accountId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`
+    const uploadRes = await fetch(`https://graph.facebook.com/v21.0/${accountId}/adimages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bytes: base64, access_token: metaAccess, name })
+    })
+    const uploadData = await uploadRes.json()
+    if (uploadData.error) throw new Error(uploadData.error.message)
+
+    // Extract hash from response
+    const images = uploadData.images || {}
+    const firstKey = Object.keys(images)[0]
+    const hash = images[firstKey]?.hash || null
+    const url  = images[firstKey]?.url  || null
+
+    res.json({ ok: true, hash, url, name })
+  } catch(e) {
+    console.error('[Drive→Meta]', e.message)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// POST /api/drive/disconnect — remove Drive credentials
+app.post('/api/drive/disconnect', async (req, res) => {
+  const { wsId } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const ws = await getWorkspace(wsId)
+    if (!ws) return res.status(404).json({ error: 'WS no encontrado' })
+    const data = ws.data || {}
+    delete data.driveIntegration
+    await patchWorkspace(wsId, data)
+    res.json({ ok: true })
+  } catch(e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── Helpers server-side para computar tareas de flows (replica lógica client-side) ──────────────
+
+function _daysBetweenServer(dateStr, today) {
+  const d1 = new Date(dateStr), d2 = new Date(today)
+  if (isNaN(d1) || isNaN(d2)) return null
+  return Math.floor((d2 - d1) / 86400000)
+}
+
+function _addDaysServer(dateStr, days) {
+  const d = new Date(dateStr)
+  d.setDate(d.getDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
+function _flowStepOffsetServer(steps, targetIdx) {
+  let offset = 0
+  for (let i = 0; i < targetIdx; i++) {
+    const s = steps[i]
+    if (s && s.type === 'wait') {
+      const val = Number(s.value || 0)
+      const unit = s.unit || 'days'
+      offset += unit === 'minutes' ? val * 60000 : unit === 'hours' ? val * 3600000 : val * 86400000
+    }
+  }
+  return offset
+}
+
+// Calcula todas las tareas de flows pendientes para un workspace dado
+// Replica la lógica de computeFlowTasks() del browser
+function _computeFlowTasksServer(d) {
+  const today = new Date().toISOString().slice(0, 10)
+  const flowDone = d.flowDone || {}
+  const tasks = []
+
+  ;(d.flows || []).forEach(f => {
+    if (!f.enabled) return
+    const trig = f.trigger || {}
+    const delayVal = trig.delayValue != null ? Number(trig.delayValue) : Number(trig.days || 0)
+    const delayUnit = trig.delayUnit || 'dias'
+    const delayMs = delayUnit === 'minutos' ? delayVal * 60000 : delayUnit === 'horas' ? delayVal * 3600000 : delayVal * 86400000
+    const delayDays = Math.round(delayMs / 86400000)
+    const trigType = trig.type
+
+    ;(d.crm || []).forEach(c => {
+      if (f.filter?.estados?.length) {
+        const estado = c.estado || 'Cliente'
+        if (!f.filter.estados.includes(estado)) return
+      }
+
+      let triggerKey = null, entryDate = null
+
+      if ((trigType === 'after_purchase' || trigType === 'post_purchase' || trigType === 'payment_confirmed' || trigType === 'order_placed') && c.ultimaCompra) {
+        const diff = _daysBetweenServer(c.ultimaCompra, today)
+        if (diff !== null && diff >= delayDays) {
+          const prefixMap = { post_purchase: 'pp', payment_confirmed: 'pc', order_placed: 'op' }
+          const pfx = prefixMap[trigType]
+          triggerKey = pfx ? `${pfx}_${c.ultimaCompra}` : c.ultimaCompra
+          entryDate = _addDaysServer(c.ultimaCompra, delayDays)
+        }
+      } else if (trigType === 'new_lead' && c.creado) {
+        const diff = _daysBetweenServer(c.creado, today)
+        if (diff !== null && diff >= delayDays) {
+          triggerKey = `nl_${c.creado}`
+          entryDate = _addDaysServer(c.creado, delayDays)
+        }
+      } else if (trigType === 'cart_abandon' && c.cartDate) {
+        const diff = _daysBetweenServer(c.cartDate, today)
+        if (diff !== null && diff >= delayDays) {
+          triggerKey = `ca_${c.cartDate}`
+          entryDate = _addDaysServer(c.cartDate, delayDays)
+        }
+      } else if (trigType === 'after_creation' && c.creado) {
+        const diff = _daysBetweenServer(c.creado, today)
+        if (diff !== null && diff >= delayDays) {
+          triggerKey = c.creado
+          entryDate = _addDaysServer(c.creado, delayDays)
+        }
+      } else if (trigType === 'no_contact') {
+        const ref = c.ultimoContacto || c.creado
+        if (ref && delayDays > 0) {
+          const diff = _daysBetweenServer(ref, today)
+          if (diff !== null && diff >= delayDays) {
+            triggerKey = `nc_${ref}`
+            entryDate = _addDaysServer(ref, delayDays)
+          }
+        }
+      } else if (trigType === 'birthday' && c.cumpleanos) {
+        const bday = c.cumpleanos.slice(5, 10)
+        const todayMD = today.slice(5, 10)
+        if (bday === todayMD) {
+          triggerKey = `bday_${today}`
+          entryDate = today
+        }
+      }
+
+      if (!triggerKey || !entryDate) return
+      if (!f.steps?.length) return
+
+      for (let si = 0; si < f.steps.length; si++) {
+        const step = f.steps[si]
+        const isWA    = step.type === 'message' && step.action === 'whatsapp'
+        const isEmail = step.type === 'email'
+        const isBoth  = step.type === 'both'
+        if (!isWA && !isEmail && !isBoth) continue
+
+        const offsetMs = _flowStepOffsetServer(f.steps, si)
+        const [ey, em, ed] = entryDate.slice(0, 10).split('-').map(Number)
+        const dueTs = new Date(ey, em - 1, ed).getTime() + offsetMs
+        if (Date.now() < dueTs) continue
+
+        const cid = c.id || (c.tel || '').replace(/\D/g,'') || (c.email || '').replace(/[^a-z0-9]/gi,'') || 'anon'
+        const key = `${f.id}|${cid}|${triggerKey}|step${si}`
+        if (flowDone[key]) continue
+
+        tasks.push({ f, c, step, si, key, trigType, isWA, isEmail, isBoth })
+      }
+    })
+  })
+
+  return tasks
+}
+
+// POST /api/flows/test — dispara flows manualmente para un contacto (debug/test)
+app.post('/api/flows/test', async (req, res) => {
+  const { wsId, contactId, triggerTypes } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const ws = await getWorkspace(wsId)
+    if (!ws) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const d = ws.data || {}
+
+    // Si no viene contactId, usar el primero del CRM
+    const contact = contactId
+      ? (d.crm || []).find(c => c.id === contactId)
+      : (d.crm || [])[0]
+    if (!contact) return res.status(404).json({ error: 'Contacto no encontrado' })
+
+    const types = triggerTypes || ['after_purchase', 'post_purchase', 'payment_confirmed', 'order_placed', 'new_lead']
+
+    // Diagnóstico rápido antes de ejecutar
+    const allFlows = d.flows || []
+    const enabled  = allFlows.filter(f => f.enabled === true || f.enabled === 'true')
+    const matching = enabled.filter(f => types.includes(f.trigger?.type))
+    const noDelay  = matching.filter(f => {
+      const dv = f.trigger?.delayValue != null ? Number(f.trigger.delayValue) : Number(f.trigger?.days || 0)
+      const du = f.trigger?.delayUnit || 'dias'
+      const ms = du === 'minutos' ? dv*60000 : du === 'horas' ? dv*3600000 : dv*86400000
+      return ms === 0
+    })
+
+    const getDelay = f => {
+      const dv = f.trigger?.delayValue != null ? Number(f.trigger.delayValue) : Number(f.trigger?.days || 0)
+      const du = f.trigger?.delayUnit || 'dias'
+      const ms = du === 'minutos' ? dv*60000 : du === 'horas' ? dv*3600000 : dv*86400000
+      return { dv, du, ms }
+    }
+    const diagBefore = {
+      totalFlows: allFlows.length,
+      enabledFlows: enabled.length,
+      matchingTrigger: matching.length,
+      zeroDelayReady: noDelay.length,
+      contact: { id: contact.id, nombre: contact.nombre, tel: contact.tel, email: contact.email, ultimaCompra: contact.ultimaCompra, creado: contact.creado },
+      allFlowsDetail: allFlows.map(f => {
+        const { dv, du, ms } = getDelay(f)
+        return {
+          id: f.id, name: f.name,
+          enabled: f.enabled,
+          trigger: f.trigger?.type,
+          delay: `${dv} ${du}`,
+          delayMs: ms,
+          steps: (f.steps||[]).map(s=>({type:s.type,action:s.action})),
+          flowDoneKeys: Object.keys(d.flowDone||{}).filter(k=>k.startsWith(f.id+'|'))
+        }
+      })
+    }
+
+    await _processImmediateFlows(wsId, d, contact, types, { total: 0, lineas: [] })
+
+    // Leer historial actualizado
+    const freshWs2 = await getWorkspace(wsId)
+    const freshHistory = (freshWs2?.data?.flowHistory || []).slice(-10)
+
+    res.json({ ok: true, diag: diagBefore, recentHistory: freshHistory })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// POST /api/flows/force-cron — ejecuta el cron inmediatamente para un workspace (para testing/debug)
+// Muestra exactamente qué tareas encontró, qué intentó enviar, y el resultado de cada una
+app.post('/api/flows/force-cron', async (req, res) => {
+  const { wsId } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const ws = await getWorkspace(wsId)
+    if (!ws) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const d = ws.data || {}
+
+    const tasks = _computeFlowTasksServer(d)
+    const taskSummary = tasks.map(t => ({
+      flow: t.f.name || t.f.id,
+      contact: t.c.nombre || t.c.tel || t.c.email || t.key,
+      tel: t.c.tel, email: t.c.email,
+      type: t.isWA ? 'whatsapp' : t.isEmail ? 'email' : 'both',
+      key: t.key,
+      template: (t.step.template || t.step.templateWA || t.step.templateEmail || '').slice(0, 80)
+    }))
+
+    if (!tasks.length) {
+      return res.json({ ok: true, message: 'No hay tareas pendientes para este workspace', tasks: [] })
+    }
+
+    // Ejecutar las tareas usando la misma lógica del cron real
+    // (internamente llama al cron endpoint con ?wsId=)
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : `http://localhost:${process.env.PORT || 3000}`
+    const cronSecret = process.env.CRON_SECRET || ''
+    const cronRes = await fetch(`${baseUrl}/api/flows/cron?wsId=${wsId}${cronSecret ? '&secret='+cronSecret : ''}`)
+    const cronData = await cronRes.json().catch(() => ({}))
+
+    const freshWs = await getWorkspace(wsId)
+    const recentHistory = (freshWs?.data?.flowHistory || []).slice(-15)
+
+    res.json({ ok: true, foundTasks: taskSummary, cronResult: cronData, recentHistory })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// GET /api/flows/cron — procesa flows pendientes con delay > 0 para todos los workspaces
+// Llamado diariamente por cron (Vercel Cron o cron-job.org)
+// Seguridad: requiere header x-cron-secret o query ?secret= igual a CRON_SECRET del entorno
+app.get('/api/flows/cron', async (req, res) => {
+  const cronSecret = process.env.CRON_SECRET
+  const provided = req.headers['x-cron-secret'] || req.query.secret
+  if (cronSecret && provided !== cronSecret) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  const cronStart = Date.now()
+  let totalSent = 0, totalFailed = 0, totalSkipped = 0, wsProcessed = 0
+  const errors = []
+
+  try {
+    // Si se pasa wsId directo, procesar solo ese workspace
+    const targetWsId = req.query.wsId || null
+    let workspaces = []
+
+    if (targetWsId) {
+      const ws = await getWorkspace(targetWsId)
+      if (ws) workspaces = [{ id: targetWsId, data: ws.data }]
+    } else {
+      // Traer en lotes pequeños — máximo 30 workspaces por run
+      const pageSize = parseInt(req.query.limit || '30')
+      const offset   = parseInt(req.query.offset || '0')
+      const rPage = await fetch(
+        `${SUPA_URL}/rest/v1/workspaces?select=id,data&limit=${pageSize}&offset=${offset}`,
+        { headers: { 'apikey': SUPA_KEY(), 'Authorization': 'Bearer ' + SUPA_KEY() } }
+      )
+      if (!rPage.ok) throw new Error('Error fetching workspaces: ' + rPage.status)
+      workspaces = await rPage.json()
+    }
+
+    const TIME_BUDGET_MS = 22000
+
+    for (const ws of workspaces) {
+      if (Date.now() - cronStart > TIME_BUDGET_MS) {
+        console.log(`[cron] Presupuesto de tiempo alcanzado — procesados ${wsProcessed} workspaces`)
+        break
+      }
+
+      if (!ws?.data) continue
+      const d = ws.data
+
+      const hasFlows = (d.flows || []).some(f => f.enabled === true || f.enabled === 'true')
+      if (!hasFlows) continue
+
+      const hasCrm = (d.crm || []).length > 0
+      if (!hasCrm) continue
+
+      wsProcessed++
+
+      try {
+        const tasks = _computeFlowTasksServer(d)
+        if (!tasks.length) continue
+        // Limitar tasks por workspace para no agotar el timeout de Vercel (30s)
+        const MAX_TASKS_PER_WS = 20 // paralelo: 20 WA concurrentes = ~6s total en vez de ~120s secuencial
+        if (tasks.length > MAX_TASKS_PER_WS) {
+          console.log(`[cron] ws ${ws.id}: ${tasks.length} tasks, procesando primeras ${MAX_TASKS_PER_WS}`)
+          tasks.length = MAX_TASKS_PER_WS
+        }
+
+        if (!d.flowDone) d.flowDone = {}
+        if (!d.flowHistory) d.flowHistory = []
+        let changed = false
+
+        const today = new Date().toISOString().slice(0, 10)
+
+        const _applyVarsCron = (str, c, trig) => {
+          const ultimaCompra = c.ultimaCompra || today
+          const delayVal = trig.delayValue != null ? Number(trig.delayValue) : Number(trig.days || 0)
+          const delayUnit = trig.delayUnit || 'dias'
+          const delayMs = delayUnit === 'minutos' ? delayVal * 60000 : delayUnit === 'horas' ? delayVal * 3600000 : delayVal * 86400000
+          const valorStr = c.valorTotal ? '$' + Math.round(c.valorTotal).toLocaleString('es-AR') : ''
+          return (str || '')
+            .replace(/\{nombre\}/gi, c.nombre || '')
+            .replace(/\{apellido\}/gi, c.apellido || '')
+            .replace(/\{ultimaCompra\}/gi, ultimaCompra.split('-').reverse().join('/'))
+            .replace(/\{cantCompras\}/gi, String(c.cantCompras || 1))
+            .replace(/\{valor\}/gi, valorStr)
+            .replace(/\{dias\}/gi, String(Math.round(delayMs / 86400000)))
+        }
+
+        const _pushHistoryCron = (f, c, key, channel, status, mensaje, error) => {
+          d.flowHistory.push({
+            id: 'fh_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 5),
+            date: new Date().toISOString(),
+            flowId: f.id, flowName: f.name || f.id,
+            contactId: c.id || '', contactNombre: c.nombre || '',
+            contactTel: c.tel || '', contactEmail: c.email || '',
+            channel, status, error: error || null,
+            mensaje: (mensaje || '').slice(0, 300),
+            flowDoneKey: key, origen: 'cron'
+          })
+          changed = true
+        }
+
+        // Ejecutar todas las tareas en PARALELO — así 10 WA de 6s = 6s total, no 60s
+        await Promise.allSettled(tasks.map(async task => {
+          const { f, c, step, si, key, isWA, isEmail, isBoth } = task
+          const trig = f.trigger || {}
+
+          if (isWA || isBoth) {
+            const phone = (c.tel || '').replace(/\D/g, '')
+            const rawMsg = step.template || step.templateWA || ''
+            if (!rawMsg || !phone) { totalSkipped++; return }
+            const text = _applyVarsCron(rawMsg, c, trig)
+            const failKey = key + '|wafail'
+            const failCount = d.flowDone[failKey] || 0
+            if (failCount >= 3) {
+              if (!d.flowDone[key]) { d.flowDone[key] = -1; changed = true }
+              totalSkipped++
+              return
+            }
+            try {
+              await _serverSendWa(d, phone, text, step.waProviderId)
+              d.flowDone[key] = Date.now()
+              delete d.flowDone[failKey]
+              _pushHistoryCron(f, c, key, 'whatsapp', 'sent', text, null)
+              totalSent++
+              console.log(`[cron] WA enviado → flow "${f.name || f.id}" → ${c.nombre || phone}`)
+            } catch (e) {
+              d.flowDone[failKey] = (d.flowDone[failKey] || 0) + 1
+              changed = true
+              _pushHistoryCron(f, c, key, 'whatsapp', 'failed', text, e.message)
+              totalFailed++
+              console.error(`[cron] WA error (intento ${(d.flowDone[failKey]||0)}/3) → flow "${f.name || f.id}" → ${c.nombre || phone}: ${e.message}`)
+            }
+          }
+
+          if (isEmail || isBoth) {
+            if (step.autoSend === false) { totalSkipped++; return }
+            const email = (c.email || '').trim()
+            const rawBody = step.template || step.templateEmail || ''
+            const rawSubject = step.subject || ''
+            if (!process.env.RESEND_API_KEY) {
+              _pushHistoryCron(f, c, key, 'email', 'failed', rawSubject, 'RESEND_API_KEY no configurado')
+              totalFailed++
+              return
+            }
+            if (!rawBody || !email) { totalSkipped++; return }
+            const bodyText = _applyVarsCron(rawBody, c, trig)
+            const subjectText = _applyVarsCron(rawSubject, c, trig) || 'Mensaje automático'
+            try {
+              const resend = _getResend()
+              const emailSettings = { ...(d.tienda?.settings || {}), ...(d.store?.settings || {}) }
+              const fromDomain = emailSettings.emailFromDomain || process.env.EMAIL_FROM_DOMAIN || 'resend.dev'
+              const fromUser   = emailSettings.emailFromUser   || process.env.EMAIL_FROM_USER   || 'onboarding'
+              const fromName   = emailSettings.emailFromName   || ''
+              const fromAddr   = `${fromUser}@${fromDomain}`
+              const from       = fromName ? `${fromName} <${fromAddr}>` : fromAddr
+              console.log(`[cron] email attempt → from=${from} to=${email} flow="${f.name||f.id}"`)
+              const result = await resend.emails.send({ from, to: [email], subject: subjectText, html: bodyText })
+              if (result.error) throw new Error(result.error.message || JSON.stringify(result.error))
+              if (!isWA && !isBoth) d.flowDone[key] = Date.now()
+              _pushHistoryCron(f, c, key, 'email', 'sent', subjectText, null)
+              totalSent++
+              console.log(`[cron] email enviado → flow "${f.name || f.id}" → ${email}`)
+            } catch (e) {
+              _pushHistoryCron(f, c, key, 'email', 'failed', subjectText, e.message)
+              totalFailed++
+              console.error(`[cron] email error → flow "${f.name || f.id}" → ${email}: ${e.message}`)
+            }
+          }
+        }))
+
+        if (changed) {
+          await patchWorkspace(ws.id, d)
+          _invalidateWsCache(ws.id)
+        }
+      } catch (e) {
+        errors.push(`ws ${ws.id}: ${e.message}`)
+        console.error(`[cron] Error procesando ws ${ws.id}:`, e.message)
+      }
+    }
+
+    const elapsed = Date.now() - cronStart
+    console.log(`[cron] Finalizado en ${elapsed}ms — enviados: ${totalSent}, fallidos: ${totalFailed}, omitidos: ${totalSkipped}, workspaces: ${wsProcessed}`)
+    res.json({ ok: true, sent: totalSent, failed: totalFailed, skipped: totalSkipped, workspaces: wsProcessed, elapsed, errors: errors.length ? errors : undefined })
+  } catch (e) {
+    console.error('[cron] Error fatal:', e.message)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// POST /api/store/payway-link — genera link de pago PayWay (Formulario de Pago)
+app.post('/api/store/payway-link', async (req, res) => {
+  const { wsId, cart, cliente, envio, total, descuento, cuponCodigo } = req.body
+  if (!wsId || !cart?.length || !cliente || total == null)
+    return res.status(400).json({ error: 'Faltan datos (wsId, cart, cliente, total)' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(404).json({ error: 'Tienda no encontrada' })
+    const { t, d } = result
+    const _pwRaw = t.settings?.payway || {}
+    const pw = {
+      siteId:     _pwRaw.siteId     || process.env.PAYWAY_SITE_ID     || '',
+      templateId: _pwRaw.templateId || process.env.PAYWAY_TEMPLATE_ID || '',
+      privateKey: _pwRaw.privateKey || process.env.PAYWAY_PRIVATE_KEY || '',
+      publicKey:  _pwRaw.publicKey  || process.env.PAYWAY_PUBLIC_KEY  || '',
+      sandbox:    _pwRaw.sandbox    || false,
+    }
+    if (!pw.siteId || !pw.privateKey)
+      return res.status(400).json({ error: 'PayWay no configurado — ingresá Site ID y API Key privada en Integraciones → PayWay' })
+    if (!pw.publicKey)
+      return res.status(400).json({ error: 'Falta la API Key pública de PayWay — ingresala en Integraciones → PayWay → "API Key pública (client-side)"' })
+
+    const sandbox = pw.sandbox || false
+    const endpoint = sandbox
+      ? 'https://developers.decidir.com/api/v1/checkout-payment-button/link'
+      : 'https://ventasonline.payway.com.ar/api/v1/checkout-payment-button/link'
+
+    const orderId = 'pwp_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
+    const numero  = (t.ordenes?.length || 0) + 1
+    const host    = req.get('host')
+    const proto   = req.headers['x-forwarded-proto'] || req.protocol || 'https'
+    const baseUrl = `${proto}://${host}`
+
+    // Store pending order in workspace
+    const freshWs = await getWorkspace(wsId)
+    const wd = freshWs?.data || {}
+    if (!wd.pendingPaywayOrders) wd.pendingPaywayOrders = {}
+    // Clean stale pending orders (> 2 hours)
+    for (const [k, v] of Object.entries(wd.pendingPaywayOrders)) {
+      if (Date.now() - (v.ts || 0) > 7_200_000) delete wd.pendingPaywayOrders[k]
+    }
+    wd.pendingPaywayOrders[orderId] = {
+      cart, cliente, envio: envio || {},
+      total: parseFloat(total),
+      descuento: parseFloat(descuento || 0),
+      cuponCodigo: cuponCodigo || null,
+      numero, ts: Date.now()
+    }
+    await patchWorkspace(wsId, wd)
+    _invalidateWsCache(wsId)
+
+    const payload = {
+      origin_platform: 'EXTERNAL',
+      currency: 'ARS',
+      total_price: parseFloat(total),
+      site: String(pw.siteId),
+      template_id: 1,
+      redirect_url:      `${baseUrl}/api/store/payway-return?wsId=${wsId}&orderId=${orderId}`,
+      cancel_url:        `${baseUrl}/tienda?ws=${wsId}&payway=cancelado`,
+      notifications_url: `${baseUrl}/api/store/payway-notify?wsId=${wsId}&orderId=${orderId}`,
+      installments: [1],
+      public_apikey: pw.publicKey || pw.privateKey,
+      payment_description: `Pedido #${numero}`,
+      customer: {
+        id: String(cliente.tel || cliente.email || orderId),
+        name: `${cliente.nombre || ''} ${cliente.apellido || ''}`.trim() || 'Cliente',
+        email: cliente.email || ''
+      }
+    }
+
+    const r = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'apikey': pw.privateKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    const rawText = await r.text()
+    let data; try { data = JSON.parse(rawText) } catch(e) { data = { rawText } }
+    if (!r.ok) {
+      console.error('[payway-link] Error HTTP', r.status, ':', rawText)
+      return res.status(r.status).json({ error: data.validation_errors?.[0]?.code || data.param || data.description || 'Error creando link PayWay', raw: data })
+    }
+
+    // PayWay devuelve payment_link directo con la URL completa
+    const checkoutUrl = data.payment_link || (data.payment_id
+      ? (sandbox ? `https://developers.decidir.com/web/checkout/${data.payment_id}` : `https://live.decidir.com/web/checkout/${data.payment_id}`)
+      : null)
+    if (!checkoutUrl) {
+      console.error('[payway-link] Sin URL en respuesta:', rawText)
+      return res.status(400).json({ error: 'PayWay no devolvió URL de pago', raw: data })
+    }
+
+    console.log(`[payway-link] Link creado para ws ${wsId}, orderId ${orderId}: ${checkoutUrl}`)
+    res.json({ ok: true, checkoutUrl, paywayId: data.payment_id || orderId })
+  } catch (e) {
+    console.error('[payway-link]', e.message)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// GET /api/store/payway-return — PayWay redirige aquí después del pago
+app.get('/api/store/payway-return', async (req, res) => {
+  const { wsId, orderId } = req.query
+  if (!wsId || !orderId) return res.redirect(`/tienda?ws=${wsId||''}&payway=error&msg=missing-params`)
+  try {
+    const freshWs = await getWorkspace(wsId)
+    const d = freshWs?.data || {}
+    const pending = d.pendingPaywayOrders?.[orderId]
+    if (!pending) {
+      console.warn('[payway-return] Pending order not found:', orderId)
+      return res.redirect(`/tienda?ws=${wsId}&payway=error&msg=orden-no-encontrada`)
+    }
+    const result = await getTienda(wsId)
+    if (!result) return res.redirect(`/tienda?ws=${wsId}&payway=error&msg=ws-no-encontrado`)
+    const { t } = result
+    const { cart, cliente, envio, total, descuento, cuponCodigo, numero } = pending
+
+    const hoy = new Date().toISOString().slice(0, 10)
+    const lineas = (cart || []).map(i => ({ id: i.id, nombre: i.nombre, precio: parseFloat(i.precio) || 0, cantidad: i.cantidad || i.qty || 1 }))
+    const totalOrden = parseFloat(total)
+
+    const orden = {
+      id: orderId,
+      numero,
+      fecha: new Date().toISOString(),
+      estado: 'pagado',
+      metodoPago: 'tarjeta',
+      cliente,
+      envio: envio || {},
+      lineas,
+      total: totalOrden,
+      descuento: parseFloat(descuento || 0),
+      cupon: cuponCodigo || null,
+      paywayPaymentId: req.query.payment_id || req.query.payway_payment_id || null
+    }
+
+    if (!t.ordenes) t.ordenes = []
+    t.ordenes.push(orden)
+
+    // CRM update
+    if (!d.crm) d.crm = []
+    const telClean   = (cliente.tel   || '').replace(/\D/g, '')
+    const emailClean = (cliente.email || '').toLowerCase().trim()
+    let crmIdx = -1
+    if (telClean)   crmIdx = d.crm.findIndex(c => (c.tel   || '').replace(/\D/g,'') === telClean)
+    if (crmIdx < 0 && emailClean) crmIdx = d.crm.findIndex(c => (c.email || '').toLowerCase() === emailClean)
+
+    if (crmIdx >= 0) {
+      const contacto = d.crm[crmIdx]
+      contacto.ultimaCompra = hoy
+      contacto.cantCompras  = (parseInt(contacto.cantCompras || 0)) + 1
+      contacto.valorTotal   = Math.round((parseFloat(contacto.valorTotal || 0) + totalOrden) * 100) / 100
+    } else {
+      d.crm.push({
+        id: 'c_' + Date.now().toString(36),
+        nombre: cliente.nombre || '', apellido: cliente.apellido || '',
+        email: emailClean, tel: telClean,
+        creado: hoy, ultimaCompra: hoy,
+        cantCompras: 1, valorTotal: totalOrden, estado: 'Cliente'
+      })
+      crmIdx = d.crm.length - 1
+    }
+
+    // Finanzas
+    if (!d.finanzas) d.finanzas = []
+    if (!d.finanzas.some(f => f.id === orderId) && totalOrden > 0) {
+      d.finanzas.push({
+        id: orderId, fecha: hoy, tipo: 'ingreso',
+        categoria: 'Ventas',
+        descripcion: `Pedido #${numero} — ${cliente.nombre || ''} (PayWay)`,
+        monto: totalOrden
+      })
+    }
+
+    // Remove pending order
+    delete d.pendingPaywayOrders[orderId]
+    d.tienda = t
+
+    await patchWorkspace(wsId, d)
+    _invalidateWsCache(wsId)
+
+    // Trigger flows
+    const crmContact = d.crm[crmIdx]
+    if (crmContact) {
+      _processImmediateFlows(wsId, d, crmContact,
+        ['after_purchase', 'post_purchase', 'payment_confirmed', 'order_placed'],
+        { total: totalOrden, lineas }
+      ).catch(() => {})
+    }
+
+    console.log(`[payway-return] Orden ${orderId} #${numero} procesada para ws ${wsId}`)
+    res.redirect(`/tienda?ws=${wsId}&payway=ok&numero=${numero}&nombre=${encodeURIComponent(cliente.nombre || '')}&total=${totalOrden}`)
+  } catch (e) {
+    console.error('[payway-return]', e.message)
+    res.redirect(`/tienda?ws=${wsId}&payway=error&msg=${encodeURIComponent(e.message)}`)
+  }
+})
+
+// POST /api/store/payway-notify — webhook server-to-server de PayWay
+app.post('/api/store/payway-notify', async (req, res) => {
+  const { wsId, orderId } = req.query
+  console.log('[payway-notify] ws', wsId, 'orden', orderId, JSON.stringify(req.body || {}).slice(0, 300))
+  res.json({ ok: true })
 })
 
 // SPA catch-all: any unmatched GET serves the app (hash router handles client routing)
