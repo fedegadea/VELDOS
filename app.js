@@ -3323,6 +3323,26 @@ async function saveTienda(wsId, tienda, d) {
   await patchWorkspace(wsId, updated)
 }
 
+// Direct write — skips the merge-read step in patchWorkspace.
+// Use ONLY when the caller already holds the latest workspace data
+// (e.g. checkout handler that just called getTienda at the top of the request).
+async function _writeDirect(wsId, data) {
+  _wsCache.delete(wsId)
+  const saveRes = await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${encodeURIComponent(wsId)}`, {
+    method: 'PATCH',
+    headers: {
+      'apikey': SUPA_KEY(), 'Authorization': 'Bearer ' + SUPA_KEY(),
+      'Content-Type': 'application/json', 'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify({ data })
+  })
+  if (!saveRes.ok) {
+    const errText = await saveRes.text().catch(() => '')
+    console.error(`[_writeDirect] Save failed for ${wsId}: ${saveRes.status} ${errText.slice(0,200)}`)
+    throw new Error('Error guardando pedido (' + saveRes.status + ')')
+  }
+}
+
 // ── GET /api/store/public — public store data for storefront
 app.get('/api/store/public', async (req, res) => {
   const { wsId } = req.query
@@ -3994,8 +4014,9 @@ app.post('/api/store/checkout', async (req, res) => {
     // Capturar referencia al contacto CRM antes de guardar (para flow automation)
     const _purchaseCrmContact = crmIdx >= 0 ? d.crm[crmIdx] : d.crm[d.crm.length - 1]
 
-    // ── GUARDAR TODO EN UN SOLO patchWorkspace — orden + CRM + finanzas + usuarios ──
-    await saveTienda(wsId, t, d)
+    // ── GUARDAR TODO — orden + CRM + finanzas + usuarios ──
+    // Usamos _writeDirect porque ya tenemos el dato más fresco del getTienda al inicio.
+    await _writeDirect(wsId, { ...d, tienda: t })
     _invalidateWsCache(wsId)
 
     // Disparar flows automáticos en background — no bloquea la respuesta al cliente

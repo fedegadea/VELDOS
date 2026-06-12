@@ -5869,6 +5869,7 @@ function selectPayMethod(method) {
   const hostedInfo = document.getElementById('pw-hosted-info')
   if (hostedInfo) hostedInfo.style.display = (method === 'tarjeta' && isHosted) ? 'block' : 'none'
   if (method === 'tarjeta' && !isHosted && settings.payway?.publicKey) _loadPayWaySDK()
+  updateCheckoutTotal()
 }
 
 function _loadPayWaySDK() {
@@ -7040,6 +7041,8 @@ async function idNext(step, skip) {
 
         _loadLikesFromUser()
 
+        _updateCheckoutCashbackUI(_idUser)
+
         if (_idCallback) {
 
           // Hay callback (ej: checkout) → cerrar modal y continuar
@@ -7134,6 +7137,8 @@ async function idVerify() {
     _updateLoginBtn()
 
     _loadLikesFromUser()
+
+    _updateCheckoutCashbackUI(_idUser)
 
     document.getElementById('id-welcome-msg').textContent = '¡Hola, ' + ((_idUser.nombre||'').split(' ')[0]) + '! 👋'
 
