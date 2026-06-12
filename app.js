@@ -4308,7 +4308,7 @@ app.get('/api/store/orders', async (req, res) => {
 // ── PATCH /api/store/orders/:id — update order fields (admin)
 app.patch('/api/store/orders/:id', async (req, res) => {
   const { id } = req.params
-  const { wsId, estado, metodoEnvio, metodoPago, tags, timeline, preparado, etiquetaGenerada } = req.body
+  const { wsId, estado, metodoEnvio, metodoPago, tags, timeline, preparado, etiquetaGenerada, tracking } = req.body
   if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
   try {
     const result = await getTienda(wsId)
@@ -4323,6 +4323,7 @@ app.patch('/api/store/orders/:id', async (req, res) => {
     if (timeline !== undefined)        t.ordenes[idx].timeline        = timeline
     if (preparado !== undefined)       t.ordenes[idx].preparado       = preparado
     if (etiquetaGenerada !== undefined) t.ordenes[idx].etiquetaGenerada = etiquetaGenerada
+    if (tracking !== undefined)        t.ordenes[idx].tracking        = tracking
     t.ordenes[idx].updatedAt = new Date().toISOString()
     await saveTienda(wsId, t, d)
     res.json({ ok: true, orden: t.ordenes[idx] })

@@ -1861,9 +1861,11 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
 
   <div id="view-success" style="text-align:center;padding:20px 0">
 
-    <div style="font-size:56px;margin-bottom:14px">🎉</div>
+    <div id="post-compra-emoji" style="font-size:56px;margin-bottom:14px">🎉</div>
 
-    <h2 style="font-size:26px;font-weight:800;letter-spacing:-.04em;margin-bottom:8px">¡Pedido recibido!</h2>
+    <h2 id="post-compra-titulo" style="font-size:26px;font-weight:800;letter-spacing:-.04em;margin-bottom:8px">¡Pedido recibido!</h2>
+
+    <p id="post-compra-mensaje-custom" style="display:none;font-size:14px;color:var(--text);margin-bottom:12px;line-height:1.6"></p>
 
     <p style="color:var(--muted);font-size:15px;margin-bottom:32px">Pedido <strong id="success-num">#—</strong> — <span id="success-nombre"></span></p>
 
@@ -1926,6 +1928,8 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
 
       <a id="wa-comprobante-link" class="wa-btn" href="#" target="_blank"><i class="ti ti-brand-whatsapp" style="font-size:16px;margin-right:4px"></i>Enviar comprobante</a>
+
+      <a id="post-compra-cta-btn" href="#" target="_blank" style="display:none;background:var(--accent);color:#fff;border:none;border-radius:50px;padding:13px 24px;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;white-space:nowrap"></a>
 
       <button class="keep-btn" onclick="showCatalog()">← Seguir comprando</button>
 
@@ -2187,16 +2191,6 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
 
     </div>
 
-    <!-- Mis Pedidos -->
-
-    <div class="prof-section">
-
-      <div class="prof-section-title">Mis pedidos</div>
-
-      <div id="prof-orders-list"><div style="font-size:12px;color:var(--muted)">Cargando...</div></div>
-
-    </div>
-
     <!-- Código de referido -->
     <div class="prof-section" id="prof-referral-section" style="display:none">
       <div class="prof-section-title">Tu código de referido</div>
@@ -2216,9 +2210,16 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
       </div>
     </div>
 
-    <!-- Autogestión -->
+    <!-- Cambios & Devoluciones -->
     <div class="prof-section" style="padding-bottom:0">
-      <button class="prof-action-btn" onclick="openSelfService()"><i class="ti ti-package" style="font-size:16px;margin-right:6px;vertical-align:-2px"></i>Cambio o devolución</button>
+      <div class="prof-section-title">Cambios &amp; Devoluciones</div>
+      <button class="prof-action-btn" onclick="openSelfService()"><i class="ti ti-package" style="font-size:16px;margin-right:6px;vertical-align:-2px"></i>Iniciar cambio o devolución</button>
+    </div>
+
+    <!-- Mis Pedidos -->
+    <div class="prof-section">
+      <div class="prof-section-title">Mis pedidos</div>
+      <div id="prof-orders-list"><div style="font-size:12px;color:var(--muted)">Cargando...</div></div>
     </div>
 
     <button class="prof-logout" onclick="logoutIdentity()">Cerrar sesión</button>
@@ -2447,6 +2448,28 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
 
 </div>
 
+
+
+<!-- ── TRACKING MODAL ── -->
+<div id="tracking-overlay" onclick="if(event.target===this)closeTrackingModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:480;align-items:flex-end;justify-content:center">
+  <div style="background:var(--bg);border-radius:22px 22px 0 0;width:100%;max-width:520px;max-height:85vh;overflow-y:auto;padding:24px 24px 40px;position:relative">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-size:16px;font-weight:800">📍 Seguimiento del pedido</div>
+        <div id="tracking-order-num" style="font-size:11px;color:var(--muted);margin-top:2px"></div>
+      </div>
+      <button onclick="closeTrackingModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1">×</button>
+    </div>
+    <!-- Mensaje personalizado -->
+    <div id="tracking-msg-wrap" style="display:none;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:18px;font-size:13px;color:var(--text);line-height:1.55"></div>
+    <!-- Steps -->
+    <div id="tracking-steps-list" style="padding:0 4px"></div>
+    <!-- Link externo -->
+    <div id="tracking-ext-wrap" style="display:none;margin-top:20px;text-align:center">
+      <a id="tracking-ext-link" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:var(--s1);border:1px solid var(--border);border-radius:50px;padding:10px 20px;font-size:13px;font-weight:600;color:var(--text);text-decoration:none"><i class="ti ti-external-link" style="font-size:14px"></i>Rastrear envío</a>
+    </div>
+  </div>
+</div>
 
 
 <!-- ── TOAST ── -->
@@ -6174,6 +6197,27 @@ function showTransferSuccess(data) {
 
   waLink.style.display = waNum ? '' : 'none'
 
+  // Aplicar customización post-compra
+  const pc = settings?.postCompra || {}
+  const emojiEl = document.getElementById('post-compra-emoji')
+  const titleEl = document.getElementById('post-compra-titulo')
+  const msgEl   = document.getElementById('post-compra-mensaje-custom')
+  const ctaBtn  = document.getElementById('post-compra-cta-btn')
+  if (emojiEl) emojiEl.textContent = pc.emoji || '🎉'
+  if (titleEl) titleEl.textContent = pc.titulo || '¡Pedido recibido!'
+  if (msgEl) {
+    if (pc.mensaje) { msgEl.textContent = pc.mensaje; msgEl.style.display = '' }
+    else { msgEl.style.display = 'none' }
+  }
+  if (ctaBtn) {
+    if (pc.ctaTexto && pc.ctaLink) {
+      ctaBtn.textContent = pc.ctaTexto; ctaBtn.href = pc.ctaLink; ctaBtn.style.display = ''
+    } else { ctaBtn.style.display = 'none' }
+  }
+  // Ocultar pasos de transferencia si el pago no es transferencia
+  const stepsWrap = document.querySelector('#view-success .success-step')?.closest('div[style]')
+  if (stepsWrap && data.metodoPago === 'tarjeta') stepsWrap.style.display = 'none'
+
   window.scrollTo(0,0)
 
 }
@@ -6408,22 +6452,29 @@ async function _loadMyOrders() {
 
     if (!orders.length) { el.innerHTML = '<div style="font-size:12px;color:var(--muted)">Aún no tenés pedidos 😊</div>'; return }
 
-    el.innerHTML = orders.slice().reverse().slice(0, 5).map(function(o) {
+    _profOrders = orders
+    el.innerHTML = orders.slice().reverse().slice(0, 8).map(function(o) {
 
       const fecha = o.fecha ? new Date(o.fecha).toLocaleDateString('es-AR', { day:'numeric', month:'short' }) : ''
-
       const st = o.estado || 'pendiente'
+      const hasTracking = o.tracking && (o.tracking.pasos || []).some(function(p){ return p.completado })
+      const estadoLabel = {
+        pendiente:'Pendiente de pago', pagado:'Pagado', en_preparacion:'En preparación',
+        listo:'Listo para enviar', enviado:'Enviado', entregado:'Entregado',
+        retiro:'Listo para retiro', cancelado:'Cancelado'
+      }[st] || st
 
       return '<div class="prof-order-card">'
-
+        + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">'
         + '<div class="prof-order-num">Pedido #' + o.numero + ' <span style="font-weight:400;color:var(--muted)">' + fecha + '</span></div>'
-
-        + '<div style="margin-top:4px"><span class="prof-order-status ' + st + '">' + st + '</span></div>'
-
+        + (hasTracking ? '<button onclick="openTrackingModal(\'' + o.id + '\')" style="background:var(--accent);color:#fff;border:none;border-radius:7px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">📍 Seguimiento</button>' : '')
+        + '</div>'
+        + '<div style="margin-top:4px"><span class="prof-order-status ' + st + '">' + estadoLabel + '</span></div>'
         + '<div style="margin-top:8px;font-size:12px;color:var(--muted)">' + (o.lineas||[]).map(function(l){ return l.nombre + ' ×' + l.cantidad }).join(', ') + '</div>'
-
-        + '<div style="margin-top:6px;font-size:13px;font-weight:700">$' + fmt(o.total) + '</div>'
-
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">'
+        + '<span style="font-size:13px;font-weight:700">$' + fmt(o.total) + '</span>'
+        + (!hasTracking && (st==='enviado'||st==='en_preparacion'||st==='listo') ? '<button onclick="openTrackingModal(\'' + o.id + '\')" style="background:none;border:1px solid var(--border);border-radius:7px;padding:3px 9px;font-size:10px;cursor:pointer;color:var(--muted2)">Ver estado →</button>' : '')
+        + '</div>'
         + '</div>'
 
     }).join('')
@@ -6433,6 +6484,69 @@ async function _loadMyOrders() {
 }
 
 
+
+// ── Seguimiento de pedido ────────────────────────────
+
+var _profOrders = []
+
+function openTrackingModal(orderId) {
+  const o = _profOrders.find(function(x){ return x.id === orderId })
+  if (!o) return
+  const tr = o.tracking || {}
+  const pasos = tr.pasos || _defaultTrackingPasos(o)
+  document.getElementById('tracking-order-num').textContent = 'Pedido #' + (o.numero || '')
+  // Mensaje personalizado
+  const msgWrap = document.getElementById('tracking-msg-wrap')
+  if (tr.mensajePersonalizado) {
+    msgWrap.textContent = tr.mensajePersonalizado
+    msgWrap.style.display = ''
+  } else { msgWrap.style.display = 'none' }
+  // Steps
+  const stepsEl = document.getElementById('tracking-steps-list')
+  stepsEl.innerHTML = pasos.map(function(p, i) {
+    const done = p.completado
+    const isLast = i === pasos.length - 1
+    const dotColor = done ? 'var(--accent)' : 'var(--border)'
+    const textColor = done ? 'var(--text)' : 'var(--muted)'
+    const fecha = p.fecha ? new Date(p.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''
+    return '<div style="display:flex;gap:14px;align-items:flex-start;padding-bottom:' + (isLast?'0':'18px') + ';position:relative">'
+      + (!isLast ? '<div style="position:absolute;left:12px;top:26px;bottom:0;width:1.5px;background:var(--border)"></div>' : '')
+      + '<div style="width:24px;height:24px;border-radius:50%;background:' + dotColor + ';border:2px solid ' + dotColor + ';flex-shrink:0;display:flex;align-items:center;justify-content:center;z-index:1">'
+      + (done ? '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '<div style="width:8px;height:8px;border-radius:50%;background:var(--border)"></div>')
+      + '</div>'
+      + '<div style="flex:1;padding-top:2px">'
+      + '<div style="font-size:13px;font-weight:' + (done?'700':'500') + ';color:' + textColor + '">' + (p.label || p.id) + '</div>'
+      + (fecha ? '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + fecha + '</div>' : '')
+      + (p.nota ? '<div style="font-size:11.5px;color:var(--muted2);margin-top:3px;line-height:1.5">' + p.nota + '</div>' : '')
+      + '</div>'
+      + '</div>'
+  }).join('')
+  // Link externo
+  const extWrap = document.getElementById('tracking-ext-wrap')
+  const extLink = document.getElementById('tracking-ext-link')
+  if (tr.linkSeguimiento) {
+    extLink.href = tr.linkSeguimiento
+    extWrap.style.display = ''
+  } else { extWrap.style.display = 'none' }
+  const ov = document.getElementById('tracking-overlay')
+  ov.style.display = 'flex'
+  requestAnimationFrame(function(){ ov.style.opacity = '1' })
+}
+
+function closeTrackingModal() {
+  const ov = document.getElementById('tracking-overlay')
+  ov.style.display = 'none'
+}
+
+function _defaultTrackingPasos(o) {
+  const estados = ['confirmado','en_preparacion','enviado','entregado']
+  const labels = { confirmado:'Pedido confirmado', en_preparacion:'Preparando tu pedido', enviado:'En camino', entregado:'Entregado' }
+  const estadoIdx = { pagado:0, en_preparacion:1, listo:1, enviado:2, entregado:3 }
+  const curIdx = estadoIdx[o.estado] !== undefined ? estadoIdx[o.estado] : -1
+  return estados.map(function(id, i) {
+    return { id: id, label: labels[id], completado: i <= curIdx, fecha: i === 0 ? o.fecha : null, nota: '' }
+  })
+}
 
 // ── Autogestión (cambio/devolución) ────────────────
 

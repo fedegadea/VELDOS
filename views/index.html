@@ -18754,6 +18754,25 @@ function crealPublishToMeta() {
     </div>
 
     <button class="btn btn-primary" onclick="saveCheckoutConfig(true)">Guardar checkout</button>
+
+    <!-- Post-compra -->
+    <div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:20px;margin-top:20px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:4px">🎉 Página post-compra</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Lo que ve el cliente después de confirmar su pedido.</div>
+      <div style="display:grid;grid-template-columns:80px 1fr;gap:12px;margin-bottom:12px">
+        <div class="form-group"><label class="form-label">Emoji</label><input class="form-input" id="post-compra-emoji-cfg" placeholder="🎉" maxlength="4" oninput="saveCheckoutConfig()"></div>
+        <div class="form-group"><label class="form-label">Título</label><input class="form-input" id="post-compra-titulo-cfg" placeholder="¡Pedido recibido!" oninput="saveCheckoutConfig()"></div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label">Mensaje personalizado <span style="font-weight:400;color:var(--muted)">(opcional)</span></label>
+        <textarea class="form-textarea" id="post-compra-mensaje-cfg" rows="2" placeholder="Ej: ¡Gracias por tu compra! Nos pondremos en contacto a la brevedad 💛" oninput="saveCheckoutConfig()"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group"><label class="form-label">Texto del botón CTA</label><input class="form-input" id="post-compra-cta-texto-cfg" placeholder="Mi cuenta" oninput="saveCheckoutConfig()"></div>
+        <div class="form-group"><label class="form-label">Link del botón CTA</label><input class="form-input" id="post-compra-cta-link-cfg" placeholder="https://..." oninput="saveCheckoutConfig()"></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -19220,6 +19239,23 @@ function crealPublishToMeta() {
         <option value="problema">⚠️ Problema con envío</option>
         <option value="cancelado">❌ Cancelado</option>
       </select>
+    </div>
+
+    <!-- Seguimiento del cliente -->
+    <div style="background:var(--s2);border-radius:10px;padding:14px;margin-bottom:4px" id="drawer-seguimiento-wrap">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em">📍 Seguimiento visible al cliente</div>
+        <button class="btn btn-xs btn-primary" onclick="drawerSaveTracking()">💾 Guardar</button>
+      </div>
+      <div id="drawer-tracking-steps" style="margin-bottom:12px;display:flex;flex-direction:column;gap:6px"></div>
+      <div class="form-group" style="margin-bottom:8px">
+        <label class="form-label" style="font-size:10px">Mensaje personalizado al cliente</label>
+        <input class="form-input" id="drawer-tracking-msg" placeholder="Ej: Tu pedido saldrá mañana 🚀" style="font-size:12px">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-size:10px">Link externo de seguimiento (opcional)</label>
+        <input class="form-input" id="drawer-tracking-ext-link" placeholder="https://andreani.com/..." style="font-size:12px">
+      </div>
     </div>
 
     <!-- Cliente -->
@@ -24764,6 +24800,9 @@ function openOrdDrawer(id) {
   // Timeline
   renderDrawerTimeline(orden);
 
+  // Seguimiento del cliente
+  _renderDrawerTracking(orden);
+
   // Open drawer
   const drawer = document.getElementById('ord-drawer');
   const overlay = document.getElementById('ord-drawer-overlay');
@@ -24784,6 +24823,78 @@ function drawerUpdateEstado(estado) {
   const sel = document.getElementById('drawer-estado-sel');
   if (sel) sel.value = estado;
   updateOrdenEstado(_drawerCurrentId, estado);
+}
+
+const _DEFAULT_TRACKING_PASOS = [
+  { id:'confirmado',    label:'Pedido confirmado' },
+  { id:'en_preparacion',label:'Preparando tu pedido' },
+  { id:'enviado',       label:'En camino' },
+  { id:'entregado',     label:'Entregado' },
+];
+
+let _drawerTrackingPasosCache = [];
+
+function _renderDrawerTracking(orden) {
+  const stepsEl = document.getElementById('drawer-tracking-steps');
+  const msgEl   = document.getElementById('drawer-tracking-msg');
+  const extEl   = document.getElementById('drawer-tracking-ext-link');
+  if (!stepsEl) return;
+  const tr = orden.tracking || {};
+  const pasos = tr.pasos && tr.pasos.length ? tr.pasos : _DEFAULT_TRACKING_PASOS.map(p => ({...p, completado:false, fecha:null, nota:''}));
+  _drawerTrackingPasosCache = pasos;
+  stepsEl.innerHTML = pasos.map((p, i) => `
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 8px;border-radius:8px;background:var(--bg);border:1px solid var(--border)">
+      <input type="checkbox" data-paso="${i}" ${p.completado?'checked':''} style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;cursor:pointer">
+      <div style="flex:1;min-width:0">
+        <input type="text" value="${p.label||''}" data-paso-label="${i}" style="background:none;border:none;font-size:12px;font-weight:600;color:var(--text);width:100%;outline:none;cursor:text" placeholder="Paso ${i+1}">
+        <input type="text" value="${p.nota||''}" data-paso-nota="${i}" style="background:none;border:none;font-size:11px;color:var(--muted);width:100%;outline:none;margin-top:1px" placeholder="Nota opcional...">
+      </div>
+    </label>`).join('');
+  if (msgEl) msgEl.value = tr.mensajePersonalizado || '';
+  if (extEl) extEl.value = tr.linkSeguimiento || '';
+}
+
+async function drawerSaveTracking() {
+  if (!_drawerCurrentId) return;
+  const stepsEl = document.getElementById('drawer-tracking-steps');
+  const msgEl   = document.getElementById('drawer-tracking-msg');
+  const extEl   = document.getElementById('drawer-tracking-ext-link');
+  const checkboxes = stepsEl?.querySelectorAll('input[type=checkbox][data-paso]') || [];
+  const pasos = Array.from(checkboxes).map(cb => {
+    const i = cb.dataset.paso;
+    const labelEl = stepsEl.querySelector(`[data-paso-label="${i}"]`);
+    const notaEl  = stepsEl.querySelector(`[data-paso-nota="${i}"]`);
+    const base = _DEFAULT_TRACKING_PASOS[i] || {};
+    const cached = _drawerTrackingPasosCache[i] || {};
+    const wasCompleted = cached.completado;
+    const nowCompleted = cb.checked;
+    return {
+      id: cached.id || base.id || ('paso' + i),
+      label: labelEl?.value?.trim() || cached.label || base.label || ('Paso ' + (parseInt(i)+1)),
+      completado: nowCompleted,
+      // Preserve existing date if already completed; set now if newly checked; null if unchecked
+      fecha: nowCompleted ? (wasCompleted ? cached.fecha : new Date().toISOString()) : null,
+      nota: notaEl?.value?.trim() || '',
+    };
+  });
+  const tracking = {
+    pasos,
+    mensajePersonalizado: msgEl?.value?.trim() || '',
+    linkSeguimiento: extEl?.value?.trim() || '',
+  };
+  try {
+    const r = await fetch(`/api/store/orders/${_drawerCurrentId}`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ wsId: _activeWsId, tracking })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      // Update local state
+      const idx = (S.store?.ordenes||[]).findIndex(o=>o.id===_drawerCurrentId);
+      if (idx !== -1) S.store.ordenes[idx].tracking = tracking;
+      notify('📍 Seguimiento guardado');
+    } else { notify('Error: ' + (d.error||'desconocido')); }
+  } catch(e) { notify('Error: ' + e.message); }
 }
 
 function renderDrawerNotas(orden) {
@@ -27033,6 +27144,13 @@ function loadCheckoutConfig() {
   f('popup-s1-sub',   popup.step1Sub   || '');
   f('popup-s2-title', popup.step2Title || '');
   f('popup-s2-sub',   popup.step2Sub   || '');
+  // Post-compra
+  const pc = set.postCompra || {};
+  f('post-compra-emoji-cfg',    pc.emoji    || '');
+  f('post-compra-titulo-cfg',   pc.titulo   || '');
+  f('post-compra-mensaje-cfg',  pc.mensaje  || '');
+  f('post-compra-cta-texto-cfg', pc.ctaTexto || '');
+  f('post-compra-cta-link-cfg',  pc.ctaLink  || '');
 }
 
 let _checkoutConfigTimer = null;
@@ -27063,11 +27181,19 @@ function saveCheckoutConfig(immediate) {
     step2Title: g('popup-s2-title'),
     step2Sub:   g('popup-s2-sub'),
   };
+  const postCompra = {
+    emoji:    g('post-compra-emoji-cfg'),
+    titulo:   g('post-compra-titulo-cfg'),
+    mensaje:  g('post-compra-mensaje-cfg'),
+    ctaTexto: g('post-compra-cta-texto-cfg'),
+    ctaLink:  g('post-compra-cta-link-cfg'),
+  };
   const settings = {
     costoEnvio:  parseFloat(g('chk-costo-envio')) || 0,
     envioGratis: parseFloat(g('chk-envio-gratis')) || 0,
     checkout,
     checkoutPopup,
+    postCompra,
     envioMethods: _envioMethods.filter(m => (m.nombre||'').trim()),
   };
   fetch('/api/store/settings', {
