@@ -9724,7 +9724,7 @@ function _checkMetaOAuthReturn(){
   } else if(oauthResult==='select'){
     _reloadWorkspaceFromServer(wsIdParam,()=>{
       goToMeta();
-      setTimeout(_openAccountSelector,200);
+      setTimeout(()=>_openAccountSelector(wsIdParam),200);
     });
   } else if(oauthResult==='noaccount'){
     _reloadWorkspaceFromServer(wsIdParam,()=>{
@@ -9746,6 +9746,8 @@ async function _reloadWorkspaceFromServer(wsId, cb){
       if(data&&data.data){
         // Merge fresh server data into S (keeps connection info from Supabase)
         Object.assign(S, data.data);
+        // Ensure _activeWsId is set (critical when returning from OAuth redirect)
+        if(targetId) _activeWsId=targetId;
         // Safety inits
         if(!S.metaRules)S.metaRules=[];
         if(!S.waLog)S.waLog=[];
@@ -9767,7 +9769,8 @@ function _renderAccountRow(a){
   </div>`;
 }
 
-async function _openAccountSelector(){
+async function _openAccountSelector(wsId){
+  const effectiveWsId=wsId||_activeWsId;
   const overlay=document.getElementById('modal-overlay');
   if(!overlay)return;
   overlay.innerHTML=`<div class="modal" id="modal-box" style="max-width:500px">
@@ -9779,7 +9782,7 @@ async function _openAccountSelector(){
   </div>`;
   overlay.classList.add('open');
   try{
-    const r=await fetch(`/api/meta/adaccounts?wsId=${encodeURIComponent(_activeWsId)}`);
+    const r=await fetch(`/api/meta/adaccounts?wsId=${encodeURIComponent(effectiveWsId)}`);
     const d=await r.json();
     if(!r.ok||d.error)throw new Error(d.error||'Error');
     const list=document.getElementById('meta-account-list');
