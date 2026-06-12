@@ -1469,15 +1469,32 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
             <div id="referral-feedback" style="font-size:11.5px;margin-top:5px;min-height:16px"></div>
           </div>
 
-          <!-- Cashback toggle — visible only when user has balance -->
+          <!-- Cashback: tiene saldo -->
           <div id="ch-cashback-row" style="display:none;margin-bottom:14px">
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 14px;background:var(--s2);border:1.5px solid var(--border);border-radius:10px;transition:border-color .15s" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">
-              <input type="checkbox" id="ch-use-cashback" onchange="updateCheckoutTotal()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--text);flex-shrink:0">
-              <div>
-                <div style="font-size:13px;font-weight:700;color:var(--text)">💰 Usar cashback</div>
-                <div style="font-size:11.5px;color:var(--muted)" id="ch-cashback-label">$0 disponible</div>
+            <div style="border-radius:12px;border:1.5px solid rgba(22,163,74,.3);background:rgba(22,163,74,.06);padding:14px 16px">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+                <div>
+                  <div style="font-size:13px;font-weight:800;color:var(--text)">💰 Tenés cashback disponible</div>
+                  <div style="font-size:15px;font-weight:900;color:var(--green);margin-top:2px" id="ch-cashback-amount-display">$0</div>
+                </div>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--s1);border:1.5px solid var(--border);border-radius:9px;padding:8px 14px;transition:border-color .15s;white-space:nowrap" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">
+                  <input type="checkbox" id="ch-use-cashback" onchange="updateCheckoutTotal()" style="width:15px;height:15px;cursor:pointer;accent-color:var(--green);flex-shrink:0">
+                  <span style="font-size:12px;font-weight:700" id="ch-cashback-label">Aplicar al pedido</span>
+                </label>
               </div>
-            </label>
+            </div>
+          </div>
+
+          <!-- Cashback: no tiene saldo (solo si está logueado) -->
+          <div id="ch-no-cashback-row" style="display:none;margin-bottom:14px">
+            <div style="border-radius:12px;border:1px solid var(--border);background:var(--s2);padding:14px 16px">
+              <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px">Todavía no tenés cashback 💸</div>
+              <div style="font-size:11.5px;color:var(--muted);line-height:1.5">Compartí tu código con tus amigas — cada vez que compren con él, vos ganás crédito para usar en tu próxima compra.</div>
+              <div id="ch-no-cashback-code" style="display:none;margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <code id="ch-no-cashback-code-val" style="font-size:14px;font-weight:900;letter-spacing:.06em;background:var(--s3);padding:5px 12px;border-radius:8px;border:1px solid var(--border)"></code>
+                <button onclick="_copyNoCashbackCode()" style="font-size:11px;font-weight:700;background:var(--text);color:var(--bg);border:none;border-radius:7px;padding:6px 12px;cursor:pointer">Copiar código</button>
+              </div>
+            </div>
           </div>
 
           <div class="ch-error" id="ch-error"></div>
@@ -2871,6 +2888,48 @@ async function _initABTests() {
       updateCartCount()
     }
   } catch(e) { /* silent — AB test failure never breaks the store */ }
+}
+
+function _updateCheckoutCashbackUI(user) {
+  const balance = user?.cashbackBalance || 0
+  const code = user?.codigoReferido || null
+
+  const cbRow = document.getElementById('ch-cashback-row')
+  const noCbRow = document.getElementById('ch-no-cashback-row')
+
+  if (balance > 0) {
+    // Has cashback — show apply card
+    if (cbRow) {
+      cbRow.style.display = ''
+      const amtEl = document.getElementById('ch-cashback-amount-display')
+      if (amtEl) amtEl.textContent = '$' + fmt(balance)
+    }
+    if (noCbRow) noCbRow.style.display = 'none'
+  } else if (user) {
+    // Logged in, no cashback — show referral nudge
+    if (cbRow) cbRow.style.display = 'none'
+    if (noCbRow) {
+      noCbRow.style.display = ''
+      const codeWrap = document.getElementById('ch-no-cashback-code')
+      const codeVal = document.getElementById('ch-no-cashback-code-val')
+      if (code && codeWrap && codeVal) {
+        codeVal.textContent = code
+        codeWrap.style.display = 'flex'
+      }
+    }
+  } else {
+    if (cbRow) cbRow.style.display = 'none'
+    if (noCbRow) noCbRow.style.display = 'none'
+  }
+  updateCheckoutTotal()
+}
+
+function _copyNoCashbackCode() {
+  const code = document.getElementById('ch-no-cashback-code-val')?.textContent || ''
+  if (!code) return
+  navigator.clipboard.writeText(code).catch(() => {})
+  const btn = event?.target
+  if (btn) { btn.textContent = '¡Copiado!'; setTimeout(() => { btn.textContent = 'Copiar código' }, 2000) }
 }
 
 function applyCoupon() {
@@ -6088,13 +6147,7 @@ async function initIdentity() {
       _idUser = d.user
       _updateLoginBtn()
       _loadLikesFromUser()
-      // Show cashback toggle in checkout if user has balance
-      const cbRow = document.getElementById('ch-cashback-row')
-      const cbLabel = document.getElementById('ch-cashback-label')
-      if (cbRow && (_idUser.cashbackBalance || 0) > 0) {
-        cbRow.style.display = ''
-        if (cbLabel) cbLabel.textContent = '$' + fmt(_idUser.cashbackBalance) + ' disponible'
-      }
+      _updateCheckoutCashbackUI(_idUser)
     }
 
   } catch(e) {}
@@ -6224,13 +6277,7 @@ function openProfilePanel() {
     cbSection.style.display = balance > 0 ? '' : 'none'
   }
 
-  // Update cashback toggle in checkout if open
-  const cbRow = document.getElementById('ch-cashback-row')
-  const cbLabel = document.getElementById('ch-cashback-label')
-  if (cbRow && u.cashbackBalance > 0) {
-    cbRow.style.display = ''
-    if (cbLabel) cbLabel.textContent = '$' + fmt(u.cashbackBalance) + ' disponible'
-  }
+  _updateCheckoutCashbackUI(u)
 
   // Cargar pedidos del usuario
   _loadMyOrders()

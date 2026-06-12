@@ -3679,15 +3679,18 @@ app.post('/api/store/checkout', async (req, res) => {
     let referrerId = null, descuentoReferido = 0, descuentoCashback = 0
     const totalAntesDescuentos = total
 
+    const refCfg = d.tienda?.settings?.referidosConfig || {}
+    const pctDescuento = Number(refCfg.pctDescuento ?? 10) / 100
+    const pctCashback  = Number(refCfg.pctCashback  ?? 10) / 100
+
     if (codigoReferido && (d.referidoCodes || {})[codigoReferido]) {
       referrerId = d.referidoCodes[codigoReferido]
-      // Don't let someone use their own code
       const selfUser = authToken ? (d.usuarios||[]).find(u => u.id === (d.tokens||{})[authToken]?.userId) : null
       if (!selfUser || selfUser.id !== referrerId) {
-        descuentoReferido = Math.round(total * 0.10)
+        descuentoReferido = Math.round(total * pctDescuento)
         total = Math.max(0, total - descuentoReferido)
       } else {
-        referrerId = null // blocked own code
+        referrerId = null
       }
     }
 
@@ -3965,7 +3968,7 @@ app.post('/api/store/checkout', async (req, res) => {
     if (referrerId && descuentoReferido > 0) {
       const referrer = (d.usuarios||[]).find(u => u.id === referrerId)
       if (referrer) {
-        const cashbackAmt = Math.round(totalAntesDescuentos * 0.10)
+        const cashbackAmt = Math.round(totalAntesDescuentos * pctCashback)
         referrer.cashbackBalance = (referrer.cashbackBalance||0) + cashbackAmt
         if (!referrer.cashbackHistory) referrer.cashbackHistory = []
         referrer.cashbackHistory.push({ tipo: 'ganado', monto: cashbackAmt, de: cliente.nombre||'Comprador', ordenId: orden.id, ts: new Date().toISOString() })
@@ -4015,9 +4018,11 @@ app.get('/api/store/validate-code', async (req, res) => {
     if (refCodes[codeLower]) {
       const referrerId = refCodes[codeLower]
       const referrer = (data.usuarios || []).find(u => u.id === referrerId)
+      const cfg = data.tienda?.settings?.referidosConfig || {}
+      const pct = Number(cfg.pctDescuento ?? 10)
       return res.json({
-        valid: true, tipo: 'referido', pct: 10,
-        mensaje: `Código de ${referrer?.nombre || 'amiga'} — 10% OFF aplicado ✓`
+        valid: true, tipo: 'referido', pct,
+        mensaje: `Código de ${referrer?.nombre || 'amiga'} — ${pct}% OFF aplicado ✓`
       })
     }
     return res.json({ valid: false, mensaje: 'Código no encontrado' })
@@ -4079,6 +4084,52 @@ app.patch('/api/admin/profiles/:userId', async (req, res) => {
       user.cashbackBalance = Math.max(0, (user.cashbackBalance||0) + ajuste)
       if (!user.cashbackHistory) user.cashbackHistory = []
       user.cashbackHistory.push({ tipo: ajuste>=0?'ajuste_positivo':'ajuste_negativo', monto: Math.abs(ajuste), ts: new Date().toISOString(), source: 'admin' })
+    }
+    await patchWorkspace(wsId, data)
+    _invalidateWsCache(wsId)
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── GET /api/admin/referidos — list codes + config ──
+app.get('/api/admin/referidos', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const ws = await getWorkspace(wsId)
+    const data = ws?.data || {}
+    const cfg = data.tienda?.settings?.referidosConfig || { pctDescuento: 10, pctCashback: 10 }
+    const refCodes = data.referidoCodes || {}
+    const ordenes = data.tienda?.ordenes || []
+    const codigos = Object.entries(refCodes).map(([code, userId]) => {
+      const user = (data.usuarios || []).find(u => u.id === userId)
+      const usos = ordenes.filter(o => (o.codigoReferido || '').toLowerCase() === code).length
+      return {
+        code, userId,
+        nombre: user ? `${user.nombre||''} ${user.apellido||''}`.trim() : 'Usuario',
+        telefono: user?.telefono || null,
+        cashbackBalance: user?.cashbackBalance || 0,
+        cashbackEarned: (user?.cashbackHistory || []).filter(h => h.tipo === 'ganado').reduce((s,h) => s + (h.monto||0), 0),
+        usos,
+        activo: true
+      }
+    })
+    res.json({ ok: true, config: cfg, codigos })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── PATCH /api/admin/referidos/config — save referidos config ──
+app.patch('/api/admin/referidos/config', async (req, res) => {
+  const { wsId, pctDescuento, pctCashback } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const ws = await getWorkspace(wsId)
+    const data = ws?.data || {}
+    if (!data.tienda) data.tienda = {}
+    if (!data.tienda.settings) data.tienda.settings = {}
+    data.tienda.settings.referidosConfig = {
+      pctDescuento: Math.max(0, Math.min(100, Number(pctDescuento ?? 10))),
+      pctCashback:  Math.max(0, Math.min(100, Number(pctCashback  ?? 10)))
     }
     await patchWorkspace(wsId, data)
     _invalidateWsCache(wsId)

@@ -1693,6 +1693,7 @@ body.soul-landing-mode #page-crealo { margin-left:0!important;padding:0!importan
   body.has-sidebar #tienda-sec-ctas,
   body.has-sidebar #tienda-sec-cupones,
   body.has-sidebar #tienda-sec-dominio,
+  body.has-sidebar #tienda-sec-referidos,
   body.has-sidebar #tienda-sec-perfiles,
   body.has-sidebar #tienda-sec-abtests { margin-left:220px; padding:32px 40px 96px }
 }
@@ -17999,6 +18000,7 @@ function crealPublishToMeta() {
     <button class="inner-tab" onclick="switchTiendaInner('paginaproducto',this)">🛍 Página de Producto</button>
     <button class="inner-tab" onclick="switchTiendaInner('ctas',this)">🎯 CTAs</button>
     <button class="inner-tab" onclick="switchTiendaInner('cupones',this)">🎟 Cupones</button>
+    <button class="inner-tab" onclick="switchTiendaInner('referidos',this)">🤝 Referidos</button>
     <button class="inner-tab" onclick="switchTiendaInner('perfiles',this)">👤 Perfiles</button>
     <button class="inner-tab" onclick="switchTiendaInner('abtests',this)">🧪 A/B Tests</button>
   </div>
@@ -20066,6 +20068,51 @@ function crealPublishToMeta() {
 </div>
 
 <!-- ── Perfiles de Clientes Web ── -->
+<!-- ── Referidos ── -->
+<div class="inner-section" id="tienda-sec-referidos">
+  <div style="max-width:860px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-size:15px;font-weight:800;margin-bottom:4px">🤝 Sistema de Referidos</div>
+        <div style="font-size:12px;color:var(--muted)">Tus clientes comparten su código — sus amigas obtienen descuento y ellas acumulan cashback.</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="_saveReferidosConfig()">Guardar cambios</button>
+    </div>
+
+    <!-- Config -->
+    <div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px">
+      <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);margin-bottom:16px">Configuración de porcentajes</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--muted2);display:block;margin-bottom:6px">% Descuento para quien compra</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="form-input" type="number" id="ref-pct-descuento" min="1" max="99" value="10" style="width:80px;font-size:16px;font-weight:800;text-align:center">
+            <span style="font-size:13px;font-weight:700;color:var(--muted)">% OFF en el pedido</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted2);margin-top:5px">La persona que usa el código de su amiga.</div>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--muted2);display:block;margin-bottom:6px">% Cashback para quien refiere</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="form-input" type="number" id="ref-pct-cashback" min="1" max="99" value="10" style="width:80px;font-size:16px;font-weight:800;text-align:center">
+            <span style="font-size:13px;font-weight:700;color:var(--muted)">% de cashback ganado</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted2);margin-top:5px">Quien compartió el código acumula crédito para próximas compras.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div id="ref-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px"></div>
+
+    <!-- Codes list -->
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);margin-bottom:10px">Códigos activos</div>
+    <div id="ref-list">
+      <div style="font-size:13px;color:var(--muted);text-align:center;padding:40px">Cargando...</div>
+    </div>
+  </div>
+</div>
+
 <div class="inner-section" id="tienda-sec-perfiles">
   <div style="max-width:1100px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
@@ -22491,6 +22538,7 @@ function switchTiendaInner(tab, btn) {
   if(tab === 'paginaproducto') loadPaginaProductoEditor();
   if(tab === 'ctas') loadCtasAdmin();
   if(tab === 'cupones') loadCuponesAdmin();
+  if(tab === 'referidos') _loadReferidos();
   if(tab === 'perfiles') _loadPerfiles();
   if(tab === 'abtests') _loadABTests();
 }
@@ -22507,6 +22555,101 @@ function _showToast(msg, type) {
   setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300) }, 2800)
 }
 function showToast(msg, type) { _showToast(msg, type) }
+
+// ══════════════════════════════════════════════════
+// REFERIDOS ADMIN
+// ══════════════════════════════════════════════════
+let _referidosData = null
+
+async function _loadReferidos() {
+  try {
+    const r = await fetch('/api/admin/referidos?wsId=' + _activeWsId)
+    const d = await r.json()
+    if (!d.ok) throw new Error(d.error)
+    _referidosData = d
+    // Populate config inputs
+    document.getElementById('ref-pct-descuento').value = d.config?.pctDescuento ?? 10
+    document.getElementById('ref-pct-cashback').value  = d.config?.pctCashback  ?? 10
+    _renderRefStats(d)
+    _renderRefList(d.codigos || [])
+  } catch(e) {
+    const el = document.getElementById('ref-list')
+    if (el) el.innerHTML = '<div style="color:var(--red);padding:20px">Error: ' + e.message + '</div>'
+  }
+}
+
+function _renderRefStats(d) {
+  const el = document.getElementById('ref-stats')
+  if (!el) return
+  const codigos = d.codigos || []
+  const totalUsos = codigos.reduce((s,c) => s + c.usos, 0)
+  const totalCashback = codigos.reduce((s,c) => s + c.cashbackEarned, 0)
+  const conSaldo = codigos.filter(c => c.cashbackBalance > 0).length
+  const fmt = n => n >= 1000 ? (n/1000).toFixed(1)+'k' : n
+  el.innerHTML = [
+    ['🤝 Códigos activos', fmt(codigos.length)],
+    ['🛍 Usos totales', fmt(totalUsos)],
+    ['💰 Cashback entregado', '$'+fmt(totalCashback)],
+    ['💳 Con saldo activo', fmt(conSaldo)],
+  ].map(([label, val]) => `<div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:14px 16px">
+    <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px">${label}</div>
+    <div style="font-size:22px;font-weight:900;letter-spacing:-.04em">${val}</div>
+  </div>`).join('')
+}
+
+function _renderRefList(codigos) {
+  const el = document.getElementById('ref-list')
+  if (!el) return
+  if (!codigos.length) {
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">Aún no hay códigos generados. Se crean automáticamente cuando un usuario inicia sesión en la tienda.</div>'
+    return
+  }
+  el.innerHTML = `<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg)">
+          <th style="padding:10px 14px;text-align:left;font-weight:700;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Código</th>
+          <th style="padding:10px 14px;text-align:left;font-weight:700;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Cliente</th>
+          <th style="padding:10px 14px;text-align:center;font-weight:700;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Usos</th>
+          <th style="padding:10px 14px;text-align:right;font-weight:700;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Cashback ganado</th>
+          <th style="padding:10px 14px;text-align:right;font-weight:700;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Saldo disponible</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${codigos.map((c,i) => `<tr style="border-bottom:${i<codigos.length-1?'1px solid var(--border)':'none'};transition:background .1s" onmouseover="this.style.background='var(--s2)'" onmouseout="this.style.background=''">
+          <td style="padding:11px 14px">
+            <code style="font-size:13px;font-weight:800;letter-spacing:.04em;background:var(--s2);padding:3px 8px;border-radius:6px">${c.code}</code>
+          </td>
+          <td style="padding:11px 14px">
+            <div style="font-weight:600">${c.nombre || '—'}</div>
+            ${c.telefono ? `<div style="color:var(--muted);font-size:11px">+${c.telefono}</div>` : ''}
+          </td>
+          <td style="padding:11px 14px;text-align:center">
+            <span style="font-size:13px;font-weight:800;${c.usos>0?'color:var(--green)':''}">${c.usos}</span>
+          </td>
+          <td style="padding:11px 14px;text-align:right;font-weight:700">$${c.cashbackEarned.toLocaleString('es-AR')}</td>
+          <td style="padding:11px 14px;text-align:right">
+            <span style="font-weight:800;${c.cashbackBalance>0?'color:var(--green)':'color:var(--muted)'}">$${c.cashbackBalance.toLocaleString('es-AR')}</span>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`
+}
+
+async function _saveReferidosConfig() {
+  const pctDescuento = parseInt(document.getElementById('ref-pct-descuento').value)
+  const pctCashback  = parseInt(document.getElementById('ref-pct-cashback').value)
+  if (isNaN(pctDescuento) || isNaN(pctCashback)) return _showToast('Valores inválidos', 'error')
+  try {
+    const r = await fetch('/api/admin/referidos/config', {
+      method: 'PATCH', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ wsId: _activeWsId, pctDescuento, pctCashback })
+    })
+    if ((await r.json()).ok) _showToast('Configuración guardada ✓')
+    else throw new Error()
+  } catch(e) { _showToast('Error al guardar', 'error') }
+}
 
 // ══════════════════════════════════════════════════
 // PERFILES DE CLIENTES WEB
