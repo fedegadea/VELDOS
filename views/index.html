@@ -17980,6 +17980,8 @@ function crealPublishToMeta() {
     <button class="inner-tab" onclick="switchTiendaInner('paginaproducto',this)">🛍 Página de Producto</button>
     <button class="inner-tab" onclick="switchTiendaInner('ctas',this)">🎯 CTAs</button>
     <button class="inner-tab" onclick="switchTiendaInner('cupones',this)">🎟 Cupones</button>
+    <button class="inner-tab" onclick="switchTiendaInner('perfiles',this)">👤 Perfiles</button>
+    <button class="inner-tab" onclick="switchTiendaInner('abtests',this)">🧪 A/B Tests</button>
   </div>
 
   <!-- ── PRODUCTOS ── -->
@@ -20041,6 +20043,78 @@ function crealPublishToMeta() {
       <button class="btn btn-primary btn-sm" onclick="openCuponModal(null)">+ Nuevo cupón</button>
     </div>
     <div id="cupones-list"></div>
+  </div>
+</div>
+
+<!-- ── Perfiles de Clientes Web ── -->
+<div class="inner-section" id="tienda-sec-perfiles">
+  <div style="max-width:1100px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-size:15px;font-weight:800;margin-bottom:4px">👤 Perfiles de Clientes</div>
+        <div style="font-size:12px;color:var(--muted)">Clientes identificados en tu tienda · último producto · carrito · compras</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input class="form-input" id="perfiles-search" placeholder="Buscar por nombre o teléfono..." style="width:240px" oninput="_renderPerfilesGrid()">
+        <button class="btn btn-sm" onclick="_loadPerfiles()">↺ Actualizar</button>
+      </div>
+    </div>
+    <div id="perfiles-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px"></div>
+    <div id="perfiles-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">
+      <div style="font-size:13px;color:var(--muted);padding:40px;text-align:center;grid-column:1/-1">Cargando perfiles...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Panel lateral de perfil de cliente -->
+<div id="perfil-panel-overlay" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.4)" onclick="closePerfil()"></div>
+<div id="perfil-panel" style="display:none;position:fixed;top:0;right:0;bottom:0;width:min(480px,100vw);background:var(--bg);border-left:1px solid var(--border);overflow-y:auto;z-index:601;box-shadow:-8px 0 32px rgba(0,0,0,.1)">
+  <div style="padding:20px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:1">
+    <div style="font-size:14px;font-weight:800">Perfil de cliente</div>
+    <button onclick="closePerfil()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);padding:4px 8px;border-radius:6px" onmouseover="this.style.background='var(--s2)'" onmouseout="this.style.background='none'">✕</button>
+  </div>
+  <div id="perfil-panel-body" style="padding:20px"></div>
+</div>
+
+<!-- ── A/B Tests ── -->
+<div class="inner-section" id="tienda-sec-abtests">
+  <div style="max-width:860px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-size:15px;font-weight:800;margin-bottom:4px">🧪 A/B Testing</div>
+        <div style="font-size:12px;color:var(--muted)">Probá diferentes precios y variantes de diseño. El tráfico se divide automáticamente entre variantes.</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openABModal(null)">+ Nuevo experimento</button>
+    </div>
+    <div id="abtests-list">
+      <div style="font-size:13px;color:var(--muted);text-align:center;padding:40px">Cargando experimentos...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal A/B Test -->
+<div id="modal-abtest" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:16px;width:min(620px,100%);max-height:90vh;overflow-y:auto;padding:26px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div style="font-size:15px;font-weight:800" id="abtest-modal-title">Nuevo experimento A/B</div>
+      <button onclick="closeABModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div class="form-group"><label class="form-label">Nombre del experimento *</label>
+      <input class="form-input" id="ab-nombre" placeholder="Ej: Test precio remera básica">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Estado</label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="ab-active" style="width:16px;height:16px;accent-color:var(--gold)"> Activo (las visitas empiezan a recibir la variante)
+      </label>
+    </div>
+    <div style="font-size:13px;font-weight:700;margin-bottom:12px">Variantes</div>
+    <div id="ab-variants-list"></div>
+    <button class="btn btn-sm" onclick="_addABVariant()" style="margin-bottom:20px">+ Agregar variante</button>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn" onclick="closeABModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveABTest()">Guardar experimento</button>
+    </div>
   </div>
 </div>
 
@@ -22398,6 +22472,374 @@ function switchTiendaInner(tab, btn) {
   if(tab === 'paginaproducto') loadPaginaProductoEditor();
   if(tab === 'ctas') loadCtasAdmin();
   if(tab === 'cupones') loadCuponesAdmin();
+  if(tab === 'perfiles') _loadPerfiles();
+  if(tab === 'abtests') _loadABTests();
+}
+
+// ══════════════════════════════════════════════════
+// TOAST UTILITY
+// ══════════════════════════════════════════════════
+function _showToast(msg, type) {
+  const t = document.createElement('div')
+  const bg = type === 'error' ? '#dc2626' : 'var(--text)'
+  t.style.cssText = `position:fixed;bottom:22px;right:22px;z-index:99999;background:${bg};color:#fff;border-radius:10px;padding:11px 18px;font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.25);transition:opacity .3s;pointer-events:none`
+  t.textContent = msg
+  document.body.appendChild(t)
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300) }, 2800)
+}
+function showToast(msg, type) { _showToast(msg, type) }
+
+// ══════════════════════════════════════════════════
+// PERFILES DE CLIENTES WEB
+// ══════════════════════════════════════════════════
+let _perfilesData = []
+
+async function _loadPerfiles() {
+  const grid = document.getElementById('perfiles-grid')
+  if (!grid) return
+  grid.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:40px;text-align:center;grid-column:1/-1">Cargando...</div>'
+  try {
+    const r = await fetch('/api/admin/profiles?wsId=' + wsId)
+    const d = await r.json()
+    _perfilesData = d.perfiles || []
+    _renderPerfilesStats()
+    _renderPerfilesGrid()
+  } catch(e) {
+    grid.innerHTML = '<div style="color:var(--red);padding:20px;grid-column:1/-1">Error cargando perfiles: ' + e.message + '</div>'
+  }
+}
+
+function _renderPerfilesStats() {
+  const el = document.getElementById('perfiles-stats')
+  if (!el || !_perfilesData.length) return
+  const total = _perfilesData.length
+  const conCompras = _perfilesData.filter(p => p.cantCompras > 0).length
+  const conCashback = _perfilesData.filter(p => p.cashbackBalance > 0).length
+  const carritoAband = _perfilesData.filter(p => p.carritoAbandonado).length
+  const fmt = n => n >= 1000 ? (n/1000).toFixed(1)+'k' : n
+  el.innerHTML = [
+    ['👤 Total', fmt(total)],
+    ['🛍 Compradores', fmt(conCompras)],
+    ['🛒 Carrito aband.', fmt(carritoAband)],
+    ['💰 Con cashback', fmt(conCashback)],
+  ].map(([label, val]) => `<div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:14px 16px">
+    <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px">${label}</div>
+    <div style="font-size:22px;font-weight:900;letter-spacing:-.04em">${val}</div>
+  </div>`).join('')
+}
+
+function _renderPerfilesGrid() {
+  const grid = document.getElementById('perfiles-grid')
+  if (!grid) return
+  const q = (document.getElementById('perfiles-search')?.value || '').toLowerCase()
+  const list = q ? _perfilesData.filter(p =>
+    (p.nombre + ' ' + p.apellido + ' ' + p.telefono + ' ' + p.email).toLowerCase().includes(q)
+  ) : _perfilesData
+
+  if (!list.length) {
+    grid.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:40px;text-align:center;grid-column:1/-1">No hay perfiles' + (q ? ' que coincidan' : '') + '</div>'
+    return
+  }
+
+  grid.innerHTML = list.map(p => {
+    const initials = ((p.nombre||'?')[0] + (p.apellido?.[0]||'')).toUpperCase() || '?'
+    const etapaColor = p.etapa === 'cliente' ? 'var(--green)' : p.etapa === 'prospecto' ? 'var(--gold)' : 'var(--muted)'
+    const lastSeen = p.ultimaVisita ? _relTime(p.ultimaVisita) : '—'
+    const prod = p.ultimoProductoVisto || '—'
+    return `<div onclick="openPerfil('${p.id}')" style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='var(--border2)';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform=''">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="width:40px;height:40px;border-radius:10px;background:var(--text);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0">${initials}</div>
+        <div style="min-width:0;flex:1">
+          <div style="font-size:13px;font-weight:800;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nombre||''} ${p.apellido||''}</div>
+          <div style="font-size:11px;color:var(--muted)">${p.telefono ? '+'+p.telefono : (p.email || '—')}</div>
+        </div>
+        <span style="font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:5px;background:${etapaColor}18;color:${etapaColor}">${p.etapa||'prospecto'}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div style="background:var(--bg);border-radius:8px;padding:8px 10px">
+          <div style="font-size:9px;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">Compras</div>
+          <div style="font-size:15px;font-weight:900">${p.cantCompras||0}</div>
+        </div>
+        <div style="background:var(--bg);border-radius:8px;padding:8px 10px">
+          <div style="font-size:9px;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">Total</div>
+          <div style="font-size:15px;font-weight:900">$${_fmtN(p.valorTotalCompras||0)}</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:3px">
+        <div>👁 <span style="color:var(--text)">${prod.length > 28 ? prod.slice(0,28)+'…' : prod}</span></div>
+        ${p.carritoAbandonado ? '<div>🛒 <span style="color:var(--gold);font-weight:700">Carrito abandonado</span></div>' : ''}
+        ${p.cashbackBalance > 0 ? '<div>💰 <span style="color:var(--green);font-weight:700">$'+_fmtN(p.cashbackBalance)+' cashback</span></div>' : ''}
+        <div style="margin-top:4px;color:var(--muted2)">Última visita: ${lastSeen}</div>
+      </div>
+    </div>`
+  }).join('')
+}
+
+function openPerfil(userId) {
+  const p = _perfilesData.find(x => x.id === userId)
+  if (!p) return
+  const body = document.getElementById('perfil-panel-body')
+  if (!body) return
+
+  const initials = ((p.nombre||'?')[0] + (p.apellido?.[0]||'')).toUpperCase() || '?'
+  const fmt = n => '$' + _fmtN(n || 0)
+
+  body.innerHTML = `
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      <div style="width:56px;height:56px;border-radius:12px;background:var(--text);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;flex-shrink:0">${initials}</div>
+      <div>
+        <div style="font-size:17px;font-weight:900;letter-spacing:-.03em">${p.nombre||''} ${p.apellido||''}</div>
+        <div style="font-size:12px;color:var(--muted)">${p.telefono ? '+'+p.telefono : ''} ${p.email ? '· '+p.email : ''}</div>
+        ${p.codigoReferido ? `<div style="font-size:11px;margin-top:4px">🔗 Código referido: <code style="font-weight:700;font-size:12px;letter-spacing:.04em">${p.codigoReferido}</code></div>` : ''}
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px">
+      ${[['Compras',p.cantCompras||0],['Total gastado',fmt(p.valorTotalCompras)],['Cashback',fmt(p.cashbackBalance)]].map(([l,v])=>`
+        <div style="background:var(--s2);border-radius:9px;padding:10px 12px;text-align:center">
+          <div style="font-size:9.5px;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">${l}</div>
+          <div style="font-size:16px;font-weight:900">${v}</div>
+        </div>`).join('')}
+    </div>
+
+    <!-- Último producto y carrito -->
+    <div style="background:var(--s2);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px">Actividad reciente</div>
+      <div style="font-size:12px;display:flex;flex-direction:column;gap:7px">
+        <div>👁 <strong>Último producto:</strong> ${p.ultimoProductoVisto || '—'}</div>
+        <div>🕐 <strong>Última visita:</strong> ${p.ultimaVisita ? new Date(p.ultimaVisita).toLocaleString('es-AR') : '—'}</div>
+        ${p.carritoAbandonado ? '<div>🛒 <strong style="color:var(--gold)">Carrito abandonado</strong></div>' : ''}
+        ${p.ultimoCarritoItems?.length ? `<div>🛍 <strong>Último carrito:</strong> ${p.ultimoCarritoItems.map(i=>i.nombre+' x'+i.qty).join(', ')}</div>` : ''}
+      </div>
+    </div>
+
+    <!-- Acciones -->
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px">
+      ${p.telefono ? `<button class="btn btn-sm" onclick="window.open('https://wa.me/${p.telefono}','_blank')">💬 WhatsApp</button>` : ''}
+      <button class="btn btn-sm" onclick="_adminAddCashback('${p.id}')">💰 Ajustar cashback</button>
+    </div>
+
+    <!-- Historial de compras -->
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);margin-bottom:10px">Historial de compras (${p.ordenes?.length||0})</div>
+    ${p.ordenes?.length ? p.ordenes.map(o => `
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:9px;padding:12px 14px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:12px;font-weight:800">#${o.numero}</span>
+          <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;background:${o.estado==='pagado'?'rgba(22,163,74,.1)':'rgba(0,0,0,.05)'};color:${o.estado==='pagado'?'var(--green)':'var(--muted)'}">${o.estado}</span>
+        </div>
+        <div style="font-size:11.5px;color:var(--muted)">${o.lineas?.map(l=>l.nombre+(l.cantidad>1?' x'+l.cantidad:'')).join(', ')}</div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:12px">
+          <span style="color:var(--muted2)">${o.fecha ? new Date(o.fecha).toLocaleDateString('es-AR') : ''}</span>
+          <span style="font-weight:800">${fmt(o.total)}</span>
+        </div>
+      </div>`).join('') : '<div style="font-size:12px;color:var(--muted);padding:12px 0">Sin compras aún</div>'}
+  `
+
+  document.getElementById('perfil-panel-overlay').style.display = ''
+  document.getElementById('perfil-panel').style.display = ''
+}
+
+function closePerfil() {
+  document.getElementById('perfil-panel-overlay').style.display = 'none'
+  document.getElementById('perfil-panel').style.display = 'none'
+}
+
+async function _adminAddCashback(userId) {
+  const amt = parseFloat(prompt('Ajuste de cashback (positivo para agregar, negativo para descontar):'))
+  if (isNaN(amt)) return
+  try {
+    const r = await fetch('/api/admin/profiles/' + userId + '?wsId=' + wsId, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cashbackAjuste: amt })
+    })
+    if ((await r.json()).ok) {
+      const p = _perfilesData.find(x => x.id === userId)
+      if (p) { p.cashbackBalance = Math.max(0, (p.cashbackBalance||0) + amt) }
+      openPerfil(userId)
+      _showToast('Cashback actualizado')
+    }
+  } catch(e) { alert('Error: ' + e.message) }
+}
+
+function _relTime(iso) {
+  const diff = Date.now() - new Date(iso).getTime()
+  const min = Math.floor(diff / 60000)
+  if (min < 60) return min + ' min'
+  const h = Math.floor(min / 60)
+  if (h < 24) return h + 'h'
+  return Math.floor(h / 24) + 'd'
+}
+
+function _fmtN(n) {
+  return Number(n).toLocaleString('es-AR', { maximumFractionDigits: 0 })
+}
+
+// ══════════════════════════════════════════════════
+// A/B TESTING
+// ══════════════════════════════════════════════════
+let _abTestsData = []
+let _currentABTest = null
+
+async function _loadABTests() {
+  const list = document.getElementById('abtests-list')
+  if (!list) return
+  try {
+    const r = await fetch('/api/admin/abtests?wsId=' + wsId)
+    const d = await r.json()
+    _abTestsData = d.tests || []
+    _renderABTests()
+  } catch(e) {
+    list.innerHTML = '<div style="color:var(--red);padding:20px">Error: ' + e.message + '</div>'
+  }
+}
+
+function _renderABTests() {
+  const list = document.getElementById('abtests-list')
+  if (!list) return
+  if (!_abTestsData.length) {
+    list.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--muted)">
+      <div style="font-size:36px;margin-bottom:12px">🧪</div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:6px">Sin experimentos todavía</div>
+      <div style="font-size:12px">Creá tu primer A/B test para probar precios o variantes de diseño.</div>
+    </div>`
+    return
+  }
+  list.innerHTML = _abTestsData.map(t => {
+    const totalImpr = (t.variants||[]).reduce((s,v) => s+(v.impressions||0), 0)
+    return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:14px;font-weight:800">${t.nombre||'Sin nombre'}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Creado ${t.creado ? new Date(t.creado).toLocaleDateString('es-AR') : '—'} · ${totalImpr} impresiones</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;background:${t.active?'rgba(22,163,74,.1)':'var(--s2)'};color:${t.active?'var(--green)':'var(--muted)'}">${t.active?'🟢 Activo':'⚪ Pausado'}</span>
+          <button class="btn btn-xs" onclick="openABModal('${t.id}')">Editar</button>
+          <button class="btn btn-xs" onclick="_toggleABTest('${t.id}')">${t.active?'Pausar':'Activar'}</button>
+          <button class="btn btn-xs" style="color:var(--red)" onclick="_deleteABTest('${t.id}')">Borrar</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px">
+        ${(t.variants||[]).map(v => {
+          const pct = totalImpr > 0 ? Math.round((v.impressions||0)/totalImpr*100) : 0
+          const overrides = v.priceOverrides ? Object.entries(v.priceOverrides).map(([id,price]) => `${id}: $${price}`).join(', ') : 'Sin cambios de precio'
+          return `<div style="background:var(--bg);border-radius:8px;padding:10px 12px;border:1px solid var(--border)">
+            <div style="font-size:11px;font-weight:700;margin-bottom:4px">${v.nombre||v.id}</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">${overrides}</div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="flex:1;height:4px;background:var(--s3);border-radius:2px"><div style="height:100%;width:${pct}%;background:var(--text);border-radius:2px;transition:width .3s"></div></div>
+              <span style="font-size:10px;font-weight:700;color:var(--muted)">${pct}%</span>
+            </div>
+            <div style="font-size:10px;color:var(--muted2);margin-top:3px">${v.impressions||0} visitas · ${v.trafficPct||50}% tráfico</div>
+          </div>`
+        }).join('')}
+      </div>
+    </div>`
+  }).join('')
+}
+
+function openABModal(testId) {
+  _currentABTest = testId ? _abTestsData.find(t => t.id === testId) : null
+  const modal = document.getElementById('modal-abtest')
+  document.getElementById('abtest-modal-title').textContent = _currentABTest ? 'Editar experimento' : 'Nuevo experimento A/B'
+  document.getElementById('ab-nombre').value = _currentABTest?.nombre || ''
+  document.getElementById('ab-active').checked = _currentABTest?.active || false
+  _renderABVariants(_currentABTest?.variants || [
+    { id: 'a', nombre: 'Control (A)', trafficPct: 50, priceOverrides: {} },
+    { id: 'b', nombre: 'Variante (B)', trafficPct: 50, priceOverrides: {} }
+  ])
+  modal.style.display = 'flex'
+}
+
+function closeABModal() {
+  document.getElementById('modal-abtest').style.display = 'none'
+  _currentABTest = null
+}
+
+function _renderABVariants(variants) {
+  const container = document.getElementById('ab-variants-list')
+  if (!container) return
+  container.innerHTML = variants.map((v, i) => `
+    <div style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:120px"><label style="font-size:11px;font-weight:700;color:var(--muted2);display:block;margin-bottom:4px">Nombre variante</label>
+          <input class="form-input" value="${v.nombre||v.id}" placeholder="Ej: Variante A" data-v="${i}" data-field="nombre" style="font-size:13px" oninput="_syncABVariant(${i},'nombre',this.value)">
+        </div>
+        <div style="width:80px"><label style="font-size:11px;font-weight:700;color:var(--muted2);display:block;margin-bottom:4px">% Tráfico</label>
+          <input class="form-input" type="number" min="1" max="99" value="${v.trafficPct||50}" style="font-size:13px" oninput="_syncABVariant(${i},'trafficPct',+this.value)">
+        </div>
+      </div>
+      <label style="font-size:11px;font-weight:700;color:var(--muted2);display:block;margin-bottom:4px">Precios a modificar (JSON: {"productoId": precio})</label>
+      <textarea class="form-input" rows="2" placeholder='{"prod_abc123": 1500, "prod_xyz456": 2000}' style="font-size:12px;font-family:monospace" oninput="_syncABVariantPrices(${i},this.value)">${v.priceOverrides ? JSON.stringify(v.priceOverrides) : ''}</textarea>
+    </div>`).join('')
+  container._variants = variants
+}
+
+let _abVariantsTemp = []
+function _addABVariant() {
+  const container = document.getElementById('ab-variants-list')
+  const existing = container?._variants || []
+  const letter = String.fromCharCode(97 + existing.length)
+  existing.push({ id: letter, nombre: 'Variante ' + letter.toUpperCase(), trafficPct: Math.floor(100/(existing.length+1)), priceOverrides: {} })
+  _renderABVariants(existing)
+}
+
+function _syncABVariant(idx, field, val) {
+  const container = document.getElementById('ab-variants-list')
+  if (container?._variants?.[idx]) container._variants[idx][field] = val
+}
+function _syncABVariantPrices(idx, val) {
+  try {
+    const container = document.getElementById('ab-variants-list')
+    if (container?._variants?.[idx]) container._variants[idx].priceOverrides = JSON.parse(val || '{}')
+  } catch(e) {}
+}
+
+async function saveABTest() {
+  const nombre = document.getElementById('ab-nombre').value.trim()
+  if (!nombre) { alert('El nombre es obligatorio'); return }
+  const container = document.getElementById('ab-variants-list')
+  const variants = container?._variants || []
+  const test = {
+    id: _currentABTest?.id,
+    nombre,
+    active: document.getElementById('ab-active').checked,
+    variants,
+    impressions: _currentABTest?.impressions || 0,
+  }
+  try {
+    const r = await fetch('/api/admin/abtests', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ wsId, test })
+    })
+    const d = await r.json()
+    if (!d.ok) throw new Error(d.error)
+    closeABModal()
+    await _loadABTests()
+    _showToast('Experimento guardado')
+  } catch(e) { alert('Error: ' + e.message) }
+}
+
+async function _toggleABTest(testId) {
+  const t = _abTestsData.find(x => x.id === testId)
+  if (!t) return
+  try {
+    const r = await fetch('/api/admin/abtests', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ wsId, test: { ...t, active: !t.active } })
+    })
+    if ((await r.json()).ok) { await _loadABTests(); _showToast(t.active ? 'Experimento pausado' : 'Experimento activado') }
+  } catch(e) { alert('Error: ' + e.message) }
+}
+
+async function _deleteABTest(testId) {
+  if (!confirm('¿Borrar este experimento? Se perderán todas las métricas.')) return
+  try {
+    const r = await fetch('/api/admin/abtests/' + testId + '?wsId=' + wsId, { method: 'DELETE' })
+    if ((await r.json()).ok) { await _loadABTests(); _showToast('Experimento eliminado') }
+  } catch(e) { alert('Error: ' + e.message) }
 }
 
 async function initTiendaPage(tab = 'productos') {

@@ -1462,12 +1462,22 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
             <div id="coupon-feedback" style="font-size:11px;margin-top:4px"></div>
           </div>
 
-          <div class="ch-field" style="margin-bottom:14px">
+          <!-- Referral code with live validation -->
+          <div class="ch-field" id="ch-referral-wrap" style="margin-bottom:10px">
+            <label class="ch-label">Código de referido <span style="font-weight:400;color:var(--muted)">(opcional — 10% OFF)</span></label>
+            <input class="ch-input" id="ch-referral" placeholder="ej: mariagonzalez15" style="letter-spacing:.02em" oninput="validateReferralCode(this.value)">
+            <div id="referral-feedback" style="font-size:11.5px;margin-top:5px;min-height:16px"></div>
+          </div>
 
-            <label class="ch-label">Código de referido (opcional)</label>
-
-            <input class="ch-input" id="ch-referral" placeholder="Ej: REF5KX8A" style="text-transform:uppercase">
-
+          <!-- Cashback toggle — visible only when user has balance -->
+          <div id="ch-cashback-row" style="display:none;margin-bottom:14px">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 14px;background:var(--s2);border:1.5px solid var(--border);border-radius:10px;transition:border-color .15s" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">
+              <input type="checkbox" id="ch-use-cashback" onchange="updateCheckoutTotal()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--text);flex-shrink:0">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text)">💰 Usar cashback</div>
+                <div style="font-size:11.5px;color:var(--muted)" id="ch-cashback-label">$0 disponible</div>
+              </div>
+            </label>
           </div>
 
           <div class="ch-error" id="ch-error"></div>
@@ -1490,9 +1500,19 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
 
         <div class="summary-items" id="ch-summary-items"></div>
 
-        <div id="ch-discount-row" style="display:none;flex-direction:row;justify-content:space-between;font-size:12px;color:#22c55e;margin-bottom:6px">
+        <div id="ch-discount-row" style="display:none;flex-direction:row;justify-content:space-between;font-size:12px;color:var(--green);margin-bottom:6px">
           <span>🎟 Descuento</span>
           <span id="ch-discount-val">-$0</span>
+        </div>
+
+        <div id="ch-referral-row" style="display:none;flex-direction:row;justify-content:space-between;font-size:12px;color:var(--green);margin-bottom:6px">
+          <span>🤝 Código referido (10%)</span>
+          <span id="ch-referral-val">-$0</span>
+        </div>
+
+        <div id="ch-cashback-summary-row" style="display:none;flex-direction:row;justify-content:space-between;font-size:12px;color:var(--green);margin-bottom:6px">
+          <span>💰 Cashback aplicado</span>
+          <span id="ch-cashback-summary-val">-$0</span>
         </div>
 
         <div id="ch-envio-row" style="display:none;flex-direction:row;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px">
@@ -2161,12 +2181,28 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
 
     </div>
 
+    <!-- Código de referido -->
+    <div class="prof-section" id="prof-referral-section" style="display:none">
+      <div class="prof-section-title">Tu código de referido</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <code id="prof-referral-code" style="font-size:16px;font-weight:800;letter-spacing:.06em;font-family:monospace;flex:1;color:var(--text)"></code>
+        <button onclick="_copyReferralCode()" id="prof-referral-copy-btn" style="background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;color:var(--text);transition:all .15s;white-space:nowrap">Copiar</button>
+      </div>
+      <div style="font-size:11.5px;color:var(--muted);line-height:1.55">Compartí tu código y tus amigas obtienen <strong style="color:var(--text)">10% OFF</strong>. Por cada compra con tu código recibís <strong style="color:var(--text)">10% de cashback</strong>.</div>
+    </div>
+
+    <!-- Cashback -->
+    <div class="prof-section" id="prof-cashback-section" style="display:none">
+      <div class="prof-section-title">Cashback disponible</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:28px;font-weight:900;letter-spacing:-.06em;color:var(--text)" id="prof-cashback-amount">$0</div>
+        <div style="font-size:11.5px;color:var(--muted);text-align:right;max-width:140px;line-height:1.5">Usalo como descuento en tu próxima compra</div>
+      </div>
+    </div>
+
     <!-- Autogestión -->
-
     <div class="prof-section" style="padding-bottom:0">
-
       <button class="prof-action-btn" onclick="openSelfService()"><i class="ti ti-package" style="font-size:16px;margin-right:6px;vertical-align:-2px"></i>Cambio o devolución</button>
-
     </div>
 
     <button class="prof-logout" onclick="logoutIdentity()">Cerrar sesión</button>
@@ -2516,6 +2552,8 @@ async function loadStore() {
 
     productos = data.productos || []
 
+    _initABTests()  // apply price overrides before first render
+
     applySettings()
 
     buildFilters()
@@ -2773,6 +2811,68 @@ function _setupPWAManifest() {
 // ── Coupon / Discount codes ───────────────────────────────────
 let _appliedCoupon = null // { code, tipo:'porcentaje'|'fijo', valor, minCompra }
 
+// ── Referral code validation ──────────────────────────
+let _validatedReferralCode = null
+let _referralValidateTimer = null
+
+function validateReferralCode(val) {
+  clearTimeout(_referralValidateTimer)
+  const fb = document.getElementById('referral-feedback')
+  _validatedReferralCode = null
+  if (!fb) return
+  if (!val || val.length < 3) { fb.textContent = ''; updateCheckoutTotal(); return }
+  fb.style.color = 'var(--muted)'; fb.textContent = 'Verificando...'
+  _referralValidateTimer = setTimeout(async () => {
+    try {
+      const r = await fetch('/api/store/validate-code?wsId=' + WS + '&codigo=' + encodeURIComponent(val.toLowerCase()))
+      const d = await r.json()
+      if (d.valid) {
+        _validatedReferralCode = { code: val.toLowerCase(), pct: d.pct }
+        fb.style.color = 'var(--green)'; fb.textContent = '✓ ' + d.mensaje
+      } else {
+        fb.style.color = 'var(--red)'; fb.textContent = '✗ ' + (d.mensaje || 'Código no encontrado')
+      }
+      updateCheckoutTotal()
+    } catch(e) { fb.textContent = '' }
+  }, 500)
+}
+
+function _copyReferralCode() {
+  const code = document.getElementById('prof-referral-code')?.textContent || ''
+  if (!code) return
+  navigator.clipboard?.writeText(code).then(() => {
+    const btn = document.getElementById('prof-referral-copy-btn')
+    if (btn) { const orig = btn.textContent; btn.textContent = '¡Copiado!'; setTimeout(() => btn.textContent = orig, 1800) }
+  }).catch(() => toast('Código: ' + code))
+}
+
+// ── A/B testing ────────────────────────────────────────
+let _abPriceOverrides = {}
+let _abAssignments = {}
+
+async function _initABTests() {
+  if (!WS) return
+  try {
+    const sessionKey = _idToken || localStorage.getItem('vlid_tok') || ('anon_' + Math.random().toString(36).slice(2,10))
+    const r = await fetch('/api/store/abvariant?wsId=' + WS + '&sessionKey=' + encodeURIComponent(sessionKey))
+    const d = await r.json()
+    if (!d.ok) return
+    _abAssignments = d.assignments || {}
+    _abPriceOverrides = d.priceOverrides || {}
+    // Apply price overrides to loaded products
+    if (Object.keys(_abPriceOverrides).length > 0) {
+      productos = productos.map(p => _abPriceOverrides[p.id] != null ? { ...p, precio: _abPriceOverrides[p.id] } : p)
+      // Also update cart prices
+      cart = cart.map(c => {
+        const newPrice = _abPriceOverrides[c.id]
+        return newPrice != null ? { ...c, precio: newPrice } : c
+      })
+      renderGrid()
+      updateCartCount()
+    }
+  } catch(e) { /* silent — AB test failure never breaks the store */ }
+}
+
 function applyCoupon() {
   const code = (document.getElementById('ch-coupon')?.value || '').trim().toUpperCase()
   const fb = document.getElementById('coupon-feedback')
@@ -2811,18 +2911,39 @@ function calcDiscountAmount(subtotal) {
 function updateCheckoutTotal() {
   const subtotal = cart.reduce((s,i) => s + i.precio*i.qty, 0)
   const disc = calcDiscountAmount(subtotal)
+
+  // Referral discount (10%)
+  const refDisc = _validatedReferralCode ? Math.round((subtotal - disc) * 0.10) : 0
+
+  // Cashback discount
+  const useCashback = document.getElementById('ch-use-cashback')?.checked || false
+  const cashbackAvail = _idUser?.cashbackBalance || 0
+  const cbDisc = useCashback ? Math.min(cashbackAvail, subtotal - disc - refDisc) : 0
+
   const envio = getEnvio()
-  const total = subtotal - disc + envio
+  const total = Math.max(0, subtotal - disc - refDisc - cbDisc) + envio
 
   // Total principal
   const totalEl = document.getElementById('ch-total')
   if (totalEl) totalEl.textContent = '$' + fmt(total)
 
-  // Fila descuento
+  // Fila descuento cupón
   const discRow = document.getElementById('ch-discount-row')
   const discVal = document.getElementById('ch-discount-val')
   if (discRow) discRow.style.display = disc > 0 ? 'flex' : 'none'
   if (discVal && disc > 0) discVal.textContent = '-$' + fmt(disc)
+
+  // Fila descuento referido
+  const refRow = document.getElementById('ch-referral-row')
+  const refVal = document.getElementById('ch-referral-val')
+  if (refRow) refRow.style.display = refDisc > 0 ? 'flex' : 'none'
+  if (refVal && refDisc > 0) refVal.textContent = '-$' + fmt(refDisc)
+
+  // Fila cashback
+  const cbRow = document.getElementById('ch-cashback-summary-row')
+  const cbVal = document.getElementById('ch-cashback-summary-val')
+  if (cbRow) cbRow.style.display = cbDisc > 0 ? 'flex' : 'none'
+  if (cbVal && cbDisc > 0) cbVal.textContent = '-$' + fmt(cbDisc)
 
   // Fila envío
   const envioRow = document.getElementById('ch-envio-row')
@@ -5079,7 +5200,16 @@ function updateQty(key, d) {
 
 }
 
-function saveCart() { localStorage.setItem('cart_' + WS, JSON.stringify(cart)); updateCartCount(); _resetCartAbandonTimer() }
+function saveCart() {
+  localStorage.setItem('cart_' + WS, JSON.stringify(cart))
+  updateCartCount()
+  _resetCartAbandonTimer()
+  // Track cart state for admin profiles dashboard
+  if (_idToken && WS) {
+    const items = cart.map(i => ({ id: i.id, nombre: i.nombre, precio: i.precio, qty: i.qty }))
+    trackJourney('cart_update', { items, total: cart.reduce((s,i) => s + i.precio*i.qty, 0) })
+  }
+}
 
 
 
@@ -5781,7 +5911,7 @@ async function submitCheckout() {
 
       signal: _checkoutAbort.signal,
 
-      body: JSON.stringify({ wsId: WS, items: cart.map(i => ({ id: i.id, cantidad: i.qty })), cliente, envio, cuponCodigo: _appliedCoupon?.codigo || undefined, descuento: _appliedCoupon ? calcDiscountAmount(cart.reduce((s,i)=>s+i.precio*i.qty,0)) : 0, paywayToken, paywayBin, cuotas: parseInt(document.getElementById('pw-cuotas')?.value||'1'), metodoPago: _selectedPayMethod, ecid: sessionStorage.getItem('_vld_ecid_' + WS) || undefined })
+      body: JSON.stringify({ wsId: WS, items: cart.map(i => ({ id: i.id, cantidad: i.qty })), cliente, envio, cuponCodigo: _appliedCoupon?.codigo || undefined, descuento: _appliedCoupon ? calcDiscountAmount(cart.reduce((s,i)=>s+i.precio*i.qty,0)) : 0, codigoReferido: _validatedReferralCode?.code || undefined, usarCashback: document.getElementById('ch-use-cashback')?.checked || false, paywayToken, paywayBin, cuotas: parseInt(document.getElementById('pw-cuotas')?.value||'1'), metodoPago: _selectedPayMethod, ecid: sessionStorage.getItem('_vld_ecid_' + WS) || undefined })
 
     })
 
@@ -5954,7 +6084,18 @@ async function initIdentity() {
 
     const d = await r.json()
 
-    if (d.ok && d.user) { _idUser = d.user; _updateLoginBtn(); _loadLikesFromUser() }
+    if (d.ok && d.user) {
+      _idUser = d.user
+      _updateLoginBtn()
+      _loadLikesFromUser()
+      // Show cashback toggle in checkout if user has balance
+      const cbRow = document.getElementById('ch-cashback-row')
+      const cbLabel = document.getElementById('ch-cashback-label')
+      if (cbRow && (_idUser.cashbackBalance || 0) > 0) {
+        cbRow.style.display = ''
+        if (cbLabel) cbLabel.textContent = '$' + fmt(_idUser.cashbackBalance) + ' disponible'
+      }
+    }
 
   } catch(e) {}
 
@@ -6062,12 +6203,39 @@ function openProfilePanel() {
 
   if (bg) bg.innerHTML = badges.length ? badges.map(function(b){ return '<span class="prof-badge-chip">' + b.emoji + ' ' + b.label + '</span>' }).join('') : '<span style="font-size:12px;color:var(--muted)">Seguí explorando para desbloquear logros ✨</span>'
 
-  // Cargar pedidos del usuario
+  // Referral code section
+  const refSection = document.getElementById('prof-referral-section')
+  const refCodeEl = document.getElementById('prof-referral-code')
+  if (refSection && refCodeEl) {
+    if (u.codigoReferido) {
+      refCodeEl.textContent = u.codigoReferido
+      refSection.style.display = ''
+    } else {
+      refSection.style.display = 'none'
+    }
+  }
 
+  // Cashback section
+  const cbSection = document.getElementById('prof-cashback-section')
+  const cbAmountEl = document.getElementById('prof-cashback-amount')
+  if (cbSection && cbAmountEl) {
+    const balance = u.cashbackBalance || 0
+    cbAmountEl.textContent = '$' + fmt(balance)
+    cbSection.style.display = balance > 0 ? '' : 'none'
+  }
+
+  // Update cashback toggle in checkout if open
+  const cbRow = document.getElementById('ch-cashback-row')
+  const cbLabel = document.getElementById('ch-cashback-label')
+  if (cbRow && u.cashbackBalance > 0) {
+    cbRow.style.display = ''
+    if (cbLabel) cbLabel.textContent = '$' + fmt(u.cashbackBalance) + ' disponible'
+  }
+
+  // Cargar pedidos del usuario
   _loadMyOrders()
 
   // Open
-
   document.getElementById('prof-overlay').classList.add('open')
 
   document.body.style.overflow = 'hidden'

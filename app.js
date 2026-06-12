@@ -2618,6 +2618,23 @@ function _genToken() {
   return t
 }
 
+// ── Referral code generator ──────────────────────────
+function _genReferralCode(user, data) {
+  if (user.codigoReferido) return user.codigoReferido
+  if (!data.referidoCodes) data.referidoCodes = {}
+  const base = ((user.nombre || '') + (user.apellido || ''))
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 16) || (user.telefono || '').replace(/\D/g,'').slice(-6) || 'ref'
+  let code = base + '15'
+  let n = 2
+  while (data.referidoCodes[code] && data.referidoCodes[code] !== user.id) { code = base + n++ + '15' }
+  user.codigoReferido = code
+  data.referidoCodes[code] = user.id
+  return code
+}
+
 function _genUserId() {
   return 'u_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8)
 }
@@ -2712,6 +2729,13 @@ function _userPublic(user) {
     fechaAlta: user.fechaAlta || null,
     ultimaVisita: user.ultimaVisita || null,
     totalEventos: (user.historial || []).length,
+    codigoReferido: user.codigoReferido || null,
+    cashbackBalance: user.cashbackBalance || 0,
+    ultimoProductoVisto: user.ultimoProductoVisto || null,
+    ultimoCarritoItems: user.ultimoCarritoItems || null,
+    carritoAbandonado: user.carritoAbandonado || false,
+    cantCompras: user.cantCompras || 0,
+    valorTotalCompras: user.valorTotalCompras || 0,
   }
 }
 
@@ -2745,6 +2769,8 @@ app.post('/api/identity/request-otp', async (req, res) => {
       if (nombre && !user.nombre) user.nombre = nombre
       if (email && !user.email) user.email = email
     }
+    // Generate referral code if not set (or update when name is now available)
+    _genReferralCode(user, data)
     const token = _genToken()
     if (!data.tokens) data.tokens = {}
     data.tokens[token] = { userId: user.id, wsId, createdAt: now }
@@ -2852,6 +2878,9 @@ app.post('/api/identity/verify-otp', async (req, res) => {
     user.ultimaVisita = now
   }
 
+  // Generate referral code if not already set
+  _genReferralCode(user, data)
+
   const token = _genToken()
   if (!data.tokens) data.tokens = {}
   data.tokens[token] = { userId: user.id, wsId, createdAt: now }
@@ -2903,8 +2932,10 @@ app.get('/api/identity/me', async (req, res) => {
   const user = (data.usuarios || []).find(u => u.id === tokenEntry.userId)
   if (!user) return res.status(404).json({ error: 'Usuario no encontrado' })
 
-  // Renovar lastUsed para mantener la sesión activa
+  // Renovar lastUsed y generar código de referido si falta
   data.tokens[token].lastUsed = new Date().toISOString()
+  const hadCode = !!user.codigoReferido
+  _genReferralCode(user, data)
   patchWorkspace(wsId, data).catch(() => {})
 
   res.json({ ok: true, user: _userPublic(user) })
@@ -3001,6 +3032,12 @@ app.post('/api/identity/journey', async (req, res) => {
       user.ultimoCarrito = now
       user.carritoAbandonado = false
       user.totalAgregadosCarrito = (user.totalAgregadosCarrito||0) + 1
+    }
+
+    if (evento === 'cart_update') {
+      user.ultimoCarrito = now
+      user.ultimoCarritoItems = datos?.items || null
+      user.carritoAbandonado = (datos?.items?.length || 0) > 0
     }
 
     if (evento === 'cart_abandon') {
@@ -3635,6 +3672,34 @@ app.post('/api/store/checkout', async (req, res) => {
     const descuento = Number(req.body.descuento) || 0
     if (descuento > 0 && descuento < total) total = Math.max(0, total - descuento)
 
+    // ── Referral code discount (10% OFF) ──────────────────────────────
+    const codigoReferido = (req.body.codigoReferido || '').toLowerCase().trim()
+    const usarCashback = !!req.body.usarCashback
+    const authToken = (req.headers.authorization || '').replace('Bearer ','').trim()
+    let referrerId = null, descuentoReferido = 0, descuentoCashback = 0
+    const totalAntesDescuentos = total
+
+    if (codigoReferido && (d.referidoCodes || {})[codigoReferido]) {
+      referrerId = d.referidoCodes[codigoReferido]
+      // Don't let someone use their own code
+      const selfUser = authToken ? (d.usuarios||[]).find(u => u.id === (d.tokens||{})[authToken]?.userId) : null
+      if (!selfUser || selfUser.id !== referrerId) {
+        descuentoReferido = Math.round(total * 0.10)
+        total = Math.max(0, total - descuentoReferido)
+      } else {
+        referrerId = null // blocked own code
+      }
+    }
+
+    // ── Cashback discount ────────────────────────────────────────────
+    if (usarCashback && authToken) {
+      const selfUser = (d.usuarios||[]).find(u => u.id === (d.tokens||{})[authToken]?.userId)
+      if (selfUser && (selfUser.cashbackBalance||0) > 0) {
+        descuentoCashback = Math.min(selfUser.cashbackBalance, total)
+        total = Math.max(0, total - descuentoCashback)
+      }
+    }
+
     // Add shipping cost to total
     const envioAmt = Number(envio) || 0
     total = total + envioAmt
@@ -3655,6 +3720,9 @@ app.post('/api/store/checkout', async (req, res) => {
       fecha: new Date().toISOString(),
       cupon: cuponCodigo || undefined,
       descuento: descuento || undefined,
+      codigoReferido: codigoReferido || undefined,
+      descuentoReferido: descuentoReferido || undefined,
+      descuentoCashback: descuentoCashback || undefined,
       metodoPago: req.body.metodoPago || 'transferencia',
       ecid: ecid || undefined,
     }
@@ -3893,6 +3961,25 @@ app.post('/api/store/checkout', async (req, res) => {
       }
     }
 
+    // ── Acreditar cashback al referidor y descontar del comprador ────────
+    if (referrerId && descuentoReferido > 0) {
+      const referrer = (d.usuarios||[]).find(u => u.id === referrerId)
+      if (referrer) {
+        const cashbackAmt = Math.round(totalAntesDescuentos * 0.10)
+        referrer.cashbackBalance = (referrer.cashbackBalance||0) + cashbackAmt
+        if (!referrer.cashbackHistory) referrer.cashbackHistory = []
+        referrer.cashbackHistory.push({ tipo: 'ganado', monto: cashbackAmt, de: cliente.nombre||'Comprador', ordenId: orden.id, ts: new Date().toISOString() })
+      }
+    }
+    if (usarCashback && descuentoCashback > 0 && authToken) {
+      const selfUser = (d.usuarios||[]).find(u => u.id === (d.tokens||{})[authToken]?.userId)
+      if (selfUser) {
+        selfUser.cashbackBalance = Math.max(0, (selfUser.cashbackBalance||0) - descuentoCashback)
+        if (!selfUser.cashbackHistory) selfUser.cashbackHistory = []
+        selfUser.cashbackHistory.push({ tipo: 'usado', monto: descuentoCashback, ordenId: orden.id, ts: new Date().toISOString() })
+      }
+    }
+
     // Capturar referencia al contacto CRM antes de guardar (para flow automation)
     const _purchaseCrmContact = crmIdx >= 0 ? d.crm[crmIdx] : d.crm[d.crm.length - 1]
 
@@ -3914,6 +4001,197 @@ app.post('/api/store/checkout', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
+})
+
+// ── GET /api/store/validate-code — validate referral or cashback code ──
+app.get('/api/store/validate-code', async (req, res) => {
+  const { wsId, codigo } = req.query
+  if (!wsId || !codigo) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const ws = await getWorkspace(wsId)
+    const data = ws?.data || {}
+    const codeLower = (codigo || '').toLowerCase().trim()
+    const refCodes = data.referidoCodes || {}
+    if (refCodes[codeLower]) {
+      const referrerId = refCodes[codeLower]
+      const referrer = (data.usuarios || []).find(u => u.id === referrerId)
+      return res.json({
+        valid: true, tipo: 'referido', pct: 10,
+        mensaje: `Código de ${referrer?.nombre || 'amiga'} — 10% OFF aplicado ✓`
+      })
+    }
+    return res.json({ valid: false, mensaje: 'Código no encontrado' })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── GET /api/admin/profiles — all user profiles for admin dashboard ──
+app.get('/api/admin/profiles', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const ws = await getWorkspace(wsId)
+    const data = ws?.data || {}
+    const ordenes = (data.tienda?.ordenes || [])
+    const perfiles = (data.usuarios || []).map(u => {
+      const tel = (u.telefono || '').replace(/\D/g,'')
+      const email = (u.email || '').toLowerCase()
+      const userOrdenes = ordenes.filter(o => {
+        const oTel = (o.cliente?.tel || '').replace(/\D/g,'')
+        const oEmail = (o.cliente?.email || '').toLowerCase()
+        return (tel && oTel && oTel === tel) || (email && oEmail && oEmail === email)
+      }).map(o => ({ id: o.id, numero: o.numero, fecha: o.fecha, total: o.total, estado: o.estado, lineas: o.lineas, codigoReferido: o.codigoReferido }))
+        .sort((a,b) => new Date(b.fecha) - new Date(a.fecha))
+      return {
+        id: u.id, nombre: u.nombre||'', apellido: u.apellido||'',
+        telefono: u.telefono||'', email: u.email||'', etapa: u.etapa||'prospecto',
+        fechaAlta: u.fechaAlta, ultimaVisita: u.ultimaVisita,
+        cantCompras: u.cantCompras||0, valorTotalCompras: u.valorTotalCompras||0, ultimaCompra: u.ultimaCompra,
+        codigoReferido: u.codigoReferido||null, cashbackBalance: u.cashbackBalance||0,
+        ultimoProductoVisto: u.ultimoProductoVisto||null,
+        productosVisitados: (u.productosVisitados||[]).slice(-5),
+        carritoAbandonado: u.carritoAbandonado||false,
+        ultimoCarritoItems: u.ultimoCarritoItems||null,
+        tags: u.tags||[], notas: u.notas||'',
+        dispositivo: u.dispositivo||null, totalVisitas: u.totalVisitas||0,
+        ordenes: userOrdenes,
+      }
+    }).sort((a,b) => new Date(b.ultimaVisita||0) - new Date(a.ultimaVisita||0))
+    res.json({ ok: true, perfiles })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── PATCH /api/admin/profiles/:userId — update user from admin ──
+app.patch('/api/admin/profiles/:userId', async (req, res) => {
+  const { wsId } = req.query
+  const { userId } = req.params
+  if (!wsId || !userId) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const ws = await getWorkspace(wsId)
+    const data = ws?.data || {}
+    const user = (data.usuarios||[]).find(u => u.id === userId)
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' })
+    const { tags, notas, cashbackAjuste, etapa } = req.body
+    if (tags !== undefined) user.tags = tags
+    if (notas !== undefined) user.notas = notas
+    if (etapa) user.etapa = etapa
+    if (cashbackAjuste != null) {
+      const ajuste = Number(cashbackAjuste)
+      user.cashbackBalance = Math.max(0, (user.cashbackBalance||0) + ajuste)
+      if (!user.cashbackHistory) user.cashbackHistory = []
+      user.cashbackHistory.push({ tipo: ajuste>=0?'ajuste_positivo':'ajuste_negativo', monto: Math.abs(ajuste), ts: new Date().toISOString(), source: 'admin' })
+    }
+    await patchWorkspace(wsId, data)
+    _invalidateWsCache(wsId)
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── GET /api/admin/abtests — list experiments ──
+app.get('/api/admin/abtests', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const ws = await getWorkspace(wsId)
+    res.json({ ok: true, tests: (ws?.data?.abTests || []) })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── POST /api/admin/abtests — create/update experiment ──
+app.post('/api/admin/abtests', async (req, res) => {
+  const { wsId, test } = req.body
+  if (!wsId || !test) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const ws = await getWorkspace(wsId)
+    const data = ws?.data || {}
+    if (!data.abTests) data.abTests = []
+    if (test.id) {
+      const idx = data.abTests.findIndex(t => t.id === test.id)
+      if (idx >= 0) data.abTests[idx] = { ...data.abTests[idx], ...test }
+      else data.abTests.push(test)
+    } else {
+      test.id = 'ab_' + Date.now().toString(36)
+      test.creado = new Date().toISOString()
+      data.abTests.push(test)
+    }
+    await patchWorkspace(wsId, data)
+    _invalidateWsCache(wsId)
+    res.json({ ok: true, test })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── DELETE /api/admin/abtests/:testId ──
+app.delete('/api/admin/abtests/:testId', async (req, res) => {
+  const { wsId } = req.query
+  const { testId } = req.params
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const ws = await getWorkspace(wsId)
+    const data = ws?.data || {}
+    data.abTests = (data.abTests||[]).filter(t => t.id !== testId)
+    await patchWorkspace(wsId, data)
+    _invalidateWsCache(wsId)
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── GET /api/store/abvariant — assign/get AB test variant for session ──
+app.get('/api/store/abvariant', async (req, res) => {
+  const { wsId, sessionKey } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const ws = await getWorkspace(wsId)
+    const data = ws?.data || {}
+    const activeTests = (data.abTests||[]).filter(t => t.active)
+    if (!activeTests.length) return res.json({ ok: true, assignments: {}, priceOverrides: {} })
+
+    const sKey = (sessionKey || 'anon').slice(0, 64)
+    if (!data.abAssignments) data.abAssignments = {}
+    const assignments = {}
+    let needsSave = false
+
+    activeTests.forEach(test => {
+      const key = `${test.id}|${sKey}`
+      if (data.abAssignments[key]) {
+        assignments[test.id] = data.abAssignments[key]
+      } else {
+        const variants = test.variants || []
+        if (!variants.length) return
+        // Deterministic hash for stickiness
+        const hash = Math.abs([...(sKey + test.id)].reduce((h,c) => (Math.imul(31,h) + c.charCodeAt(0))|0, 0))
+        const pct = hash % 100
+        let cumulative = 0
+        let assigned = variants[0].id
+        for (const v of variants) {
+          cumulative += (v.trafficPct || Math.floor(100/variants.length))
+          if (pct < cumulative) { assigned = v.id; break }
+        }
+        data.abAssignments[key] = assigned
+        assignments[test.id] = assigned
+        // Track impression
+        const vObj = variants.find(v => v.id === assigned)
+        if (vObj) vObj.impressions = (vObj.impressions||0) + 1
+        needsSave = true
+      }
+    })
+
+    // Trim assignments if too large
+    const aKeys = Object.keys(data.abAssignments)
+    if (aKeys.length > 10000) {
+      const keep = aKeys.slice(-8000)
+      data.abAssignments = Object.fromEntries(keep.map(k => [k, data.abAssignments[k]]))
+    }
+
+    if (needsSave) { patchWorkspace(wsId, data).catch(()=>{}); _invalidateWsCache(wsId) }
+
+    // Build price overrides map: { productId: price }
+    const priceOverrides = {}
+    activeTests.forEach(test => {
+      const vObj = (test.variants||[]).find(v => v.id === assignments[test.id])
+      if (vObj?.priceOverrides) Object.assign(priceOverrides, vObj.priceOverrides)
+    })
+
+    res.json({ ok: true, assignments, priceOverrides })
+  } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
 // ── GET /api/store/campaigns — list email campaigns with stats
