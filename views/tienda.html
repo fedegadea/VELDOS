@@ -2162,6 +2162,23 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
 
     </div>
 
+    <!-- Mis Pedidos — primero, es lo que más importa -->
+    <div class="prof-section" id="prof-orders-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="prof-section-title" style="margin-bottom:0">Mis pedidos</div>
+      </div>
+      <div id="prof-orders-list"><div style="font-size:12px;color:var(--muted)">Cargando...</div></div>
+    </div>
+
+    <!-- Cashback — si hay saldo disponible -->
+    <div class="prof-section" id="prof-cashback-section" style="display:none">
+      <div class="prof-section-title">Cashback disponible</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:28px;font-weight:900;letter-spacing:-.06em;color:var(--text)" id="prof-cashback-amount">$0</div>
+        <div style="font-size:11.5px;color:var(--muted);text-align:right;max-width:140px;line-height:1.5">Usalo como descuento en tu próxima compra</div>
+      </div>
+    </div>
+
     <!-- XP Progress -->
 
     <div class="prof-section">
@@ -2212,25 +2229,10 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
       <div style="font-size:11.5px;color:var(--muted);line-height:1.55">Compartí tu código y tus amigas obtienen <strong style="color:var(--text)">10% OFF</strong>. Por cada compra con tu código recibís <strong style="color:var(--text)">10% de cashback</strong>.</div>
     </div>
 
-    <!-- Cashback -->
-    <div class="prof-section" id="prof-cashback-section" style="display:none">
-      <div class="prof-section-title">Cashback disponible</div>
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <div style="font-size:28px;font-weight:900;letter-spacing:-.06em;color:var(--text)" id="prof-cashback-amount">$0</div>
-        <div style="font-size:11.5px;color:var(--muted);text-align:right;max-width:140px;line-height:1.5">Usalo como descuento en tu próxima compra</div>
-      </div>
-    </div>
-
     <!-- Cambios & Devoluciones -->
     <div class="prof-section" style="padding-bottom:0">
       <div class="prof-section-title">Cambios &amp; Devoluciones</div>
       <button class="prof-action-btn" onclick="openSelfService()"><i class="ti ti-package" style="font-size:16px;margin-right:6px;vertical-align:-2px"></i>Iniciar cambio o devolución</button>
-    </div>
-
-    <!-- Mis Pedidos -->
-    <div class="prof-section">
-      <div class="prof-section-title">Mis pedidos</div>
-      <div id="prof-orders-list"><div style="font-size:12px;color:var(--muted)">Cargando...</div></div>
     </div>
 
     <button class="prof-logout" onclick="logoutIdentity()">Cerrar sesión</button>
@@ -2444,23 +2446,50 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
 
 
 <!-- ── TRACKING MODAL ── -->
-<div id="tracking-overlay" onclick="if(event.target===this)closeTrackingModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:480;align-items:flex-end;justify-content:center">
-  <div style="background:var(--bg);border-radius:22px 22px 0 0;width:100%;max-width:520px;max-height:85vh;overflow-y:auto;padding:24px 24px 40px;position:relative">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+<style>
+@keyframes trk-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.88)}}
+.trk-dot-active{animation:trk-pulse 1.6s ease-in-out infinite}
+</style>
+<div id="tracking-overlay" onclick="if(event.target===this)closeTrackingModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:480;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)">
+  <div style="background:var(--bg);border-radius:24px 24px 0 0;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;position:relative;padding-bottom:env(safe-area-inset-bottom,16px)">
+
+    <!-- Handle -->
+    <div style="display:flex;justify-content:center;padding:12px 0 0"><div style="width:40px;height:4px;border-radius:99px;background:var(--border)"></div></div>
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 0">
       <div>
-        <div style="font-size:16px;font-weight:800">📍 Seguimiento del pedido</div>
-        <div id="tracking-order-num" style="font-size:11px;color:var(--muted);margin-top:2px"></div>
+        <div style="font-size:17px;font-weight:800;letter-spacing:-.03em">Seguimiento del pedido</div>
+        <div id="tracking-order-num" style="font-size:12px;color:var(--muted);margin-top:2px"></div>
       </div>
-      <button onclick="closeTrackingModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1">×</button>
+      <button onclick="closeTrackingModal()" style="background:var(--s2);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;color:var(--muted);font-size:18px;display:flex;align-items:center;justify-content:center;line-height:1;flex-shrink:0">×</button>
     </div>
+
+    <!-- Progress bar + status chip -->
+    <div style="padding:16px 20px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div id="tracking-status-chip" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--s2)"></div>
+        <div id="tracking-step-count" style="font-size:11px;color:var(--muted)"></div>
+      </div>
+      <div style="height:6px;border-radius:99px;background:var(--s2);overflow:hidden">
+        <div id="tracking-progress-bar" style="height:100%;border-radius:99px;background:var(--accent);transition:width .6s cubic-bezier(.25,.46,.45,.94);width:0%"></div>
+      </div>
+    </div>
+
     <!-- Mensaje personalizado -->
-    <div id="tracking-msg-wrap" style="display:none;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:18px;font-size:13px;color:var(--text);line-height:1.55"></div>
+    <div id="tracking-msg-wrap" style="display:none;margin:14px 20px 0;background:rgba(var(--accent-rgb,37,99,235),.07);border:1px solid rgba(var(--accent-rgb,37,99,235),.18);border-radius:12px;padding:11px 14px;font-size:13px;color:var(--text);line-height:1.55"></div>
+
     <!-- Steps -->
-    <div id="tracking-steps-list" style="padding:0 4px"></div>
+    <div id="tracking-steps-list" style="padding:20px 20px 4px"></div>
+
     <!-- Link externo -->
-    <div id="tracking-ext-wrap" style="display:none;margin-top:20px;text-align:center">
-      <a id="tracking-ext-link" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:var(--s1);border:1px solid var(--border);border-radius:50px;padding:10px 20px;font-size:13px;font-weight:600;color:var(--text);text-decoration:none"><i class="ti ti-external-link" style="font-size:14px"></i>Rastrear envío</a>
+    <div id="tracking-ext-wrap" style="display:none;padding:0 20px 20px">
+      <a id="tracking-ext-link" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--s2);border:1px solid var(--border);border-radius:14px;padding:13px 20px;font-size:13px;font-weight:700;color:var(--text);text-decoration:none;transition:background .15s" onmouseover="this.style.background='var(--s3,var(--border))'" onmouseout="this.style.background='var(--s2)'">
+        <i class="ti ti-truck" style="font-size:16px"></i>Rastrear envío externo
+      </a>
     </div>
+
+    <div style="height:16px"></div>
   </div>
 </div>
 
@@ -6429,54 +6458,84 @@ function logoutIdentity() {
 // ── Mis pedidos ──────────────────────────────────────
 
 async function _loadMyOrders() {
-
   if (!_idUser || !WS) return
-
   const phone = _idUser.telefono || ''
-
   const el = document.getElementById('prof-orders-list')
-
   if (!el) return
-
   try {
-
     const r = await fetch('/api/store/orders/mine?wsId=' + WS + '&tel=' + encodeURIComponent(phone))
-
     const d = await r.json()
-
     const orders = d.ordenes || []
-
-    if (!orders.length) { el.innerHTML = '<div style="font-size:12px;color:var(--muted)">Aún no tenés pedidos 😊</div>'; return }
-
+    if (!orders.length) {
+      el.innerHTML = '<div style="text-align:center;padding:24px 16px"><div style="font-size:28px;margin-bottom:8px">🛍️</div><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">Sin pedidos todavía</div><div style="font-size:12px;color:var(--muted)">Cuando hagas tu primera compra la vas a ver acá</div></div>'
+      return
+    }
     _profOrders = orders
-    el.innerHTML = orders.slice().reverse().slice(0, 8).map(function(o) {
+    // Badge activos en Mi cuenta
+    const activeCount = orders.filter(function(o){ return ['pagado','en_preparacion','listo','enviado'].indexOf(o.estado||'') > -1 }).length
+    const loginBtn = document.getElementById('login-btn')
+    if (loginBtn) {
+      const badge = loginBtn.querySelector('.order-badge')
+      if (activeCount > 0) {
+        if (!badge) loginBtn.insertAdjacentHTML('beforeend','<span class="order-badge" style="position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;font-size:9px;font-weight:800;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)">' + activeCount + '</span>')
+      } else if (badge) badge.remove()
+      loginBtn.style.position = 'relative'
+    }
 
+    const ESTADO_CFG = {
+      pendiente:    { label:'Pendiente de pago',  bg:'rgba(217,119,6,.1)',  color:'var(--gold)',  icon:'⏳' },
+      pagado:       { label:'Confirmado',          bg:'rgba(37,99,235,.09)', color:'#2563eb',      icon:'✅' },
+      en_preparacion:{ label:'Preparando',         bg:'rgba(139,92,246,.1)', color:'#7c3aed',      icon:'📦' },
+      listo:        { label:'Listo para enviar',   bg:'rgba(139,92,246,.1)', color:'#7c3aed',      icon:'📦' },
+      enviado:      { label:'En camino',            bg:'rgba(16,185,129,.1)', color:'#059669',      icon:'🚚' },
+      entregado:    { label:'Entregado',            bg:'rgba(22,163,74,.1)',  color:'var(--green)', icon:'🎉' },
+      retiro:       { label:'Listo para retiro',   bg:'rgba(16,185,129,.1)', color:'#059669',      icon:'🏪' },
+      cancelado:    { label:'Cancelado',            bg:'rgba(239,68,68,.08)','color':'#ef4444',    icon:'✕'  }
+    }
+    const isActive = function(st){ return ['pagado','en_preparacion','listo','enviado'].indexOf(st) > -1 }
+
+    el.innerHTML = orders.slice().reverse().slice(0, 8).map(function(o) {
       const fecha = o.fecha ? new Date(o.fecha).toLocaleDateString('es-AR', { day:'numeric', month:'short' }) : ''
       const st = o.estado || 'pendiente'
-      const hasTracking = o.tracking && (o.tracking.pasos || []).some(function(p){ return p.completado })
-      const estadoLabel = {
-        pendiente:'Pendiente de pago', pagado:'Pagado', en_preparacion:'En preparación',
-        listo:'Listo para enviar', enviado:'Enviado', entregado:'Entregado',
-        retiro:'Listo para retiro', cancelado:'Cancelado'
-      }[st] || st
+      const cfg = ESTADO_CFG[st] || { label:st, bg:'var(--s2)', color:'var(--muted)', icon:'•' }
+      const active = isActive(st)
+      const pasos = (o.tracking && o.tracking.pasos) ? o.tracking.pasos : _defaultTrackingPasos(o)
+      const doneCount = pasos.filter(function(p){ return p.completado }).length
+      const totalPasos = pasos.length
+      const pct = totalPasos ? Math.round(doneCount / totalPasos * 100) : 0
+      const currentStep = pasos.filter(function(p){ return p.completado }).slice(-1)[0]
 
-      return '<div class="prof-order-card">'
-        + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">'
-        + '<div class="prof-order-num">Pedido #' + o.numero + ' <span style="font-weight:400;color:var(--muted)">' + fecha + '</span></div>'
-        + (hasTracking ? '<button onclick="openTrackingModal(\'' + o.id + '\')" style="background:var(--accent);color:#fff;border:none;border-radius:7px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">📍 Seguimiento</button>' : '')
+      return '<div style="border:1px solid ' + (active?'rgba(var(--accent-rgb,37,99,235),.22)':'var(--border)') + ';border-radius:14px;padding:14px;margin-bottom:10px;background:' + (active?'rgba(var(--accent-rgb,37,99,235),.03)':'var(--bg)') + ';transition:transform .15s" onmouseenter="this.style.transform=\'translateY(-1px)\'" onmouseleave="this.style.transform=\'\'">'
+        // Top row
+        + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px">'
+        + '<div>'
+        + '<div style="font-size:13px;font-weight:800;letter-spacing:-.02em">Pedido #' + o.numero + '</div>'
+        + '<div style="font-size:11px;color:var(--muted);margin-top:1px">' + fecha + (o.lineas&&o.lineas.length?' · '+o.lineas.length+' producto'+(o.lineas.length>1?'s':''):'') + '</div>'
         + '</div>'
-        + '<div style="margin-top:4px"><span class="prof-order-status ' + st + '">' + estadoLabel + '</span></div>'
-        + '<div style="margin-top:8px;font-size:12px;color:var(--muted)">' + (o.lineas||[]).map(function(l){ return l.nombre + ' ×' + l.cantidad }).join(', ') + '</div>'
-        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">'
-        + '<span style="font-size:13px;font-weight:700">$' + fmt(o.total) + '</span>'
-        + (!hasTracking && (st==='enviado'||st==='en_preparacion'||st==='listo') ? '<button onclick="openTrackingModal(\'' + o.id + '\')" style="background:none;border:1px solid var(--border);border-radius:7px;padding:3px 9px;font-size:10px;cursor:pointer;color:var(--muted2)">Ver estado →</button>' : '')
+        + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'
+        + '<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:' + cfg.bg + ';color:' + cfg.color + '">' + cfg.icon + ' ' + cfg.label + '</span>'
         + '</div>'
         + '</div>'
-
+        // Mini timeline (only for active orders)
+        + (active && totalPasos > 0
+          ? '<div style="margin-bottom:12px">'
+            + '<div style="height:4px;border-radius:99px;background:var(--s2);overflow:hidden;margin-bottom:5px">'
+            + '<div style="height:100%;border-radius:99px;background:var(--accent);width:' + pct + '%"></div>'
+            + '</div>'
+            + '<div style="font-size:10.5px;color:var(--muted)">' + (currentStep ? '↳ ' + currentStep.label : '') + '</div>'
+            + '</div>'
+          : '')
+        // Items
+        + '<div style="font-size:12px;color:var(--muted);margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (o.lineas||[]).map(function(l){ return l.nombre + ' ×' + l.cantidad }).join(' · ') + '</div>'
+        // Bottom row
+        + '<div style="display:flex;align-items:center;justify-content:space-between">'
+        + '<span style="font-size:15px;font-weight:900;letter-spacing:-.04em">$' + fmt(o.total) + '</span>'
+        + '<button onclick="openTrackingModal(\'' + o.id + '\')" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;transition:opacity .15s" onmouseover="this.style.opacity=\'.85\'" onmouseout="this.style.opacity=\'1\'">📍 Ver seguimiento</button>'
+        + '</div>'
+        + '</div>'
     }).join('')
 
   } catch(e) { el.innerHTML = '<div style="font-size:12px;color:var(--muted)">No se pudieron cargar los pedidos</div>' }
-
 }
 
 
@@ -6490,40 +6549,79 @@ function openTrackingModal(orderId) {
   if (!o) return
   const tr = o.tracking || {}
   const pasos = tr.pasos || _defaultTrackingPasos(o)
-  document.getElementById('tracking-order-num').textContent = 'Pedido #' + (o.numero || '')
+  const doneCount = pasos.filter(function(p){ return p.completado }).length
+  const totalPasos = pasos.length
+  const pct = totalPasos ? Math.round(doneCount / totalPasos * 100) : 0
+  // Detect last completed step index (the "active" one)
+  var lastDoneIdx = -1
+  pasos.forEach(function(p, i){ if (p.completado) lastDoneIdx = i })
+
+  // Header
+  document.getElementById('tracking-order-num').textContent = 'Pedido #' + (o.numero || '') + (o.fecha ? ' · ' + new Date(o.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'long'}) : '')
+
+  // Status chip
+  const CHIP_CFG = {
+    pendiente:     { label:'Pendiente de pago',  bg:'rgba(217,119,6,.12)',  color:'#b45309' },
+    pagado:        { label:'Confirmado',          bg:'rgba(37,99,235,.1)',   color:'#1d4ed8' },
+    en_preparacion:{ label:'En preparación',      bg:'rgba(139,92,246,.12)', color:'#6d28d9' },
+    listo:         { label:'Listo para enviar',   bg:'rgba(139,92,246,.12)', color:'#6d28d9' },
+    enviado:       { label:'En camino 🚚',         bg:'rgba(16,185,129,.12)', color:'#047857' },
+    entregado:     { label:'Entregado 🎉',         bg:'rgba(22,163,74,.1)',   color:'#15803d' },
+    retiro:        { label:'Listo para retiro',   bg:'rgba(16,185,129,.12)', color:'#047857' },
+    cancelado:     { label:'Cancelado',            bg:'rgba(239,68,68,.1)',   color:'#dc2626' }
+  }
+  const st = o.estado || 'pendiente'
+  const chip = CHIP_CFG[st] || { label: st, bg:'var(--s2)', color:'var(--muted)' }
+  const chipEl = document.getElementById('tracking-status-chip')
+  if (chipEl) { chipEl.textContent = chip.label; chipEl.style.background = chip.bg; chipEl.style.color = chip.color }
+  const countEl = document.getElementById('tracking-step-count')
+  if (countEl) countEl.textContent = doneCount + ' de ' + totalPasos + ' pasos'
+  const bar = document.getElementById('tracking-progress-bar')
+  if (bar) { bar.style.width = '0%'; requestAnimationFrame(function(){ bar.style.width = pct + '%' }) }
+
   // Mensaje personalizado
   const msgWrap = document.getElementById('tracking-msg-wrap')
-  if (tr.mensajePersonalizado) {
-    msgWrap.textContent = tr.mensajePersonalizado
-    msgWrap.style.display = ''
-  } else { msgWrap.style.display = 'none' }
+  if (tr.mensajePersonalizado) { msgWrap.innerHTML = '💬 ' + tr.mensajePersonalizado; msgWrap.style.display = '' }
+  else { msgWrap.style.display = 'none' }
+
+  // Step icons per id
+  const STEP_ICON = { confirmado:'✅', en_preparacion:'📦', listo:'📦', enviado:'🚚', entregado:'🎉', retiro:'🏪' }
+
   // Steps
   const stepsEl = document.getElementById('tracking-steps-list')
   stepsEl.innerHTML = pasos.map(function(p, i) {
     const done = p.completado
+    const isActive = i === lastDoneIdx && st !== 'entregado'
+    const isPending = !done
     const isLast = i === pasos.length - 1
-    const dotColor = done ? 'var(--accent)' : 'var(--border)'
-    const textColor = done ? 'var(--text)' : 'var(--muted)'
+    const icon = STEP_ICON[p.id] || (done ? '✅' : '○')
     const fecha = p.fecha ? new Date(p.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''
-    return '<div style="display:flex;gap:14px;align-items:flex-start;padding-bottom:' + (isLast?'0':'18px') + ';position:relative">'
-      + (!isLast ? '<div style="position:absolute;left:12px;top:26px;bottom:0;width:1.5px;background:var(--border)"></div>' : '')
-      + '<div style="width:24px;height:24px;border-radius:50%;background:' + dotColor + ';border:2px solid ' + dotColor + ';flex-shrink:0;display:flex;align-items:center;justify-content:center;z-index:1">'
-      + (done ? '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '<div style="width:8px;height:8px;border-radius:50%;background:var(--border)"></div>')
+    const lineColor = done ? 'var(--accent)' : 'var(--border)'
+    return '<div style="display:flex;gap:14px;align-items:flex-start;padding-bottom:' + (isLast?'4px':'22px') + ';position:relative">'
+      // Connector line
+      + (!isLast ? '<div style="position:absolute;left:18px;top:38px;bottom:0;width:2px;background:' + lineColor + ';border-radius:1px"></div>' : '')
+      // Dot / icon
+      + '<div style="width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;z-index:1;font-size:16px;'
+      + (done ? 'background:var(--accent);box-shadow:0 2px 8px rgba(var(--accent-rgb,37,99,235),.35)' : 'background:var(--s2);border:2px solid var(--border)')
+      + (isActive ? ';outline:3px solid rgba(var(--accent-rgb,37,99,235),.2)' : '')
+      + '" ' + (isActive ? 'class="trk-dot-active"' : '') + '>'
+      + (done ? '<span>' + icon + '</span>' : '<div style="width:10px;height:10px;border-radius:50%;background:var(--border)"></div>')
       + '</div>'
-      + '<div style="flex:1;padding-top:2px">'
-      + '<div style="font-size:13px;font-weight:' + (done?'700':'500') + ';color:' + textColor + '">' + (p.label || p.id) + '</div>'
-      + (fecha ? '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + fecha + '</div>' : '')
-      + (p.nota ? '<div style="font-size:11.5px;color:var(--muted2);margin-top:3px;line-height:1.5">' + p.nota + '</div>' : '')
+      // Text
+      + '<div style="flex:1;padding-top:6px">'
+      + '<div style="font-size:14px;font-weight:' + (done?'700':'500') + ';color:' + (done?'var(--text)':'var(--muted)') + ';line-height:1.2">' + (p.label || p.id) + '</div>'
+      + (fecha ? '<div style="font-size:11px;color:var(--muted);margin-top:3px">' + fecha + '</div>' : '')
+      + (p.nota ? '<div style="font-size:12px;color:var(--muted2);margin-top:4px;line-height:1.5;background:var(--s2);border-radius:8px;padding:6px 10px">' + p.nota + '</div>' : '')
       + '</div>'
       + '</div>'
   }).join('')
+
   // Link externo
   const extWrap = document.getElementById('tracking-ext-wrap')
   const extLink = document.getElementById('tracking-ext-link')
-  if (tr.linkSeguimiento) {
-    extLink.href = tr.linkSeguimiento
-    extWrap.style.display = ''
-  } else { extWrap.style.display = 'none' }
+  if (tr.linkSeguimiento) { extLink.href = tr.linkSeguimiento; extWrap.style.display = '' }
+  else { extWrap.style.display = 'none' }
+
   const ov = document.getElementById('tracking-overlay')
   ov.style.display = 'flex'
   requestAnimationFrame(function(){ ov.style.opacity = '1' })
