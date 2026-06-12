@@ -22518,7 +22518,7 @@ async function _loadPerfiles() {
   if (!grid) return
   grid.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:40px;text-align:center;grid-column:1/-1">Cargando...</div>'
   try {
-    const r = await fetch('/api/admin/profiles?wsId=' + wsId)
+    const r = await fetch('/api/admin/profiles?wsId=' + _activeWsId)
     const d = await r.json()
     _perfilesData = d.perfiles || []
     _renderPerfilesStats()
@@ -22669,7 +22669,7 @@ async function _adminAddCashback(userId) {
   const amt = parseFloat(prompt('Ajuste de cashback (positivo para agregar, negativo para descontar):'))
   if (isNaN(amt)) return
   try {
-    const r = await fetch('/api/admin/profiles/' + userId + '?wsId=' + wsId, {
+    const r = await fetch('/api/admin/profiles/' + userId + '?wsId=' + _activeWsId, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ cashbackAjuste: amt })
     })
@@ -22705,7 +22705,7 @@ async function _loadABTests() {
   const list = document.getElementById('abtests-list')
   if (!list) return
   try {
-    const r = await fetch('/api/admin/abtests?wsId=' + wsId)
+    const r = await fetch('/api/admin/abtests?wsId=' + _activeWsId)
     const d = await r.json()
     _abTestsData = d.tests || []
     _renderABTests()
@@ -22831,7 +22831,7 @@ async function saveABTest() {
   try {
     const r = await fetch('/api/admin/abtests', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ wsId, test })
+      body: JSON.stringify({ wsId: _activeWsId, test })
     })
     const d = await r.json()
     if (!d.ok) throw new Error(d.error)
@@ -22847,7 +22847,7 @@ async function _toggleABTest(testId) {
   try {
     const r = await fetch('/api/admin/abtests', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ wsId, test: { ...t, active: !t.active } })
+      body: JSON.stringify({ wsId: _activeWsId, test: { ...t, active: !t.active } })
     })
     if ((await r.json()).ok) { await _loadABTests(); _showToast(t.active ? 'Experimento pausado' : 'Experimento activado') }
   } catch(e) { alert('Error: ' + e.message) }
@@ -22856,7 +22856,7 @@ async function _toggleABTest(testId) {
 async function _deleteABTest(testId) {
   if (!confirm('¿Borrar este experimento? Se perderán todas las métricas.')) return
   try {
-    const r = await fetch('/api/admin/abtests/' + testId + '?wsId=' + wsId, { method: 'DELETE' })
+    const r = await fetch('/api/admin/abtests/' + testId + '?wsId=' + _activeWsId, { method: 'DELETE' })
     if ((await r.json()).ok) { await _loadABTests(); _showToast('Experimento eliminado') }
   } catch(e) { alert('Error: ' + e.message) }
 }
