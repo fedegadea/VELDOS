@@ -18020,6 +18020,14 @@ function crealPublishToMeta() {
 
       <!-- LEFT: sections list + type picker -->
       <div style="display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden;background:var(--s1)">
+        <!-- Page-mode banner (hidden by default) -->
+        <div id="builder-page-mode-banner" style="display:none;flex-direction:column;gap:0;border-bottom:2px solid var(--accent);flex-shrink:0">
+          <div style="padding:8px 10px;background:rgba(37,99,235,.08);display:flex;align-items:center;gap:7px">
+            <span style="font-size:12px">📄</span>
+            <span id="builder-page-mode-title" style="font-size:11px;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--accent)"></span>
+            <button onclick="_exitPageBuilderMode()" title="Salir" style="background:none;border:1px solid var(--border);border-radius:5px;font-size:10px;cursor:pointer;color:var(--muted);padding:2px 7px;flex-shrink:0">← Web</button>
+          </div>
+        </div>
         <div style="padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:space-between">
           <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)">Secciones</span>
           <button class="btn btn-xs btn-primary" onclick="addSection()">+ Añadir</button>
@@ -18044,7 +18052,7 @@ function crealPublishToMeta() {
           </div>
         </div>
         <div style="padding:8px;border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:5px">
-          <button class="btn btn-primary" style="flex:1;font-size:11px;padding:7px 8px" onclick="saveSections()">💾 Guardar</button>
+          <button class="btn btn-primary" id="builder-save-btn" style="flex:1;font-size:11px;padding:7px 8px" onclick="saveSections()">💾 Guardar</button>
           <button class="btn" style="font-size:11px;padding:7px 8px" onclick="reloadBuilderPreview()" title="Recargar preview">↺</button>
         </div>
       </div>
@@ -22629,7 +22637,7 @@ function switchTiendaInner(tab, btn) {
   if(btn) btn.classList.add('active');
   document.querySelectorAll('[id^="tienda-sec-"]').forEach(s => s.classList.remove('active'));
   document.getElementById('tienda-sec-' + tab)?.classList.add('active');
-  if(tab === 'diseno') loadStoreSections();
+  if(tab === 'diseno') { if (!_pageEditMode) loadStoreSections(); else _updatePageModeUI(); }
   if(tab === 'ordenes') loadOrdenesAdmin();
   if(tab === 'analytics') loadTiendaAnalytics();
   if(tab === 'clientesweb') loadClientesWeb();
@@ -22917,6 +22925,31 @@ function openPerfil(userId) {
       ${p.telefono ? `<button class="btn btn-sm" onclick="window.open('https://wa.me/${p.telefono}','_blank')">💬 WhatsApp</button>` : ''}
       <button class="btn btn-sm" onclick="_adminAddCashback('${p.id}')">💰 Ajustar cashback</button>
     </div>
+
+    <!-- Historial de interacciones -->
+    ${p.historialInteracciones?.length ? `
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);margin-bottom:10px;margin-top:4px">Historial de actividad (${p.historialInteracciones.length})</div>
+    <div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px">
+      ${[...p.historialInteracciones].reverse().map(it => {
+        const fecha = it.ts ? new Date(it.ts).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : ''
+        if (it.tipo === 'producto_visto') {
+          return `<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)">
+            <span style="font-size:14px">👁</span>
+            <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.payload?.nombre||'—'}</div><div style="font-size:10.5px;color:var(--muted)">${it.payload?.precio?'$'+_fmtN(it.payload.precio):''}</div></div>
+            <span style="font-size:10px;color:var(--muted2);flex-shrink:0">${fecha}</span>
+          </div>`
+        }
+        if (it.tipo === 'carrito_abandonado') {
+          const items = (it.payload?.items||[]).map(i=>i.nombre+' x'+(i.qty||1)).join(', ')
+          return `<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);background:rgba(245,158,11,.04)">
+            <span style="font-size:14px">🛒</span>
+            <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--gold)">Carrito abandonado</div><div style="font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${items||'—'} · $${_fmtN(it.payload?.total||0)}</div></div>
+            <span style="font-size:10px;color:var(--muted2);flex-shrink:0">${fecha}</span>
+          </div>`
+        }
+        return ''
+      }).join('')}
+    </div>` : ''}
 
     <!-- Historial de compras -->
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);margin-bottom:10px">Historial de compras (${p.ordenes?.length||0})</div>
@@ -26725,6 +26758,8 @@ async function _uploadTestiFoto(input, idx, ti) {
 
 // ── Save / Load ────────────────────────────────────────────────
 async function saveSections() {
+  // In page-builder mode, save to the page instead of the store
+  if (_pageEditMode) { await _savePageSections(); return; }
   try {
     const deep = JSON.parse(JSON.stringify(_storeSections));
     // Sincronizar ambos namespaces para que la tienda pública y el admin estén alineados
@@ -26751,6 +26786,106 @@ function loadStoreSections() {
   const ed = document.getElementById('section-editor');
   if (ed) ed.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--muted)"><div style="font-size:36px;opacity:.1;margin-bottom:12px">✦</div><p style="font-size:13px;font-weight:500">Seleccioná una sección para editarla</p><p style="font-size:11px;margin-top:5px;opacity:.6">O añadí una nueva con el panel izquierdo</p></div>';
   initBuilderPreview();
+}
+
+// ── Page Builder Mode ──────────────────────────────────────────
+// When _pageEditMode is set, the builder operates on a page's sections
+// instead of the store sections. _storeSecsBkp holds the original store
+// sections so we can restore them on exit.
+let _pageEditMode  = null  // null | pageId (string)
+let _storeSecsBkp  = null  // deep copy of _storeSections before entering page mode
+let _pageEditTitle = ''
+
+function openPageInBuilder(pageId) {
+  const page = _pagesData.find(function(p){ return p.id === pageId })
+  if (!page) return
+
+  // Backup current store sections
+  _storeSecsBkp = JSON.parse(JSON.stringify(_storeSections))
+  _pageEditMode  = pageId
+  _pageEditTitle = page.titulo
+
+  // Load page sections — accept only builder-format ones (have 'tipo' field)
+  // Old simplified sections ({type, data}) are ignored and the page starts fresh.
+  const builderSecs = (page.secciones || []).filter(function(s){ return !!s.tipo })
+  _storeSections = builderSecs.map(function(s){
+    return Object.assign({}, s, { config: JSON.parse(JSON.stringify(s.config || {})) })
+  })
+
+  // Navigate to the builder tab without triggering loadStoreSections()
+  // (we guard against that in switchTiendaInner)
+  document.querySelectorAll('#tienda-tabs-inner .inner-tab').forEach(function(b){ b.classList.remove('active') })
+  const disenoBtns = document.querySelectorAll('#tienda-tabs-inner .inner-tab')
+  disenoBtns.forEach(function(b){ if(b.textContent.trim() === 'Diseño') b.classList.add('active') })
+  document.querySelectorAll('[id^="tienda-sec-"]').forEach(function(s){ s.classList.remove('active') })
+  document.getElementById('tienda-sec-diseno')?.classList.add('active')
+
+  // Reset editor UI
+  _selectedSectionIdx = null
+  const ed = document.getElementById('section-editor')
+  if (ed) ed.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--muted)"><div style="font-size:36px;margin-bottom:12px;opacity:.15">📄</div><p style="font-size:13px;font-weight:500">Seleccioná o añadí una sección</p><p style="font-size:11px;margin-top:5px;opacity:.6">Esta página usa el mismo editor que la web</p></div>'
+
+  renderSectionsList()
+  _updatePageModeUI()
+  initBuilderPreview()
+}
+
+function _exitPageBuilderMode() {
+  if (_storeSecsBkp !== null) {
+    _storeSections = _storeSecsBkp
+    _storeSecsBkp  = null
+  }
+  _pageEditMode  = null
+  _pageEditTitle = ''
+  _updatePageModeUI()
+  renderSectionsList()
+  _selectedSectionIdx = null
+  const ed = document.getElementById('section-editor')
+  if (ed) ed.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--muted)"><div style="font-size:36px;opacity:.1;margin-bottom:12px">✦</div><p style="font-size:13px;font-weight:500">Seleccioná una sección para editarla</p><p style="font-size:11px;margin-top:5px;opacity:.6">O añadí una nueva con el panel izquierdo</p></div>'
+  updatePreview()
+}
+
+function _updatePageModeUI() {
+  const banner  = document.getElementById('builder-page-mode-banner')
+  const title   = document.getElementById('builder-page-mode-title')
+  const saveBtn = document.getElementById('builder-save-btn')
+  if (!banner) return
+  if (_pageEditMode) {
+    banner.style.display = 'flex'
+    if (title)   title.textContent  = _pageEditTitle
+    if (saveBtn) saveBtn.textContent = '💾 Guardar página'
+  } else {
+    banner.style.display = 'none'
+    if (saveBtn) saveBtn.textContent = '💾 Guardar'
+  }
+}
+
+async function _savePageSections() {
+  try {
+    const deep = JSON.parse(JSON.stringify(_storeSections))
+    const page  = _pagesData.find(function(p){ return p.id === _pageEditMode })
+    if (!page) { notify('No se encontró la página'); return }
+    const r = await fetch('/api/store/pages', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wsId: _activeWsId, pagina: {
+        id:       _pageEditMode,
+        titulo:   page.titulo,
+        slug:     page.slug,
+        activo:   page.activo !== false,
+        secciones: deep,
+        contenido: (deep.find(function(s){ return s.tipo === 'texto' })?.config?.contenido || page.contenido || '')
+      }})
+    })
+    const d = await r.json()
+    if (d.ok) {
+      _pagesData = d.paginas
+      renderPagesList()
+      notify('✅ Página guardada')
+      updatePreview()
+    } else {
+      notify('Error: ' + d.error)
+    }
+  } catch(e) { notify('Error: ' + e.message) }
 }
 
 // ── Configuración ─────────────────────────────────────────────
@@ -27880,7 +28015,8 @@ function _pagesListHTML(compact) {
         ${!compact&&p.contenido?`<div style="font-size:11px;color:var(--muted2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px">${p.contenido.slice(0,120)}${p.contenido.length>120?'…':''}</div>`:''}
       </div>
       <span style="font-size:10px;padding:2px 8px;border-radius:10px;flex-shrink:0;background:${p.activo!==false?'rgba(52,199,123,.12)':'rgba(0,0,0,.06)'};color:${p.activo!==false?'#1a7a4a':'var(--muted)'}">${p.activo!==false?'Activa':'Oculta'}</span>
-      <button class="btn btn-xs" onclick="openPageEditor('${p.id}')">Editar</button>
+      <button class="btn btn-xs btn-primary" onclick="openPageInBuilder('${p.id}')">✏ Diseñar</button>
+      <button class="btn btn-xs" onclick="openPageEditor('${p.id}')">⚙</button>
       <button class="btn btn-xs btn-danger" onclick="deletePage('${p.id}')">✕</button>
     </div>`).join('')
 }

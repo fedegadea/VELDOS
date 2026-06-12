@@ -3026,6 +3026,10 @@ app.post('/api/identity/journey', async (req, res) => {
       if (user.productosVisitados.length > 100) user.productosVisitados = user.productosVisitados.slice(-100)
       user.ultimoProductoVisto = datos?.productoNombre
       user.ultimaVisita = now
+      // Histórico persistente de interacciones
+      if (!user.historialInteracciones) user.historialInteracciones = []
+      user.historialInteracciones.push({ tipo: 'producto_visto', payload: { id: datos?.productoId, nombre: datos?.productoNombre, precio: datos?.precio }, ts: now })
+      if (user.historialInteracciones.length > 200) user.historialInteracciones = user.historialInteracciones.slice(-200)
     }
 
     if (evento === 'add_cart') {
@@ -3045,6 +3049,10 @@ app.post('/api/identity/journey', async (req, res) => {
       user.ultimoAbandonoCarrito = now
       user.totalAbandonos = (user.totalAbandonos||0) + 1
       user.valorAbandonado = datos?.total || 0
+      // Histórico persistente de interacciones
+      if (!user.historialInteracciones) user.historialInteracciones = []
+      user.historialInteracciones.push({ tipo: 'carrito_abandonado', payload: { items: datos?.items || [], total: datos?.total || 0 }, ts: now })
+      if (user.historialInteracciones.length > 200) user.historialInteracciones = user.historialInteracciones.slice(-200)
     }
 
     if (evento === 'purchase') {
@@ -4087,6 +4095,7 @@ app.get('/api/admin/profiles', async (req, res) => {
         ultimoCarritoItems: u.ultimoCarritoItems||null,
         tags: u.tags||[], notas: u.notas||'',
         dispositivo: u.dispositivo||null, totalVisitas: u.totalVisitas||0,
+        historialInteracciones: (u.historialInteracciones||[]).slice(-30),
         ordenes: userOrdenes,
       }
     }).sort((a,b) => new Date(b.ultimaVisita||0) - new Date(a.ultimaVisita||0))

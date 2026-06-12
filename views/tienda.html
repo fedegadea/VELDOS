@@ -6728,7 +6728,18 @@ function openPageModal(slug) {
   var bodyEl = document.getElementById('page-modal-body')
 
   if (page.secciones && page.secciones.length) {
-    bodyEl.innerHTML = page.secciones.map(_renderPageSection).join('')
+    // Builder-format sections ({tipo, config}) → use buildSectionHTML (same renderer as the store)
+    // Simplified legacy sections ({type, data}) → fall back to _renderPageSection
+    const isBuilderFormat = page.secciones.some(function(s){ return !!s.tipo })
+    if (isBuilderFormat) {
+      bodyEl.innerHTML = '<div style="padding:0">' +
+        page.secciones.filter(function(s){ return s.visible !== false && s.tipo }).map(function(s, i){
+          try { return buildSectionHTML(s, 9000 + i) } catch(e) { return '' }
+        }).join('') +
+        '</div>'
+    } else {
+      bodyEl.innerHTML = page.secciones.map(_renderPageSection).join('')
+    }
   } else {
     bodyEl.innerHTML = (page.contenido || '').replace(/\n/g, '<br>')
   }
