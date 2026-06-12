@@ -1160,7 +1160,7 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
 
       <button class="login-btn" id="login-btn" onclick="_idUser?openProfilePanel():showAuthModal()">Mi cuenta</button>
 
-      <button class="cart-btn" onclick="openCart()" aria-label="Bolsa">
+      <button class="cart-btn" onclick="openCart()" aria-label="Carrito">
 
         <i class="ti ti-shopping-cart" style="font-size:20px"></i>
 
@@ -1285,7 +1285,7 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
 
         <div class="ch-step-num">✓</div>
 
-        <span class="ch-step-label">Tu bolsa</span>
+        <span class="ch-step-label">Tu carrito</span>
 
       </div>
 
@@ -1963,7 +1963,7 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
 
   <div class="cart-head">
 
-    <h2><i class="ti ti-shopping-cart" style="font-size:22px;margin-right:6px;vertical-align:-4px"></i>Tu bolsa</h2>
+    <h2><i class="ti ti-shopping-cart" style="font-size:22px;margin-right:6px;vertical-align:-4px"></i>Tu carrito</h2>
 
     <button class="cart-close" onclick="closeCart()"><i class="ti ti-x" style="font-size:16px"></i></button>
 
@@ -2109,7 +2109,7 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
 
       </button>
 
-      <button class="pm-add-btn" id="pm-add-btn" onclick="pmAdd()">Agregar a la bolsa</button>
+      <button class="pm-add-btn" id="pm-add-btn" onclick="pmAdd()">Agregar al carrito</button>
 
     </div>
 
@@ -5193,7 +5193,7 @@ function openProductModal_legacy(id) {
 
   addBtn.disabled = !canBuy
 
-  addBtn.textContent = canBuy ? 'Agregar a la bolsa' : 'Sin stock'
+  addBtn.textContent = canBuy ? 'Agregar al carrito' : 'Sin stock'
 
   // Sync like state in modal
 
@@ -5518,7 +5518,7 @@ function renderCart() {
 
   if (!cart.length) {
 
-    list.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">🛍️</div><div style="font-weight:700;color:var(--text);margin-bottom:6px">Tu bolsa está vacía</div><div style="font-size:13px">¡Explorá el catálogo!</div></div>`
+    list.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">🛍️</div><div style="font-weight:700;color:var(--text);margin-bottom:6px">Tu carrito está vacío</div><div style="font-size:13px">¡Explorá el catálogo!</div></div>`
 
     footer.style.display = 'none'; return
 
@@ -6670,15 +6670,67 @@ async function submitSelfService() {
 
 var _storePaginas = []
 
+function _renderPageSection(s) {
+  var d = s.data || {}
+  if (s.type === 'texto') {
+    return '<p style="line-height:1.7;color:var(--text);margin:0 0 8px">' + (d.texto || '').replace(/\n/g,'<br>') + '</p>'
+  }
+  if (s.type === 'titulo') {
+    var tag = d.nivel || 'h2'
+    var align = d.alineacion || 'left'
+    return '<' + tag + ' style="text-align:' + align + ';margin:0 0 6px">' + (d.texto || '') + '</' + tag + '>'
+  }
+  if (s.type === 'imagen') {
+    var align = d.alineacion || 'center'
+    var justMap = { left:'flex-start', center:'center', right:'flex-end' }
+    return '<div style="display:flex;justify-content:' + (justMap[align]||'center') + ';margin:0 0 8px">'
+      + '<figure style="margin:0;text-align:center">'
+      + '<img src="' + (d.url||'') + '" style="max-width:100%;border-radius:10px" onerror="this.style.display=\'none\'">'
+      + (d.caption ? '<figcaption style="font-size:12px;color:var(--muted);margin-top:4px">' + d.caption + '</figcaption>' : '')
+      + '</figure></div>'
+  }
+  if (s.type === 'hero') {
+    var bg = d.bgImagen ? 'url(' + d.bgImagen + ') center/cover no-repeat' : (d.bgColor || 'var(--s1)')
+    return '<div style="background:' + bg + ';border-radius:14px;padding:40px 24px;text-align:center;margin:0 0 8px">'
+      + (d.titulo ? '<h2 style="margin:0 0 8px;color:' + (d.textColor||'inherit') + '">' + d.titulo + '</h2>' : '')
+      + (d.subtitulo ? '<p style="margin:0;color:' + (d.textColor||'var(--muted)') + '">' + d.subtitulo + '</p>' : '')
+      + '</div>'
+  }
+  if (s.type === 'cta') {
+    var align = d.alineacion || 'center'
+    var justMap = { left:'flex-start', center:'center', right:'flex-end' }
+    return '<div style="display:flex;justify-content:' + (justMap[align]||'center') + ';margin:0 0 8px">'
+      + '<a href="' + (d.link||'#') + '" style="display:inline-block;padding:12px 28px;border-radius:50px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none;font-size:15px">'
+      + (d.texto || 'Ver más') + '</a></div>'
+  }
+  if (s.type === 'imagen_texto') {
+    var imgLeft = !d.imagenLado || d.imagenLado === 'left'
+    var imgHtml = '<img src="' + (d.url||'') + '" style="width:100%;max-width:200px;border-radius:10px;object-fit:cover" onerror="this.style.display=\'none\'">'
+    var txtHtml = '<div style="flex:1;line-height:1.7">' + (d.texto||'').replace(/\n/g,'<br>') + '</div>'
+    return '<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin:0 0 8px">'
+      + (imgLeft ? imgHtml + txtHtml : txtHtml + imgHtml) + '</div>'
+  }
+  if (s.type === 'separador') {
+    return '<hr style="border:none;border-top:1px solid var(--border);margin:16px 0">'
+  }
+  return ''
+}
+
 function openPageModal(slug) {
 
-  const page = _storePaginas.find(function(p){ return p.slug === slug })
+  var page = _storePaginas.find(function(p){ return p.slug === slug })
 
   if (!page) return
 
   document.getElementById('page-modal-title').textContent = page.titulo
 
-  document.getElementById('page-modal-body').innerHTML = (page.contenido || '').replace(/\n/g, '<br>')
+  var bodyEl = document.getElementById('page-modal-body')
+
+  if (page.secciones && page.secciones.length) {
+    bodyEl.innerHTML = page.secciones.map(_renderPageSection).join('')
+  } else {
+    bodyEl.innerHTML = (page.contenido || '').replace(/\n/g, '<br>')
+  }
 
   document.getElementById('page-overlay').classList.add('open')
 

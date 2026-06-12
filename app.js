@@ -4558,23 +4558,90 @@ app.post('/api/store/evento', async (req, res) => {
 
 // ── GET /api/store/analytics — summary analytics (admin)
 app.get('/api/store/analytics', async (req, res) => {
-  const { wsId } = req.query
+  const { wsId, days } = req.query
   if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
   try {
     const result = await getTienda(wsId)
-    if (!result) return res.json({ eventos: [], ordenes: [], resumen: {} })
+    if (!result) return res.json({ revenue:0, ordenesPagadas:0, ticketPromedio:0, topProductos:[], stockBajo:[], ventasPorMetodo:{}, ordenes:[] })
     const { t } = result
+    const allOrdenes = t.ordenes || []
+
+    // Filter by period if requested
+    const since = days ? new Date(Date.now() - Number(days) * 864e5).toISOString() : null
+    const ordenes = since ? allOrdenes.filter(o => (o.fecha||o.createdAt||'') >= since) : allOrdenes
+
+    const pagadas = ordenes.filter(o => o.estado && o.estado !== 'pendiente' && o.estado !== 'cancelado')
+    const revenue = pagadas.reduce((s, o) => s + (o.total || 0), 0)
+    const ticketPromedio = pagadas.length ? Math.round(revenue / pagadas.length) : 0
+
+    // Top productos por revenue
+    const prodMap = {}
+    pagadas.forEach(o => {
+      ;(o.lineas || []).forEach(l => {
+        const n = l.nombre || 'Sin nombre'
+        if (!prodMap[n]) prodMap[n] = { nombre: n, revenue: 0, unidades: 0 }
+        prodMap[n].revenue  += (l.precio || 0) * (l.cantidad || 1)
+        prodMap[n].unidades += l.cantidad || 1
+      })
+    })
+    const topProductos = Object.values(prodMap).sort((a, b) => b.revenue - a.revenue).slice(0, 10)
+
+    // Ventas por método de pago
+    const metodoMap = {}
+    pagadas.forEach(o => {
+      const m = o.metodoPago || o.pago || 'otro'
+      metodoMap[m] = (metodoMap[m] || 0) + (o.total || 0)
+    })
+
+    // Ventas por método de envío
+    const envioMap = {}
+    pagadas.forEach(o => {
+      const e = o.metodoEnvio || (o.envio ? 'domicilio' : 'retiro')
+      envioMap[e] = (envioMap[e] || 0) + (o.total || 0)
+    })
+
+    // Ventas por estado (breakdown)
+    const estadoMap = {}
+    allOrdenes.forEach(o => { estadoMap[o.estado||'pendiente'] = (estadoMap[o.estado||'pendiente']||0)+1 })
+
+    // Revenue diario últimos N días (para gráfico)
+    const nDays = Math.min(Number(days)||30, 90)
+    const dailyMap = {}
+    for (let i = nDays-1; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 864e5)
+      dailyMap[d.toISOString().slice(0,10)] = 0
+    }
+    pagadas.forEach(o => {
+      const day = (o.fecha || o.createdAt || '').slice(0, 10)
+      if (dailyMap[day] !== undefined) dailyMap[day] += o.total || 0
+    })
+    const revenueChart = Object.entries(dailyMap).map(([date, val]) => ({ date, val }))
+
+    // Stock bajo
+    const stockBajo = (t.productos || [])
+      .filter(p => typeof p.stock === 'number' && p.stock <= 5)
+      .map(p => ({ nombre: p.nombre, stock: p.stock }))
+      .sort((a, b) => a.stock - b.stock)
+      .slice(0, 10)
+
     const eventos = t.eventos || []
-    const ordenes = t.ordenes || []
-    const totalVentas = ordenes.reduce((s, o) => s + (o.total || 0), 0)
     res.json({
+      revenue,
+      ordenesPagadas: pagadas.length,
+      totalOrdenes: allOrdenes.length,
+      ticketPromedio,
+      topProductos,
+      stockBajo,
+      ventasPorMetodo: metodoMap,
+      ventasPorEnvio: envioMap,
+      estadoMap,
+      revenueChart,
       resumen: {
-        totalEventos: eventos.length,
-        totalOrdenes: ordenes.length,
-        totalVentas,
+        totalOrdenes: allOrdenes.length,
+        totalVentas: revenue,
         visitantes: new Set(eventos.filter(e => e.sessionId).map(e => e.sessionId)).size,
       },
-      ordenes: ordenes.slice(-50),
+      ordenes: allOrdenes.slice(-100),
     })
   } catch (e) {
     res.status(500).json({ error: e.message })

@@ -18159,9 +18159,13 @@ function crealPublishToMeta() {
 
   <!-- ── ANALYTICS ── -->
   <div class="inner-section" id="tienda-sec-analytics">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-      <div style="font-size:13px;font-weight:600">Analytics de tu tienda</div>
-      <div style="display:flex;gap:6px">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:15px;font-weight:800;margin-bottom:2px">📊 Analytics</div>
+        <div style="font-size:12px;color:var(--muted)">Ventas, conversión y comportamiento — datos en tiempo real de tus órdenes</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
         <select id="analytics-period" class="form-select" style="width:auto;font-size:11px;padding:5px 10px" onchange="loadTiendaAnalytics()">
           <option value="7">Últimos 7 días</option>
           <option value="30" selected>Últimos 30 días</option>
@@ -18173,33 +18177,55 @@ function crealPublishToMeta() {
     </div>
 
     <!-- KPIs row -->
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:20px" id="tienda-analytics-kpis"></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:16px" id="tienda-analytics-kpis"></div>
 
-    <!-- Funnel de conversión -->
-    <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px;margin-bottom:16px">
+    <!-- Revenue chart -->
+    <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px">Ventas diarias</div>
+      <div id="tienda-revenue-chart" style="height:80px;display:flex;align-items:flex-end;gap:2px"></div>
+    </div>
+
+    <!-- Row 2: Funnel + Top vistas + Stock bajo -->
+    <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px;margin-bottom:14px">
       <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:18px">
-        <div style="font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px">Embudo de conversión</div>
+        <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px">Embudo de conversión</div>
         <div id="tienda-funnel"></div>
       </div>
       <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:18px">
-        <div style="font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px">Top productos por vistas</div>
+        <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px">Top por vistas</div>
         <div id="tienda-top-vistas"></div>
       </div>
       <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:18px">
-        <div style="font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px">Stock bajo</div>
+        <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px">Stock bajo</div>
         <div id="tienda-stock-bajo"></div>
       </div>
     </div>
 
-    <!-- Top productos por ventas + Clientes activos -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <!-- Row 3: Top productos + Métodos de pago + Métodos envío -->
+    <div style="display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:12px;margin-bottom:14px">
       <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
-        <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-size:11px;font-weight:600">Top productos por ventas</div>
+        <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700">Top productos por ventas</div>
         <div id="tienda-top-productos" style="padding:8px 0"></div>
       </div>
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:18px">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px">Por método de pago</div>
+        <div id="tienda-por-pago"></div>
+      </div>
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:18px">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px">Por envío</div>
+        <div id="tienda-por-envio"></div>
+      </div>
+    </div>
+
+    <!-- Row 4: Clientes activos + Últimas órdenes -->
+    <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:12px">
       <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
-        <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-size:11px;font-weight:600">Clientes más activos</div>
+        <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700">Clientes más activos</div>
         <div id="tienda-top-clientes" style="padding:8px 0"></div>
+      </div>
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+        <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700">Últimas órdenes</div>
+        <div id="tienda-ultimas-ordenes" style="padding:4px 0"></div>
       </div>
     </div>
   </div>
@@ -19418,25 +19444,49 @@ function crealPublishToMeta() {
 </div>
 
 <!-- Modal: Página editor -->
-<div id="modal-page-editor" style="display:none;position:fixed;inset:0;z-index:600;align-items:center;justify-content:center;background:rgba(0,0,0,.7);backdrop-filter:blur(8px)" onclick="if(event.target===this)closePageEditor()">
-  <div style="background:var(--s1);border-radius:18px;padding:28px;width:min(560px,94vw);max-height:90vh;overflow-y:auto">
-    <div style="font-size:16px;font-weight:800;margin-bottom:20px" id="page-editor-title">Nueva página</div>
-    <input type="hidden" id="page-edit-id">
-    <div class="form-group" style="margin-bottom:12px">
-      <label class="form-label">Título</label>
-      <input class="form-input" id="page-edit-titulo" placeholder="Políticas de cambio y devolución">
+<div id="modal-page-editor" style="display:none;position:fixed;inset:0;z-index:600;align-items:flex-start;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);overflow-y:auto;padding:32px 16px" onclick="if(event.target===this)closePageEditor()">
+  <div style="background:var(--s1);border-radius:18px;width:min(780px,100%);overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.35)">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--s1);z-index:2">
+      <div style="font-size:15px;font-weight:800" id="page-editor-title">Nueva página</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" onclick="closePageEditor()">Cancelar</button>
+        <button class="btn btn-sm btn-primary" onclick="savePage()">💾 Guardar página</button>
+      </div>
     </div>
-    <div class="form-group" style="margin-bottom:12px">
-      <label class="form-label">Slug (URL)</label>
-      <input class="form-input" id="page-edit-slug" placeholder="politicas-de-cambio" style="font-family:monospace;font-size:12px">
+    <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:12px;border-bottom:1px solid var(--border)">
+      <input type="hidden" id="page-edit-id">
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Título de la página</label>
+        <input class="form-input" id="page-edit-titulo" placeholder="Políticas de envío">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Slug (URL)</label>
+        <input class="form-input" id="page-edit-slug" placeholder="politicas-de-envio" style="font-family:monospace;font-size:12px">
+      </div>
     </div>
-    <div class="form-group" style="margin-bottom:16px">
-      <label class="form-label">Contenido</label>
-      <textarea class="form-textarea" id="page-edit-contenido" rows="10" placeholder="Escribí el contenido de la página...&#10;&#10;Podés usar saltos de línea."></textarea>
-    </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn" onclick="closePageEditor()">Cancelar</button>
-      <button class="btn btn-primary" onclick="savePage()">Guardar página</button>
+
+    <!-- Designer area -->
+    <div style="padding:20px 24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--muted2)">DISEÑADOR DE CONTENIDO</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select id="page-new-section-type" class="form-select" style="font-size:11px;width:auto;padding:5px 10px">
+            <option value="texto">📝 Párrafo</option>
+            <option value="titulo">🔤 Título</option>
+            <option value="imagen">🖼 Imagen</option>
+            <option value="hero">🦸 Banner / Hero</option>
+            <option value="cta">🔘 Botón CTA</option>
+            <option value="imagen_texto">↔ Imagen + texto</option>
+            <option value="separador">➖ Separador</option>
+          </select>
+          <button class="btn btn-sm btn-primary" onclick="_pageAddSection()">+ Agregar sección</button>
+        </div>
+      </div>
+      <div id="page-sections-list" style="display:flex;flex-direction:column;gap:8px;min-height:60px"></div>
+      <div id="page-sections-empty" style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;border:2px dashed var(--border);border-radius:12px;display:none">
+        Elegí un tipo de sección y hacé clic en <strong>+ Agregar sección</strong>
+      </div>
     </div>
   </div>
 </div>
@@ -20158,10 +20208,26 @@ function crealPublishToMeta() {
         <div style="font-size:15px;font-weight:800;margin-bottom:4px">👤 Perfiles de Clientes</div>
         <div style="font-size:12px;color:var(--muted)">Clientes identificados en tu tienda · último producto · carrito · compras</div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <input class="form-input" id="perfiles-search" placeholder="Buscar por nombre o teléfono..." style="width:240px" oninput="_renderPerfilesGrid()">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input class="form-input" id="perfiles-search" placeholder="🔍 Nombre, teléfono, email, tag..." style="width:240px" oninput="_renderPerfilesGrid()">
+        <select class="form-select" id="perfiles-sort" onchange="_renderPerfilesGrid()" style="font-size:11px;width:auto;padding:5px 10px">
+          <option value="reciente">Más recientes</option>
+          <option value="gasto">Mayor gasto</option>
+          <option value="compras">Más compras</option>
+          <option value="cashback">Mayor cashback</option>
+          <option value="nombre">Nombre A-Z</option>
+        </select>
         <button class="btn btn-sm" onclick="_loadPerfiles()">↺ Actualizar</button>
       </div>
+    </div>
+    <!-- Filter chips -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px" id="perfiles-filter-chips">
+      <button class="btn btn-xs btn-primary" data-pf="todos" onclick="_setPerfFiltro('todos',this)">Todos</button>
+      <button class="btn btn-xs" data-pf="compradores" onclick="_setPerfFiltro('compradores',this)">🛍 Compradores</button>
+      <button class="btn btn-xs" data-pf="prospectos" onclick="_setPerfFiltro('prospectos',this)">👀 Prospectos</button>
+      <button class="btn btn-xs" data-pf="carrito" onclick="_setPerfFiltro('carrito',this)">🛒 Carrito abandonado</button>
+      <button class="btn btn-xs" data-pf="cashback" onclick="_setPerfFiltro('cashback',this)">💰 Con cashback</button>
+      <button class="btn btn-xs" data-pf="top" onclick="_setPerfFiltro('top',this)">⭐ Top clientes (+3 compras)</button>
     </div>
     <div id="perfiles-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px"></div>
     <div id="perfiles-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">
@@ -22728,16 +22794,47 @@ function _renderPerfilesStats() {
   </div>`).join('')
 }
 
+let _perfFiltroActivo = 'todos'
+
+function _setPerfFiltro(filtro, btn) {
+  _perfFiltroActivo = filtro
+  document.querySelectorAll('#perfiles-filter-chips button').forEach(b => {
+    b.className = b.dataset.pf === filtro ? 'btn btn-xs btn-primary' : 'btn btn-xs'
+  })
+  _renderPerfilesGrid()
+}
+
 function _renderPerfilesGrid() {
   const grid = document.getElementById('perfiles-grid')
   if (!grid) return
-  const q = (document.getElementById('perfiles-search')?.value || '').toLowerCase()
-  const list = q ? _perfilesData.filter(p =>
-    (p.nombre + ' ' + p.apellido + ' ' + p.telefono + ' ' + p.email).toLowerCase().includes(q)
-  ) : _perfilesData
+  const q    = (document.getElementById('perfiles-search')?.value || '').toLowerCase()
+  const sort = document.getElementById('perfiles-sort')?.value || 'reciente'
 
+  let list = _perfilesData.filter(p => {
+    // Text search
+    if (q && !(p.nombre + ' ' + p.apellido + ' ' + (p.telefono||'') + ' ' + (p.email||'') + ' ' + (p.tags||[]).join(' ')).toLowerCase().includes(q)) return false
+    // Chip filter
+    if (_perfFiltroActivo === 'compradores' && !(p.cantCompras > 0)) return false
+    if (_perfFiltroActivo === 'prospectos'  && !(p.cantCompras === 0 || !p.cantCompras)) return false
+    if (_perfFiltroActivo === 'carrito'     && !p.carritoAbandonado) return false
+    if (_perfFiltroActivo === 'cashback'    && !(p.cashbackBalance > 0)) return false
+    if (_perfFiltroActivo === 'top'         && !(p.cantCompras >= 3)) return false
+    return true
+  })
+
+  // Sort
+  list = [...list].sort((a, b) => {
+    if (sort === 'gasto')   return (b.valorTotalCompras||0) - (a.valorTotalCompras||0)
+    if (sort === 'compras') return (b.cantCompras||0) - (a.cantCompras||0)
+    if (sort === 'cashback') return (b.cashbackBalance||0) - (a.cashbackBalance||0)
+    if (sort === 'nombre')  return (a.nombre||'').localeCompare(b.nombre||'', 'es')
+    // reciente — by ultimaVisita desc
+    return ((b.ultimaVisita||'') > (a.ultimaVisita||'')) ? 1 : -1
+  })
+
+  const activeLabel = { todos:'', compradores:' compradores', prospectos:' prospectos', carrito:' con carrito abandonado', cashback:' con cashback', top:' top clientes' }
   if (!list.length) {
-    grid.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:40px;text-align:center;grid-column:1/-1">No hay perfiles' + (q ? ' que coincidan' : '') + '</div>'
+    grid.innerHTML = `<div style="font-size:13px;color:var(--muted);padding:48px;text-align:center;grid-column:1/-1">No hay perfiles${(q||_perfFiltroActivo!=='todos') ? ' que coincidan con los filtros' : ''}</div>`
     return
   }
 
@@ -25149,125 +25246,222 @@ async function loadTiendaAnalytics() {
   const days = parseInt(document.getElementById('analytics-period')?.value || 30);
   try {
     const [anaRes, evtRes] = await Promise.all([
-      fetch(`/api/store/analytics?wsId=${_activeWsId}`),
+      fetch(`/api/store/analytics?wsId=${_activeWsId}&days=${days}`),
       fetch(`/api/store/analytics/events?wsId=${_activeWsId}&days=${days}`)
     ]);
     const data = await anaRes.json();
     const evts = evtRes.ok ? await evtRes.json() : {};
 
     const fmt = n => Number(n||0).toLocaleString('es-AR',{maximumFractionDigits:0});
+
+    // ── KPIs ──────────────────────────────────────────────────────
     const kpis = document.getElementById('tienda-analytics-kpis');
     if (kpis) {
+      const conv = evts.convRate ? (evts.convRate*100).toFixed(1)+'%' : '—';
       kpis.innerHTML = [
-        { label:'Revenue', val:'$'+fmt(data.revenue), sub:'total pagado', color:'var(--green)' },
-        { label:'Órdenes pagadas', val: data.ordenesPagadas||0, sub:'confirmadas', color:'var(--text)' },
-        { label:'Ticket promedio', val:'$'+fmt(data.ticketPromedio), sub:'por compra', color:'var(--text)' },
-        { label:'Visitas', val: evts.totalViews||0, sub:'vistas de productos', color:'var(--text)' },
-        { label:'Conversión', val: evts.convRate ? (evts.convRate*100).toFixed(1)+'%' : '—', sub:'vista → compra', color:'var(--accent)' }
+        { label:'Ventas', val:'$'+fmt(data.revenue||0), sub:'período seleccionado', color:'var(--green)', icon:'💰' },
+        { label:'Órdenes', val: data.ordenesPagadas||0, sub:'confirmadas', color:'var(--text)', icon:'🛍' },
+        { label:'Ticket promedio', val:'$'+fmt(data.ticketPromedio||0), sub:'por compra', color:'var(--text)', icon:'🎯' },
+        { label:'Vistas de productos', val: fmt(evts.totalViews||0), sub:'eventos rastreados', color:'var(--text)', icon:'👁' },
+        { label:'Conversión', val: conv, sub:'vista → compra', color: evts.convRate > 0.03 ? 'var(--green)' : 'var(--accent)', icon:'📈' },
+        { label:'Total órdenes', val: data.totalOrdenes||0, sub:'todas (incl. pendientes)', color:'var(--muted2)', icon:'📋' },
       ].map(k => `
-        <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px">
-          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;font-weight:600">${k.label}</div>
-          <div style="font-size:22px;font-weight:700;color:${k.color};letter-spacing:-.02em;line-height:1">${k.val}</div>
+        <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:14px 16px">
+          <div style="font-size:16px;margin-bottom:6px">${k.icon}</div>
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:6px">${k.label}</div>
+          <div style="font-size:20px;font-weight:800;color:${k.color};letter-spacing:-.03em;line-height:1">${k.val}</div>
           <div style="font-size:10px;color:var(--muted);margin-top:4px">${k.sub}</div>
         </div>
       `).join('');
     }
 
-    // Funnel
+    // ── Revenue chart ─────────────────────────────────────────────
+    const chartEl = document.getElementById('tienda-revenue-chart');
+    if (chartEl && data.revenueChart?.length) {
+      const vals = data.revenueChart.map(d => d.val);
+      const maxV = Math.max(...vals, 1);
+      const n = vals.length;
+      // Show every Nth label to avoid crowding
+      const step = n <= 14 ? 1 : n <= 31 ? 3 : 7;
+      chartEl.innerHTML = data.revenueChart.map((d, i) => {
+        const h = Math.max(2, Math.round(d.val / maxV * 72));
+        const label = (i % step === 0) ? d.date.slice(5) : ''; // MM-DD
+        const isToday = i === n - 1;
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;min-width:0" title="${d.date}: $${fmt(d.val)}">
+          <div style="width:100%;max-width:28px;background:${isToday?'var(--accent)':'var(--accent)66'};border-radius:3px 3px 0 0;height:${h}px;transition:height .3s;cursor:default"></div>
+          <div style="font-size:8px;color:var(--muted);white-space:nowrap;overflow:hidden;max-width:28px">${label}</div>
+        </div>`;
+      }).join('');
+    } else if (chartEl) {
+      chartEl.innerHTML = '<div style="color:var(--muted);font-size:12px;align-self:center">Sin ventas en el período</div>';
+    }
+
+    // ── Funnel ────────────────────────────────────────────────────
     const funnelEl = document.getElementById('tienda-funnel');
     if (funnelEl) {
       const { views=0, carts=0, checkouts=0, orders=0, abandons=0 } = evts.funnel || {};
       if (!views && !carts && !checkouts && !orders) {
-        funnelEl.innerHTML = '<div style="color:var(--muted);font-size:12px">Sin datos de eventos todavía</div>';
+        funnelEl.innerHTML = '<div style="color:var(--muted);font-size:12px">Sin datos de eventos aún.<br><span style="font-size:11px">Se registran automáticamente cuando hay visitas.</span></div>';
       } else {
-        const maxVal = views || carts || 1;
-        const cartRate = carts > 0 && views > 0 ? ' · ' + Math.round(carts/views*100) + '% conv.' : '';
-        const abandonRate = abandons > 0 && carts > 0 ? ' · ' + Math.round(abandons/carts*100) + '% abandon.' : '';
+        const maxVal = Math.max(views, carts, checkouts, orders, 1);
         funnelEl.innerHTML = [
-          { label:'Vistas de productos', val: views, color:'var(--accent)', note:'' },
-          { label:'Agregaron al carrito', val: carts, color:'var(--purple)', note: cartRate },
-          { label:'Carritos abandonados', val: abandons, color:'var(--coral)', note: abandonRate },
-          { label:'Iniciaron checkout', val: checkouts, color:'var(--gold)', note:'' },
-          { label:'Completaron compra', val: orders, color:'var(--green)', note:'' }
+          { label:'Vistas de productos', val: views, color:'var(--accent)' },
+          { label:'Agregaron al carrito', val: carts, color:'var(--purple)', note: views ? Math.round(carts/views*100)+'% de vistas' : '' },
+          { label:'Iniciaron checkout', val: checkouts, color:'var(--gold)' },
+          { label:'Completaron compra', val: orders, color:'var(--green)', note: carts ? Math.round(orders/carts*100)+'% de carritos' : '' },
+          { label:'Carritos abandonados', val: abandons, color:'var(--coral)', note: carts ? Math.round(abandons/carts*100)+'% abandon.' : '' },
         ].map(f => `
-          <div style="margin-bottom:12px">
-            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;color:var(--muted2)">
-              <span>${f.label}<span style="color:var(--muted);font-size:10px">${f.note}</span></span>
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+              <span style="color:var(--muted2)">${f.label}${f.note?`<span style="font-size:9.5px;color:var(--muted);margin-left:4px">${f.note}</span>`:''}</span>
               <strong style="color:var(--text)">${f.val}</strong>
             </div>
-            <div style="background:var(--s2);border-radius:4px;height:5px">
-              <div style="background:${f.color};height:5px;border-radius:4px;width:${Math.round(f.val/maxVal*100)}%;transition:width .5s"></div>
+            <div style="background:var(--s2);border-radius:4px;height:4px">
+              <div style="background:${f.color};height:4px;border-radius:4px;width:${Math.round(f.val/maxVal*100)}%;transition:width .5s"></div>
             </div>
-          </div>
-        `).join('');
+          </div>`).join('');
       }
     }
 
-    // Top vistas (eventos)
+    // ── Top vistas ────────────────────────────────────────────────
     const vistasEl = document.getElementById('tienda-top-vistas');
-    if (vistasEl && evts.topProductsViews?.length) {
-      const maxV = evts.topProductsViews[0].views;
-      vistasEl.innerHTML = evts.topProductsViews.slice(0,8).map(p => `
-        <div style="margin-bottom:10px">
-          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
-            <span style="color:var(--muted2)">${p.nombre}</span><span style="font-weight:600">${p.views} vistas</span>
-          </div>
-          <div style="background:var(--s2);border-radius:3px;height:4px">
-            <div style="background:var(--accent);height:4px;border-radius:3px;width:${Math.round(p.views/maxV*100)}%"></div>
-          </div>
-        </div>`).join('');
-    } else if (vistasEl) {
-      vistasEl.innerHTML = '<div style="color:var(--muted);font-size:12px">Sin vistas registradas</div>';
-    }
-
-    // Top ventas
-    const topEl = document.getElementById('tienda-top-productos');
-    if (topEl) {
-      if (!data.topProductos?.length) { topEl.innerHTML = '<div style="padding:16px 18px;color:var(--muted);font-size:12px">Sin ventas registradas</div>'; }
-      else {
-        const maxRev = data.topProductos[0].revenue;
-        topEl.innerHTML = data.topProductos.map(p => `
-          <div style="padding:10px 18px;border-bottom:1px solid var(--border)">
-            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
-              <span style="font-weight:600">${p.nombre}</span>
-              <span style="color:var(--green);font-weight:600">$${fmt(p.revenue)}</span>
+    if (vistasEl) {
+      if (evts.topProductsViews?.length) {
+        const maxV = evts.topProductsViews[0].views;
+        vistasEl.innerHTML = evts.topProductsViews.slice(0,8).map(p => `
+          <div style="margin-bottom:9px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+              <span style="color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px">${p.nombre}</span>
+              <span style="font-weight:600;flex-shrink:0;margin-left:4px">${p.views}</span>
             </div>
             <div style="background:var(--s2);border-radius:3px;height:3px">
-              <div style="background:var(--green);height:3px;border-radius:3px;width:${Math.round(p.revenue/maxRev*100)}%;transition:width .5s"></div>
+              <div style="background:var(--accent);height:3px;border-radius:3px;width:${Math.round(p.views/maxV*100)}%"></div>
             </div>
-            <div style="font-size:10px;color:var(--muted);margin-top:3px">${p.unidades} unidades</div>
           </div>`).join('');
+      } else {
+        vistasEl.innerHTML = '<div style="color:var(--muted);font-size:12px">Sin vistas registradas</div>';
       }
     }
 
-    // Top clientes
-    const clientesEl = document.getElementById('tienda-top-clientes');
-    if (clientesEl && evts.topClientes?.length) {
-      clientesEl.innerHTML = evts.topClientes.map(c => `
-        <div style="padding:10px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-size:12px;font-weight:600">${c.nombre||'Anónimo'}</div>
-            <div style="font-size:10px;color:var(--muted)">${c.vistas} vistas · ${c.compras||0} compras</div>
-          </div>
-          <div style="font-size:12px;color:var(--green);font-weight:600">${c.compras > 0 ? '$'+fmt(c.gasto) : ''}</div>
-        </div>`).join('');
-    } else if (clientesEl) {
-      clientesEl.innerHTML = '<div style="padding:16px 18px;color:var(--muted);font-size:12px">Sin datos de clientes todavía</div>';
-    }
-
-    // Stock bajo
+    // ── Stock bajo ────────────────────────────────────────────────
     const stockEl = document.getElementById('tienda-stock-bajo');
     if (stockEl) {
-      if (!data.stockBajo?.length) { stockEl.innerHTML = '<div style="color:var(--green);font-size:12px">✓ Stock saludable</div>'; }
-      else {
+      if (!data.stockBajo?.length) {
+        stockEl.innerHTML = '<div style="color:var(--green);font-size:12px">✓ Todo con stock saludable</div>';
+      } else {
         stockEl.innerHTML = data.stockBajo.map(p => `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
-            <span>${p.nombre}</span>
-            <span style="color:${p.stock <= 0 ? 'var(--red)' : 'var(--coral)'};font-weight:700">${p.stock <= 0 ? 'Agotado' : p.stock+' ud.'}</span>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+            <span style="color:var(--muted2)">${p.nombre}</span>
+            <span style="color:${p.stock<=0?'var(--coral)':'var(--gold)'};font-weight:700">${p.stock<=0?'Agotado':p.stock+' ud.'}</span>
           </div>`).join('');
       }
     }
-  } catch(e) { console.error(e); notify('Error cargando analytics'); }
+
+    // ── Top productos por ventas ──────────────────────────────────
+    const topEl = document.getElementById('tienda-top-productos');
+    if (topEl) {
+      if (!data.topProductos?.length) {
+        topEl.innerHTML = '<div style="padding:16px 18px;color:var(--muted);font-size:12px">Sin ventas en el período</div>';
+      } else {
+        const maxR = data.topProductos[0].revenue;
+        topEl.innerHTML = data.topProductos.map((p, i) => `
+          <div style="padding:9px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+            <div style="font-size:11px;color:var(--muted);width:16px;text-align:right;flex-shrink:0">${i+1}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nombre}</div>
+              <div style="background:var(--s2);border-radius:3px;height:3px;margin-top:4px">
+                <div style="background:var(--green);height:3px;border-radius:3px;width:${Math.round(p.revenue/maxR*100)}%"></div>
+              </div>
+              <div style="font-size:10px;color:var(--muted);margin-top:2px">${p.unidades} ud.</div>
+            </div>
+            <div style="font-size:12px;color:var(--green);font-weight:700;flex-shrink:0">$${fmt(p.revenue)}</div>
+          </div>`).join('');
+      }
+    }
+
+    // ── Por método de pago ────────────────────────────────────────
+    const pagoEl = document.getElementById('tienda-por-pago');
+    if (pagoEl) {
+      const entries = Object.entries(data.ventasPorMetodo||{}).sort((a,b)=>b[1]-a[1]);
+      if (!entries.length) {
+        pagoEl.innerHTML = '<div style="color:var(--muted);font-size:12px">Sin datos</div>';
+      } else {
+        const maxP = entries[0][1];
+        const icons = { transferencia:'🏦', tarjeta:'💳', mercadopago:'💙', efectivo:'💵', otro:'💳' };
+        pagoEl.innerHTML = entries.map(([m,v]) => `
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+              <span style="color:var(--muted2)">${icons[m]||'💳'} ${m}</span>
+              <span style="font-weight:600">$${fmt(v)}</span>
+            </div>
+            <div style="background:var(--s2);border-radius:3px;height:3px">
+              <div style="background:var(--purple);height:3px;border-radius:3px;width:${Math.round(v/maxP*100)}%"></div>
+            </div>
+          </div>`).join('');
+      }
+    }
+
+    // ── Por envío ─────────────────────────────────────────────────
+    const envioEl = document.getElementById('tienda-por-envio');
+    if (envioEl) {
+      const entries = Object.entries(data.ventasPorEnvio||{}).sort((a,b)=>b[1]-a[1]);
+      if (!entries.length) {
+        envioEl.innerHTML = '<div style="color:var(--muted);font-size:12px">Sin datos</div>';
+      } else {
+        const maxE = entries[0][1];
+        const icons = { retiro:'🏪', domicilio:'🏠', andreani:'📦', correoarg:'✉️', personalizado:'🚗' };
+        envioEl.innerHTML = entries.map(([m,v]) => `
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+              <span style="color:var(--muted2)">${icons[m]||'📍'} ${m}</span>
+              <span style="font-weight:600">$${fmt(v)}</span>
+            </div>
+            <div style="background:var(--s2);border-radius:3px;height:3px">
+              <div style="background:var(--gold);height:3px;border-radius:3px;width:${Math.round(v/maxE*100)}%"></div>
+            </div>
+          </div>`).join('');
+      }
+    }
+
+    // ── Top clientes ──────────────────────────────────────────────
+    const clientesEl = document.getElementById('tienda-top-clientes');
+    if (clientesEl) {
+      if (evts.topClientes?.length) {
+        clientesEl.innerHTML = evts.topClientes.map(c => `
+          <div style="padding:9px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:12px;font-weight:600">${c.nombre||'Anónimo'}</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:1px">${c.vistas} vistas · ${c.compras||0} compras</div>
+            </div>
+            <div style="font-size:12px;color:var(--green);font-weight:700">${c.compras>0?'$'+fmt(c.gasto):''}</div>
+          </div>`).join('');
+      } else {
+        clientesEl.innerHTML = '<div style="padding:16px 18px;color:var(--muted);font-size:12px">Sin datos de clientes todavía</div>';
+      }
+    }
+
+    // ── Últimas órdenes ───────────────────────────────────────────
+    const ultsEl = document.getElementById('tienda-ultimas-ordenes');
+    if (ultsEl) {
+      const recent = (data.ordenes||[]).slice(-10).reverse();
+      if (!recent.length) {
+        ultsEl.innerHTML = '<div style="padding:16px 18px;color:var(--muted);font-size:12px">Sin órdenes todavía</div>';
+      } else {
+        const estCls = { pendiente:'var(--gold)', pagado:'var(--green)', enviado:'var(--accent)', entregado:'var(--green)', cancelado:'var(--muted)', en_preparacion:'var(--purple)' };
+        ultsEl.innerHTML = recent.map(o => {
+          const fecha = o.fecha ? new Date(o.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'}) : '—';
+          const nombre = [o.cliente?.nombre, o.cliente?.apellido].filter(Boolean).join(' ') || o.cliente?.tel || '—';
+          return `<div style="padding:8px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:40px 1fr auto auto;align-items:center;gap:10px;font-size:11px">
+            <span style="color:var(--muted)">#${o.numero}</span>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted2)">${nombre}</span>
+            <span style="color:${estCls[o.estado]||'var(--muted)'};font-weight:600;white-space:nowrap">${o.estado||'—'}</span>
+            <span style="font-weight:700;white-space:nowrap">$${fmt(o.total)}</span>
+          </div>`;
+        }).join('');
+      }
+    }
+
+  } catch(e) { console.error(e); notify('Error cargando analytics: '+e.message); }
 }
 
 // ── Clientes Web analytics ────────────────────────────────────
@@ -27696,6 +27890,148 @@ function renderPagesList() {
   const el2 = document.getElementById('pages-list-main')
   if (el2) el2.innerHTML = _pagesListHTML(false)
 }
+// ── Page section designer ─────────────────────────────────────
+let _pageSecciones = []
+
+const _PAGE_SECTION_TYPES = {
+  texto:       { icon:'📝', label:'Párrafo' },
+  titulo:      { icon:'🔤', label:'Título' },
+  imagen:      { icon:'🖼',  label:'Imagen' },
+  hero:        { icon:'🦸', label:'Banner / Hero' },
+  cta:         { icon:'🔘', label:'Botón CTA' },
+  imagen_texto:{ icon:'↔',  label:'Imagen + texto' },
+  separador:   { icon:'➖', label:'Separador' },
+}
+
+function _pageSeccionDefaultData(type) {
+  if (type==='texto')        return { texto:'' }
+  if (type==='titulo')       return { texto:'', nivel:'h2', alineacion:'left' }
+  if (type==='imagen')       return { url:'', caption:'', alineacion:'center' }
+  if (type==='hero')         return { titulo:'', subtitulo:'', bgColor:'', textColor:'' }
+  if (type==='cta')          return { texto:'Ver más', link:'', estilo:'primary', alineacion:'center' }
+  if (type==='imagen_texto') return { url:'', texto:'', imagenLado:'left' }
+  if (type==='separador')    return {}
+  return {}
+}
+
+function _pageSeccionHTML(s, i, total) {
+  const meta = _PAGE_SECTION_TYPES[s.type] || { icon:'📄', label:s.type }
+  const d = s.data || {}
+  let fields = ''
+  if (s.type === 'texto') {
+    fields = `<textarea class="form-textarea" rows="4" placeholder="Escribí el párrafo..." oninput="_pageSecUpdate(${i},'texto',this.value)" style="font-size:13px">${d.texto||''}</textarea>`
+  } else if (s.type === 'titulo') {
+    fields = `<div style="display:grid;grid-template-columns:1fr auto auto;gap:8px">
+      <input class="form-input" value="${d.texto||''}" placeholder="Título de sección" oninput="_pageSecUpdate(${i},'texto',this.value)">
+      <select class="form-select" style="width:auto" onchange="_pageSecUpdate(${i},'nivel',this.value)">
+        <option value="h1" ${d.nivel==='h1'?'selected':''}>H1 — Grande</option>
+        <option value="h2" ${d.nivel==='h2'||!d.nivel?'selected':''}>H2 — Mediano</option>
+        <option value="h3" ${d.nivel==='h3'?'selected':''}>H3 — Pequeño</option>
+      </select>
+      <select class="form-select" style="width:auto" onchange="_pageSecUpdate(${i},'alineacion',this.value)">
+        <option value="left" ${d.alineacion==='left'||!d.alineacion?'selected':''}>← Izquierda</option>
+        <option value="center" ${d.alineacion==='center'?'selected':''}>↔ Centro</option>
+        <option value="right" ${d.alineacion==='right'?'selected':''}>→ Derecha</option>
+      </select>
+    </div>`
+  } else if (s.type === 'imagen') {
+    fields = `<div style="display:flex;flex-direction:column;gap:8px">
+      <input class="form-input" value="${d.url||''}" placeholder="URL de la imagen (https://...)" oninput="_pageSecUpdate(${i},'url',this.value)">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px">
+        <input class="form-input" value="${d.caption||''}" placeholder="Descripción / caption (opcional)" oninput="_pageSecUpdate(${i},'caption',this.value)">
+        <select class="form-select" style="width:auto" onchange="_pageSecUpdate(${i},'alineacion',this.value)">
+          <option value="left" ${d.alineacion==='left'?'selected':''}>← Izquierda</option>
+          <option value="center" ${!d.alineacion||d.alineacion==='center'?'selected':''}>↔ Centro</option>
+          <option value="right" ${d.alineacion==='right'?'selected':''}>→ Derecha</option>
+        </select>
+      </div>
+      ${d.url?`<img src="${d.url}" style="max-height:80px;object-fit:contain;border-radius:8px;border:1px solid var(--border)" onerror="this.style.display='none'">` : ''}
+    </div>`
+  } else if (s.type === 'hero') {
+    fields = `<div style="display:flex;flex-direction:column;gap:8px">
+      <input class="form-input" value="${d.titulo||''}" placeholder="Título del banner" oninput="_pageSecUpdate(${i},'titulo',this.value)">
+      <input class="form-input" value="${d.subtitulo||''}" placeholder="Subtítulo o descripción" oninput="_pageSecUpdate(${i},'subtitulo',this.value)">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Color de fondo</label>
+          <input class="form-input" value="${d.bgColor||''}" placeholder="#f5f5f5 o var(--s1)" oninput="_pageSecUpdate(${i},'bgColor',this.value)"></div>
+        <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">URL imagen de fondo (opcional)</label>
+          <input class="form-input" value="${d.bgImagen||''}" placeholder="https://..." oninput="_pageSecUpdate(${i},'bgImagen',this.value)"></div>
+      </div>
+    </div>`
+  } else if (s.type === 'cta') {
+    fields = `<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px">
+      <input class="form-input" value="${d.texto||''}" placeholder="Texto del botón" oninput="_pageSecUpdate(${i},'texto',this.value)">
+      <input class="form-input" value="${d.link||''}" placeholder="URL o /slug" oninput="_pageSecUpdate(${i},'link',this.value)">
+      <select class="form-select" style="width:auto" onchange="_pageSecUpdate(${i},'alineacion',this.value)">
+        <option value="left" ${d.alineacion==='left'?'selected':''}>←</option>
+        <option value="center" ${!d.alineacion||d.alineacion==='center'?'selected':''}>↔</option>
+        <option value="right" ${d.alineacion==='right'?'selected':''}>→</option>
+      </select>
+    </div>`
+  } else if (s.type === 'imagen_texto') {
+    fields = `<div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px">
+        <input class="form-input" value="${d.url||''}" placeholder="URL de la imagen" oninput="_pageSecUpdate(${i},'url',this.value)">
+        <select class="form-select" style="width:auto" onchange="_pageSecUpdate(${i},'imagenLado',this.value)">
+          <option value="left" ${!d.imagenLado||d.imagenLado==='left'?'selected':''}>← Imagen izquierda</option>
+          <option value="right" ${d.imagenLado==='right'?'selected':''}>→ Imagen derecha</option>
+        </select>
+      </div>
+      <textarea class="form-textarea" rows="3" placeholder="Texto al lado de la imagen..." oninput="_pageSecUpdate(${i},'texto',this.value)">${d.texto||''}</textarea>
+    </div>`
+  } else if (s.type === 'separador') {
+    fields = `<div style="color:var(--muted);font-size:12px;text-align:center;padding:4px 0">— Línea divisoria —</div>`
+  }
+
+  return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden" id="pagesec-${i}">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--s2);border-bottom:1px solid var(--border)">
+      <span style="font-size:13px">${meta.icon}</span>
+      <span style="font-size:11px;font-weight:700;color:var(--muted2);flex:1">${meta.label}</span>
+      <button onclick="_pageSecMove(${i},-1)" ${i===0?'disabled':''} title="Subir" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:2px 5px;border-radius:4px;${i===0?'opacity:.3':''}">↑</button>
+      <button onclick="_pageSecMove(${i},1)" ${i===total-1?'disabled':''} title="Bajar" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:2px 5px;border-radius:4px;${i===total-1?'opacity:.3':''}">↓</button>
+      <button onclick="_pageSecDelete(${i})" title="Eliminar" style="background:none;border:none;cursor:pointer;color:var(--coral);font-size:13px;padding:2px 5px;border-radius:4px">×</button>
+    </div>
+    <div style="padding:12px">${fields}</div>
+  </div>`
+}
+
+function _renderPageSections() {
+  const el = document.getElementById('page-sections-list')
+  const empty = document.getElementById('page-sections-empty')
+  if (!el) return
+  if (!_pageSecciones.length) {
+    el.innerHTML = ''; if(empty) empty.style.display = ''
+    return
+  }
+  if(empty) empty.style.display = 'none'
+  el.innerHTML = _pageSecciones.map((s,i) => _pageSeccionHTML(s,i,_pageSecciones.length)).join('')
+}
+
+function _pageAddSection() {
+  const type = document.getElementById('page-new-section-type')?.value || 'texto'
+  _pageSecciones.push({ type, id: 'sec_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), data: _pageSeccionDefaultData(type) })
+  _renderPageSections()
+  // Scroll to new section
+  const list = document.getElementById('page-sections-list')
+  if (list) list.lastElementChild?.scrollIntoView({ behavior:'smooth', block:'nearest' })
+}
+
+function _pageSecUpdate(i, field, val) {
+  if (_pageSecciones[i]) _pageSecciones[i].data[field] = val
+}
+
+function _pageSecMove(i, dir) {
+  const j = i + dir
+  if (j < 0 || j >= _pageSecciones.length) return
+  ;[_pageSecciones[i], _pageSecciones[j]] = [_pageSecciones[j], _pageSecciones[i]]
+  _renderPageSections()
+}
+
+function _pageSecDelete(i) {
+  _pageSecciones.splice(i, 1)
+  _renderPageSections()
+}
+
 function openPageEditor(id) {
   const m = document.getElementById('modal-page-editor'); if (!m) return
   document.getElementById('page-editor-title').textContent = id ? 'Editar página' : 'Nueva página'
@@ -27704,33 +28040,53 @@ function openPageEditor(id) {
     const p = _pagesData.find(x => x.id === id) || {}
     document.getElementById('page-edit-titulo').value = p.titulo || ''
     document.getElementById('page-edit-slug').value = p.slug || ''
-    document.getElementById('page-edit-contenido').value = p.contenido || ''
+    // Load secciones if exist, else convert contenido to single texto block
+    if (p.secciones && p.secciones.length) {
+      _pageSecciones = p.secciones.map(s => ({...s, data:{...s.data}}))
+    } else if (p.contenido) {
+      _pageSecciones = [{ type:'texto', id:'sec_legacy', data:{ texto: p.contenido } }]
+    } else {
+      _pageSecciones = []
+    }
   } else {
     document.getElementById('page-edit-titulo').value = ''
     document.getElementById('page-edit-slug').value = ''
-    document.getElementById('page-edit-contenido').value = ''
+    _pageSecciones = []
   }
+  _renderPageSections()
   m.style.display = 'flex'
-  document.getElementById('page-edit-titulo').addEventListener('input', function() {
+  const tituloEl = document.getElementById('page-edit-titulo')
+  tituloEl.oninput = function() {
     const slug = document.getElementById('page-edit-slug')
     if (!document.getElementById('page-edit-id').value) {
       slug.value = this.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'').slice(0,40)
     }
-  }, { once: false })
+  }
 }
+
 function closePageEditor() {
   const m = document.getElementById('modal-page-editor'); if (m) m.style.display = 'none'
+  _pageSecciones = []
 }
+
 async function savePage() {
+  // Flush any pending input values from DOM before saving
+  document.querySelectorAll('#page-sections-list input, #page-sections-list textarea, #page-sections-list select').forEach(el => {
+    const match = el.getAttribute('oninput') || el.getAttribute('onchange') || ''
+    const m = match.match(/_pageSecUpdate\((\d+),'(\w+)'/)
+    if (m) { const i=parseInt(m[1]),f=m[2]; if(_pageSecciones[i]) _pageSecciones[i].data[f]=el.value }
+  })
   const titulo = document.getElementById('page-edit-titulo').value.trim()
-  const slug = document.getElementById('page-edit-slug').value.trim()
-  const contenido = document.getElementById('page-edit-contenido').value.trim()
-  const id = document.getElementById('page-edit-id').value
+  const slug   = document.getElementById('page-edit-slug').value.trim()
+  const id     = document.getElementById('page-edit-id').value
   if (!titulo) { notify('El título es obligatorio'); return }
+  // contenido = plain-text fallback (first texto block)
+  const textBlock = _pageSecciones.find(s => s.type === 'texto')
+  const contenido = textBlock?.data?.texto || ''
   try {
     const r = await fetch('/api/store/pages', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ wsId: _activeWsId, pagina: { id: id||undefined, titulo, slug, contenido, activo: true } })
+      body: JSON.stringify({ wsId: _activeWsId, pagina: { id: id||undefined, titulo, slug, contenido, secciones: _pageSecciones, activo: true } })
     })
     const d = await r.json()
     if (d.ok) { _pagesData = d.paginas; renderPagesList(); closePageEditor(); notify('✅ Página guardada') }
