@@ -26109,8 +26109,8 @@ function imgField(label, idx, key, aw, ah) {
     + '</div>'
     + '<div style="display:flex;gap:5px;align-items:center">'
     + '<input type="file" accept="image/*,video/*" id="if_' + pid + '" style="display:none" onchange="handleSecImgUpload(this,' + idx + ',\'' + key + '\',' + aw + ',' + ah + ')">'
-    + '<button class="btn btn-xs" onclick="document.getElementById(\'if_' + pid + '\').click()" style="white-space:nowrap;flex-shrink:0">📁 Subir</button>'
-    + '<input class="form-input" type="text" value="' + escaped + '" placeholder="o URL directa" style="font-size:11px;min-width:0" oninput="_storeSections[' + idx + '].config[\'' + key + '\']=this.value;updatePreview();_updImgPrev(\'' + pid + '\',this.value)">'
+    + '<button class="btn btn-xs" onclick="document.getElementById(\'if_' + pid + '\').click()" style="white-space:nowrap;flex-shrink:0">📁 Archivo</button>'
+    + '<input class="form-input" type="text" value="' + escaped + '" placeholder="Link de Reel de IG" style="font-size:11px;min-width:0" oninput="_handleImgInput(this,' + idx + ',\'' + key + '\',\'' + pid + '\')">'
     + '</div>'
     + '<div id="st_' + pid + '" style="font-size:10px;color:var(--muted);margin-top:3px;height:14px"></div>'
     + '</div>';
@@ -26119,8 +26119,20 @@ function imgField(label, idx, key, aw, ah) {
 function _updImgPrev(pid, url) {
   const el = document.getElementById(pid);
   if (!el) return;
-  if (url) { el.style.display=''; el.innerHTML='<img src="'+url+'" style="width:100%;height:85px;object-fit:cover;display:block">'; }
-  else { el.style.display='none'; el.innerHTML=''; }
+  const isIg = url && (url.includes('instagram.com/reel/') || url.includes('instagram.com/p/'));
+  if (url) {
+    el.style.display='';
+    el.innerHTML = isIg
+      ? '<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:rgba(131,58,180,.08);border-radius:6px"><span style="font-size:18px">📸</span><div><div style="font-size:11px;font-weight:700;color:#833ab4">Reel de Instagram detectado</div><div style="font-size:10px;color:var(--muted);word-break:break-all">' + url + '</div></div></div>'
+      : '<img src="'+url+'" style="width:100%;height:85px;object-fit:cover;display:block">';
+  } else { el.style.display='none'; el.innerHTML=''; }
+}
+
+function _handleImgInput(input, idx, key, pid) {
+  const url = input.value;
+  if (_storeSections[idx]) _storeSections[idx].config[key] = url;
+  updatePreview();
+  _updImgPrev(pid, url);
 }
 
 async function handleSecImgUpload(input, idx, key, aw, ah) {
@@ -28019,7 +28031,7 @@ function _pagesListHTML(compact) {
       </div>
       <span style="font-size:10px;padding:2px 8px;border-radius:10px;flex-shrink:0;background:${p.activo!==false?'rgba(52,199,123,.12)':'rgba(0,0,0,.06)'};color:${p.activo!==false?'#1a7a4a':'var(--muted)'}">${p.activo!==false?'Activa':'Oculta'}</span>
       <button class="btn btn-xs btn-primary" onclick="openPageInBuilder('${p.id}')">✏ Diseñar</button>
-      <button class="btn btn-xs" onclick="openPageEditor('${p.id}')">⚙</button>
+      <button class="btn btn-xs" onclick="openPageEditor('${p.id}')" title="Editar título y slug">⚙</button>
       <button class="btn btn-xs btn-danger" onclick="deletePage('${p.id}')">✕</button>
     </div>`).join('')
 }
@@ -28228,8 +28240,17 @@ async function savePage() {
       body: JSON.stringify({ wsId: _activeWsId, pagina: { id: id||undefined, titulo, slug, contenido, secciones: _pageSecciones, activo: true } })
     })
     const d = await r.json()
-    if (d.ok) { _pagesData = d.paginas; renderPagesList(); closePageEditor(); notify('✅ Página guardada') }
-    else notify('Error: ' + d.error)
+    if (d.ok) {
+      _pagesData = d.paginas
+      renderPagesList()
+      closePageEditor()
+      // If this was a new page, jump straight into the builder
+      if (!id) {
+        const created = d.paginas[d.paginas.length - 1]
+        if (created) { notify('✅ Página creada — abriendo editor…'); setTimeout(()=>openPageInBuilder(created.id), 150) }
+        else notify('✅ Página creada')
+      } else { notify('✅ Página guardada') }
+    } else notify('Error: ' + d.error)
   } catch(e) { notify('Error: ' + e.message) }
 }
 async function deletePage(id) {

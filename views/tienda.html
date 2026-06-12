@@ -845,6 +845,8 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
 ═══════════════════════════════════════════ */
 
 #view-product{display:none;animation:pdIn .3s cubic-bezier(.25,.46,.45,.94)}
+#view-page{display:none;animation:pdIn .3s cubic-bezier(.25,.46,.45,.94)}
+.vp-topbar{display:flex;align-items:center;gap:12px;padding:14px 16px;position:sticky;top:0;z-index:40;background:var(--bg);border-bottom:1px solid var(--border);margin-bottom:0}
 
 @keyframes pdIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
@@ -1267,6 +1269,15 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
 
   </div><!-- /view-catalog -->
 
+  <!-- ── PAGE VIEW ── -->
+  <div id="view-page">
+    <div class="vp-topbar">
+      <button onclick="closePage()" style="background:none;border:none;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;padding:6px 10px;border-radius:8px;display:flex;align-items:center;gap:5px;flex-shrink:0" onmouseover="this.style.background='var(--s2)'" onmouseout="this.style.background='none'">← Volver</button>
+      <div id="view-page-title" style="font-size:15px;font-weight:700;flex:1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      <div style="width:70px;flex-shrink:0"></div>
+    </div>
+    <div id="view-page-body" style="padding:0 0 48px"></div>
+  </div>
 
 
   <!-- ── CHECKOUT ── -->
@@ -2308,25 +2319,7 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
 
 
 
-<!-- ── PAGE MODAL ── -->
-
-<div class="id-overlay" id="page-overlay" onclick="if(event.target===this)closePageModal()" style="z-index:420">
-
-  <div class="id-box" style="max-height:90vh;overflow-y:auto;max-width:600px;width:92vw">
-
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-
-      <div style="font-size:18px;font-weight:800" id="page-modal-title">Página</div>
-
-      <button onclick="closePageModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted)">×</button>
-
-    </div>
-
-    <div id="page-modal-body" style="font-size:14px;line-height:1.7;color:var(--text)"></div>
-
-  </div>
-
-</div>
+<!-- PAGE MODAL removed — pages now navigate as full views via openPage() -->
 
 
 
@@ -5103,12 +5096,15 @@ window.addEventListener('popstate', function(e) {
 
   if (params.get('p')) {
     openProduct(params.get('p'))
+  } else if (params.get('pg')) {
+    openPage(params.get('pg'))
   } else {
     // Volver al catálogo — ocultar todas las vistas secundarias
-    document.getElementById('view-product').style.display = 'none'
+    document.getElementById('view-product').style.display  = 'none'
     document.getElementById('view-checkout').style.display = 'none'
-    document.getElementById('view-success').style.display = 'none'
-    document.getElementById('view-catalog').style.display = ''
+    document.getElementById('view-success').style.display  = 'none'
+    document.getElementById('view-page').style.display     = 'none'
+    document.getElementById('view-catalog').style.display  = ''
     _pdHideSticky()
     window.scrollTo(0, 0)
   }
@@ -5629,12 +5625,11 @@ function goToCheckout() {
 
 function showCatalog() {
 
-  document.getElementById('view-catalog').style.display = ''
-  document.getElementById('view-product').style.display = 'none'
-
+  document.getElementById('view-catalog').style.display  = ''
+  document.getElementById('view-product').style.display  = 'none'
   document.getElementById('view-checkout').style.display = 'none'
-
-  document.getElementById('view-success').style.display = 'none'
+  document.getElementById('view-success').style.display  = 'none'
+  document.getElementById('view-page').style.display     = 'none'
 
   window.scrollTo(0,0)
 
@@ -6717,42 +6712,60 @@ function _renderPageSection(s) {
   return ''
 }
 
-function openPageModal(slug) {
+// IG reel URL helpers
+function _isIgUrl(url) {
+  return !!(url && (url.includes('instagram.com/reel/') || url.includes('instagram.com/p/')))
+}
+function _igEmbedUrl(url) {
+  var m = (url || '').match(/instagram\.com\/(?:reel|p)\/([\w-]+)/)
+  return m ? 'https://www.instagram.com/reel/' + m[1] + '/embed/' : url
+}
 
+function openPage(slug) {
   var page = _storePaginas.find(function(p){ return p.slug === slug })
-
   if (!page) return
 
-  document.getElementById('page-modal-title').textContent = page.titulo
+  var titleEl = document.getElementById('view-page-title')
+  var bodyEl  = document.getElementById('view-page-body')
+  if (titleEl) titleEl.textContent = page.titulo
 
-  var bodyEl = document.getElementById('page-modal-body')
-
+  var html = ''
   if (page.secciones && page.secciones.length) {
-    // Builder-format sections ({tipo, config}) → use buildSectionHTML (same renderer as the store)
-    // Simplified legacy sections ({type, data}) → fall back to _renderPageSection
-    const isBuilderFormat = page.secciones.some(function(s){ return !!s.tipo })
+    var isBuilderFormat = page.secciones.some(function(s){ return !!s.tipo })
     if (isBuilderFormat) {
-      bodyEl.innerHTML = '<div style="padding:0">' +
-        page.secciones.filter(function(s){ return s.visible !== false && s.tipo }).map(function(s, i){
-          try { return buildSectionHTML(s, 9000 + i) } catch(e) { return '' }
-        }).join('') +
-        '</div>'
+      html = page.secciones.filter(function(s){ return s.visible !== false && s.tipo })
+        .map(function(s, i){ try { return buildSectionHTML(s, 9000 + i) } catch(e) { return '' } })
+        .join('')
     } else {
-      bodyEl.innerHTML = page.secciones.map(_renderPageSection).join('')
+      html = '<div style="padding:20px;font-size:14px;line-height:1.7;color:var(--text)">' +
+        page.secciones.map(_renderPageSection).join('') + '</div>'
     }
   } else {
-    bodyEl.innerHTML = (page.contenido || '').replace(/\n/g, '<br>')
+    html = '<div style="padding:20px;font-size:14px;line-height:1.7;color:var(--text)">' +
+      (page.contenido || '').replace(/\n/g, '<br>') + '</div>'
   }
+  if (bodyEl) bodyEl.innerHTML = html
 
-  document.getElementById('page-overlay').classList.add('open')
-
+  document.getElementById('view-catalog').style.display  = 'none'
+  document.getElementById('view-product').style.display  = 'none'
+  document.getElementById('view-checkout').style.display = 'none'
+  document.getElementById('view-success').style.display  = 'none'
+  document.getElementById('view-page').style.display     = 'block'
+  history.pushState({ page: slug }, '', '?ws=' + WS + '&pg=' + encodeURIComponent(slug))
+  window.scrollTo({ top: 0, behavior: 'instant' })
 }
 
-function closePageModal() {
-
-  document.getElementById('page-overlay').classList.remove('open')
-
+function closePage() {
+  document.getElementById('view-page').style.display    = 'none'
+  document.getElementById('view-catalog').style.display = ''
+  history.pushState({}, '', '?ws=' + WS)
+  window.scrollTo({ top: 0, behavior: 'instant' })
+  _updateWAVisibility('catalogo')
 }
+
+// Legacy aliases kept in case any old code references them
+function openPageModal(slug) { openPage(slug) }
+function closePageModal()     { closePage() }
 
 function _renderFooter(paginas) {
 
@@ -6770,7 +6783,7 @@ function _renderFooter(paginas) {
 
   links.innerHTML = _storePaginas.map(function(p) {
 
-    return '<button onclick="openPageModal(\'' + p.slug + '\')" style="background:none;border:none;font-size:12px;color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:6px;transition:color .15s" onmouseover="this.style.color=\'var(--accent)\'" onmouseout="this.style.color=\'var(--muted)\'">' + p.titulo + '</button>'
+    return '<button onclick="openPage(\'' + p.slug + '\')" style="background:none;border:none;font-size:12px;color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:6px;transition:color .15s" onmouseover="this.style.color=\'var(--accent)\'" onmouseout="this.style.color=\'var(--muted)\'">' + p.titulo + '</button>'
 
   }).join('')
 
@@ -7495,7 +7508,7 @@ function buildSectionHTML(s, i) {
 
       <div style="position:relative;${heroSize};display:flex;align-items:center;justify-content:${c.alineacion==='right'?'flex-end':c.alineacion==='left'?'flex-start':'center'};overflow:hidden;border-radius:var(--sbr,16px);background:#111">
 
-        ${c.imagen?`<img src="${c.imagen}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:${c.imgFit||'cover'};object-position:${c.imgPos||'center'};display:block">`:c.video?`<video src="${c.video}" autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:${c.imgFit||'cover'};object-position:${c.imgPos||'center'}"></video>`:''}
+        ${_isIgUrl(c.imagen)||_isIgUrl(c.video)?`<iframe src="${_igEmbedUrl(c.imagen||c.video)}" style="position:absolute;inset:0;width:100%;height:100%;border:none" frameborder="0" scrolling="no" allowtransparency="true" allow="autoplay" loading="lazy"></iframe>`:c.imagen?`<img src="${c.imagen}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:${c.imgFit||'cover'};object-position:${c.imgPos||'center'};display:block">`:c.video?`<video src="${c.video}" autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:${c.imgFit||'cover'};object-position:${c.imgPos||'center'}"></video>`:''}
 
         <div style="position:absolute;inset:0;background:rgba(0,0,0,${c.overlay||0.35})"></div>
 
@@ -7568,7 +7581,7 @@ function buildSectionHTML(s, i) {
 
               <div style="min-width:100%;position:relative;flex-shrink:0">
 
-                ${sl.imagen?`<img src="${sl.imagen}" alt="${sl.titulo||''}" style="width:100%;display:block;object-fit:cover;aspect-ratio:${ratio}">`:
+                ${_isIgUrl(sl.imagen)||_isIgUrl(sl.video)?`<div style="aspect-ratio:${ratio};overflow:hidden"><iframe src="${_igEmbedUrl(sl.imagen||sl.video)}" style="width:100%;height:100%;border:none" frameborder="0" scrolling="no" allowtransparency="true" allow="autoplay" loading="lazy"></iframe></div>`:sl.imagen?`<img src="${sl.imagen}" alt="${sl.titulo||''}" style="width:100%;display:block;object-fit:cover;aspect-ratio:${ratio}">`:
 
                   sl.video?`<video src="${sl.video}" style="width:100%;display:block;object-fit:cover;aspect-ratio:${ratio}" autoplay muted loop playsinline></video>`:
 
