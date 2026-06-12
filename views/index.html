@@ -26096,36 +26096,194 @@ async function uploadRawFile(file) {
   } catch(e) { return null; }
 }
 
+// ── Image position/zoom state ──────────────────────────────────
+let _imgDragState = null;
+
+function _imgPosStr(px, py) { return px + '% ' + py + '%'; }
+
+function _applyImgPos(pid, idx, key) {
+  const cfg = (_storeSections[idx] && _storeSections[idx].config) || {};
+  const px   = cfg[key+'PosX'] != null ? cfg[key+'PosX'] : 50;
+  const py   = cfg[key+'PosY'] != null ? cfg[key+'PosY'] : 50;
+  const zoom = cfg[key+'Zoom'] != null ? cfg[key+'Zoom'] : 1.0;
+  const pos  = _imgPosStr(px, py);
+  const img  = document.getElementById('img_' + pid);
+  if (img) {
+    img.style.objectPosition  = pos;
+    img.style.transform       = 'scale(' + zoom.toFixed(3) + ')';
+    img.style.transformOrigin = pos;
+  }
+}
+
+function _startImgDrag(e, pid, idx, key) {
+  if (e.cancelable) e.preventDefault();
+  const cfg  = (_storeSections[idx] && _storeSections[idx].config) || {};
+  const px   = cfg[key+'PosX'] != null ? cfg[key+'PosX'] : 50;
+  const py   = cfg[key+'PosY'] != null ? cfg[key+'PosY'] : 50;
+  const cl   = e.touches ? e.touches[0] : e;
+  const drag = document.getElementById('drag_' + pid);
+  if (drag) drag.style.cursor = 'grabbing';
+  _imgDragState = { pid, idx, key, sx: cl.clientX, sy: cl.clientY, px, py };
+}
+
+function _onImgDragMove(e) {
+  if (!_imgDragState) return;
+  if (e.cancelable) e.preventDefault();
+  const { pid, idx, key, sx, sy, px, py } = _imgDragState;
+  const drag = document.getElementById('drag_' + pid);
+  if (!drag) return;
+  const cl   = e.touches ? e.touches[0] : e;
+  const rect = drag.getBoundingClientRect();
+  const cfg  = (_storeSections[idx] && _storeSections[idx].config) || {};
+  const zoom = cfg[key+'Zoom'] != null ? cfg[key+'Zoom'] : 1.0;
+  // Sensitivity: higher zoom = more pixels of movement needed per % change
+  const sens = 80 / zoom;
+  const npx  = Math.max(0, Math.min(100, px - (cl.clientX - sx) / sens));
+  const npy  = Math.max(0, Math.min(100, py - (cl.clientY - sy) / sens));
+  if (_storeSections[idx]) {
+    _storeSections[idx].config[key+'PosX'] = npx;
+    _storeSections[idx].config[key+'PosY'] = npy;
+  }
+  _applyImgPos(pid, idx, key);
+}
+
+function _stopImgDrag() {
+  if (!_imgDragState) return;
+  const drag = document.getElementById('drag_' + _imgDragState.pid);
+  if (drag) drag.style.cursor = 'grab';
+  _imgDragState = null;
+  updatePreview();
+}
+
+function _onImgZoom(input, pid, idx, key) {
+  const zoom = parseInt(input.value) / 100;
+  if (_storeSections[idx]) _storeSections[idx].config[key+'Zoom'] = zoom;
+  const lbl = document.getElementById('zl_' + pid);
+  if (lbl) lbl.textContent = Math.round(zoom * 100) + '%';
+  _applyImgPos(pid, idx, key);
+  updatePreview();
+}
+
+function _resetImgPos(pid, idx, key) {
+  if (_storeSections[idx]) {
+    _storeSections[idx].config[key+'PosX'] = 50;
+    _storeSections[idx].config[key+'PosY'] = 50;
+    _storeSections[idx].config[key+'Zoom'] = 1.0;
+  }
+  const zEl = document.getElementById('zoom_' + pid);
+  if (zEl) zEl.value = 100;
+  const lbl = document.getElementById('zl_' + pid);
+  if (lbl) lbl.textContent = '100%';
+  _applyImgPos(pid, idx, key);
+  updatePreview();
+}
+
+document.addEventListener('mousemove', _onImgDragMove);
+document.addEventListener('touchmove', _onImgDragMove, { passive: false });
+document.addEventListener('mouseup',   _stopImgDrag);
+document.addEventListener('touchend',  _stopImgDrag);
+
 // Inline image upload field (returns HTML string)
 function imgField(label, idx, key, aw, ah) {
   aw = aw || 16; ah = ah || 9;
-  const val = (_storeSections[idx] && _storeSections[idx].config && _storeSections[idx].config[key]) || '';
-  const pid = 'ip_' + idx + '_' + key;
-  const escaped = val.replace(/"/g,'&quot;');
+  const cfg  = (_storeSections[idx] && _storeSections[idx].config) || {};
+  const val  = cfg[key] || '';
+  const posX = cfg[key+'PosX'] != null ? cfg[key+'PosX'] : 50;
+  const posY = cfg[key+'PosY'] != null ? cfg[key+'PosY'] : 50;
+  const zoom = cfg[key+'Zoom'] != null ? cfg[key+'Zoom'] : 1.0;
+  const zPct = Math.round(zoom * 100);
+  const pos  = _imgPosStr(posX, posY);
+  const pid  = 'ip_' + idx + '_' + key;
+  const esc  = val.replace(/"/g,'&quot;');
+  const isIg = val && (val.includes('instagram.com/reel/') || val.includes('instagram.com/p/'));
+  const hasImg = val && !isIg;
+
   return '<div class="form-group">'
     + '<label class="form-label">' + label + '</label>'
-    + '<div id="' + pid + '" style="' + (val?'':'display:none;') + 'margin-bottom:5px;border-radius:6px;overflow:hidden;cursor:pointer;max-height:85px" onclick="document.getElementById(\'if_' + pid + '\').click()">'
-    + (val ? '<img src="' + escaped + '" style="width:100%;height:85px;object-fit:cover;display:block">' : '')
+
+    // ── outer wrapper (hidden when no image) ──
+    + '<div id="' + pid + '" style="' + (val?'':'display:none;') + 'margin-bottom:8px">'
+
+    // IG indicator
+    + '<div id="ig_' + pid + '" style="' + (isIg?'display:flex':'display:none') + ';align-items:center;gap:6px;padding:8px 10px;background:rgba(131,58,180,.08);border-radius:6px;margin-bottom:4px">'
+    + '<span style="font-size:18px">📸</span>'
+    + '<div><div style="font-size:11px;font-weight:700;color:#833ab4">Reel de Instagram detectado</div>'
+    + '<div id="ig_url_' + pid + '" style="font-size:10px;color:var(--muted);word-break:break-all">' + esc + '</div></div>'
     + '</div>'
+
+    // ── positioning panel ──
+    + '<div id="pos_' + pid + '"' + (isIg?' style="display:none"':'') + '>'
+
+    // Draggable canvas
+    + '<div id="drag_' + pid + '" style="position:relative;width:100%;height:130px;overflow:hidden;border-radius:6px;border:1px solid var(--border);cursor:grab;user-select:none;background:var(--s2);touch-action:none"'
+    + ' onmousedown="_startImgDrag(event,\'' + pid + '\',' + idx + ',\'' + key + '\')"'
+    + ' ontouchstart="_startImgDrag(event,\'' + pid + '\',' + idx + ',\'' + key + '\')">'
+    + (hasImg
+      ? '<img id="img_' + pid + '" src="' + esc + '" draggable="false" style="position:absolute;width:100%;height:100%;object-fit:cover;object-position:' + pos + ';transform:scale(' + zoom.toFixed(3) + ');transform-origin:' + pos + ';pointer-events:none;display:block">'
+      : '')
+    + '<div style="position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:9px;color:rgba(255,255,255,.4);pointer-events:none;letter-spacing:.04em">✥ arrastrá para reposicionar</div>'
+    + '</div>'
+
+    // Zoom row
+    + '<div style="display:flex;align-items:center;gap:6px;margin-top:5px">'
+    + '<span style="font-size:9px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;width:28px;flex-shrink:0">Zoom</span>'
+    + '<input id="zoom_' + pid + '" type="range" min="100" max="250" step="5" value="' + zPct + '" style="flex:1;height:3px;cursor:pointer;accent-color:var(--accent)"'
+    + ' oninput="_onImgZoom(this,\'' + pid + '\',' + idx + ',\'' + key + '\')">'
+    + '<span id="zl_' + pid + '" style="font-size:9px;color:var(--muted);width:28px;text-align:right">' + zPct + '%</span>'
+    + '<button class="btn btn-xs" onclick="_resetImgPos(\'' + pid + '\',' + idx + ',\'' + key + '\')" title="Centrar y restablecer" style="flex-shrink:0;padding:2px 7px">↺</button>'
+    + '</div>'
+
+    + '</div>' // end pos panel
+    + '</div>' // end pid wrapper
+
+    // ── file + URL row ──
     + '<div style="display:flex;gap:5px;align-items:center">'
     + '<input type="file" accept="image/*,video/*" id="if_' + pid + '" style="display:none" onchange="handleSecImgUpload(this,' + idx + ',\'' + key + '\',' + aw + ',' + ah + ')">'
     + '<button class="btn btn-xs" onclick="document.getElementById(\'if_' + pid + '\').click()" style="white-space:nowrap;flex-shrink:0">📁 Archivo</button>'
-    + '<input class="form-input" type="text" value="' + escaped + '" placeholder="Link de Reel de IG" style="font-size:11px;min-width:0" oninput="_handleImgInput(this,' + idx + ',\'' + key + '\',\'' + pid + '\')">'
+    + '<input class="form-input" type="text" value="' + esc + '" placeholder="Link de Reel de IG" style="font-size:11px;min-width:0" oninput="_handleImgInput(this,' + idx + ',\'' + key + '\',\'' + pid + '\')">'
     + '</div>'
     + '<div id="st_' + pid + '" style="font-size:10px;color:var(--muted);margin-top:3px;height:14px"></div>'
     + '</div>';
 }
 
 function _updImgPrev(pid, url) {
-  const el = document.getElementById(pid);
-  if (!el) return;
+  const wrapper = document.getElementById(pid);
+  if (!wrapper) return;
   const isIg = url && (url.includes('instagram.com/reel/') || url.includes('instagram.com/p/'));
-  if (url) {
-    el.style.display='';
-    el.innerHTML = isIg
-      ? '<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:rgba(131,58,180,.08);border-radius:6px"><span style="font-size:18px">📸</span><div><div style="font-size:11px;font-weight:700;color:#833ab4">Reel de Instagram detectado</div><div style="font-size:10px;color:var(--muted);word-break:break-all">' + url + '</div></div></div>'
-      : '<img src="'+url+'" style="width:100%;height:85px;object-fit:cover;display:block">';
-  } else { el.style.display='none'; el.innerHTML=''; }
+
+  if (!url) { wrapper.style.display = 'none'; return; }
+  wrapper.style.display = '';
+
+  const igDiv    = document.getElementById('ig_' + pid);
+  const posDiv   = document.getElementById('pos_' + pid);
+  const igUrlDiv = document.getElementById('ig_url_' + pid);
+  const dragDiv  = document.getElementById('drag_' + pid);
+
+  if (isIg) {
+    if (igDiv)  igDiv.style.display  = 'flex';
+    if (posDiv) posDiv.style.display = 'none';
+    if (igUrlDiv) igUrlDiv.textContent = url;
+  } else {
+    if (igDiv)  igDiv.style.display  = 'none';
+    if (posDiv) posDiv.style.display = '';
+    if (dragDiv) {
+      let img = document.getElementById('img_' + pid);
+      if (!img) {
+        img = document.createElement('img');
+        img.id = 'img_' + pid;
+        img.draggable = false;
+        img.style.cssText = 'position:absolute;width:100%;height:100%;object-fit:cover;pointer-events:none;display:block';
+        dragDiv.insertBefore(img, dragDiv.firstChild);
+      }
+      img.src = url;
+      // Parse idx + key from pid: "ip_{idx}_{key}"
+      const noPrefix = pid.slice(3);
+      const sep = noPrefix.indexOf('_');
+      const idxN = parseInt(noPrefix.slice(0, sep));
+      const keyN = noPrefix.slice(sep + 1);
+      _applyImgPos(pid, idxN, keyN);
+    }
+  }
 }
 
 function _handleImgInput(input, idx, key, pid) {
