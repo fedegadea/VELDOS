@@ -18317,6 +18317,8 @@ function crealPublishToMeta() {
           <div class="form-group"><label class="form-label">Costo de envío (ARS)</label><input class="form-input" type="number" id="store-cfg-envio" placeholder="2500"></div>
           <div class="form-group"><label class="form-label">Envío gratis desde (ARS)</label><input class="form-input" type="number" id="store-cfg-envio-gratis" placeholder="50000"></div>
         </div>
+        <div class="form-group"><label class="form-label">Descuento por transferencia <span style="font-weight:400;color:var(--muted)">(%)</span></label><input class="form-input" id="store-cfg-transfer-discount" placeholder="0" type="number" min="0" max="50" style="max-width:100px"> <span style="font-size:11px;color:var(--muted)">Si configurás un %, se muestra automáticamente en el checkout cuando el cliente elige transferencia.</span></div>
+
         <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
           <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px">Transferencia bancaria</div>
           <div class="form-group"><label class="form-label">CBU</label><input class="form-input" id="store-cfg-cbu" placeholder="0000000000000000000000" maxlength="22"></div>
@@ -26463,6 +26465,7 @@ function loadTiendaConfig() {
   f('store-cfg-logo-url', cfg.logoImagen || '');
   f('store-cfg-envio', cfg.costoEnvio);
   f('store-cfg-envio-gratis', cfg.envioGratis);
+  f('store-cfg-transfer-discount', cfg.transferDiscountPct || '');
   f('store-cfg-cbu', tr.cbu); f('store-cfg-alias', tr.alias);
   f('store-cfg-banco', tr.banco); f('store-cfg-titular', tr.titular);
   f('store-cfg-cuit', tr.cuit);
@@ -26602,6 +26605,7 @@ async function saveTiendaConfig() {
     announceBarTextColor: g('store-cfg-announce-text-color') || '#ffffff',
     costoEnvio: parseFloat(document.getElementById('store-cfg-envio')?.value) || 0,
     envioGratis: parseFloat(document.getElementById('store-cfg-envio-gratis')?.value) || 0,
+    transferDiscountPct: parseFloat(document.getElementById('store-cfg-transfer-discount')?.value) || 0,
     transferencia: { cbu: g('store-cfg-cbu'), alias: g('store-cfg-alias'), banco: g('store-cfg-banco'), titular: g('store-cfg-titular'), cuit: g('store-cfg-cuit') },
     mpAccessToken: g('store-cfg-mp-token'), mpPublicKey: g('store-cfg-mp-pk'),
     fromEmail: g('store-cfg-from-email'), dominioCustom: g('store-cfg-dominio'),

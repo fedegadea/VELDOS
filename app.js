@@ -3672,6 +3672,14 @@ app.post('/api/store/checkout', async (req, res) => {
     const descuento = Number(req.body.descuento) || 0
     if (descuento > 0 && descuento < total) total = Math.max(0, total - descuento)
 
+    // ── Transfer discount ─────────────────────────────────────────────
+    const transferDiscountPct = Number(req.body.transferDiscount || 0)
+    let descuentoTransfer = 0
+    if (transferDiscountPct > 0 && transferDiscountPct <= 50) {
+      descuentoTransfer = Math.round(total * transferDiscountPct / 100)
+      total = Math.max(0, total - descuentoTransfer)
+    }
+
     // ── Referral code discount (10% OFF) ──────────────────────────────
     const codigoReferido = (req.body.codigoReferido || '').toLowerCase().trim()
     const usarCashback = !!req.body.usarCashback

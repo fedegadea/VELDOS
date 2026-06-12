@@ -1453,20 +1453,14 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
             🔒 Al confirmar, serás redirigido a la página de pago segura de <strong>PayWay</strong> para ingresar tus datos de tarjeta.
           </div>
 
-          <div class="ch-field" style="margin-bottom:8px">
-            <label class="ch-label">Código de descuento</label>
+          <!-- Código unificado: cupón o referido -->
+          <div class="ch-field" style="margin-bottom:10px">
+            <label class="ch-label">¿Tenés un código? <span style="font-weight:400;color:var(--muted)">(cupón o referido)</span></label>
             <div style="display:flex;gap:6px">
-              <input class="ch-input" id="ch-coupon" placeholder="DESCUENTO10" style="flex:1;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
-              <button type="button" onclick="applyCoupon()" style="padding:0 14px;background:var(--s2);border:1.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;touch-action:manipulation;white-space:nowrap">Aplicar</button>
+              <input class="ch-input" id="ch-code-unified" placeholder="DESCUENTO10 o mariagonzalez15" style="flex:1" oninput="_unifiedCodeInput(this.value)">
+              <button type="button" onclick="_applyUnifiedCode()" style="padding:0 14px;background:var(--s2);border:1.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;touch-action:manipulation;white-space:nowrap">Aplicar</button>
             </div>
-            <div id="coupon-feedback" style="font-size:11px;margin-top:4px"></div>
-          </div>
-
-          <!-- Referral code with live validation -->
-          <div class="ch-field" id="ch-referral-wrap" style="margin-bottom:10px">
-            <label class="ch-label">Código de referido <span style="font-weight:400;color:var(--muted)">(opcional — 10% OFF)</span></label>
-            <input class="ch-input" id="ch-referral" placeholder="ej: mariagonzalez15" style="letter-spacing:.02em" oninput="validateReferralCode(this.value)">
-            <div id="referral-feedback" style="font-size:11.5px;margin-top:5px;min-height:16px"></div>
+            <div id="unified-code-feedback" style="font-size:11.5px;margin-top:5px;min-height:16px"></div>
           </div>
 
           <!-- Cashback: tiene saldo -->
@@ -1523,8 +1517,13 @@ button,a,[role=button],.btn,.cart-btn,.pd-sz,.pd-color-btn,.talla-btn,.prod-card
         </div>
 
         <div id="ch-referral-row" style="display:none;flex-direction:row;justify-content:space-between;font-size:12px;color:var(--green);margin-bottom:6px">
-          <span>🤝 Código referido (10%)</span>
+          <span id="ch-code-label-summary">🎟 Descuento código</span>
           <span id="ch-referral-val">-$0</span>
+        </div>
+
+        <div id="ch-transfer-row" style="display:none;flex-direction:row;justify-content:space-between;font-size:12px;color:var(--green);margin-bottom:6px">
+          <span id="ch-transfer-label">🏦 Descuento transferencia</span>
+          <span id="ch-transfer-val">-$0</span>
         </div>
 
         <div id="ch-cashback-summary-row" style="display:none;flex-direction:row;justify-content:space-between;font-size:12px;color:var(--green);margin-bottom:6px">
@@ -2737,7 +2736,7 @@ function applySettings() {
 
     }
 
-    bar.style.display = ''
+    bar.style.display = 'block'
 
   }
 
@@ -2826,11 +2825,66 @@ function _setupPWAManifest() {
 }
 
 // ── Coupon / Discount codes ───────────────────────────────────
-let _appliedCoupon = null // { code, tipo:'porcentaje'|'fijo', valor, minCompra }
+let _appliedCoupon = null // kept for backward compat
+let _appliedCode = null   // { tipo:'cupon'|'referido', code, pct, monto, label }
 
 // ── Referral code validation ──────────────────────────
-let _validatedReferralCode = null
+let _validatedReferralCode = null // kept for backward compat
 let _referralValidateTimer = null
+let _unifiedCodeTimer = null
+
+function _unifiedCodeInput(val) {
+  clearTimeout(_unifiedCodeTimer)
+  const fb = document.getElementById('unified-code-feedback')
+  if (!val.trim()) {
+    _appliedCode = null; _appliedCoupon = null; _validatedReferralCode = null
+    if (fb) fb.innerHTML = ''
+    updateCheckoutTotal(); return
+  }
+  if (fb) fb.innerHTML = '<span style="color:var(--muted)">Verificando...</span>'
+  _unifiedCodeTimer = setTimeout(() => _applyUnifiedCode(), 600)
+}
+
+async function _applyUnifiedCode() {
+  const raw = (document.getElementById('ch-code-unified')?.value || '').trim()
+  const fb = document.getElementById('unified-code-feedback')
+  _appliedCode = null; _appliedCoupon = null; _validatedReferralCode = null
+  if (!raw) { updateCheckoutTotal(); return }
+  const upper = raw.toUpperCase()
+  // 1. Try coupon first (local check)
+  const cupones = settings.cupones || []
+  const cupon = cupones.find(c => (c.codigo||c.code||'').toUpperCase() === upper && c.activo !== false)
+  if (cupon) {
+    const subtotal = cart.reduce((s,i) => s + i.precio*i.qty, 0)
+    const minOk = !cupon.minCompra || subtotal >= Number(cupon.minCompra)
+    if (!minOk) {
+      if (fb) fb.innerHTML = `<span style="color:var(--red)">Compra mínima $${cupon.minCompra} requerida</span>`
+      updateCheckoutTotal(); return
+    }
+    _appliedCoupon = cupon
+    const monto = cupon.tipo === 'porcentaje' ? Math.round(subtotal * cupon.valor/100) : Math.min(cupon.valor, subtotal)
+    _appliedCode = { tipo: 'cupon', code: upper, pct: cupon.tipo==='porcentaje'?cupon.valor:null, monto, label: `🎟 Cupón ${upper}` }
+    if (fb) fb.innerHTML = `<span style="color:var(--green);font-weight:700">✓ Cupón aplicado — -$${fmt(monto)}</span>`
+    const lbl = document.getElementById('ch-code-label-summary')
+    if (lbl) lbl.textContent = `🎟 Cupón ${upper}`
+    updateCheckoutTotal(); return
+  }
+  // 2. Try referral code (API)
+  try {
+    const r = await fetch('/api/store/validate-code?wsId=' + WS + '&codigo=' + encodeURIComponent(raw.toLowerCase()))
+    const d = await r.json()
+    if (d.valid) {
+      _validatedReferralCode = { code: raw.toLowerCase(), pct: d.pct }
+      _appliedCode = { tipo: 'referido', code: raw.toLowerCase(), pct: d.pct, label: `🤝 Código referido` }
+      if (fb) fb.innerHTML = `<span style="color:var(--green);font-weight:700">✓ ${d.mensaje}</span>`
+      const lbl = document.getElementById('ch-code-label-summary')
+      if (lbl) lbl.textContent = `🤝 Código referido (${d.pct}%)`
+      updateCheckoutTotal(); return
+    }
+  } catch(e) {}
+  if (fb) fb.innerHTML = `<span style="color:var(--red)">Código no reconocido</span>`
+  updateCheckoutTotal()
+}
 
 function validateReferralCode(val) {
   clearTimeout(_referralValidateTimer)
@@ -2969,18 +3023,20 @@ function calcDiscountAmount(subtotal) {
 
 function updateCheckoutTotal() {
   const subtotal = cart.reduce((s,i) => s + i.precio*i.qty, 0)
-  const disc = calcDiscountAmount(subtotal)
+  const disc = _appliedCoupon ? calcDiscountAmount(subtotal) : 0
 
-  // Referral discount (10%)
-  const refDisc = _validatedReferralCode ? Math.round((subtotal - disc) * 0.10) : 0
+  // Code discount (coupon already in disc, referral needs calc)
+  const refDisc = _validatedReferralCode ? Math.round((subtotal - disc) * (_validatedReferralCode.pct/100)) : 0
 
   // Cashback discount
   const useCashback = document.getElementById('ch-use-cashback')?.checked || false
   const cashbackAvail = _idUser?.cashbackBalance || 0
   const cbDisc = useCashback ? Math.min(cashbackAvail, subtotal - disc - refDisc) : 0
 
+  const transferPct = Number(settings.transferDiscountPct || 0)
+  const transferDisc = (_selectedPayMethod === 'transferencia' && transferPct > 0) ? Math.round((subtotal - disc - refDisc) * transferPct/100) : 0
   const envio = getEnvio()
-  const total = Math.max(0, subtotal - disc - refDisc - cbDisc) + envio
+  const total = Math.max(0, subtotal - disc - refDisc - transferDisc - cbDisc) + envio
 
   // Total principal
   const totalEl = document.getElementById('ch-total')
@@ -2997,6 +3053,12 @@ function updateCheckoutTotal() {
   const refVal = document.getElementById('ch-referral-val')
   if (refRow) refRow.style.display = refDisc > 0 ? 'flex' : 'none'
   if (refVal && refDisc > 0) refVal.textContent = '-$' + fmt(refDisc)
+
+  // Transfer discount row
+  const trRow = document.getElementById('ch-transfer-row')
+  const trVal = document.getElementById('ch-transfer-val')
+  if (trRow) trRow.style.display = transferDisc > 0 ? 'flex' : 'none'
+  if (trVal && transferDisc > 0) trVal.textContent = '-$' + fmt(transferDisc)
 
   // Fila cashback
   const cbRow = document.getElementById('ch-cashback-summary-row')
@@ -5750,13 +5812,14 @@ function renderPaymentMethods() {
   const hasTarjeta = !!(settings.payway?.publicKey || settings.payway?.siteId)
   const hasTrans = true // siempre disponible
 
+  const transferPct = Number(settings.transferDiscountPct || 0)
   el.innerHTML = [
     hasTrans ? `
       <div class="envio-option ${_selectedPayMethod==='transferencia'?'active':''}" onclick="selectPayMethod('transferencia')" style="cursor:pointer">
         <input type="radio" name="pago" ${_selectedPayMethod==='transferencia'?'checked':''}>
         <div class="envio-option-info">
           <strong>🏦 Transferencia bancaria</strong>
-          <span>Te enviamos CBU/alias por WhatsApp</span>
+          <span id="transfer-pay-subtitle">Te enviamos CBU/alias por WhatsApp</span>
         </div>
       </div>` : '',
     hasTarjeta ? `
@@ -5768,6 +5831,10 @@ function renderPaymentMethods() {
         </div>
       </div>` : '',
   ].join('')
+  if (transferPct > 0) {
+    const sub = document.getElementById('transfer-pay-subtitle')
+    if (sub) sub.innerHTML = `Te enviamos CBU/alias · <strong style="color:var(--green)">-${transferPct}% pagando con transferencia</strong>`
+  }
 }
 
 function selectPayMethod(method) {
@@ -5872,7 +5939,7 @@ async function submitCheckout() {
 
     email, tel, envioTipo, envioMethod: _selectedEnvioMethod, envioMethodName,
 
-    referralCode: document.getElementById('ch-referral')?.value?.trim().toUpperCase() || '',
+    referralCode: document.getElementById('ch-code-unified')?.value?.trim() || '',
 
     direccion: envioTipo === 'envio' ? {
 
@@ -5970,7 +6037,7 @@ async function submitCheckout() {
 
       signal: _checkoutAbort.signal,
 
-      body: JSON.stringify({ wsId: WS, items: cart.map(i => ({ id: i.id, cantidad: i.qty })), cliente, envio, cuponCodigo: _appliedCoupon?.codigo || undefined, descuento: _appliedCoupon ? calcDiscountAmount(cart.reduce((s,i)=>s+i.precio*i.qty,0)) : 0, codigoReferido: _validatedReferralCode?.code || undefined, usarCashback: document.getElementById('ch-use-cashback')?.checked || false, paywayToken, paywayBin, cuotas: parseInt(document.getElementById('pw-cuotas')?.value||'1'), metodoPago: _selectedPayMethod, ecid: sessionStorage.getItem('_vld_ecid_' + WS) || undefined })
+      body: JSON.stringify({ wsId: WS, items: cart.map(i => ({ id: i.id, cantidad: i.qty })), cliente, envio, cuponCodigo: _appliedCoupon?.codigo || undefined, descuento: _appliedCoupon ? calcDiscountAmount(cart.reduce((s,i)=>s+i.precio*i.qty,0)) : 0, codigoReferido: _validatedReferralCode?.code || undefined, transferDiscount: (_selectedPayMethod === 'transferencia' && Number(settings.transferDiscountPct||0)>0) ? Number(settings.transferDiscountPct) : 0, usarCashback: document.getElementById('ch-use-cashback')?.checked || false, paywayToken, paywayBin, cuotas: parseInt(document.getElementById('pw-cuotas')?.value||'1'), metodoPago: _selectedPayMethod, ecid: sessionStorage.getItem('_vld_ecid_' + WS) || undefined })
 
     })
 
