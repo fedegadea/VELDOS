@@ -5297,7 +5297,10 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
 
   <!-- Tab: Tareas de hoy -->
   <div class="plan-section active" id="flowtab-hoy">
-    <div id="flow-today-list" style="margin-top:14px"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:10px;margin-bottom:2px">
+      <button class="btn btn-sm" id="flow-clear-all-btn" style="display:none;color:var(--coral);border-color:rgba(255,107,107,.3);font-size:11px" onclick="clearAllFlowTasks()">🗑 Borrar todas</button>
+    </div>
+    <div id="flow-today-list" style="margin-top:6px"></div>
   </div>
 
   <!-- Tab: Automatizaciones -->
@@ -6817,12 +6820,25 @@ function deleteSelectedFlowTasks(){
   renderFlowsToday();
 }
 
+function clearAllFlowTasks(){
+  const tasks=computeFlowTasks().filter(t=>!t.autoSend);
+  if(!tasks.length)return;
+  if(!confirm('¿Borrar todas las '+tasks.length+' tarea'+(tasks.length===1?'':'s')+' pendientes? No se volverán a mostrar.'))return;
+  _flowsInit();
+  tasks.forEach(t=>{S.flowDone[t.key]=Date.now();});
+  _flowSelectedKeys.clear();
+  save();
+  renderFlowsToday();
+}
+
 function renderFlowsToday(){
   const cont=document.getElementById('flow-today-list');
   if(!cont)return;
   // Solo mostrar tareas manuales (action='task' o email con autoSend=false)
   const allTasks=computeFlowTasks();
   const tasks=allTasks.filter(t=>!t.autoSend);
+  const clearBtn=document.getElementById('flow-clear-all-btn');
+  if(clearBtn)clearBtn.style.display=tasks.length?'':'none';
   if(!tasks.length){
     _flowSelectedKeys.clear();
     cont.innerHTML=`<div style="text-align:center;padding:50px 20px;color:var(--muted)">
