@@ -208,7 +208,7 @@ async function getWorkspace(wsId) {
 }
 
 // Helper: patch workspace data in Supabase — merge-safe para ordenes y CRM
-async function patchWorkspace(wsId, data) {
+async function patchWorkspace(wsId, data, fullRow = null) {
   _invalidateWsCache(wsId)
 
   // Leer estado actual del servidor para mergear campos críticos
@@ -350,17 +350,22 @@ async function patchWorkspace(wsId, data) {
     }
   } catch(e) { /* si falla el merge, continuar con el guardado normal */ }
 
-  const saveRes = await fetch(`${SUPA_URL}/rest/v1/workspaces?id=eq.${encodeURIComponent(wsId)}`, {
-    method: "PATCH",
+  // When a full row is available (e.g. new workspace creation), include all columns so the
+  // INSERT succeeds. For data-only saves the row already exists so partial body is fine.
+  const supaBody = fullRow ? { ...fullRow, data } : { id: wsId, data }
+
+  const saveRes = await fetch(`${SUPA_URL}/rest/v1/workspaces`, {
+    method: "POST",
     headers: {
       "apikey": SUPA_KEY(), "Authorization": "Bearer " + SUPA_KEY(),
-      "Content-Type": "application/json", "Prefer": "return=minimal"
+      "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates,return=minimal"
     },
-    body: JSON.stringify({ data })
+    body: JSON.stringify(supaBody)
   })
   if (!saveRes.ok) {
     const errText = await saveRes.text().catch(() => '')
     console.error(`[patchWorkspace] Save failed for ${wsId}: ${saveRes.status} ${errText.slice(0, 200)}`)
+    throw new Error(`Supabase save failed (${saveRes.status}): ${errText.slice(0, 120)}`)
   }
 }
 
@@ -1140,7 +1145,8 @@ async function _serverSendWa(d, phone, text, providerId) {
     const headers = { 'Content-Type': 'application/json' }
     if (apiKey) headers['X-Api-Key'] = apiKey
     const sess = (session || 'default').trim()
-    const chatId = cleanPhone.includes('@') ? cleanPhone : `${cleanPhone}@c.us`
+    const wahaNum = cleanPhone.startsWith('549') ? cleanPhone : `549${cleanPhone}`
+    const chatId = cleanPhone.includes('@') ? cleanPhone : `${wahaNum}@c.us`
     const base = serverUrl.replace(/\/$/, '')
     const _wahaFetch = (url, body, timeoutMs = 6000) => {
       const ctrl = new AbortController()
@@ -1429,7 +1435,8 @@ app.post('/api/wa/send', async (req, res) => {
       const headers = { 'Content-Type': 'application/json' }
       if (apiKey) headers['X-Api-Key'] = apiKey
       const sess = (session || 'default').trim()
-      const chatId = phone.includes('@') ? phone : `${phone}@c.us`
+      const wahaNum = phone.startsWith('549') ? phone : `549${phone}`
+      const chatId = phone.includes('@') ? phone : `${wahaNum}@c.us`
       const base = serverUrl.replace(/\/$/, '')
 
       // Verificar que la sesión esté conectada antes de enviar
@@ -1438,8 +1445,8 @@ app.post('/api/wa/send', async (req, res) => {
       const stVal = stData.status || stData.engine?.status || stData.state || ''
       console.log(`[wa/send] session="${sess}" status="${stVal}" chatId="${chatId}"`)
       const CONNECTED_ST = ['WORKING','AUTHENTICATED','CONNECTED','ONLINE']
-      if (statusChk && !CONNECTED_ST.includes(stVal)) {
-        return res.status(400).json({ error: `WAHA no conectado — estado actual: "${stVal || 'desconocido'}". Escaneá el QR primero.` })
+      if (!statusChk || !CONNECTED_ST.includes(stVal)) {
+        return res.status(400).json({ error: `WAHA no conectado — estado actual: "${stVal || 'sin respuesta'}". Verificá que el servidor WAHA sea accesible y escaneá el QR.` })
       }
 
       // Intentar enviar — probar múltiples formatos de endpoint con timeout de 12s cada uno
@@ -4297,13 +4304,13 @@ app.get('/api/store/campaigns', async (req, res) => {
 })
 
 // ── POST /api/workspace/save — merge-safe save desde el browser (evita race conditions)
-// Reemplaza el supaUpsert directo del browser — toda escritura pasa por patchWorkspace
 app.post('/api/workspace/save', async (req, res) => {
-  const { wsId, data } = req.body
-  if (!wsId || !data) return res.status(400).json({ error: 'Falta wsId o data' })
+  const { wsId, data, row } = req.body
+  const id = wsId || row?.id
+  if (!id) return res.status(400).json({ error: 'Falta wsId' })
   try {
-    await patchWorkspace(wsId, data)
-    _invalidateWsCache(wsId)
+    await patchWorkspace(id, data || row?.data || {}, row || null)
+    _invalidateWsCache(id)
     res.json({ ok: true })
   } catch(e) {
     res.status(500).json({ error: e.message })
@@ -6024,6 +6031,281 @@ app.post('/api/store/payway-notify', async (req, res) => {
   const { wsId, orderId } = req.query
   console.log('[payway-notify] ws', wsId, 'orden', orderId, JSON.stringify(req.body || {}).slice(0, 300))
   res.json({ ok: true })
+})
+
+// ══════════════════════════════════════════════════════════════
+// ── UGC — CANJES / COLABORACIONES ───────────────────────────
+// ══════════════════════════════════════════════════════════════
+const crypto = require('crypto')
+
+// Fetch helper reutilizable para Supabase REST
+async function _supa(method, table, { filter, body, select, prefer } = {}) {
+  let url = `${SUPA_URL}/rest/v1/${table}`
+  const parts = []
+  if (filter)  parts.push(filter)
+  if (select)  parts.push('select=' + select)
+  if (parts.length) url += '?' + parts.join('&')
+  const headers = {
+    apikey: SUPA_KEY(), Authorization: 'Bearer ' + SUPA_KEY(),
+    'Content-Type': 'application/json',
+    Prefer: prefer || 'return=representation'
+  }
+  const r = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined })
+  const text = await r.text()
+  let data; try { data = JSON.parse(text) } catch { data = text }
+  return { ok: r.ok, status: r.status, data }
+}
+
+// Middleware: autenticar creadora por token Bearer
+async function _requireCreadora(req, res, next) {
+  const auth = req.headers.authorization || ''
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : ''
+  if (!token) return res.status(401).json({ error: 'Sin token' })
+  try {
+    const r = await _supa('GET', 'ugc_sessions', {
+      filter: `token=eq.${token}&tipo=eq.session`,
+      select: 'creadora_id,expira_at'
+    })
+    const row = r.data?.[0]
+    if (!row) return res.status(401).json({ error: 'Token inválido' })
+    if (new Date(row.expira_at) < new Date()) return res.status(401).json({ error: 'Token expirado' })
+    req.creadoraId = row.creadora_id
+    next()
+  } catch (e) {
+    res.status(500).json({ error: 'Error de autenticación' })
+  }
+}
+
+// Serve ugc-portal
+app.get('/ugc-portal', (req, res) => {
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+  res.sendFile(__dirname + '/views/ugc-portal.html')
+})
+
+// ── OTP: solicitar código ─────────────────────────────────────
+// ── Auth: login directo con WhatsApp (sin OTP) ───────────────
+app.post('/api/ugc/auth/otp', async (req, res) => {
+  const { telefono } = req.body
+  if (!telefono) return res.status(400).json({ error: 'Falta teléfono' })
+  const clean = String(telefono).replace(/\D/g, '')
+  if (clean.length < 7) return res.status(400).json({ error: 'Teléfono inválido' })
+
+  try {
+    // Crear o recuperar creadora
+    const cR = await _supa('POST', 'ugc_creadoras', {
+      prefer: 'resolution=merge-duplicates,return=representation',
+      body: { telefono: clean }
+    })
+    const creadora = cR.data?.[0]
+    if (!creadora?.id) return res.status(500).json({ error: 'Error creando perfil' })
+
+    // Token de sesión 30 días
+    const token = crypto.randomUUID()
+    const sesExp = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    await _supa('POST', 'ugc_sessions', {
+      prefer: 'resolution=merge-duplicates,return=minimal',
+      body: { tipo: 'session', telefono: clean, token, creadora_id: creadora.id, expira_at: sesExp, codigo: null }
+    })
+
+    res.json({ ok: true, token, creadora })
+  } catch (e) {
+    console.error('[ugc/auth]', e)
+    res.status(500).json({ error: 'Error al ingresar' })
+  }
+})
+
+// Endpoint legacy — ya no se usa pero se mantiene por compatibilidad
+app.post('/api/ugc/auth/verify', async (req, res) => {
+  res.status(410).json({ error: 'Endpoint obsoleto' })
+})
+
+// ── PORTAL: canjes disponibles (SIN cupón) ────────────────────
+app.get('/api/ugc/canjes', _requireCreadora, async (req, res) => {
+  try {
+    const r = await _supa('GET', 'ugc_canjes', {
+      filter: 'estado=eq.disponible&order=created_at.desc',
+      select: 'id,producto,brief,producto_url,pago_monto,demora_max_dias,estado,created_at'
+      // cupon_codigo excluido explícitamente
+    })
+    res.json(r.data || [])
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── PORTAL: solicitar un canje ────────────────────────────────
+app.post('/api/ugc/solicitudes', _requireCreadora, async (req, res) => {
+  const { canje_id } = req.body
+  if (!canje_id) return res.status(400).json({ error: 'Falta canje_id' })
+  try {
+    const cR = await _supa('GET', 'ugc_canjes', {
+      filter: `id=eq.${canje_id}&estado=eq.disponible`,
+      select: 'id'
+    })
+    if (!cR.data?.[0]) return res.status(404).json({ error: 'Canje no disponible' })
+
+    const r = await _supa('POST', 'ugc_solicitudes', {
+      body: { canje_id, creadora_id: req.creadoraId }
+    })
+    if (!r.ok) {
+      if (r.status === 409) return res.status(409).json({ error: 'Ya solicitaste este canje' })
+      return res.status(400).json({ error: 'Error al solicitar' })
+    }
+    res.json({ ok: true, solicitud: r.data?.[0] })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── PORTAL: mis solicitudes ───────────────────────────────────
+app.get('/api/ugc/mis-solicitudes', _requireCreadora, async (req, res) => {
+  try {
+    const r = await _supa('GET', 'ugc_solicitudes', {
+      filter: `creadora_id=eq.${req.creadoraId}&order=fecha_solicitud.desc`,
+      select: 'id,estado,cupon_liberado,fecha_solicitud,fecha_resolucion,fecha_limite_entrega,canje_id,ugc_canjes(id,producto,brief,producto_url,pago_monto,demora_max_dias)'
+    })
+    // NUNCA devolver cupon_codigo en este endpoint
+    res.json(r.data || [])
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── PORTAL: cupón (SOLO si cupon_liberado = true + creadora correcta) ──
+app.get('/api/ugc/solicitudes/:id/cupon', _requireCreadora, async (req, res) => {
+  const { id } = req.params
+  try {
+    const solR = await _supa('GET', 'ugc_solicitudes', {
+      filter: `id=eq.${id}&creadora_id=eq.${req.creadoraId}&cupon_liberado=eq.true`,
+      select: 'id,canje_id,estado'
+    })
+    if (!solR.data?.[0]) return res.status(403).json({ error: 'Cupón no disponible' })
+
+    const cR = await _supa('GET', 'ugc_canjes', {
+      filter: `id=eq.${solR.data[0].canje_id}`,
+      select: 'cupon_codigo'
+    })
+    const cupon = cR.data?.[0]?.cupon_codigo
+    if (!cupon) return res.status(404).json({ error: 'Este canje no tiene cupón' })
+
+    res.json({ ok: true, cupon_codigo: cupon })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── PORTAL: actualizar perfil ─────────────────────────────────
+app.patch('/api/ugc/mi-perfil', _requireCreadora, async (req, res) => {
+  const { instagram_url, nombre } = req.body
+  try {
+    const r = await _supa('PATCH', `ugc_creadoras?id=eq.${req.creadoraId}`, {
+      body: { instagram_url, nombre }
+    })
+    res.json({ ok: true, creadora: r.data?.[0] })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── ADMIN: canjes CRUD ────────────────────────────────────────
+app.get('/api/admin/ugc/canjes', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const r = await _supa('GET', 'ugc_canjes', {
+      filter: `ws_id=eq.${wsId}&order=created_at.desc`
+    })
+    res.json(r.data || [])
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+app.post('/api/admin/ugc/canjes', async (req, res) => {
+  const { wsId, ...campos } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const r = await _supa('POST', 'ugc_canjes', { body: { ws_id: wsId, ...campos } })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0, 200) })
+    res.json({ ok: true, canje: r.data?.[0] })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+app.patch('/api/admin/ugc/canjes/:id', async (req, res) => {
+  const { id } = req.params
+  const { wsId, ...campos } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const r = await _supa('PATCH', `ugc_canjes?id=eq.${id}&ws_id=eq.${wsId}`, { body: campos })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0, 200) })
+    res.json({ ok: true, canje: r.data?.[0] })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── ADMIN: listar solicitudes ────────────────────────────────
+app.get('/api/admin/ugc/solicitudes', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const r = await _supa('GET', 'ugc_solicitudes', {
+      filter: 'order=fecha_solicitud.desc',
+      select: 'id,estado,cupon_liberado,fecha_solicitud,fecha_resolucion,fecha_limite_entrega,canje_id,creadora_id,ugc_canjes(id,producto,ws_id),ugc_creadoras(id,nombre,telefono,instagram_url)'
+    })
+    const todo = r.data || []
+    // Filtrar por workspace
+    res.json(todo.filter(s => s.ugc_canjes?.ws_id === wsId))
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── ADMIN: resolver solicitud (aceptar/rechazar/entregar) ─────
+app.patch('/api/admin/ugc/solicitudes/:id', async (req, res) => {
+  const { id } = req.params
+  const { accion, demora_max_dias } = req.body
+  if (!['aceptar','rechazar','entregar'].includes(accion)) {
+    return res.status(400).json({ error: 'Acción inválida' })
+  }
+  const now = new Date().toISOString()
+  const update = { fecha_resolucion: now }
+  if (accion === 'aceptar') {
+    update.estado = 'aceptado'
+    update.cupon_liberado = true
+    if (demora_max_dias) {
+      update.fecha_limite_entrega = new Date(Date.now() + Number(demora_max_dias) * 86400000).toISOString()
+    }
+  } else if (accion === 'rechazar') {
+    update.estado = 'rechazado'
+    update.cupon_liberado = false
+  } else {
+    update.estado = 'entregado'
+  }
+  try {
+    const r = await _supa('PATCH', `ugc_solicitudes?id=eq.${id}`, { body: update })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0, 200) })
+    res.json({ ok: true, solicitud: r.data?.[0] })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── ADMIN: listar creadoras ──────────────────────────────────
+app.get('/api/admin/ugc/creadoras', async (req, res) => {
+  try {
+    const r = await _supa('GET', 'ugc_creadoras', { filter: 'order=created_at.desc' })
+    res.json(r.data || [])
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── ADMIN: stats ─────────────────────────────────────────────
+app.get('/api/admin/ugc/stats', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    // Marcar vencidos automáticamente
+    await _supa('PATCH',
+      `ugc_solicitudes?estado=eq.aceptado&fecha_limite_entrega=lt.${new Date().toISOString()}`,
+      { prefer: 'return=minimal', body: { estado: 'vencido' } }
+    )
+    const [cR, sR] = await Promise.all([
+      _supa('GET', 'ugc_canjes',     { filter: `ws_id=eq.${wsId}`, select: 'id,estado' }),
+      _supa('GET', 'ugc_solicitudes', { select: 'id,estado,ugc_canjes(ws_id)' })
+    ])
+    const canjes = cR.data || []
+    const sols   = (sR.data || []).filter(s => s.ugc_canjes?.ws_id === wsId)
+    res.json({
+      canjes_activos:   canjes.filter(c => c.estado === 'disponible').length,
+      pendientes:       sols.filter(s => s.estado === 'solicitado').length,
+      aceptadas:        sols.filter(s => s.estado === 'aceptado').length,
+      entregadas:       sols.filter(s => s.estado === 'entregado').length,
+      total_canjes:     canjes.length,
+      total_solicitudes: sols.length
+    })
+  } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
 // SPA catch-all: any unmatched GET serves the app (hash router handles client routing)
