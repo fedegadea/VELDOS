@@ -2069,6 +2069,17 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button class="nav-tab" onclick="switchMetaTab('adlibrary',this)"><i class="ti ti-search"></i> Ad Library</button>
     <button class="nav-tab" onclick="switchMetaTab('whatsapp',this)"><i class="ti ti-brand-whatsapp"></i> WhatsApp</button>
   </nav>
+  <nav class="nav-tabs" id="nav-ugc" style="display:none">
+    <button class="nav-tab active" id="ugc-tab-btn-canjes" onclick="switchUgcTab('canjes',this)">Canjes</button>
+    <button class="nav-tab" id="ugc-tab-btn-solicitudes" onclick="switchUgcTab('solicitudes',this)">Solicitudes <span id="ugc-pending-badge" style="display:none;background:var(--accent);color:#fff;font-size:10px;padding:1px 7px;border-radius:9px;margin-left:2px">0</span></button>
+    <button class="nav-tab" id="ugc-tab-btn-creadoras" onclick="switchUgcTab('creadoras',this)">Creadoras</button>
+  </nav>
+  <nav class="nav-tabs" id="nav-soul-club" style="display:none">
+    <button class="nav-tab active" id="sc-tab-btn-eventos" onclick="switchScTab('eventos',this)">Eventos</button>
+    <button class="nav-tab" id="sc-tab-btn-drops" onclick="switchScTab('drops',this)">Drops</button>
+    <button class="nav-tab" id="sc-tab-btn-beneficios" onclick="switchScTab('beneficios',this)">Beneficios</button>
+    <button class="nav-tab" id="sc-tab-btn-miembros" onclick="switchScTab('miembros',this)">Miembros <span id="sc-miembros-badge" style="background:var(--s2);color:var(--muted);font-size:10px;padding:1px 7px;border-radius:9px;margin-left:2px">0</span></button>
+  </nav>
   <nav class="nav-tabs" id="nav-tienda" style="display:none">
     <button class="nav-tab active" id="tienda-tab-productos" onclick="switchTiendaTab('productos',this)">Productos</button>
     <button class="nav-tab" id="tienda-tab-diseno" onclick="switchTiendaTab('diseno',this)">Diseño</button>
@@ -2115,6 +2126,8 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button class="sb-item" id="sbi-hojas" onclick="sbNav('hojas','hojas',this)"><span class="sb-item-icon"><i class="ti ti-files"></i></span>Hojas</button>
     <button class="sb-item" id="sbi-stock" onclick="sbNav('stock','stock',this)"><span class="sb-item-icon"><i class="ti ti-package"></i></span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Stock<span style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Inventario · Alertas</span></span></button>
     <button class="sb-item" id="sbi-tienda" onclick="sbNav('tienda','tienda',this)"><span class="sb-item-icon"><i class="ti ti-building-store"></i></span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Mi Tienda<span style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Productos · Órdenes · Analytics</span></span></button>
+    <button class="sb-item" id="sbi-ugc" onclick="sbNav('ugc','ugc',this)"><span class="sb-item-icon"><i class="ti ti-heart-handshake"></i></span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Canjes<span id="ugc-sb-badge" style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Colaboraciones UGC</span></span></button>
+    <button class="sb-item" id="sbi-soul-club" onclick="sbNav('soul-club','soul-club',this)"><span class="sb-item-icon" style="font-size:13px;font-weight:700;font-family:serif;font-style:italic">S</span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Soul Club<span style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Miembros · Drops · Eventos</span></span></button>
   </div>
   <div class="sb-bottom">
     <button class="wa-sb-btn" id="wa-sb-btn" onclick="openModal('waConnect')" style="display:none">
@@ -4196,6 +4209,274 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
   </div>
 </div>
 
+<!-- ══ UGC — CANJES ══ -->
+<div class="page" id="page-ugc">
+
+  <!-- Stats bar -->
+  <div id="ugc-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px"></div>
+
+  <!-- Portal link -->
+  <div style="display:flex;align-items:center;gap:10px;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:20px;flex-wrap:wrap">
+    <span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:uppercase">Link del portal</span>
+    <code id="ugc-portal-url" style="font-size:11px;color:var(--text);background:var(--s2);padding:4px 10px;border-radius:6px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</code>
+    <button onclick="copyUgcPortalLink()" class="btn btn-xs" style="white-space:nowrap;flex-shrink:0">📋 Copiar link</button>
+  </div>
+
+  <!-- Canjes -->
+  <div id="ugc-tab-canjes">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap">
+      <div style="font-size:15px;font-weight:700;color:var(--text)">Canjes publicados</div>
+      <button class="btn btn-primary btn-xs" onclick="openUgcCanjeModal(null)">+ Nuevo canje</button>
+    </div>
+    <div id="ugc-canjes-list"></div>
+  </div>
+
+  <!-- Solicitudes — siempre visible debajo -->
+  <div id="ugc-tab-solicitudes" style="margin-top:36px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div style="font-size:15px;font-weight:700;color:var(--text);flex:1">Solicitudes <span id="ugc-pending-badge" style="display:none;background:var(--accent);color:#fff;font-size:11px;padding:2px 9px;border-radius:9px;margin-left:4px;font-weight:600">0</span></div>
+      <div style="display:flex;gap:4px" id="ugc-sol-filters">
+        <button class="btn btn-xs" style="background:var(--accent);color:#fff" onclick="filterUgcSolicitudes('todas',this)">Todas</button>
+        <button class="btn btn-xs" onclick="filterUgcSolicitudes('solicitado',this)">Pendientes</button>
+        <button class="btn btn-xs" onclick="filterUgcSolicitudes('aceptado',this)">Aceptadas</button>
+        <button class="btn btn-xs" onclick="filterUgcSolicitudes('entregado',this)">Entregadas</button>
+      </div>
+    </div>
+    <div id="ugc-solicitudes-list"></div>
+  </div>
+
+  <!-- Creadoras — siempre visible debajo -->
+  <div id="ugc-tab-creadoras" style="margin-top:36px">
+    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px">Creadoras registradas</div>
+    <div id="ugc-creadoras-list"></div>
+  </div>
+
+  <!-- Modal: crear/editar canje -->
+  <div id="ugc-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:900;display:none;align-items:center;justify-content:center;padding:16px">
+    <div style="background:var(--s1);border:1px solid var(--border2);border-radius:14px;padding:28px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;position:relative">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div style="font-size:15px;font-weight:700;color:var(--text)" id="ugc-modal-title">Nuevo canje</div>
+        <button onclick="closeUgcModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:2px 6px">×</button>
+      </div>
+
+      <input type="hidden" id="ugc-form-id">
+
+      <div class="form-group">
+        <label class="form-label">Producto *</label>
+        <input class="form-input" id="ugc-form-producto" placeholder="Ej: Vestido Linen Blanco">
+      </div>
+      <div class="form-group">
+        <label class="form-label">URL del producto</label>
+        <input class="form-input" id="ugc-form-url" placeholder="https://...">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group">
+          <label class="form-label">Cupón (oculto para creadoras)</label>
+          <input class="form-input" id="ugc-form-cupon" placeholder="SOUL20">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pago ($, opcional)</label>
+          <input class="form-input" type="number" id="ugc-form-pago" placeholder="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descuento ofrecido <span style="color:var(--muted);font-size:10px">(opcional — se muestra a la creadora)</span></label>
+        <input class="form-input" id="ugc-form-descuento" placeholder="Ej: 50% OFF por etiquetar en story">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group">
+          <label class="form-label">Días máximos de entrega</label>
+          <input class="form-input" type="number" id="ugc-form-demora" value="7" min="1" max="90">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <select class="form-input" id="ugc-form-estado">
+            <option value="disponible">Disponible</option>
+            <option value="pausado">Pausado</option>
+            <option value="cerrado">Cerrado</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Brief -->
+      <div style="margin-top:4px;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Brief — qué publicar</div>
+        <div style="background:var(--s2);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:grid;grid-template-columns:100px 80px 1fr;gap:8px;align-items:center;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">
+            <span>Formato</span><span style="text-align:center">Cantidad</span><span>Sube a su cuenta</span>
+          </div>
+          <div id="ugc-brief-rows"></div>
+        </div>
+      </div>
+
+      <div id="ugc-form-err" style="font-size:11px;color:var(--coral);min-height:14px;margin-bottom:6px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+        <button class="btn" onclick="closeUgcModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveUgcCanje()" id="ugc-form-save-btn">Publicar canje</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ SOUL CLUB ══ -->
+<div class="page" id="page-soul-club">
+
+  <!-- Portal link -->
+  <div style="display:flex;align-items:center;gap:10px;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:20px;flex-wrap:wrap">
+    <span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:uppercase">🏷 Portal Soul Club</span>
+    <code id="sc-portal-url" style="font-size:11px;color:var(--text);background:var(--s2);padding:4px 10px;border-radius:6px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</code>
+    <button onclick="copyScPortalLink()" class="btn btn-xs" style="white-space:nowrap;flex-shrink:0">📋 Copiar link</button>
+  </div>
+
+  <!-- ── TAB: EVENTOS ── -->
+  <div id="sc-tab-eventos">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap">
+      <div style="font-size:15px;font-weight:700;color:var(--text)">Eventos</div>
+      <button class="btn btn-primary btn-xs" onclick="openScModal('evento',null)">+ Nuevo evento</button>
+    </div>
+    <div id="sc-eventos-list"></div>
+  </div>
+
+  <!-- ── TAB: DROPS ── -->
+  <div id="sc-tab-drops" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap">
+      <div style="font-size:15px;font-weight:700;color:var(--text)">Drops</div>
+      <button class="btn btn-primary btn-xs" onclick="openScModal('drop',null)">+ Nuevo drop</button>
+    </div>
+    <div id="sc-drops-list"></div>
+  </div>
+
+  <!-- ── TAB: BENEFICIOS ── -->
+  <div id="sc-tab-beneficios" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap">
+      <div style="font-size:15px;font-weight:700;color:var(--text)">Beneficios</div>
+      <button class="btn btn-primary btn-xs" onclick="openScModal('beneficio',null)">+ Nuevo beneficio</button>
+    </div>
+    <div id="sc-beneficios-list"></div>
+  </div>
+
+  <!-- ── TAB: MIEMBROS ── -->
+  <div id="sc-tab-miembros" style="display:none">
+    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px">Miembros del club</div>
+    <div id="sc-miembros-list"></div>
+  </div>
+
+  <!-- ════ MODAL: crear / editar ════ -->
+  <div id="sc-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:900;align-items:center;justify-content:center;padding:16px">
+    <div style="background:var(--s1);border:1px solid var(--border2);border-radius:14px;padding:28px;width:100%;max-width:600px;max-height:92vh;overflow-y:auto;position:relative">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div style="font-size:15px;font-weight:700;color:var(--text)" id="sc-modal-title">Nuevo evento</div>
+        <button onclick="closeScModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:2px 6px">×</button>
+      </div>
+      <input type="hidden" id="sc-form-id">
+      <input type="hidden" id="sc-form-tipo">
+
+      <!-- Imagen -->
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Imagen</label>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <label style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--border2);padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;color:var(--text)">
+            📁 Elegir imagen
+            <input type="file" id="sc-form-img-file" accept="image/*" style="display:none" onchange="scPreviewImg(this)">
+          </label>
+          <div id="sc-img-preview" style="width:72px;height:54px;border-radius:6px;overflow:hidden;background:var(--s2);border:1px solid var(--border);display:none">
+            <img id="sc-img-preview-img" style="width:100%;height:100%;object-fit:cover">
+          </div>
+          <span id="sc-img-status" style="font-size:11px;color:var(--muted)"></span>
+        </div>
+        <input class="form-input" id="sc-form-img-url" placeholder="O pegá una URL de imagen" style="margin-top:8px" oninput="scUrlImgChanged()">
+      </div>
+
+      <!-- Título -->
+      <div class="form-group">
+        <label class="form-label">Título *</label>
+        <input class="form-input" id="sc-form-titulo" placeholder="Nombre del evento / drop / beneficio">
+      </div>
+
+      <!-- Descripción -->
+      <div class="form-group">
+        <label class="form-label">Descripción</label>
+        <textarea class="form-input" id="sc-form-desc" rows="3" placeholder="Detalles..."></textarea>
+      </div>
+
+      <!-- Fecha — sólo para evento y drop -->
+      <div id="sc-form-fecha-wrap">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="form-group">
+            <label class="form-label" id="sc-form-fecha-label">Fecha</label>
+            <input class="form-input" id="sc-form-fecha" type="date">
+          </div>
+          <div class="form-group" id="sc-form-lugar-wrap">
+            <label class="form-label">Lugar</label>
+            <input class="form-input" id="sc-form-lugar" placeholder="Nombre / dirección">
+          </div>
+        </div>
+      </div>
+
+      <!-- Beneficio extras -->
+      <div id="sc-form-benef-wrap" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="form-group">
+            <label class="form-label">Tipo</label>
+            <select class="form-input" id="sc-form-tipo-benef">
+              <option value="codigo">Código de descuento</option>
+              <option value="lugar">Lugar especial</option>
+              <option value="descuento">Descuento</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Código</label>
+            <input class="form-input" id="sc-form-codigo" placeholder="SOUL20">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="form-group">
+            <label class="form-label">Lugar (si aplica)</label>
+            <input class="form-input" id="sc-form-benef-lugar" placeholder="Nombre del lugar">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Vigencia hasta</label>
+            <input class="form-input" id="sc-form-vigencia" type="date">
+          </div>
+        </div>
+      </div>
+
+      <!-- Toggles -->
+      <div style="display:flex;gap:24px;margin-top:4px;flex-wrap:wrap">
+        <div id="sc-toggle-wl-wrap">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text)">
+            <input type="checkbox" id="sc-form-waitlist" checked> Waitlist abierta
+          </label>
+        </div>
+        <div>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text)">
+            <input type="checkbox" id="sc-form-publicado" checked> <span id="sc-pub-label">Publicado</span>
+          </label>
+        </div>
+      </div>
+
+      <div id="sc-form-err" style="font-size:11px;color:var(--coral);min-height:14px;margin-top:12px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+        <button class="btn" onclick="closeScModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveScItem()" id="sc-form-save-btn">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ MODAL: waitlist de un item ════ -->
+  <div id="sc-wl-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:900;align-items:center;justify-content:center;padding:16px">
+    <div style="background:var(--s1);border:1px solid var(--border2);border-radius:14px;padding:28px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;position:relative">
+      <button onclick="closeScWlModal()" style="position:absolute;top:14px;right:18px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button>
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px" id="sc-wl-modal-title">Lista de espera</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:16px" id="sc-wl-modal-count">0 personas</div>
+      <div id="sc-wl-modal-list"></div>
+    </div>
+  </div>
+
+</div>
+
 <!-- ══ CREALO ══ -->
 <div class="page" id="page-crealo" style="padding:0;max-width:100%">
 
@@ -5493,11 +5774,11 @@ async function supaLoadAll(){
 async function supaUpsert(ws){
   const row = _wsToRow(ws);
   if (!row) { console.warn('[VELDOS] supaUpsert cancelado — guard de CRM activado'); return; }
-  // Rutear por el servidor (patchWorkspace) para merge-safe: nunca pierde finanzas/crm/flowDone del servidor
+  // Send the full row so the server can INSERT new workspaces with all required columns
   const r = await fetch('/api/workspace/save', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ wsId: row.id, data: row.data })
+    body: JSON.stringify({ wsId: row.id, data: row.data, row })
   });
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
@@ -6173,7 +6454,7 @@ function sbNav(area,page,el){
     document.getElementById('pin-error').textContent='';
     return;
   }
-  const paths={inicio:'inicio',checklist:'checklist',todo:'todo',drive:'planning',marca:'marca',producto:'producto',docs:'docs',crm:'crm',difusiones:'difusiones',flows:'flows',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones',finanzas:'finanzas',meta:'meta',crealo:'crealo',tienda:'tienda'};
+  const paths={inicio:'inicio',checklist:'checklist',todo:'todo',drive:'planning',marca:'marca',producto:'producto',docs:'docs',crm:'crm',difusiones:'difusiones',flows:'flows',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones',finanzas:'finanzas',meta:'meta',crealo:'crealo',tienda:'tienda',ugc:'ugc','soul-club':'soul-club'};
   navigate(paths[page]||page);
 }
 
@@ -6187,10 +6468,10 @@ let _activeFinTab='movimientos';
 
 const _PLAN_TABS=new Set(['calendario','semana','ideas','biblioteca','briefs','canjes','collabs','estrategia']);
 const _FIN_TABS =new Set(['movimientos','ingresos','gastos','comisiones','kpis','cashflow','config','presupuesto','capital','margenes']);
-const _AREA_LABELS={inicio:'Inicio',marketing:'Marketing',finanzas:'Finanzas',crm:'CRM',flows:'Flows',hojas:'Hojas',operaciones:'Operaciones',stock:'Stock',integraciones:'Integraciones',crealo:'Crealo',landing:'Landing'};
+const _AREA_LABELS={inicio:'Inicio',marketing:'Marketing',finanzas:'Finanzas',crm:'CRM',flows:'Flows',hojas:'Hojas',operaciones:'Operaciones',stock:'Stock',integraciones:'Integraciones',crealo:'Crealo',landing:'Landing',ugc:'Canjes UGC','soul-club':'Soul Club'};
 
 // Lista de rutas válidas — usada también para el fallback (rutas no válidas → /checklist)
-const _VALID_TOP_SEGMENTS=new Set(['inicio','checklist','todo','planning','marca','producto','docs','finanzas','crm','difusiones','flows','hojas','operaciones','stock','integraciones','meta','crealo','webs','login','projects','landing','tienda']);
+const _VALID_TOP_SEGMENTS=new Set(['inicio','checklist','todo','planning','marca','producto','docs','finanzas','crm','difusiones','flows','hojas','operaciones','stock','integraciones','meta','crealo','webs','login','projects','landing','tienda','ugc','soul-club']);
 
 function parseRoute(pathname){
   const clean=(pathname||'/').replace(/^\/+|\/+$/g,'');
@@ -6215,6 +6496,8 @@ function parseRoute(pathname){
   if(seg==='landing') return{area:'landing',page:'landing'};
   if(seg==='difusiones') return{area:'crm',page:'difusiones'};
   if(seg==='tienda') return{area:'tienda',page:'tienda',tiendaTab:s2||'productos'};
+  if(seg==='ugc') return{area:'ugc',page:'ugc',ugcTab:s2||'canjes'};
+  if(seg==='soul-club') return{area:'soul-club',page:'soul-club',scTab:s2||'eventos'};
   const direct={crm:1,flows:1,hojas:1,operaciones:1,stock:1,integraciones:1};
   if(direct[seg]) return{area:seg,page:seg};
   // Ruta desconocida → checklist (único fallback permitido)
@@ -6321,6 +6604,8 @@ function applyRoute(){
     }
     if(r.area==='crealo') initCrealoPage();
     if(r.area==='tienda') initTiendaPage(r.tiendaTab||'productos');
+    if(r.area==='ugc')        initUgcPage(r.ugcTab||'canjes');
+    if(r.area==='soul-club')  initScPage();
     if(r.area==='operaciones') { loadReclamos(); loadReturns(); }
     if(r.area==='webs'){
       setTimeout(websInitLanding,50);
@@ -22624,6 +22909,634 @@ function generatePopupSnippet() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// UGC — CANJES / COLABORACIONES
+// ═══════════════════════════════════════════════════════════════
+
+let _ugcTab = 'canjes';
+let _ugcCanjes = [];
+let _ugcSolicitudes = [];
+let _ugcSolFilter = 'todas';
+const _UGC_FORMATS = ['stories','carruseles','reel','tiktok','collab'];
+const _UGC_FORMAT_LABEL = {stories:'Stories',carruseles:'Carruseles',reel:'Reel',tiktok:'TikTok',collab:'Collab'};
+const _UGC_ESTADO_COLOR = {
+  disponible:'#16a34a', pausado:'#d97706', cerrado:'#6b7280',
+  solicitado:'#d97706', aceptado:'#2563eb', rechazado:'#dc2626',
+  entregado:'#16a34a', vencido:'#7c3aed'
+};
+const _UGC_ESTADO_LABEL = {
+  disponible:'Disponible', pausado:'Pausado', cerrado:'Cerrado',
+  solicitado:'Pendiente', aceptado:'Aceptada', rechazado:'Rechazada',
+  entregado:'Entregada', vencido:'Vencida'
+};
+
+function _ugcStatPill(estado){
+  const c=_UGC_ESTADO_COLOR[estado]||'#999';
+  const l=_UGC_ESTADO_LABEL[estado]||estado;
+  return `<span style="display:inline-block;font-size:10px;font-weight:700;color:${c};background:${c}18;padding:2px 9px;border-radius:10px;border:1px solid ${c}30">${l}</span>`;
+}
+
+function _fmtDate(d){
+  if(!d)return'—';
+  const dt=new Date(d);
+  return dt.toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'});
+}
+
+async function initUgcPage(){
+  const wsId=_activeWsId; if(!wsId)return;
+  const url=location.origin+'/ugc-portal?ws='+wsId;
+  const el=document.getElementById('ugc-portal-url'); if(el)el.textContent=url;
+  await loadUgcStats();
+  loadUgcCanjes();
+  loadUgcSolicitudes();
+  loadUgcCreadoras();
+}
+
+function switchUgcTab(tab,btn){
+  // Compatibilidad — ya no oculta secciones, solo filtra solicitudes si corresponde
+  if(tab==='solicitudes') { filterUgcSolicitudes('todas'); return; }
+  if(tab==='canjes')      { document.getElementById('ugc-tab-canjes')?.scrollIntoView({behavior:'smooth'}); return; }
+  if(tab==='creadoras')   { document.getElementById('ugc-tab-creadoras')?.scrollIntoView({behavior:'smooth'}); return; }
+}
+
+async function loadUgcStats(){
+  const wsId=_activeWsId; if(!wsId)return;
+  try{
+    const r=await fetch('/api/admin/ugc/stats?wsId='+wsId);
+    const d=await r.json();
+    const el=document.getElementById('ugc-stats');
+    if(!el)return;
+    const items=[
+      {label:'Canjes activos',value:d.canjes_activos||0,color:'#16a34a'},
+      {label:'Pendientes de resolución',value:d.pendientes||0,color:'#d97706'},
+      {label:'Aceptadas en curso',value:d.aceptadas||0,color:'#2563eb'},
+      {label:'Entregadas',value:d.entregadas||0,color:'#7c3aed'},
+    ];
+    el.innerHTML=items.map(i=>`
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:14px 16px;border-top:2px solid ${i.color}">
+        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">${i.label}</div>
+        <div style="font-size:28px;font-weight:800;letter-spacing:-.04em;color:var(--text)">${i.value}</div>
+      </div>`).join('');
+    // Badge pendientes
+    const badge=document.getElementById('ugc-pending-badge');
+    if(badge){badge.textContent=d.pendientes||0;badge.style.display=d.pendientes>0?'':'none';}
+    const sbBadge=document.getElementById('ugc-sb-badge');
+    if(sbBadge&&d.pendientes>0)sbBadge.textContent=d.pendientes+' pendiente'+(d.pendientes!==1?'s':'');
+  }catch(e){console.error('[ugc stats]',e);}
+}
+
+async function loadUgcCanjes(){
+  const wsId=_activeWsId; if(!wsId)return;
+  const el=document.getElementById('ugc-canjes-list'); if(!el)return;
+  el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:16px 0">Cargando...</div>';
+  try{
+    const r=await fetch('/api/admin/ugc/canjes?wsId='+wsId);
+    _ugcCanjes=await r.json();
+    if(!_ugcCanjes.length){
+      el.innerHTML='<div style="color:var(--muted);font-size:13px;padding:24px;text-align:center;background:var(--s1);border-radius:10px;border:1px dashed var(--border2)">No hay canjes aún · <button onclick="openUgcCanjeModal(null)" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px">Crear el primero →</button></div>';
+      return;
+    }
+    el.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px">`+_ugcCanjes.map(c=>{
+      const brief=c.brief||{};
+      const fmts=_UGC_FORMATS.filter(f=>brief[f]?.cantidad>0).map(f=>`${brief[f].cantidad} ${_UGC_FORMAT_LABEL[f]}`).join(', ')||'Sin brief';
+      return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:4px">${c.producto}</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px">${fmts}</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            ${_ugcStatPill(c.estado)}
+            ${c.pago_monto?`<span style="font-size:10px;color:var(--green);font-weight:600">💰 $${c.pago_monto}</span>`:''}
+            ${c.descuento_tipo?`<span style="font-size:10px;color:var(--accent);font-weight:600">🏷 ${c.descuento_tipo}</span>`:''}
+            ${c.cupon_codigo?`<span style="font-size:10px;color:var(--muted)">🎟️ ${c.cupon_codigo}</span>`:'<span style="font-size:10px;color:var(--muted)">Sin cupón</span>'}
+            <span style="font-size:10px;color:var(--muted)">⏱ ${c.demora_max_dias}d</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+          <button class="btn btn-xs" onclick="openUgcCanjeModal(${JSON.stringify(c).replace(/"/g,'&quot;')})">Editar</button>
+          ${c.estado==='disponible'
+            ?`<button class="btn btn-xs" onclick="ugcSetEstado('${c.id}','pausado')" style="color:var(--muted)">Pausar</button>`
+            :c.estado==='pausado'
+              ?`<button class="btn btn-xs" onclick="ugcSetEstado('${c.id}','disponible')" style="color:var(--green)">Reanudar</button>`
+              :''}
+          ${c.estado!=='cerrado'?`<button class="btn btn-xs" onclick="ugcSetEstado('${c.id}','cerrado')" style="color:var(--coral)">Cerrar</button>`:''}
+        </div>
+      </div>`;
+    }).join('')+'</div>';
+  }catch(e){el.innerHTML='<div style="color:var(--coral);font-size:12px">Error al cargar</div>';}
+}
+
+async function loadUgcSolicitudes(){
+  const wsId=_activeWsId; if(!wsId)return;
+  const el=document.getElementById('ugc-solicitudes-list'); if(!el)return;
+  el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:16px 0">Cargando...</div>';
+  try{
+    const r=await fetch('/api/admin/ugc/solicitudes?wsId='+wsId);
+    _ugcSolicitudes=await r.json();
+    const pending=_ugcSolicitudes.filter(s=>s.estado==='solicitado').length;
+    const badge=document.getElementById('ugc-pending-badge');
+    if(badge){badge.textContent=pending;badge.style.display=pending?'':'none';}
+    renderUgcSolicitudes();
+  }catch(e){el.innerHTML='<div style="color:var(--coral);font-size:12px">Error al cargar</div>';}
+}
+
+function filterUgcSolicitudes(f,btn){
+  _ugcSolFilter=f;
+  document.querySelectorAll('#ugc-sol-filters .btn').forEach(b=>{
+    b.style.background='';b.style.color='';
+  });
+  if(btn){btn.style.background='var(--accent)';btn.style.color='#fff';}
+  renderUgcSolicitudes();
+}
+
+function renderUgcSolicitudes(){
+  const el=document.getElementById('ugc-solicitudes-list'); if(!el)return;
+  const list=_ugcSolFilter==='todas'?_ugcSolicitudes:_ugcSolicitudes.filter(s=>s.estado===_ugcSolFilter);
+  if(!list.length){
+    el.innerHTML='<div style="color:var(--muted);font-size:13px;padding:24px;text-align:center;background:var(--s1);border-radius:10px;border:1px dashed var(--border2)">No hay solicitudes en este estado</div>';
+    return;
+  }
+  el.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px">`+list.map(s=>{
+    const cr=s.ugc_creadoras||{};
+    const cj=s.ugc_canjes||{};
+    const waNum=(cr.telefono||'').replace(/\D/g,'');
+    const waUrl=`https://wa.me/${waNum}`;
+    const igHandle=cr.instagram_url?cr.instagram_url.replace(/\/$/, '').split('/').pop():'';
+    return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:14px 16px">
+      <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:180px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:6px">${cr.nombre||cr.telefono||'—'}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+            ${waNum?`<a href="${waUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:#25D366;color:#fff;text-decoration:none;font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.13.558 4.13 1.535 5.864L.057 23.428a.5.5 0 00.608.61l5.691-1.493A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.9 0-3.68-.51-5.21-1.4l-.374-.224-3.378.886.9-3.293-.244-.38A9.96 9.96 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>WhatsApp</a>`:''}
+            ${cr.instagram_url?`<a href="${cr.instagram_url}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);color:#fff;text-decoration:none;font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px">📷 @${igHandle||'Instagram'}</a>`:''}
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px">📦 <strong style="color:var(--text)">${cj.producto||'—'}</strong></div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            ${_ugcStatPill(s.estado)}
+            <span style="font-size:10px;color:var(--muted)">Solicitó: ${_fmtDate(s.fecha_solicitud)}</span>
+            ${s.fecha_limite_entrega?`<span style="font-size:10px;color:${new Date(s.fecha_limite_entrega)<new Date()?'var(--coral)':'var(--muted)'}">Límite: ${_fmtDate(s.fecha_limite_entrega)}</span>`:''}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+          ${s.estado==='solicitado'?`
+            <button class="btn btn-primary btn-xs" onclick="resolverSolicitud('${s.id}','aceptar')">✓ Aceptar</button>
+            <button class="btn btn-xs" onclick="resolverSolicitud('${s.id}','rechazar')" style="color:var(--coral)">✗ Rechazar</button>`:''}
+          ${s.estado==='aceptado'?`<button class="btn btn-primary btn-xs" onclick="resolverSolicitud('${s.id}','entregar')">✓ Marcar entregada</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+async function loadUgcCreadoras(){
+  const el=document.getElementById('ugc-creadoras-list'); if(!el)return;
+  el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:16px 0">Cargando...</div>';
+  try{
+    const r=await fetch('/api/admin/ugc/creadoras');
+    const list=await r.json();
+    if(!list.length){
+      el.innerHTML='<div style="color:var(--muted);font-size:13px;padding:24px;text-align:center;background:var(--s1);border-radius:10px;border:1px dashed var(--border2)">Ninguna creadora registrada aún</div>';
+      return;
+    }
+    el.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="border-bottom:1px solid var(--border2)">
+        <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Creadora</th>
+        <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Instagram</th>
+        <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Registrada</th>
+      </tr></thead>
+      <tbody>`+list.map(c=>`<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:10px;"><div style="font-weight:600">${c.nombre||'—'}</div><div style="color:var(--muted);font-size:11px">📱 ${c.telefono}</div></td>
+        <td style="padding:10px;">${c.instagram_url?`<a href="${c.instagram_url}" target="_blank" style="color:var(--accent);text-decoration:none;font-size:11px">📷 Ver perfil</a>`:'<span style="color:var(--muted)">—</span>'}</td>
+        <td style="padding:10px;color:var(--muted)">${_fmtDate(c.created_at)}</td>
+      </tr>`).join('')+'</tbody></table>';
+  }catch(e){el.innerHTML='<div style="color:var(--coral);font-size:12px">Error al cargar</div>';}
+}
+
+function openUgcCanjeModal(canje){
+  const modal=document.getElementById('ugc-modal');
+  if(!modal)return;
+  // Reset form
+  document.getElementById('ugc-form-id').value=canje?.id||'';
+  document.getElementById('ugc-form-producto').value=canje?.producto||'';
+  document.getElementById('ugc-form-url').value=canje?.producto_url||'';
+  document.getElementById('ugc-form-cupon').value=canje?.cupon_codigo||'';
+  document.getElementById('ugc-form-pago').value=canje?.pago_monto||'';
+  document.getElementById('ugc-form-descuento').value=canje?.descuento_tipo||'';
+  document.getElementById('ugc-form-demora').value=canje?.demora_max_dias||7;
+  document.getElementById('ugc-form-estado').value=canje?.estado||'disponible';
+  document.getElementById('ugc-form-err').textContent='';
+  document.getElementById('ugc-modal-title').textContent=canje?'Editar canje':'Nuevo canje';
+  document.getElementById('ugc-form-save-btn').textContent=canje?'Guardar cambios':'Publicar canje';
+  // Render brief rows
+  const brief=canje?.brief||{};
+  const rows=document.getElementById('ugc-brief-rows');
+  if(rows) rows.innerHTML=_UGC_FORMATS.map(f=>`
+    <div style="display:grid;grid-template-columns:100px 80px 1fr;gap:8px;align-items:center">
+      <label style="font-size:12px;font-weight:600;color:var(--text)">${_UGC_FORMAT_LABEL[f]}</label>
+      <input type="number" min="0" max="20" value="${brief[f]?.cantidad||0}" id="ugc-brief-${f}-cant" class="form-input" style="padding:6px 10px;font-size:12px;text-align:center">
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);cursor:pointer">
+        <input type="checkbox" id="ugc-brief-${f}-sube" ${brief[f]?.sube_a_su_cuenta?'checked':''}> Sube a su cuenta
+      </label>
+    </div>`).join('');
+  modal.style.display='flex';
+}
+
+function closeUgcModal(){
+  const modal=document.getElementById('ugc-modal');
+  if(modal)modal.style.display='none';
+}
+
+async function saveUgcCanje(){
+  const wsId=_activeWsId; if(!wsId)return;
+  const id=document.getElementById('ugc-form-id').value;
+  const producto=document.getElementById('ugc-form-producto').value.trim();
+  if(!producto){document.getElementById('ugc-form-err').textContent='El producto es obligatorio.';return;}
+
+  const brief={};
+  _UGC_FORMATS.forEach(f=>{
+    const cant=parseInt(document.getElementById('ugc-brief-'+f+'-cant')?.value||0);
+    const sube=document.getElementById('ugc-brief-'+f+'-sube')?.checked||false;
+    brief[f]={cantidad:cant,sube_a_su_cuenta:sube};
+  });
+
+  const body={
+    wsId, producto,
+    producto_url:document.getElementById('ugc-form-url').value.trim()||null,
+    cupon_codigo:document.getElementById('ugc-form-cupon').value.trim()||null,
+    pago_monto:parseFloat(document.getElementById('ugc-form-pago').value)||null,
+    descuento_tipo:document.getElementById('ugc-form-descuento').value.trim()||null,
+    demora_max_dias:parseInt(document.getElementById('ugc-form-demora').value)||7,
+    estado:document.getElementById('ugc-form-estado').value,
+    brief
+  };
+
+  const btn=document.getElementById('ugc-form-save-btn');
+  btn.disabled=true; btn.textContent='Guardando...';
+  try{
+    const url=id?'/api/admin/ugc/canjes/'+id:'/api/admin/ugc/canjes';
+    const r=await fetch(url,{method:id?'PATCH':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!d.ok){document.getElementById('ugc-form-err').textContent=d.error||'Error al guardar';btn.disabled=false;btn.textContent=id?'Guardar cambios':'Publicar canje';return;}
+    closeUgcModal();
+    await loadUgcStats();
+    loadUgcCanjes();
+    notify(id?'Canje actualizado':'Canje publicado');
+  }catch(e){document.getElementById('ugc-form-err').textContent='Error de red';btn.disabled=false;btn.textContent=id?'Guardar cambios':'Publicar canje';}
+}
+
+async function ugcSetEstado(id,estado){
+  const wsId=_activeWsId; if(!wsId)return;
+  if(estado==='cerrado'&&!confirm('¿Cerrar este canje? Las solicitudes pendientes quedan en su estado actual.'))return;
+  try{
+    const r=await fetch('/api/admin/ugc/canjes/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId,estado})});
+    const d=await r.json();
+    if(d.ok){loadUgcCanjes();loadUgcStats();notify('Estado actualizado');}
+    else notify('Error: '+d.error,'error');
+  }catch(e){notify('Error de red','error');}
+}
+
+async function resolverSolicitud(id,accion){
+  const wsId=_activeWsId; if(!wsId)return;
+  // Find demora from the canje
+  const sol=_ugcSolicitudes.find(s=>s.id===id);
+  const demora=sol?_ugcCanjes.find(c=>c.id===sol.canje_id)?.demora_max_dias:7;
+  try{
+    const r=await fetch('/api/admin/ugc/solicitudes/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({accion,demora_max_dias:demora||7,wsId})});
+    const d=await r.json();
+    if(d.ok){
+      await loadUgcStats();
+      loadUgcSolicitudes();
+      notify(accion==='aceptar'?'Solicitud aceptada — cupón liberado':accion==='rechazar'?'Solicitud rechazada':'Marcada como entregada');
+    } else notify('Error: '+d.error,'error');
+  }catch(e){notify('Error de red','error');}
+}
+
+function copyUgcPortalLink(){
+  const wsId=_activeWsId; if(!wsId){notify('Seleccioná un workspace primero','error');return;}
+  const url=location.origin+'/ugc-portal?ws='+wsId;
+  navigator.clipboard.writeText(url).then(()=>notify('Link copiado al portapapeles')).catch(()=>{});
+}
+
+// Cerrar modal UGC haciendo click fuera
+document.getElementById('ugc-modal')?.addEventListener('click',function(e){
+  if(e.target===this)closeUgcModal();
+});
+
+// ═══════════════════════════════════════════════════════════════
+// SOUL CLUB
+// ═══════════════════════════════════════════════════════════════
+
+let _scTab = 'eventos';
+let _scEventos = [], _scDrops = [], _scBeneficios = [], _scMiembros = [];
+let _scImgPending = null; // { base64, contentType, filename }
+
+function switchScTab(tab, btn) {
+  _scTab = tab;
+  ['eventos','drops','beneficios','miembros'].forEach(t => {
+    const el = document.getElementById('sc-tab-' + t);
+    if (el) el.style.display = t === tab ? '' : 'none';
+    const b = document.getElementById('sc-tab-btn-' + t);
+    if (b) b.classList.toggle('active', t === tab);
+  });
+  if (tab === 'eventos' && !_scEventos.length) loadScEventos();
+  else if (tab === 'drops' && !_scDrops.length) loadScDrops();
+  else if (tab === 'beneficios' && !_scBeneficios.length) loadScBeneficios();
+  else if (tab === 'miembros') loadScMiembros();
+}
+
+function initScPage() {
+  const wsId = _activeWsId; if (!wsId) return;
+  const url = location.origin + '/soul-club?ws=' + wsId;
+  const el = document.getElementById('sc-portal-url');
+  if (el) el.textContent = url;
+  switchScTab('eventos', document.getElementById('sc-tab-btn-eventos'));
+}
+
+function copyScPortalLink() {
+  const wsId = _activeWsId; if (!wsId) { notify('Seleccioná un workspace primero','error'); return; }
+  const url = location.origin + '/soul-club?ws=' + wsId;
+  navigator.clipboard.writeText(url).then(() => notify('Link copiado')).catch(() => {});
+}
+
+// ── CARGAR LISTAS ──────────────────────────────────────────────
+async function loadScEventos() {
+  const wsId = _activeWsId; if (!wsId) return;
+  const el = document.getElementById('sc-eventos-list'); if (!el) return;
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px 0">Cargando...</div>';
+  try {
+    const r = await fetch('/api/admin/soul-club/eventos?wsId=' + wsId);
+    _scEventos = await r.json();
+    renderScList('eventos');
+  } catch(e) { el.innerHTML = '<div style="color:var(--coral);font-size:12px">Error al cargar</div>'; }
+}
+
+async function loadScDrops() {
+  const wsId = _activeWsId; if (!wsId) return;
+  const el = document.getElementById('sc-drops-list'); if (!el) return;
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px 0">Cargando...</div>';
+  try {
+    const r = await fetch('/api/admin/soul-club/drops?wsId=' + wsId);
+    _scDrops = await r.json();
+    renderScList('drops');
+  } catch(e) { el.innerHTML = '<div style="color:var(--coral);font-size:12px">Error al cargar</div>'; }
+}
+
+async function loadScBeneficios() {
+  const wsId = _activeWsId; if (!wsId) return;
+  const el = document.getElementById('sc-beneficios-list'); if (!el) return;
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px 0">Cargando...</div>';
+  try {
+    const r = await fetch('/api/admin/soul-club/beneficios?wsId=' + wsId);
+    _scBeneficios = await r.json();
+    renderScList('beneficios');
+  } catch(e) { el.innerHTML = '<div style="color:var(--coral);font-size:12px">Error al cargar</div>'; }
+}
+
+async function loadScMiembros() {
+  const wsId = _activeWsId; if (!wsId) return;
+  const el = document.getElementById('sc-miembros-list'); if (!el) return;
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px 0">Cargando...</div>';
+  try {
+    const r = await fetch('/api/admin/soul-club/miembros?wsId=' + wsId);
+    _scMiembros = await r.json();
+    const badge = document.getElementById('sc-miembros-badge');
+    if (badge) badge.textContent = _scMiembros.length;
+    if (!_scMiembros.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:24px;text-align:center;background:var(--s1);border-radius:10px;border:1px dashed var(--border2)">Ningún miembro registrado aún. Compartí el link del portal.</div>';
+      return;
+    }
+    el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="border-bottom:1px solid var(--border2)">
+        <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Nombre</th>
+        <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Email</th>
+        <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Fecha</th>
+      </tr></thead>
+      <tbody>` + _scMiembros.map(m => `<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:10px;font-weight:600">${m.nombre||'—'}</td>
+        <td style="padding:10px;color:var(--muted)">${m.email}</td>
+        <td style="padding:10px;color:var(--muted)">${_fmtDate(m.created_at)}</td>
+      </tr>`).join('') + '</tbody></table>';
+  } catch(e) { el.innerHTML = '<div style="color:var(--coral);font-size:12px">Error al cargar</div>'; }
+}
+
+function renderScList(tipo) {
+  const list = tipo === 'eventos' ? _scEventos : tipo === 'drops' ? _scDrops : _scBeneficios;
+  const el = document.getElementById('sc-' + tipo + '-list'); if (!el) return;
+  if (!list.length) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:24px;text-align:center;background:var(--s1);border-radius:10px;border:1px dashed var(--border2)">No hay ${tipo} aún · <button onclick="openScModal('${tipo === 'eventos' ? 'evento' : tipo === 'drops' ? 'drop' : 'beneficio'}',null)" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px">Crear el primero →</button></div>`;
+    return;
+  }
+  const tipoPill = { evento: '#2979ff', drop: '#111', beneficio: '#7A5C42' };
+  el.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px">' + list.map(item => {
+    const itemTipo = tipo === 'eventos' ? 'evento' : tipo === 'drops' ? 'drop' : 'beneficio';
+    const fecha = item.fecha || item.fecha_drop;
+    const activo = item.publicado !== false && item.activo !== false;
+    const waitlistOk = item.waitlist_abierta !== false;
+    return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:flex-start;gap:14px">
+      ${item.imagen_url ? `<img src="${item.imagen_url}" style="width:60px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid var(--border)">` : `<div style="width:60px;height:48px;border-radius:6px;background:var(--s2);flex-shrink:0;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px">${itemTipo==='evento'?'📅':itemTipo==='drop'?'📦':'🏷'}</div>`}
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:13px;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.titulo}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600;background:${activo?'rgba(52,199,123,.12)':'rgba(0,0,0,.07)'};color:${activo?'var(--green)':'var(--muted)'}">${activo?'Publicado':'Oculto'}</span>
+          ${itemTipo !== 'beneficio' ? `<span style="font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600;background:var(--s2);color:${waitlistOk?'var(--text)':'var(--muted)'}">${waitlistOk?'Waitlist abierta':'Waitlist cerrada'}</span>` : ''}
+          ${fecha ? `<span style="font-size:10px;color:var(--muted)">📅 ${_fmtDate(fecha)}</span>` : ''}
+          ${item.lugar ? `<span style="font-size:10px;color:var(--muted)">📍 ${item.lugar}</span>` : ''}
+          ${item.codigo ? `<span style="font-size:10px;color:var(--muted);font-family:monospace;font-weight:700">🎟 ${item.codigo}</span>` : ''}
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+        ${itemTipo !== 'beneficio' ? `<button class="btn btn-xs" onclick="openScWlModal('${itemTipo}','${item.id}','${(item.titulo||'').replace(/'/g,"\\'")}')">Lista</button>` : ''}
+        <button class="btn btn-xs" onclick="openScModal('${itemTipo}',${JSON.stringify(item).replace(/"/g,'&quot;')})">Editar</button>
+        <button class="btn btn-xs" onclick="deleteScItem('${itemTipo}','${item.id}')" style="color:var(--coral)">Eliminar</button>
+      </div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+// ── MODAL CREAR / EDITAR ───────────────────────────────────────
+function openScModal(tipo, item) {
+  _scImgPending = null;
+  const isEv = tipo === 'evento', isDr = tipo === 'drop', isBe = tipo === 'beneficio';
+  document.getElementById('sc-form-id').value = item?.id || '';
+  document.getElementById('sc-form-tipo').value = tipo;
+  document.getElementById('sc-modal-title').textContent = item ? `Editar ${tipo}` : `Nuevo ${tipo}`;
+  document.getElementById('sc-form-titulo').value = item?.titulo || '';
+  document.getElementById('sc-form-desc').value = item?.descripcion || '';
+  document.getElementById('sc-form-img-url').value = item?.imagen_url || '';
+  document.getElementById('sc-form-img-file').value = '';
+  document.getElementById('sc-form-publicado').checked = item ? (item.publicado !== false && item.activo !== false) : true;
+  document.getElementById('sc-form-waitlist').checked = item ? (item.waitlist_abierta !== false) : true;
+  document.getElementById('sc-pub-label').textContent = isBe ? 'Activo' : 'Publicado';
+
+  // Preview imagen actual
+  const prev = document.getElementById('sc-img-preview');
+  const prevImg = document.getElementById('sc-img-preview-img');
+  if (item?.imagen_url) { prevImg.src = item.imagen_url; prev.style.display = ''; } else { prev.style.display = 'none'; }
+  document.getElementById('sc-img-status').textContent = '';
+
+  // Fecha y lugar
+  document.getElementById('sc-form-fecha-wrap').style.display = isBe ? 'none' : '';
+  document.getElementById('sc-form-lugar-wrap').style.display = isDr ? 'none' : '';
+  const fechaLabel = document.getElementById('sc-form-fecha-label');
+  if (fechaLabel) fechaLabel.textContent = isDr ? 'Fecha del drop' : 'Fecha del evento';
+  document.getElementById('sc-form-fecha').value = item?.fecha || item?.fecha_drop || '';
+  document.getElementById('sc-form-lugar').value = item?.lugar || '';
+
+  // Beneficio extras
+  document.getElementById('sc-form-benef-wrap').style.display = isBe ? '' : 'none';
+  document.getElementById('sc-toggle-wl-wrap').style.display = isBe ? 'none' : '';
+  if (isBe) {
+    document.getElementById('sc-form-tipo-benef').value = item?.tipo || 'codigo';
+    document.getElementById('sc-form-codigo').value = item?.codigo || '';
+    document.getElementById('sc-form-benef-lugar').value = item?.lugar || '';
+    document.getElementById('sc-form-vigencia').value = item?.vigencia_hasta || '';
+  }
+
+  document.getElementById('sc-form-err').textContent = '';
+  document.getElementById('sc-form-save-btn').textContent = item ? 'Guardar cambios' : 'Publicar';
+  document.getElementById('sc-form-save-btn').disabled = false;
+
+  const modal = document.getElementById('sc-modal');
+  modal.style.display = 'flex';
+}
+
+function closeScModal() {
+  document.getElementById('sc-modal').style.display = 'none';
+  _scImgPending = null;
+}
+
+function scPreviewImg(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('sc-img-preview');
+    const prevImg = document.getElementById('sc-img-preview-img');
+    prevImg.src = e.target.result;
+    prev.style.display = '';
+    document.getElementById('sc-form-img-url').value = '';
+    document.getElementById('sc-img-status').textContent = '✓ Lista para subir';
+    _scImgPending = {
+      base64: e.target.result.split(',')[1],
+      contentType: file.type,
+      filename: file.name
+    };
+  };
+  reader.readAsDataURL(file);
+}
+
+function scUrlImgChanged() {
+  const url = document.getElementById('sc-form-img-url').value.trim();
+  _scImgPending = null;
+  const prev = document.getElementById('sc-img-preview');
+  const prevImg = document.getElementById('sc-img-preview-img');
+  if (url) { prevImg.src = url; prev.style.display = ''; document.getElementById('sc-img-status').textContent = ''; }
+  else prev.style.display = 'none';
+}
+
+async function saveScItem() {
+  const wsId = _activeWsId; if (!wsId) return;
+  const id = document.getElementById('sc-form-id').value;
+  const tipo = document.getElementById('sc-form-tipo').value;
+  const titulo = document.getElementById('sc-form-titulo').value.trim();
+  if (!titulo) { document.getElementById('sc-form-err').textContent = 'El título es obligatorio'; return; }
+
+  const btn = document.getElementById('sc-form-save-btn');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+
+  // Subir imagen si hay pendiente
+  let imagen_url = document.getElementById('sc-form-img-url').value.trim() || null;
+  if (_scImgPending) {
+    btn.textContent = 'Subiendo imagen...';
+    document.getElementById('sc-img-status').textContent = 'Subiendo...';
+    try {
+      const ur = await fetch('/api/soul-club/upload', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(_scImgPending)
+      });
+      const ud = await ur.json();
+      if (ud.url) { imagen_url = ud.url; document.getElementById('sc-img-status').textContent = '✓ Subida'; }
+      else { document.getElementById('sc-form-err').textContent = 'Error al subir imagen: ' + (ud.error||''); btn.disabled=false; btn.textContent=id?'Guardar cambios':'Publicar'; return; }
+    } catch(e) { document.getElementById('sc-form-err').textContent = 'Error al subir imagen'; btn.disabled=false; btn.textContent=id?'Guardar cambios':'Publicar'; return; }
+  }
+
+  btn.textContent = 'Guardando...';
+  const isEv = tipo==='evento', isDr = tipo==='drop', isBe = tipo==='beneficio';
+  const body = { wsId, titulo, descripcion: document.getElementById('sc-form-desc').value.trim()||null, imagen_url };
+
+  if (!isBe) {
+    const fechaVal = document.getElementById('sc-form-fecha').value;
+    if (isEv) { body.fecha = fechaVal||null; body.lugar = document.getElementById('sc-form-lugar').value.trim()||null; body.waitlist_abierta = document.getElementById('sc-form-waitlist').checked; body.publicado = document.getElementById('sc-form-publicado').checked; }
+    if (isDr) { body.fecha_drop = fechaVal||null; body.waitlist_abierta = document.getElementById('sc-form-waitlist').checked; body.publicado = document.getElementById('sc-form-publicado').checked; }
+  } else {
+    body.tipo = document.getElementById('sc-form-tipo-benef').value;
+    body.codigo = document.getElementById('sc-form-codigo').value.trim()||null;
+    body.lugar = document.getElementById('sc-form-benef-lugar').value.trim()||null;
+    body.vigencia_hasta = document.getElementById('sc-form-vigencia').value||null;
+    body.activo = document.getElementById('sc-form-publicado').checked;
+  }
+
+  try {
+    const endpoint = tipo === 'evento' ? 'eventos' : tipo === 'drop' ? 'drops' : 'beneficios';
+    const url = id ? `/api/admin/soul-club/${endpoint}/${id}` : `/api/admin/soul-club/${endpoint}`;
+    const r = await fetch(url, { method: id?'PATCH':'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const d = await r.json();
+    if (!d.ok) { document.getElementById('sc-form-err').textContent = d.error||'Error al guardar'; btn.disabled=false; btn.textContent=id?'Guardar cambios':'Publicar'; return; }
+    closeScModal();
+    if (isEv) { _scEventos=[]; await loadScEventos(); }
+    else if (isDr) { _scDrops=[]; await loadScDrops(); }
+    else { _scBeneficios=[]; await loadScBeneficios(); }
+    notify(id?'Guardado':'Publicado ✓');
+  } catch(e) { document.getElementById('sc-form-err').textContent='Error de red'; btn.disabled=false; btn.textContent=id?'Guardar cambios':'Publicar'; }
+}
+
+async function deleteScItem(tipo, id) {
+  const labels = { evento:'este evento', drop:'este drop', beneficio:'este beneficio' };
+  if (!confirm(`¿Eliminar ${labels[tipo]||'este item'}? Esta acción no se puede deshacer.`)) return;
+  const wsId = _activeWsId; if (!wsId) return;
+  const endpoint = tipo==='evento'?'eventos':tipo==='drop'?'drops':'beneficios';
+  try {
+    await fetch(`/api/admin/soul-club/${endpoint}/${id}?wsId=${wsId}`, { method:'DELETE' });
+    if (tipo==='evento') { _scEventos=[]; loadScEventos(); }
+    else if (tipo==='drop') { _scDrops=[]; loadScDrops(); }
+    else { _scBeneficios=[]; loadScBeneficios(); }
+    notify('Eliminado');
+  } catch(e) { notify('Error al eliminar','error'); }
+}
+
+// ── MODAL WAITLIST ─────────────────────────────────────────────
+async function openScWlModal(tipo, id, titulo) {
+  const el = document.getElementById('sc-wl-modal'); if (!el) return;
+  document.getElementById('sc-wl-modal-title').textContent = 'Lista de espera — ' + titulo;
+  document.getElementById('sc-wl-modal-count').textContent = 'Cargando...';
+  document.getElementById('sc-wl-modal-list').innerHTML = '';
+  el.style.display = 'flex';
+  try {
+    const endpoint = tipo==='evento'?'eventos':'drops';
+    const r = await fetch(`/api/admin/soul-club/${endpoint}/${id}/waitlist`);
+    const list = await r.json();
+    document.getElementById('sc-wl-modal-count').textContent = list.length + ' persona' + (list.length!==1?'s':'');
+    if (!list.length) {
+      document.getElementById('sc-wl-modal-list').innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">Nadie anotado aún.</div>';
+      return;
+    }
+    document.getElementById('sc-wl-modal-list').innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="border-bottom:1px solid var(--border2)">
+        <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase">Nombre</th>
+        <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase">Email</th>
+        <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase">Fecha</th>
+      </tr></thead>
+      <tbody>` + list.map(p=>`<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:10px;font-weight:600">${p.nombre||'—'}</td>
+        <td style="padding:10px;color:var(--muted)">${p.email}</td>
+        <td style="padding:10px;color:var(--muted)">${_fmtDate(p.created_at)}</td>
+      </tr>`).join('') + '</tbody></table>';
+  } catch(e) { document.getElementById('sc-wl-modal-list').innerHTML='<div style="color:var(--coral);font-size:12px">Error al cargar</div>'; }
+}
+
+function closeScWlModal() { document.getElementById('sc-wl-modal').style.display='none'; }
+
+document.getElementById('sc-modal')?.addEventListener('click',function(e){if(e.target===this)closeScModal();});
+document.getElementById('sc-wl-modal')?.addEventListener('click',function(e){if(e.target===this)closeScWlModal();});
+
+// ═══════════════════════════════════════════════════════════════
 // TIENDA NATIVA
 // ═══════════════════════════════════════════════════════════════
 
@@ -26096,31 +27009,94 @@ async function uploadRawFile(file) {
   } catch(e) { return null; }
 }
 
-// ── Image position/zoom state ──────────────────────────────────
+// ── Image position/fit state ──────────────────────────────────
 let _imgDragState = null;
 
-function _imgPosStr(px, py) { return px + '% ' + py + '%'; }
+// Modes: 'natural' (default) | 'contain' | 'cover'
+// natural — image sets section height, shows at full natural ratio
+// contain — fixed section height, full image visible (letterboxed)
+// cover   — fixed section height, fills with crop, focal point draggable
 
 function _applyImgPos(pid, idx, key) {
   const cfg = (_storeSections[idx] && _storeSections[idx].config) || {};
-  const px   = cfg[key+'PosX'] != null ? cfg[key+'PosX'] : 50;
-  const py   = cfg[key+'PosY'] != null ? cfg[key+'PosY'] : 50;
-  const zoom = cfg[key+'Zoom'] != null ? cfg[key+'Zoom'] : 1.0;
-  const pos  = _imgPosStr(px, py);
-  const img  = document.getElementById('img_' + pid);
-  if (img) {
-    img.style.objectPosition  = pos;
-    img.style.transform       = 'scale(' + zoom.toFixed(3) + ')';
-    img.style.transformOrigin = pos;
+  const px  = cfg[key+'PosX'] != null ? cfg[key+'PosX'] : 50;
+  const py  = cfg[key+'PosY'] != null ? cfg[key+'PosY'] : 50;
+  const fit = cfg[key+'Fit']  || 'natural';
+  const img = document.getElementById('img_' + pid);
+  if (img && fit === 'cover') {
+    img.style.objectPosition = px + '% ' + py + '%';
   }
+  const ch = document.getElementById('ch_' + pid);
+  if (ch) { ch.style.left = px + '%'; ch.style.top = py + '%'; }
+  // Update button highlights
+  [['fcov','cover'],['ffil','contain'],['fnat','natural']].forEach(function(pair) {
+    const btn = document.getElementById(pair[0] + '_' + pid);
+    if (!btn) return;
+    const on = fit === pair[1];
+    btn.style.background  = on ? 'var(--accent)' : '';
+    btn.style.color       = on ? '#fff' : '';
+    btn.style.borderColor = on ? 'var(--accent)' : '';
+  });
+}
+
+function _setImgFit(pid, idx, key, fit) {
+  if (_storeSections[idx]) _storeSections[idx].config[key+'Fit'] = fit;
+  const drag   = document.getElementById('drag_' + pid);
+  const img    = document.getElementById('img_' + pid);
+  const ch     = document.getElementById('ch_' + pid);
+  const hint   = document.getElementById('hint_' + pid);
+  const rstrow = document.getElementById('rstrow_' + pid);
+
+  if (fit === 'cover') {
+    if (drag) { drag.style.aspectRatio = '4/3'; drag.style.cursor = 'grab'; drag.style.touchAction = 'none'; }
+    if (img) {
+      img.style.position  = 'absolute';
+      img.style.top = img.style.right = img.style.bottom = img.style.left = '0';
+      img.style.width     = '100%';
+      img.style.height    = '100%';
+      img.style.objectFit = 'cover';
+      img.style.maxHeight = '';
+      img.style.display   = 'block';
+    }
+    if (ch)     ch.style.display = '';
+    if (hint)   { hint.style.display = ''; hint.textContent = 'arrastrá para enfocar'; }
+    if (rstrow) rstrow.style.display = 'flex';
+  } else {
+    // natural or contain — canvas adapts to image's natural ratio
+    const natRatio = img && img.naturalWidth && img.naturalHeight
+      ? img.naturalWidth + '/' + img.naturalHeight : '';
+    if (drag) {
+      drag.style.aspectRatio = natRatio;
+      drag.style.cursor      = 'default';
+      drag.style.touchAction = '';
+    }
+    if (img) {
+      img.style.position  = '';
+      img.style.top = img.style.right = img.style.bottom = img.style.left = '';
+      img.style.width     = '100%';
+      img.style.height    = 'auto';
+      img.style.objectFit = 'contain';
+      img.style.maxHeight = '300px';
+      img.style.display   = 'block';
+    }
+    if (ch)     ch.style.display = 'none';
+    if (hint) {
+      hint.style.display = '';
+      hint.textContent = fit === 'natural' ? 'tamaño natural' : 'imagen completa';
+    }
+    if (rstrow) rstrow.style.display = 'none';
+  }
+  _applyImgPos(pid, idx, key);
+  updatePreview();
 }
 
 function _startImgDrag(e, pid, idx, key) {
+  const cfg = (_storeSections[idx] && _storeSections[idx].config) || {};
+  if ((cfg[key+'Fit'] || 'natural') !== 'cover') return;
   if (e.cancelable) e.preventDefault();
-  const cfg  = (_storeSections[idx] && _storeSections[idx].config) || {};
-  const px   = cfg[key+'PosX'] != null ? cfg[key+'PosX'] : 50;
-  const py   = cfg[key+'PosY'] != null ? cfg[key+'PosY'] : 50;
-  const cl   = e.touches ? e.touches[0] : e;
+  const px = cfg[key+'PosX'] != null ? cfg[key+'PosX'] : 50;
+  const py = cfg[key+'PosY'] != null ? cfg[key+'PosY'] : 50;
+  const cl = e.touches ? e.touches[0] : e;
   const drag = document.getElementById('drag_' + pid);
   if (drag) drag.style.cursor = 'grabbing';
   _imgDragState = { pid, idx, key, sx: cl.clientX, sy: cl.clientY, px, py };
@@ -26134,12 +27110,8 @@ function _onImgDragMove(e) {
   if (!drag) return;
   const cl   = e.touches ? e.touches[0] : e;
   const rect = drag.getBoundingClientRect();
-  const cfg  = (_storeSections[idx] && _storeSections[idx].config) || {};
-  const zoom = cfg[key+'Zoom'] != null ? cfg[key+'Zoom'] : 1.0;
-  // Sensitivity: higher zoom = more pixels of movement needed per % change
-  const sens = 80 / zoom;
-  const npx  = Math.max(0, Math.min(100, px - (cl.clientX - sx) / sens));
-  const npy  = Math.max(0, Math.min(100, py - (cl.clientY - sy) / sens));
+  const npx = Math.max(0, Math.min(100, px + (cl.clientX - sx) / rect.width  * 100));
+  const npy = Math.max(0, Math.min(100, py + (cl.clientY - sy) / rect.height * 100));
   if (_storeSections[idx]) {
     _storeSections[idx].config[key+'PosX'] = npx;
     _storeSections[idx].config[key+'PosY'] = npy;
@@ -26149,18 +27121,11 @@ function _onImgDragMove(e) {
 
 function _stopImgDrag() {
   if (!_imgDragState) return;
-  const drag = document.getElementById('drag_' + _imgDragState.pid);
-  if (drag) drag.style.cursor = 'grab';
+  const { pid, idx, key } = _imgDragState;
+  const cfg  = (_storeSections[idx] && _storeSections[idx].config) || {};
+  const drag = document.getElementById('drag_' + pid);
+  if (drag) drag.style.cursor = (cfg[key+'Fit'] || 'natural') === 'cover' ? 'grab' : 'default';
   _imgDragState = null;
-  updatePreview();
-}
-
-function _onImgZoom(input, pid, idx, key) {
-  const zoom = parseInt(input.value) / 100;
-  if (_storeSections[idx]) _storeSections[idx].config[key+'Zoom'] = zoom;
-  const lbl = document.getElementById('zl_' + pid);
-  if (lbl) lbl.textContent = Math.round(zoom * 100) + '%';
-  _applyImgPos(pid, idx, key);
   updatePreview();
 }
 
@@ -26168,12 +27133,7 @@ function _resetImgPos(pid, idx, key) {
   if (_storeSections[idx]) {
     _storeSections[idx].config[key+'PosX'] = 50;
     _storeSections[idx].config[key+'PosY'] = 50;
-    _storeSections[idx].config[key+'Zoom'] = 1.0;
   }
-  const zEl = document.getElementById('zoom_' + pid);
-  if (zEl) zEl.value = 100;
-  const lbl = document.getElementById('zl_' + pid);
-  if (lbl) lbl.textContent = '100%';
   _applyImgPos(pid, idx, key);
   updatePreview();
 }
@@ -26186,57 +27146,86 @@ document.addEventListener('touchend',  _stopImgDrag);
 // Inline image upload field (returns HTML string)
 function imgField(label, idx, key, aw, ah) {
   aw = aw || 16; ah = ah || 9;
-  const cfg  = (_storeSections[idx] && _storeSections[idx].config) || {};
-  const val  = cfg[key] || '';
-  const posX = cfg[key+'PosX'] != null ? cfg[key+'PosX'] : 50;
-  const posY = cfg[key+'PosY'] != null ? cfg[key+'PosY'] : 50;
-  const zoom = cfg[key+'Zoom'] != null ? cfg[key+'Zoom'] : 1.0;
-  const zPct = Math.round(zoom * 100);
-  const pos  = _imgPosStr(posX, posY);
-  const pid  = 'ip_' + idx + '_' + key;
-  const esc  = val.replace(/"/g,'&quot;');
-  const isIg = val && (val.includes('instagram.com/reel/') || val.includes('instagram.com/p/'));
+  const cfg   = (_storeSections[idx] && _storeSections[idx].config) || {};
+  const val   = cfg[key] || '';
+  const posX  = cfg[key+'PosX'] != null ? cfg[key+'PosX'] : 50;
+  const posY  = cfg[key+'PosY'] != null ? cfg[key+'PosY'] : 50;
+  const fit   = cfg[key+'Fit']  || 'natural';
+  const pid   = 'ip_' + idx + '_' + key;
+  const esc   = val.replace(/"/g,'&quot;');
+  const isIg  = val && (val.includes('instagram.com/reel/') || val.includes('instagram.com/p/'));
   const hasImg = val && !isIg;
+  const isCov  = fit === 'cover';
+  const isCon  = fit === 'contain';
+  const isNat  = fit === 'natural';
+
+  const btnBase = 'font-size:11px;font-weight:600;padding:5px 0;border:1px solid var(--border);border-radius:6px;cursor:pointer;flex:1;transition:background .12s,color .12s,border-color .12s;';
+  const natSty  = btnBase + (isNat ? 'background:var(--accent);color:#fff;border-color:var(--accent);' : 'background:transparent;color:var(--muted);');
+  const conSty  = btnBase + (isCon ? 'background:var(--accent);color:#fff;border-color:var(--accent);' : 'background:transparent;color:var(--muted);');
+  const covSty  = btnBase + (isCov ? 'background:var(--accent);color:#fff;border-color:var(--accent);' : 'background:transparent;color:var(--muted);');
+
+  // Canvas: cover mode = fixed 4/3 ratio + absolute image; others = height auto, image at natural ratio
+  const canvasStyle = isCov
+    ? 'position:relative;width:100%;aspect-ratio:4/3;overflow:hidden;border-radius:8px;background:#0d0d0d;border:1px solid var(--border);cursor:grab;user-select:none;touch-action:none;min-height:80px'
+    : 'position:relative;width:100%;overflow:hidden;border-radius:8px;background:#0d0d0d;border:1px solid var(--border);cursor:default;user-select:none;min-height:80px';
+
+  const imgStyle = isCov
+    ? 'position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%;object-fit:cover;object-position:' + posX + '% ' + posY + '%;pointer-events:none;display:' + (hasImg ? 'block' : 'none')
+    : 'display:' + (hasImg ? 'block' : 'none') + ';width:100%;height:auto;max-height:300px;object-fit:contain;pointer-events:none';
+
+  const hintText = isCov ? 'arrastrá para enfocar' : (isNat ? 'tamaño natural' : 'imagen completa');
 
   return '<div class="form-group">'
     + '<label class="form-label">' + label + '</label>'
 
-    // ── outer wrapper (hidden when no image) ──
-    + '<div id="' + pid + '" style="' + (val?'':'display:none;') + 'margin-bottom:8px">'
+    + '<div id="' + pid + '" style="display:' + (val ? 'flex' : 'none') + ';flex-direction:column;gap:6px;margin-bottom:8px">'
 
     // IG indicator
-    + '<div id="ig_' + pid + '" style="' + (isIg?'display:flex':'display:none') + ';align-items:center;gap:6px;padding:8px 10px;background:rgba(131,58,180,.08);border-radius:6px;margin-bottom:4px">'
+    + '<div id="ig_' + pid + '" style="display:' + (isIg ? 'flex' : 'none') + ';align-items:center;gap:8px;padding:9px 12px;background:rgba(131,58,180,.07);border:1px solid rgba(131,58,180,.22);border-radius:8px">'
     + '<span style="font-size:18px">📸</span>'
-    + '<div><div style="font-size:11px;font-weight:700;color:#833ab4">Reel de Instagram detectado</div>'
-    + '<div id="ig_url_' + pid + '" style="font-size:10px;color:var(--muted);word-break:break-all">' + esc + '</div></div>'
+    + '<div><div style="font-size:11px;font-weight:700;color:#833ab4">Reel / Post de Instagram</div>'
+    + '<div id="ig_url_' + pid + '" style="font-size:10px;color:var(--muted);word-break:break-all;max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc + '</div></div>'
     + '</div>'
 
-    // ── positioning panel ──
-    + '<div id="pos_' + pid + '"' + (isIg?' style="display:none"':'') + '>'
+    // Positioning panel
+    + '<div id="pos_' + pid + '"' + (isIg ? ' style="display:none"' : '') + '>'
 
-    // Draggable canvas
-    + '<div id="drag_' + pid + '" style="position:relative;width:100%;height:130px;overflow:hidden;border-radius:6px;border:1px solid var(--border);cursor:grab;user-select:none;background:var(--s2);touch-action:none"'
+    // Three mode buttons
+    + '<div style="display:flex;gap:4px;margin-bottom:6px">'
+    + '<button id="fnat_' + pid + '" style="' + natSty + '" onclick="_setImgFit(\'' + pid + '\',' + idx + ',\'' + key + '\',\'natural\')" title="Imagen a su tamaño natural — la sección se adapta">⊞ Natural</button>'
+    + '<button id="ffil_' + pid + '" style="' + conSty + '" onclick="_setImgFit(\'' + pid + '\',' + idx + ',\'' + key + '\',\'contain\')" title="Imagen completa dentro de la sección">□ Contener</button>'
+    + '<button id="fcov_' + pid + '" style="' + covSty + '" onclick="_setImgFit(\'' + pid + '\',' + idx + ',\'' + key + '\',\'cover\')" title="Imagen rellena la sección — arrastrá para enfocar">✂ Recortar</button>'
+    + '</div>'
+
+    // Preview canvas
+    + '<div id="drag_' + pid + '" style="' + canvasStyle + '"'
     + ' onmousedown="_startImgDrag(event,\'' + pid + '\',' + idx + ',\'' + key + '\')"'
     + ' ontouchstart="_startImgDrag(event,\'' + pid + '\',' + idx + ',\'' + key + '\')">'
-    + (hasImg
-      ? '<img id="img_' + pid + '" src="' + esc + '" draggable="false" style="position:absolute;width:100%;height:100%;object-fit:cover;object-position:' + pos + ';transform:scale(' + zoom.toFixed(3) + ');transform-origin:' + pos + ';pointer-events:none;display:block">'
-      : '')
-    + '<div style="position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:9px;color:rgba(255,255,255,.4);pointer-events:none;letter-spacing:.04em">✥ arrastrá para reposicionar</div>'
+
+    // Image
+    + '<img id="img_' + pid + '" src="' + (hasImg ? esc : 'data:,') + '" draggable="false" style="' + imgStyle + '">'
+
+    // Focal point crosshair (cover mode only)
+    + '<div id="ch_' + pid + '" style="position:absolute;width:22px;height:22px;transform:translate(-50%,-50%);pointer-events:none;display:' + (isCov ? '' : 'none') + ';left:' + posX + '%;top:' + posY + '%;z-index:2">'
+    + '<div style="position:absolute;top:50%;left:0;right:0;height:1.5px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.5);margin-top:-.75px"></div>'
+    + '<div style="position:absolute;left:50%;top:0;bottom:0;width:1.5px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.5);margin-left:-.75px"></div>'
+    + '<div style="position:absolute;inset:5px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.5)"></div>'
     + '</div>'
 
-    // Zoom row
-    + '<div style="display:flex;align-items:center;gap:6px;margin-top:5px">'
-    + '<span style="font-size:9px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;width:28px;flex-shrink:0">Zoom</span>'
-    + '<input id="zoom_' + pid + '" type="range" min="100" max="250" step="5" value="' + zPct + '" style="flex:1;height:3px;cursor:pointer;accent-color:var(--accent)"'
-    + ' oninput="_onImgZoom(this,\'' + pid + '\',' + idx + ',\'' + key + '\')">'
-    + '<span id="zl_' + pid + '" style="font-size:9px;color:var(--muted);width:28px;text-align:right">' + zPct + '%</span>'
-    + '<button class="btn btn-xs" onclick="_resetImgPos(\'' + pid + '\',' + idx + ',\'' + key + '\')" title="Centrar y restablecer" style="flex-shrink:0;padding:2px 7px">↺</button>'
+    // Hint label
+    + '<div id="hint_' + pid + '" style="position:absolute;bottom:7px;left:50%;transform:translateX(-50%);font-size:9px;color:rgba(255,255,255,.7);background:rgba(0,0,0,.42);padding:2px 9px;border-radius:10px;pointer-events:none;white-space:nowrap">' + hintText + '</div>'
+
+    + '</div>' // end canvas
+
+    // Reset row (cover mode only)
+    + '<div id="rstrow_' + pid + '" style="display:' + (isCov ? 'flex' : 'none') + ';justify-content:flex-end;margin-top:2px">'
+    + '<button onclick="_resetImgPos(\'' + pid + '\',' + idx + ',\'' + key + '\')" style="font-size:10px;color:var(--muted);background:none;border:none;cursor:pointer;padding:2px 6px;opacity:.7">↺ Centrar</button>'
     + '</div>'
 
     + '</div>' // end pos panel
     + '</div>' // end pid wrapper
 
-    // ── file + URL row ──
+    // File + URL row
     + '<div style="display:flex;gap:5px;align-items:center">'
     + '<input type="file" accept="image/*,video/*" id="if_' + pid + '" style="display:none" onchange="handleSecImgUpload(this,' + idx + ',\'' + key + '\',' + aw + ',' + ah + ')">'
     + '<button class="btn btn-xs" onclick="document.getElementById(\'if_' + pid + '\').click()" style="white-space:nowrap;flex-shrink:0">📁 Archivo</button>'
@@ -26250,38 +27239,44 @@ function _updImgPrev(pid, url) {
   const wrapper = document.getElementById(pid);
   if (!wrapper) return;
   const isIg = url && (url.includes('instagram.com/reel/') || url.includes('instagram.com/p/'));
-
   if (!url) { wrapper.style.display = 'none'; return; }
-  wrapper.style.display = '';
-
+  wrapper.style.display = 'flex';
   const igDiv    = document.getElementById('ig_' + pid);
   const posDiv   = document.getElementById('pos_' + pid);
   const igUrlDiv = document.getElementById('ig_url_' + pid);
-  const dragDiv  = document.getElementById('drag_' + pid);
-
   if (isIg) {
-    if (igDiv)  igDiv.style.display  = 'flex';
-    if (posDiv) posDiv.style.display = 'none';
+    if (igDiv)    igDiv.style.display  = 'flex';
+    if (posDiv)   posDiv.style.display = 'none';
     if (igUrlDiv) igUrlDiv.textContent = url;
   } else {
     if (igDiv)  igDiv.style.display  = 'none';
     if (posDiv) posDiv.style.display = '';
-    if (dragDiv) {
-      let img = document.getElementById('img_' + pid);
-      if (!img) {
+    let img = document.getElementById('img_' + pid);
+    if (!img) {
+      const drag = document.getElementById('drag_' + pid);
+      if (drag) {
         img = document.createElement('img');
         img.id = 'img_' + pid;
         img.draggable = false;
-        img.style.cssText = 'position:absolute;width:100%;height:100%;object-fit:cover;pointer-events:none;display:block';
-        dragDiv.insertBefore(img, dragDiv.firstChild);
+        drag.insertBefore(img, drag.firstChild);
       }
+    }
+    if (img) {
       img.src = url;
-      // Parse idx + key from pid: "ip_{idx}_{key}"
+      img.style.display = 'block';
       const noPrefix = pid.slice(3);
       const sep = noPrefix.indexOf('_');
       const idxN = parseInt(noPrefix.slice(0, sep));
       const keyN = noPrefix.slice(sep + 1);
-      _applyImgPos(pid, idxN, keyN);
+      img.onload = function() {
+        const cfg = (_storeSections[idxN] && _storeSections[idxN].config) || {};
+        const fit = cfg[keyN + 'Fit'] || 'natural';
+        if (fit !== 'cover' && this.naturalWidth && this.naturalHeight) {
+          const drag = document.getElementById('drag_' + pid);
+          if (drag) drag.style.aspectRatio = this.naturalWidth + '/' + this.naturalHeight;
+        }
+        _applyImgPos(pid, idxN, keyN);
+      };
     }
   }
 }
@@ -26293,13 +27288,45 @@ function _handleImgInput(input, idx, key, pid) {
   _updImgPrev(pid, url);
 }
 
+async function uploadImgFull(file) {
+  if (!_activeWsId) { notify('Guardá la tienda primero'); return null; }
+  return new Promise(function(resolve) {
+    const reader = new FileReader();
+    reader.onload = async function(ev) {
+      const img = new Image();
+      img.onload = async function() {
+        // Scale down if oversized, preserving original aspect ratio — no crop
+        const MAX = 1800;
+        let w = img.width, h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+          else        { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const mime = 'image/jpeg';
+        const b64  = canvas.toDataURL(mime, 0.85).split(',')[1];
+        try {
+          const r = await fetch('/api/store/upload', { method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ wsId:_activeWsId, base64:b64, mimeType:mime, filename:'img_'+Date.now()+'.jpg' }) });
+          const d = await r.json();
+          resolve(d.ok ? d.url : null);
+        } catch(e) { resolve(null); }
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 async function handleSecImgUpload(input, idx, key, aw, ah) {
   const file = input.files[0]; if (!file) return;
   const pid = 'ip_' + idx + '_' + key;
   const st = document.getElementById('st_' + pid);
   if (st) st.textContent = '⏳ Subiendo...';
   const isVid = file.type.startsWith('video/');
-  const url = isVid ? await uploadRawFile(file) : await cropAndUpload(file, aw, ah);
+  const url = isVid ? await uploadRawFile(file) : await uploadImgFull(file);
   if (url) {
     _storeSections[idx].config[key] = url;
     _updImgPrev(pid, url);

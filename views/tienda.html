@@ -7599,26 +7599,44 @@ function buildSectionHTML(s, i) {
   switch(s.tipo) {
 
     case 'hero': {
-      // Si hay ratio (ratioLibre) usamos aspect-ratio; sino min-height
       const heroRatio = c.ratioLibre || ''
+      const _hfit = c.imagenFit || 'natural'
+      const _hpx  = c.imagenPosX != null ? c.imagenPosX : 50
+      const _hpy  = c.imagenPosY != null ? c.imagenPosY : 50
+      const _hpos = _hpx + '% ' + _hpy + '%'
+      const _heroInner = `
+          <h1 style="font-size:clamp(30px,5.5vw,60px);font-weight:800;letter-spacing:-.05em;line-height:1.02;margin-bottom:18px">${c.titulo||''}</h1>
+          <p style="font-size:clamp(15px,2vw,20px);opacity:.82;margin-bottom:32px;font-weight:300;line-height:1.55">${c.subtitulo||''}</p>
+          ${c.ctaTexto?`<button onclick="document.getElementById('catalogo-anchor')?.scrollIntoView({behavior:'smooth'})" style="background:#fff;color:#000;border:none;padding:16px 36px;border-radius:50px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .2s" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">${c.ctaTexto}</button>`:''}`
+
+      // Natural mode: image sets height — no fixed container height
+      if (_hfit === 'natural' && (c.imagen || c.video)) {
+        const _media = _isIgUrl(c.imagen||c.video)
+          ? `<iframe src="${_igEmbedUrl(c.imagen||c.video)}" style="width:100%;display:block;border:none;aspect-ratio:9/16" frameborder="0" scrolling="no" allowtransparency="true" allow="autoplay" loading="lazy"></iframe>`
+          : c.imagen
+            ? `<img src="${c.imagen}" alt="" style="width:100%;height:auto;display:block">`
+            : `<video src="${c.video}" autoplay muted loop playsinline style="width:100%;height:auto;display:block"></video>`
+        return `
+        <div style="position:relative;overflow:hidden;border-radius:var(--sbr,16px)">
+          ${_media}
+          <div style="position:absolute;inset:0;background:rgba(0,0,0,${c.overlay||0.35})"></div>
+          <div style="position:absolute;inset:0;display:flex;align-items:${c.alineacion==='top'?'flex-start':c.alineacion==='bottom'?'flex-end':'center'};justify-content:${c.alineacion==='right'?'flex-end':c.alineacion==='left'?'flex-start':'center'}">
+            <div style="text-align:${c.alineacion||'center'};padding:56px 40px;color:#fff;max-width:720px">${_heroInner}</div>
+          </div>
+        </div>`
+      }
+
+      // Fixed-height mode (contain / cover)
       const heroSize = heroRatio ? `aspect-ratio:${heroRatio}` : `min-height:${c.altoMin||'72vh'}`
       return `
 
       <div style="position:relative;${heroSize};display:flex;align-items:center;justify-content:${c.alineacion==='right'?'flex-end':c.alineacion==='left'?'flex-start':'center'};overflow:hidden;border-radius:var(--sbr,16px);background:#111">
 
-        ${(()=>{ const _hpx=c.imagenPosX!=null?c.imagenPosX:50; const _hpy=c.imagenPosY!=null?c.imagenPosY:50; const _hpos=_hpx+'% '+_hpy+'%'; const _hfit=c.imgFit||'cover'; const _hzoom=c.imagenZoom||1; const _hsc='scale('+_hzoom+')'; const _hori=_hpos; return _isIgUrl(c.imagen)||_isIgUrl(c.video)?`<iframe src="${_igEmbedUrl(c.imagen||c.video)}" style="position:absolute;inset:0;width:100%;height:100%;border:none" frameborder="0" scrolling="no" allowtransparency="true" allow="autoplay" loading="lazy"></iframe>`:c.imagen?`<img src="${c.imagen}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:${_hfit};object-position:${_hpos};transform:${_hsc};transform-origin:${_hori};display:block">`:c.video?`<video src="${c.video}" autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:${_hfit};object-position:${_hpos};transform:${_hsc};transform-origin:${_hori}"></video>`:'' })()}
+        ${_isIgUrl(c.imagen)||_isIgUrl(c.video)?`<iframe src="${_igEmbedUrl(c.imagen||c.video)}" style="position:absolute;inset:0;width:100%;height:100%;border:none" frameborder="0" scrolling="no" allowtransparency="true" allow="autoplay" loading="lazy"></iframe>`:c.imagen?`<img src="${c.imagen}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:${_hfit};object-position:${_hpos};display:block">`:c.video?`<video src="${c.video}" autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:${_hfit};object-position:${_hpos}"></video>`:''}
 
         <div style="position:absolute;inset:0;background:rgba(0,0,0,${c.overlay||0.35})"></div>
 
-        <div style="position:relative;z-index:1;text-align:${c.alineacion||'center'};padding:56px 40px;color:#fff;max-width:720px">
-
-          <h1 style="font-size:clamp(30px,5.5vw,60px);font-weight:800;letter-spacing:-.05em;line-height:1.02;margin-bottom:18px">${c.titulo||''}</h1>
-
-          <p style="font-size:clamp(15px,2vw,20px);opacity:.82;margin-bottom:32px;font-weight:300;line-height:1.55">${c.subtitulo||''}</p>
-
-          ${c.ctaTexto?`<button onclick="document.getElementById('catalogo-anchor')?.scrollIntoView({behavior:'smooth'})" style="background:#fff;color:#000;border:none;padding:16px 36px;border-radius:50px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .2s" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">${c.ctaTexto}</button>`:''}
-
-        </div>
+        <div style="position:relative;z-index:1;text-align:${c.alineacion||'center'};padding:56px 40px;color:#fff;max-width:720px">${_heroInner}</div>
 
       </div>`
     }
@@ -7679,7 +7697,7 @@ function buildSectionHTML(s, i) {
 
               <div style="min-width:100%;position:relative;flex-shrink:0">
 
-                ${(()=>{ const _spx=sl.imagenPosX!=null?sl.imagenPosX:50; const _spy=sl.imagenPosY!=null?sl.imagenPosY:50; const _spos=_spx+'% '+_spy+'%'; const _szoom=sl.imagenZoom||1; const _ssc='scale('+_szoom+')'; return _isIgUrl(sl.imagen)||_isIgUrl(sl.video)?`<div style="aspect-ratio:${ratio};overflow:hidden"><iframe src="${_igEmbedUrl(sl.imagen||sl.video)}" style="width:100%;height:100%;border:none" frameborder="0" scrolling="no" allowtransparency="true" allow="autoplay" loading="lazy"></iframe></div>`:sl.imagen?`<div style="overflow:hidden;aspect-ratio:${ratio};position:relative"><img src="${sl.imagen}" alt="${sl.titulo||''}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${_spos};transform:${_ssc};transform-origin:${_spos};display:block"></div>`:sl.video?`<video src="${sl.video}" style="width:100%;display:block;object-fit:cover;object-position:${_spos};aspect-ratio:${ratio}" autoplay muted loop playsinline></video>`:'' })()}
+                ${(()=>{ const _spx=sl.imagenPosX!=null?sl.imagenPosX:50; const _spy=sl.imagenPosY!=null?sl.imagenPosY:50; const _spos=_spx+'% '+_spy+'%'; const _sfit=sl.imagenFit||'natural'; if(_sfit==='natural'){ return _isIgUrl(sl.imagen||sl.video)?`<iframe src="${_igEmbedUrl(sl.imagen||sl.video)}" style="width:100%;display:block;border:none;aspect-ratio:9/16" frameborder="0" scrolling="no" allowtransparency="true" allow="autoplay" loading="lazy"></iframe>`:sl.imagen?`<img src="${sl.imagen}" alt="${sl.titulo||''}" style="width:100%;height:auto;display:block">`:sl.video?`<video src="${sl.video}" style="width:100%;height:auto;display:block" autoplay muted loop playsinline></video>`:'' } return _isIgUrl(sl.imagen)||_isIgUrl(sl.video)?`<div style="aspect-ratio:${ratio};overflow:hidden"><iframe src="${_igEmbedUrl(sl.imagen||sl.video)}" style="width:100%;height:100%;border:none" frameborder="0" scrolling="no" allowtransparency="true" allow="autoplay" loading="lazy"></iframe></div>`:sl.imagen?`<div style="overflow:hidden;aspect-ratio:${ratio};position:relative"><img src="${sl.imagen}" alt="${sl.titulo||''}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:${_sfit};object-position:${_spos};display:block"></div>`:sl.video?`<video src="${sl.video}" style="width:100%;display:block;object-fit:${_sfit};object-position:${_spos};aspect-ratio:${ratio}" autoplay muted loop playsinline></video>`:'' })()}
 
                 ${sl.titulo||sl.ctaTexto?`<div style="position:absolute;bottom:0;left:0;right:0;padding:40px 36px;background:linear-gradient(transparent,rgba(0,0,0,.58));color:#fff">
 

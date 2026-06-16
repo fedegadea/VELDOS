@@ -6250,7 +6250,7 @@ app.get('/api/admin/ugc/solicitudes', async (req, res) => {
 // ── ADMIN: resolver solicitud (aceptar/rechazar/entregar) ─────
 app.patch('/api/admin/ugc/solicitudes/:id', async (req, res) => {
   const { id } = req.params
-  const { accion, demora_max_dias } = req.body
+  const { accion, demora_max_dias, wsId } = req.body
   if (!['aceptar','rechazar','entregar'].includes(accion)) {
     return res.status(400).json({ error: 'Acción inválida' })
   }
@@ -6271,6 +6271,42 @@ app.patch('/api/admin/ugc/solicitudes/:id', async (req, res) => {
   try {
     const r = await _supa('PATCH', `ugc_solicitudes?id=eq.${id}`, { body: update })
     if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0, 200) })
+
+    // Al aceptar: crear entrada en kanban de planificación
+    if (accion === 'aceptar' && wsId) {
+      try {
+        const solR = await _supa('GET', 'ugc_solicitudes', {
+          filter: `id=eq.${id}`,
+          select: 'id,canje_id,creadora_id,ugc_canjes(id,producto,descuento_tipo),ugc_creadoras(id,nombre,telefono,instagram_url)'
+        })
+        const sol = solR.data?.[0]
+        if (sol) {
+          const creadora = sol.ugc_creadoras || {}
+          const canje = sol.ugc_canjes || {}
+          const ws = await getWorkspace(wsId)
+          if (ws) {
+            const data = ws.data || {}
+            const creadoras = Array.isArray(data.creadoras) ? data.creadoras : []
+            const oferta = [canje.producto, canje.descuento_tipo].filter(Boolean).join(' · ')
+            creadoras.push({
+              tipo: 'micro',
+              nombre: creadora.nombre || creadora.telefono || '—',
+              handle: creadora.instagram_url || '',
+              cuenta: '',
+              oferta,
+              notas: `Canje UGC aceptado el ${now.slice(0,10)}`,
+              estado: 'confirmada',
+              wapp: creadora.telefono || '',
+              briefId: ''
+            })
+            await patchWorkspace(wsId, { ...data, creadoras })
+          }
+        }
+      } catch (kErr) {
+        console.error('[ugc/aceptar] Error al crear entrada kanban:', kErr.message)
+      }
+    }
+
     res.json({ ok: true, solicitud: r.data?.[0] })
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
@@ -6308,6 +6344,275 @@ app.get('/api/admin/ugc/stats', async (req, res) => {
       total_solicitudes: sols.length
     })
   } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ══════════════════════════════════════════════════════════════
+// ── SOUL CLUB ────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+
+// Serve public Soul Club portal — solo cuando viene con ?ws= (el admin usa la misma URL via pushState)
+app.get('/soul-club', (req, res) => {
+  if (req.query.ws) {
+    res.set('Cache-Control','no-cache,no-store,must-revalidate')
+    res.sendFile(path.join(__dirname, 'views/soul-club.html'))
+  } else {
+    serveApp(req, res) // sin ?ws → sirve el admin SPA
+  }
+})
+
+// ── Upload imagen a Supabase Storage ────────────────────────
+app.post('/api/soul-club/upload', async (req, res) => {
+  const { data, contentType, filename } = req.body
+  if (!data || !contentType) return res.status(400).json({ error: 'Faltan datos' })
+  try {
+    const buffer = Buffer.from(data, 'base64')
+    const safeName = (filename || Date.now() + '.jpg').replace(/[^a-zA-Z0-9._-]/g, '-')
+    const key = `${Date.now()}-${safeName}`
+    const uploadUrl = `${SUPA_URL}/storage/v1/object/soul-club/${key}`
+    const r = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        apikey: SUPA_KEY(), Authorization: 'Bearer ' + SUPA_KEY(),
+        'Content-Type': contentType, 'x-upsert': 'true'
+      },
+      body: buffer
+    })
+    if (!r.ok) {
+      const txt = await r.text().catch(() => '')
+      return res.status(400).json({ error: 'Storage: ' + txt.slice(0, 150) })
+    }
+    const url = `${SUPA_URL}/storage/v1/object/public/soul-club/${key}`
+    res.json({ ok: true, url })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── PUBLIC: Unirse al club ────────────────────────────────────
+app.post('/api/soul-club/join', async (req, res) => {
+  const { wsId, email, nombre } = req.body
+  if (!wsId || !email) return res.status(400).json({ error: 'wsId y email requeridos' })
+  try {
+    const r = await _supa('POST', 'soul_club_miembros', {
+      prefer: 'resolution=merge-duplicates,return=representation',
+      body: { ws_id: wsId, email: email.toLowerCase().trim(), nombre: nombre?.trim() || null }
+    })
+    if (!r.ok && r.status !== 409) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
+    if (r.status === 409) return res.json({ ok: true, ya_miembro: true })
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── PUBLIC: Eventos ───────────────────────────────────────────
+app.get('/api/soul-club/eventos', async (req, res) => {
+  const { ws } = req.query
+  if (!ws) return res.status(400).json({ error: 'Falta ws' })
+  try {
+    const r = await _supa('GET', 'soul_club_eventos', {
+      filter: `ws_id=eq.${ws}&publicado=eq.true&order=fecha.asc.nullslast`
+    })
+    res.json(r.data || [])
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── PUBLIC: Waitlist evento ───────────────────────────────────
+app.post('/api/soul-club/eventos/:id/waitlist', async (req, res) => {
+  const { id } = req.params
+  const { email, nombre } = req.body
+  if (!email) return res.status(400).json({ error: 'Email requerido' })
+  try {
+    const r = await _supa('POST', 'soul_club_waitlist_eventos', {
+      prefer: 'resolution=merge-duplicates,return=representation',
+      body: { evento_id: id, email: email.toLowerCase().trim(), nombre: nombre?.trim() || null }
+    })
+    if (!r.ok && r.status !== 409) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
+    if (r.status === 409) return res.json({ ok: true, ya_anotado: true })
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── PUBLIC: Drops ─────────────────────────────────────────────
+app.get('/api/soul-club/drops', async (req, res) => {
+  const { ws } = req.query
+  if (!ws) return res.status(400).json({ error: 'Falta ws' })
+  try {
+    const r = await _supa('GET', 'soul_club_drops', {
+      filter: `ws_id=eq.${ws}&publicado=eq.true&order=fecha_drop.asc.nullslast`
+    })
+    res.json(r.data || [])
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── PUBLIC: Waitlist drop ─────────────────────────────────────
+app.post('/api/soul-club/drops/:id/waitlist', async (req, res) => {
+  const { id } = req.params
+  const { email, nombre } = req.body
+  if (!email) return res.status(400).json({ error: 'Email requerido' })
+  try {
+    const r = await _supa('POST', 'soul_club_waitlist_drops', {
+      prefer: 'resolution=merge-duplicates,return=representation',
+      body: { drop_id: id, email: email.toLowerCase().trim(), nombre: nombre?.trim() || null }
+    })
+    if (!r.ok && r.status !== 409) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
+    if (r.status === 409) return res.json({ ok: true, ya_anotado: true })
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── PUBLIC: Beneficios ────────────────────────────────────────
+app.get('/api/soul-club/beneficios', async (req, res) => {
+  const { ws } = req.query
+  if (!ws) return res.status(400).json({ error: 'Falta ws' })
+  try {
+    const r = await _supa('GET', 'soul_club_beneficios', {
+      filter: `ws_id=eq.${ws}&activo=eq.true&order=created_at.desc`
+    })
+    res.json(r.data || [])
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── ADMIN: Miembros ───────────────────────────────────────────
+app.get('/api/admin/soul-club/miembros', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const r = await _supa('GET', 'soul_club_miembros', { filter: `ws_id=eq.${wsId}&order=created_at.desc` })
+    res.json(r.data || [])
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── ADMIN: EVENTOS CRUD ───────────────────────────────────────
+app.get('/api/admin/soul-club/eventos', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const r = await _supa('GET', 'soul_club_eventos', { filter: `ws_id=eq.${wsId}&order=created_at.desc` })
+    res.json(r.data || [])
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.post('/api/admin/soul-club/eventos', async (req, res) => {
+  const { wsId, ...campos } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const r = await _supa('POST', 'soul_club_eventos', { body: { ws_id: wsId, ...campos } })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
+    res.json({ ok: true, evento: r.data?.[0] })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.patch('/api/admin/soul-club/eventos/:id', async (req, res) => {
+  const { id } = req.params
+  const { wsId, ...campos } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const r = await _supa('PATCH', `soul_club_eventos?id=eq.${id}&ws_id=eq.${wsId}`, { body: campos })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
+    res.json({ ok: true, evento: r.data?.[0] })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.delete('/api/admin/soul-club/eventos/:id', async (req, res) => {
+  const { id } = req.params
+  const { wsId } = req.query
+  try {
+    await _supa('DELETE', `soul_club_eventos?id=eq.${id}&ws_id=eq.${wsId}`, { prefer: 'return=minimal' })
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.get('/api/admin/soul-club/eventos/:id/waitlist', async (req, res) => {
+  const { id } = req.params
+  try {
+    const r = await _supa('GET', 'soul_club_waitlist_eventos', { filter: `evento_id=eq.${id}&order=created_at.desc` })
+    res.json(r.data || [])
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── ADMIN: DROPS CRUD ─────────────────────────────────────────
+app.get('/api/admin/soul-club/drops', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const r = await _supa('GET', 'soul_club_drops', { filter: `ws_id=eq.${wsId}&order=created_at.desc` })
+    res.json(r.data || [])
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.post('/api/admin/soul-club/drops', async (req, res) => {
+  const { wsId, ...campos } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const r = await _supa('POST', 'soul_club_drops', { body: { ws_id: wsId, ...campos } })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
+    res.json({ ok: true, drop: r.data?.[0] })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.patch('/api/admin/soul-club/drops/:id', async (req, res) => {
+  const { id } = req.params
+  const { wsId, ...campos } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const r = await _supa('PATCH', `soul_club_drops?id=eq.${id}&ws_id=eq.${wsId}`, { body: campos })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
+    res.json({ ok: true, drop: r.data?.[0] })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.delete('/api/admin/soul-club/drops/:id', async (req, res) => {
+  const { id } = req.params
+  const { wsId } = req.query
+  try {
+    await _supa('DELETE', `soul_club_drops?id=eq.${id}&ws_id=eq.${wsId}`, { prefer: 'return=minimal' })
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.get('/api/admin/soul-club/drops/:id/waitlist', async (req, res) => {
+  const { id } = req.params
+  try {
+    const r = await _supa('GET', 'soul_club_waitlist_drops', { filter: `drop_id=eq.${id}&order=created_at.desc` })
+    res.json(r.data || [])
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── ADMIN: BENEFICIOS CRUD ────────────────────────────────────
+app.get('/api/admin/soul-club/beneficios', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const r = await _supa('GET', 'soul_club_beneficios', { filter: `ws_id=eq.${wsId}&order=created_at.desc` })
+    res.json(r.data || [])
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.post('/api/admin/soul-club/beneficios', async (req, res) => {
+  const { wsId, ...campos } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const r = await _supa('POST', 'soul_club_beneficios', { body: { ws_id: wsId, ...campos } })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
+    res.json({ ok: true, beneficio: r.data?.[0] })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.patch('/api/admin/soul-club/beneficios/:id', async (req, res) => {
+  const { id } = req.params
+  const { wsId, ...campos } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const r = await _supa('PATCH', `soul_club_beneficios?id=eq.${id}&ws_id=eq.${wsId}`, { body: campos })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
+    res.json({ ok: true, beneficio: r.data?.[0] })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.delete('/api/admin/soul-club/beneficios/:id', async (req, res) => {
+  const { id } = req.params
+  const { wsId } = req.query
+  try {
+    await _supa('DELETE', `soul_club_beneficios?id=eq.${id}&ws_id=eq.${wsId}`, { prefer: 'return=minimal' })
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
 // SPA catch-all: any unmatched GET serves the app (hash router handles client routing)

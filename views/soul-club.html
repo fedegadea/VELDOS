@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Soul Club — SOULAB</title>
+  <meta name="description" content="Acceso exclusivo a drops, eventos y beneficios de SOULAB.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --negro: #111111;
+      --blanco: #FFFFFF;
+      --marfil: #F4EFE6;
+      --gris-cl: #E2DBD3;
+      --gris: #9A9590;
+      --gris-dk: #5C5855;
+      --marron: #7A5C42;
+      --marron-cl: #C4A882;
+      --border-light: rgba(17,17,17,.1);
+      --border-dark: rgba(255,255,255,.1);
+      --fs: 'Cormorant', Georgia, serif;
+      --fb: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+    body { font-family: var(--fb); background: var(--marfil); color: var(--negro); min-height: 100vh; overflow-x: hidden; }
+
+    /* ════ HEADER ════ */
+    .sc-header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      height: 62px; padding: 0 40px;
+      background: var(--negro);
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .sc-logo { display: flex; align-items: center; gap: 13px; text-decoration: none; }
+    .sc-logo img { height: 28px; filter: invert(1) brightness(2); }
+    .sc-logo-fallback {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1.5px solid rgba(255,255,255,.3);
+      font-family: var(--fs); font-size: 15px; font-weight: 700; color: var(--marfil);
+    }
+    .sc-logo-info { line-height: 1; }
+    .sc-logo-name {
+      font-family: var(--fs); font-size: 17px; font-weight: 600;
+      letter-spacing: .18em; text-transform: uppercase; color: var(--marfil);
+    }
+    .sc-logo-by { font-size: 9px; letter-spacing: .3em; text-transform: uppercase; color: var(--gris); margin-top: 2px; }
+    .sc-nav { display: flex; gap: 30px; }
+    .sc-nav a {
+      color: rgba(255,255,255,.45); text-decoration: none;
+      font-size: 10px; font-weight: 500; letter-spacing: .18em; text-transform: uppercase;
+      transition: color .2s;
+    }
+    .sc-nav a:hover { color: var(--marfil); }
+    .sc-nav-mobile { display: none; }
+
+    /* ════ HERO ════ */
+    .sc-hero {
+      min-height: 100vh;
+      background: var(--negro);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 100px 24px 70px;
+      position: relative; overflow: hidden;
+    }
+    .sc-hero::before {
+      content: '';
+      position: absolute;
+      top: -20%; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(122,92,66,.18) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .sc-hero-label {
+      font-size: 9px; letter-spacing: .5em; text-transform: uppercase;
+      color: var(--marron-cl); font-weight: 500; margin-bottom: 22px;
+    }
+    .sc-hero-title {
+      font-family: var(--fs); font-size: clamp(68px, 14vw, 130px);
+      font-weight: 700; line-height: .95; letter-spacing: -.02em;
+      color: var(--marfil); margin-bottom: 22px;
+    }
+    .sc-hero-title em { font-style: italic; font-weight: 400; }
+    .sc-hero-sub {
+      font-size: 13px; color: rgba(255,255,255,.4); max-width: 400px;
+      line-height: 1.75; margin-bottom: 52px; font-weight: 300;
+    }
+    .sc-hero-divider {
+      width: 40px; height: 1px; background: var(--marron-cl); margin: 0 auto 48px;
+    }
+
+    /* Join form */
+    .sc-form-wrap { width: 100%; max-width: 400px; }
+    .sc-form-field { margin-bottom: 10px; }
+    .sc-input {
+      width: 100%; background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.1); border-bottom: 1px solid rgba(255,255,255,.2);
+      color: var(--marfil); padding: 14px 18px;
+      font-size: 12px; font-family: var(--fb); font-weight: 300;
+      outline: none; transition: border-color .2s, background .2s;
+      -webkit-appearance: none; border-radius: 0;
+    }
+    .sc-input::placeholder { color: rgba(255,255,255,.25); }
+    .sc-input:focus { background: rgba(255,255,255,.09); border-color: var(--marron-cl); }
+    .sc-btn-primary {
+      width: 100%; background: var(--marfil); color: var(--negro);
+      border: none; padding: 15px 24px;
+      font-size: 10px; font-weight: 700; letter-spacing: .25em; text-transform: uppercase;
+      font-family: var(--fb); cursor: pointer; transition: background .2s;
+    }
+    .sc-btn-primary:hover { background: var(--marron-cl); }
+    .sc-btn-primary:disabled { opacity: .5; cursor: default; }
+    .sc-form-note { font-size: 10px; color: rgba(255,255,255,.2); text-align: center; margin-top: 12px; letter-spacing: .05em; }
+    .sc-success {
+      display: none; background: rgba(196,168,130,.12); border: 1px solid rgba(196,168,130,.25);
+      color: var(--marron-cl); padding: 14px 20px;
+      font-size: 12px; text-align: center; line-height: 1.5;
+    }
+
+    /* ════ SECTION ════ */
+    .sc-section { padding: 90px 40px; }
+    .sc-section-inner { max-width: 1140px; margin: 0 auto; }
+    .sc-section-head {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+      border-bottom: 1px solid var(--border-light);
+      padding-bottom: 28px; margin-bottom: 52px;
+    }
+    .sc-kicker {
+      font-size: 9px; letter-spacing: .4em; text-transform: uppercase;
+      font-weight: 600; color: var(--marron); margin-bottom: 10px;
+    }
+    .sc-section-title {
+      font-family: var(--fs); font-size: clamp(34px, 5.5vw, 58px);
+      font-weight: 600; line-height: 1.05; color: var(--negro);
+    }
+    .sc-section-desc { font-size: 12px; color: var(--gris-dk); font-weight: 300; max-width: 320px; line-height: 1.65; }
+
+    /* Dark section */
+    .sc-section.dark { background: var(--negro); }
+    .sc-section.dark .sc-section-head { border-bottom-color: var(--border-dark); }
+    .sc-section.dark .sc-kicker { color: var(--marron-cl); }
+    .sc-section.dark .sc-section-title { color: var(--marfil); }
+    .sc-section.dark .sc-section-desc { color: rgba(255,255,255,.35); }
+
+    /* Alt section */
+    .sc-section.alt { background: var(--blanco); }
+
+    /* ════ GRID / CARDS ════ */
+    .sc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 1px; background: var(--border-light); }
+    .sc-section.dark .sc-grid { background: var(--border-dark); }
+    .sc-card {
+      background: var(--marfil); display: flex; flex-direction: column;
+      transition: background .2s;
+    }
+    .sc-section.alt .sc-card { background: var(--blanco); }
+    .sc-section.dark .sc-card { background: #181818; }
+    .sc-card-img {
+      aspect-ratio: 4/3; overflow: hidden; position: relative;
+      background: #222;
+    }
+    .sc-card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s ease; display: block; }
+    .sc-card:hover .sc-card-img img { transform: scale(1.05); }
+    .sc-card-img-ph {
+      width: 100%; height: 100%;
+      background: linear-gradient(160deg, #1e1c1a 0%, #2e2a26 100%);
+    }
+    .sc-section:not(.dark) .sc-card-img-ph { background: linear-gradient(160deg, var(--gris-cl) 0%, #ccc6be 100%); }
+    .sc-card-body { padding: 24px 26px 28px; flex: 1; display: flex; flex-direction: column; gap: 0; }
+    .sc-card-date { font-size: 9px; letter-spacing: .25em; text-transform: uppercase; color: var(--marron); font-weight: 600; margin-bottom: 9px; }
+    .sc-section.dark .sc-card-date { color: var(--marron-cl); }
+    .sc-card-title {
+      font-family: var(--fs); font-size: 22px; font-weight: 600;
+      color: var(--negro); line-height: 1.15; margin-bottom: 10px;
+    }
+    .sc-section.dark .sc-card-title { color: var(--marfil); }
+    .sc-card-desc { font-size: 12px; color: var(--gris-dk); line-height: 1.7; font-weight: 300; flex: 1; margin-bottom: 20px; }
+    .sc-section.dark .sc-card-desc { color: rgba(255,255,255,.35); }
+    .sc-card-place { font-size: 10px; color: var(--gris); letter-spacing: .05em; margin-bottom: 18px; }
+    .sc-section.dark .sc-card-place { color: rgba(255,255,255,.3); }
+
+    /* Waitlist button */
+    .sc-btn-wl {
+      align-self: flex-start; background: var(--negro); color: var(--marfil);
+      border: none; padding: 10px 20px;
+      font-size: 9px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;
+      font-family: var(--fb); cursor: pointer; transition: background .2s;
+    }
+    .sc-btn-wl:hover { background: var(--marron); }
+    .sc-btn-wl:disabled { opacity: .45; cursor: default; }
+    .sc-btn-wl.joined { background: var(--marron); cursor: default; }
+    .sc-section.dark .sc-btn-wl { background: var(--marfil); color: var(--negro); }
+    .sc-section.dark .sc-btn-wl:hover { background: var(--marron-cl); color: var(--blanco); }
+    .sc-section.dark .sc-btn-wl.joined { background: var(--marron-cl); color: var(--blanco); }
+
+    /* Beneficios - chips & code */
+    .sc-chip {
+      display: inline-block; padding: 3px 10px; margin-right: 5px; margin-bottom: 10px;
+      border: 1px solid var(--gris-cl); font-size: 9px;
+      color: var(--gris-dk); font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+    }
+    .sc-chip.accent { border-color: var(--marron); color: var(--marron); }
+    .sc-code-box {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      background: var(--gris-cl); padding: 12px 16px; margin-top: auto;
+    }
+    .sc-section.dark .sc-code-box { background: rgba(255,255,255,.07); }
+    .sc-code { font-family: 'Courier New', monospace; font-size: 17px; font-weight: 700; letter-spacing: .12em; color: var(--negro); }
+    .sc-section.dark .sc-code { color: var(--marfil); }
+    .sc-code-copy {
+      font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+      background: var(--negro); color: var(--marfil); border: none;
+      padding: 7px 13px; cursor: pointer; font-family: var(--fb); white-space: nowrap; transition: background .2s;
+    }
+    .sc-code-copy:hover { background: var(--marron); }
+    .sc-section.dark .sc-code-copy { background: var(--marfil); color: var(--negro); }
+    .sc-section.dark .sc-code-copy:hover { background: var(--marron-cl); color: var(--blanco); }
+
+    /* Empty state */
+    .sc-empty { grid-column: 1/-1; padding: 64px 20px; text-align: center; font-size: 13px; color: var(--gris); font-weight: 300; }
+    .sc-section.dark .sc-empty { color: rgba(255,255,255,.25); }
+
+    /* ════ WAITLIST MODAL ════ */
+    .sc-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.75); z-index: 500;
+      align-items: flex-end; justify-content: center;
+      padding: 0;
+    }
+    @media (min-width: 600px) {
+      .sc-overlay { align-items: center; padding: 20px; }
+    }
+    .sc-overlay.open { display: flex; }
+    .sc-modal {
+      background: #111; width: 100%; max-width: 480px;
+      padding: 44px 40px; position: relative;
+      border-top: 3px solid var(--marron-cl);
+    }
+    .sc-modal-close {
+      position: absolute; top: 14px; right: 20px;
+      background: none; border: none; color: rgba(255,255,255,.3);
+      font-size: 24px; cursor: pointer; line-height: 1; padding: 4px;
+      transition: color .2s;
+    }
+    .sc-modal-close:hover { color: var(--marfil); }
+    .sc-modal-kicker { font-size: 9px; letter-spacing: .4em; text-transform: uppercase; color: var(--marron-cl); font-weight: 600; margin-bottom: 10px; }
+    .sc-modal-title { font-family: var(--fs); font-size: 30px; font-weight: 600; color: var(--marfil); margin-bottom: 6px; line-height: 1.1; }
+    .sc-modal-sub { font-size: 12px; color: rgba(255,255,255,.35); margin-bottom: 28px; font-weight: 300; line-height: 1.6; }
+    .sc-modal-err { font-size: 11px; color: #e07575; min-height: 16px; margin-bottom: 10px; }
+
+    /* ════ FOOTER ════ */
+    .sc-footer { background: var(--negro); padding: 52px 40px; text-align: center; border-top: 1px solid rgba(255,255,255,.06); }
+    .sc-footer-logo { font-family: var(--fs); font-size: 28px; font-weight: 700; color: var(--marfil); letter-spacing: .08em; margin-bottom: 10px; }
+    .sc-footer-sub { font-size: 9px; letter-spacing: .35em; text-transform: uppercase; color: var(--gris); }
+
+    /* ════ TOAST ════ */
+    .sc-toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(10px);
+      background: var(--marfil); color: var(--negro);
+      padding: 12px 24px; font-size: 11px; font-weight: 600; letter-spacing: .05em;
+      z-index: 1000; opacity: 0; pointer-events: none;
+      transition: opacity .3s, transform .3s;
+    }
+    .sc-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ════ RESPONSIVE ════ */
+    @media (max-width: 700px) {
+      .sc-header { padding: 0 20px; }
+      .sc-nav { display: none; }
+      .sc-section { padding: 64px 20px; }
+      .sc-grid { grid-template-columns: 1fr; }
+      .sc-modal { padding: 36px 24px; }
+      .sc-hero-title { font-size: clamp(60px, 18vw, 100px); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header class="sc-header">
+  <a class="sc-logo" href="#">
+    <img src="/soulab-logo.png" alt="SOULAB" onerror="this.style.display='none';document.querySelector('.sc-logo-fallback').style.display='flex'">
+    <div class="sc-logo-fallback" style="display:none">S</div>
+    <div class="sc-logo-info">
+      <div class="sc-logo-name">Soul Club</div>
+      <div class="sc-logo-by">by SOULAB</div>
+    </div>
+  </a>
+  <nav class="sc-nav">
+    <a href="#eventos">Eventos</a>
+    <a href="#drops">Drops</a>
+    <a href="#beneficios">Beneficios</a>
+  </nav>
+</header>
+
+<!-- ═══ HERO ═══ -->
+<section class="sc-hero">
+  <div class="sc-hero-label">Acceso exclusivo</div>
+  <h1 class="sc-hero-title">Soul<br><em>Club</em></h1>
+  <div class="sc-hero-divider"></div>
+  <p class="sc-hero-sub">Primero en enterarte. Drops, eventos y beneficios solo para la comunidad SOULAB.</p>
+
+  <div class="sc-form-wrap" id="join-wrap">
+    <div class="sc-form-field">
+      <input class="sc-input" id="join-nombre" placeholder="Tu nombre" autocomplete="given-name">
+    </div>
+    <div class="sc-form-field">
+      <input class="sc-input" id="join-email" placeholder="Tu email" type="email" autocomplete="email">
+    </div>
+    <button class="sc-btn-primary" id="join-btn" onclick="joinClub()">Unirme al Soul Club</button>
+    <div class="sc-form-note">Sin spam. Solo lo que importa.</div>
+    <div class="sc-success" id="join-ok">✦ &nbsp;Bienvenido al Soul Club &nbsp;✦<br><span style="font-size:10px;opacity:.7">Te avisamos antes que nadie.</span></div>
+  </div>
+</section>
+
+<!-- ═══ EVENTOS ═══ -->
+<section class="sc-section" id="eventos">
+  <div class="sc-section-inner">
+    <div class="sc-section-head">
+      <div>
+        <div class="sc-kicker">Próximamente</div>
+        <h2 class="sc-section-title">Eventos</h2>
+      </div>
+      <p class="sc-section-desc">Experiencias exclusivas para la comunidad. Anotate para reservar tu lugar.</p>
+    </div>
+    <div class="sc-grid" id="eventos-grid">
+      <div class="sc-empty">Cargando...</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ DROPS ═══ -->
+<section class="sc-section dark" id="drops">
+  <div class="sc-section-inner">
+    <div class="sc-section-head">
+      <div>
+        <div class="sc-kicker">Próximamente</div>
+        <h2 class="sc-section-title">Drops</h2>
+      </div>
+      <p class="sc-section-desc">Nuevas prendas antes de salir al público. Anotate y te avisamos.</p>
+    </div>
+    <div class="sc-grid" id="drops-grid">
+      <div class="sc-empty">Cargando...</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ BENEFICIOS ═══ -->
+<section class="sc-section alt" id="beneficios">
+  <div class="sc-section-inner">
+    <div class="sc-section-head">
+      <div>
+        <div class="sc-kicker">Solo para miembros</div>
+        <h2 class="sc-section-title">Beneficios</h2>
+      </div>
+      <p class="sc-section-desc">Descuentos, códigos exclusivos y acceso a lugares especiales.</p>
+    </div>
+    <div class="sc-grid" id="beneficios-grid">
+      <div class="sc-empty">Cargando...</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="sc-footer">
+  <div class="sc-footer-logo">SOULAB</div>
+  <div class="sc-footer-sub">Soul Club &nbsp;·&nbsp; Comunidad Exclusiva</div>
+</footer>
+
+<!-- ═══ WAITLIST MODAL ═══ -->
+<div class="sc-overlay" id="wl-modal">
+  <div class="sc-modal">
+    <button class="sc-modal-close" onclick="closeWL()">×</button>
+    <div class="sc-modal-kicker" id="wl-kicker">Lista de espera</div>
+    <div class="sc-modal-title" id="wl-title">—</div>
+    <div class="sc-modal-sub" id="wl-sub">Anotate y te avisamos cuando esté disponible.</div>
+    <div class="sc-modal-err" id="wl-err"></div>
+    <div class="sc-form-field">
+      <input class="sc-input" id="wl-nombre" placeholder="Tu nombre" style="background:rgba(255,255,255,.06)">
+    </div>
+    <div class="sc-form-field" style="margin-bottom:16px">
+      <input class="sc-input" id="wl-email" placeholder="Tu email" type="email" style="background:rgba(255,255,255,.06)">
+    </div>
+    <button class="sc-btn-primary" id="wl-btn" onclick="submitWL()">Anotarme</button>
+  </div>
+</div>
+
+<!-- ═══ TOAST ═══ -->
+<div class="sc-toast" id="sc-toast"></div>
+
+<script>
+  const P = new URLSearchParams(location.search);
+  const WS = P.get('ws') || '';
+  let _wlTarget = null;
+
+  function toast(msg, dur = 3000) {
+    const el = document.getElementById('sc-toast');
+    el.textContent = msg; el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), dur);
+  }
+
+  function _fmtFecha(str) {
+    if (!str) return '';
+    const d = new Date(str + 'T12:00:00');
+    return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  // ── JOIN CLUB ──────────────────────────────────────────────
+  async function joinClub() {
+    const nombre = document.getElementById('join-nombre').value.trim();
+    const email  = document.getElementById('join-email').value.trim();
+    if (!email || !email.includes('@')) { toast('Ingresá un email válido'); return; }
+    if (!WS) { toast('Link inválido'); return; }
+    const btn = document.getElementById('join-btn');
+    btn.disabled = true; btn.textContent = 'Enviando...';
+    try {
+      const r = await fetch('/api/soul-club/join', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wsId: WS, email, nombre })
+      });
+      const d = await r.json();
+      if (d.ok || d.ya_miembro) {
+        document.getElementById('join-nombre').style.display = 'none';
+        document.getElementById('join-email').style.display = 'none';
+        btn.style.display = 'none';
+        document.querySelector('.sc-form-note').style.display = 'none';
+        document.getElementById('join-ok').style.display = 'block';
+      } else {
+        toast(d.error || 'Algo salió mal'); btn.disabled = false; btn.textContent = 'Unirme al Soul Club';
+      }
+    } catch(e) { toast('Error de red'); btn.disabled = false; btn.textContent = 'Unirme al Soul Club'; }
+  }
+
+  // ── CARGAR SECCIONES ──────────────────────────────────────
+  async function loadEventos() {
+    const el = document.getElementById('eventos-grid');
+    try {
+      const r = await fetch('/api/soul-club/eventos?ws=' + encodeURIComponent(WS));
+      const list = await r.json();
+      if (!list.length) { el.innerHTML = '<div class="sc-empty">No hay eventos publicados aún. Estate atento.</div>'; return; }
+      el.innerHTML = list.map(ev => `
+        <div class="sc-card">
+          <div class="sc-card-img">
+            ${ev.imagen_url ? `<img src="${escHtml(ev.imagen_url)}" alt="${escHtml(ev.titulo)}" loading="lazy">` : '<div class="sc-card-img-ph"></div>'}
+          </div>
+          <div class="sc-card-body">
+            ${ev.fecha ? `<div class="sc-card-date">${_fmtFecha(ev.fecha)}</div>` : ''}
+            <div class="sc-card-title">${escHtml(ev.titulo)}</div>
+            ${ev.descripcion ? `<div class="sc-card-desc">${escHtml(ev.descripcion)}</div>` : '<div style="flex:1"></div>'}
+            ${ev.lugar ? `<div class="sc-card-place">📍 ${escHtml(ev.lugar)}</div>` : ''}
+            ${ev.waitlist_abierta
+              ? `<button class="sc-btn-wl" id="wlbtn-ev-${ev.id}" onclick="openWL('evento','${ev.id}','${escJs(ev.titulo)}')">Anotarme al evento</button>`
+              : `<button class="sc-btn-wl" disabled>Lista cerrada</button>`}
+          </div>
+        </div>`).join('');
+    } catch(e) { el.innerHTML = '<div class="sc-empty">Error al cargar eventos.</div>'; }
+  }
+
+  async function loadDrops() {
+    const el = document.getElementById('drops-grid');
+    try {
+      const r = await fetch('/api/soul-club/drops?ws=' + encodeURIComponent(WS));
+      const list = await r.json();
+      if (!list.length) { el.innerHTML = '<div class="sc-empty">No hay drops publicados aún. Pronto.</div>'; return; }
+      el.innerHTML = list.map(dr => `
+        <div class="sc-card">
+          <div class="sc-card-img">
+            ${dr.imagen_url ? `<img src="${escHtml(dr.imagen_url)}" alt="${escHtml(dr.titulo)}" loading="lazy">` : '<div class="sc-card-img-ph"></div>'}
+          </div>
+          <div class="sc-card-body">
+            ${dr.fecha_drop ? `<div class="sc-card-date">${_fmtFecha(dr.fecha_drop)}</div>` : ''}
+            <div class="sc-card-title">${escHtml(dr.titulo)}</div>
+            ${dr.descripcion ? `<div class="sc-card-desc">${escHtml(dr.descripcion)}</div>` : '<div style="flex:1"></div>'}
+            ${dr.waitlist_abierta
+              ? `<button class="sc-btn-wl" id="wlbtn-dr-${dr.id}" onclick="openWL('drop','${dr.id}','${escJs(dr.titulo)}')">Anotarme al drop</button>`
+              : `<button class="sc-btn-wl" disabled>Lista cerrada</button>`}
+          </div>
+        </div>`).join('');
+    } catch(e) { el.innerHTML = '<div class="sc-empty">Error al cargar drops.</div>'; }
+  }
+
+  async function loadBeneficios() {
+    const el = document.getElementById('beneficios-grid');
+    try {
+      const r = await fetch('/api/soul-club/beneficios?ws=' + encodeURIComponent(WS));
+      const list = await r.json();
+      if (!list.length) { el.innerHTML = '<div class="sc-empty">No hay beneficios publicados aún.</div>'; return; }
+      const tipoLabel = { codigo: 'Código', lugar: 'Lugar especial', descuento: 'Descuento', otro: 'Beneficio' };
+      el.innerHTML = list.map(b => `
+        <div class="sc-card">
+          <div class="sc-card-img">
+            ${b.imagen_url ? `<img src="${escHtml(b.imagen_url)}" alt="${escHtml(b.titulo)}" loading="lazy">` : '<div class="sc-card-img-ph"></div>'}
+          </div>
+          <div class="sc-card-body">
+            <div>
+              <span class="sc-chip accent">${tipoLabel[b.tipo] || 'Beneficio'}</span>
+              ${b.vigencia_hasta ? `<span class="sc-chip">Hasta ${_fmtFecha(b.vigencia_hasta)}</span>` : ''}
+            </div>
+            <div class="sc-card-title">${escHtml(b.titulo)}</div>
+            ${b.descripcion ? `<div class="sc-card-desc">${escHtml(b.descripcion)}</div>` : '<div style="flex:1"></div>'}
+            ${b.lugar ? `<div class="sc-card-place">📍 ${escHtml(b.lugar)}</div>` : ''}
+            ${b.codigo ? `
+              <div class="sc-code-box">
+                <span class="sc-code">${escHtml(b.codigo)}</span>
+                <button class="sc-code-copy" onclick="copyCode('${escJs(b.codigo)}', this)">Copiar</button>
+              </div>` : ''}
+          </div>
+        </div>`).join('');
+    } catch(e) { el.innerHTML = '<div class="sc-empty">Error al cargar beneficios.</div>'; }
+  }
+
+  function copyCode(code, btn) {
+    navigator.clipboard.writeText(code)
+      .then(() => { btn.textContent = '✓ Copiado'; setTimeout(() => btn.textContent = 'Copiar', 2000); })
+      .catch(() => toast('Código: ' + code));
+  }
+
+  // ── WAITLIST MODAL ─────────────────────────────────────────
+  function openWL(tipo, id, titulo) {
+    _wlTarget = { tipo, id, titulo };
+    const isEv = tipo === 'evento';
+    document.getElementById('wl-kicker').textContent = isEv ? 'Evento' : 'Drop';
+    document.getElementById('wl-title').textContent = titulo;
+    document.getElementById('wl-sub').textContent = isEv
+      ? 'Anotate y te mandamos los detalles del evento antes que nadie.'
+      : 'Anotate y sé de los primeros en saber cuándo el drop está disponible.';
+    document.getElementById('wl-err').textContent = '';
+    document.getElementById('wl-nombre').value = '';
+    document.getElementById('wl-email').value = '';
+    const btn = document.getElementById('wl-btn');
+    btn.disabled = false; btn.textContent = 'Anotarme';
+    document.getElementById('wl-modal').classList.add('open');
+  }
+
+  function closeWL() { document.getElementById('wl-modal').classList.remove('open'); }
+
+  async function submitWL() {
+    const nombre = document.getElementById('wl-nombre').value.trim();
+    const email  = document.getElementById('wl-email').value.trim();
+    if (!email || !email.includes('@')) { document.getElementById('wl-err').textContent = 'Email inválido'; return; }
+    if (!_wlTarget) return;
+    const btn = document.getElementById('wl-btn');
+    btn.disabled = true; btn.textContent = 'Enviando...';
+    try {
+      const url = _wlTarget.tipo === 'evento'
+        ? `/api/soul-club/eventos/${_wlTarget.id}/waitlist`
+        : `/api/soul-club/drops/${_wlTarget.id}/waitlist`;
+      const r = await fetch(url, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, nombre })
+      });
+      const d = await r.json();
+      if (d.ok || d.ya_anotado) {
+        closeWL();
+        const btnEl = document.getElementById('wlbtn-' + (_wlTarget.tipo === 'evento' ? 'ev' : 'dr') + '-' + _wlTarget.id);
+        if (btnEl) { btnEl.textContent = '✓ Anotado'; btnEl.classList.add('joined'); btnEl.disabled = true; }
+        toast('¡Listo! Te avisamos cuando sea el momento.');
+      } else {
+        document.getElementById('wl-err').textContent = d.error || 'Error al anotarse';
+        btn.disabled = false; btn.textContent = 'Anotarme';
+      }
+    } catch(e) {
+      document.getElementById('wl-err').textContent = 'Error de red';
+      btn.disabled = false; btn.textContent = 'Anotarme';
+    }
+  }
+
+  document.getElementById('wl-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeWL();
+  });
+
+  // ── HELPERS ───────────────────────────────────────────────
+  function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function escJs(s) { return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+  // ── INIT ──────────────────────────────────────────────────
+  if (WS) {
+    loadEventos();
+    loadDrops();
+    loadBeneficios();
+  } else {
+    ['eventos-grid','drops-grid','beneficios-grid'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<div class="sc-empty">Link inválido — falta el parámetro ws.</div>';
+    });
+  }
+</script>
+</body>
+</html>

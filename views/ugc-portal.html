@@ -382,6 +382,7 @@ function renderCanjes() {
       ${c.producto_url ? `<a class="canje-url" href="${c.producto_url}" target="_blank">🔗 Ver producto</a>` : ''}
       <div class="canje-meta">
         ${c.pago_monto ? `<span class="canje-chip pago">💰 $${c.pago_monto} de pago</span>` : ''}
+        ${c.descuento_tipo ? `<span class="canje-chip" style="background:#7c4dff18;color:#7c4dff;border:1px solid #7c4dff30">🏷 ${c.descuento_tipo}</span>` : ''}
         <span class="canje-chip plazo">⏱ ${c.demora_max_dias} días para entregar</span>
       </div>
       ${fmts ? `<div class="brief-list"><div style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Qué publicar</div>${fmts}</div>` : ''}
