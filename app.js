@@ -6362,10 +6362,11 @@ app.get('/soul-club', (req, res) => {
 
 // ── Upload imagen a Supabase Storage ────────────────────────
 app.post('/api/soul-club/upload', async (req, res) => {
-  const { data, contentType, filename } = req.body
-  if (!data || !contentType) return res.status(400).json({ error: 'Faltan datos' })
+  const { data, base64, contentType, filename } = req.body
+  const imgData = data || base64
+  if (!imgData || !contentType) return res.status(400).json({ error: 'Faltan datos' })
   try {
-    const buffer = Buffer.from(data, 'base64')
+    const buffer = Buffer.from(imgData, 'base64')
     const safeName = (filename || Date.now() + '.jpg').replace(/[^a-zA-Z0-9._-]/g, '-')
     const key = `${Date.now()}-${safeName}`
     const uploadUrl = `${SUPA_URL}/storage/v1/object/soul-club/${key}`
@@ -6386,19 +6387,40 @@ app.post('/api/soul-club/upload', async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
-// ── PUBLIC: Unirse al club ────────────────────────────────────
+// ── PUBLIC: Unirse al club (solicitud pendiente) ──────────────
 app.post('/api/soul-club/join', async (req, res) => {
-  const { wsId, email, nombre } = req.body
+  const { wsId, email, nombre, wapp, instagram } = req.body
   if (!wsId || !email) return res.status(400).json({ error: 'wsId y email requeridos' })
+  const emailClean = email.toLowerCase().trim()
   try {
-    const r = await _supa('POST', 'soul_club_miembros', {
-      prefer: 'resolution=merge-duplicates,return=representation',
-      body: { ws_id: wsId, email: email.toLowerCase().trim(), nombre: nombre?.trim() || null }
+    // Check si ya existe
+    const existing = await _supa('GET', 'soul_club_miembros', {
+      filter: `ws_id=eq.${wsId}&email=eq.${emailClean}`
     })
-    if (!r.ok && r.status !== 409) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
-    if (r.status === 409) return res.json({ ok: true, ya_miembro: true })
-    res.json({ ok: true })
+    if (existing.data?.length) {
+      const m = existing.data[0]
+      return res.json({ ok: true, ya_miembro: true, estado: m.estado })
+    }
+    const r = await _supa('POST', 'soul_club_miembros', {
+      prefer: 'return=representation',
+      body: { ws_id: wsId, email: emailClean, nombre: nombre?.trim() || null, wapp: wapp?.trim() || null, instagram: instagram?.trim() || null, estado: 'pendiente' }
+    })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
+    res.json({ ok: true, estado: 'pendiente' })
   } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── PUBLIC: Verificar estado de membresía ─────────────────────
+app.get('/api/soul-club/check-member', async (req, res) => {
+  const { ws, email } = req.query
+  if (!ws || !email) return res.json({ estado: null })
+  try {
+    const r = await _supa('GET', 'soul_club_miembros', {
+      filter: `ws_id=eq.${ws}&email=eq.${email.toLowerCase().trim()}`
+    })
+    if (!r.data?.length) return res.json({ estado: null })
+    res.json({ estado: r.data[0].estado })
+  } catch(e) { res.json({ estado: null }) }
 })
 
 // ── PUBLIC: Eventos ───────────────────────────────────────────
@@ -6469,12 +6491,36 @@ app.get('/api/soul-club/beneficios', async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
-// ── ADMIN: Miembros ───────────────────────────────────────────
-app.get('/api/admin/soul-club/miembros', async (req, res) => {
+// ── ADMIN: Solicitudes pendientes ────────────────────────────
+app.get('/api/admin/soul-club/solicitudes', async (req, res) => {
   const { wsId } = req.query
   if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
   try {
-    const r = await _supa('GET', 'soul_club_miembros', { filter: `ws_id=eq.${wsId}&order=created_at.desc` })
+    const r = await _supa('GET', 'soul_club_miembros', { filter: `ws_id=eq.${wsId}&estado=eq.pendiente&order=created_at.desc` })
+    res.json(r.data || [])
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── ADMIN: Aceptar / rechazar solicitud ──────────────────────
+app.patch('/api/admin/soul-club/solicitudes/:id', async (req, res) => {
+  const { id } = req.params
+  const { accion, wsId } = req.body
+  if (!accion || !wsId) return res.status(400).json({ error: 'Faltan datos' })
+  const estado = accion === 'aceptar' ? 'aceptado' : 'rechazado'
+  try {
+    const r = await _supa('PATCH', `soul_club_miembros?id=eq.${id}&ws_id=eq.${wsId}`, { body: { estado } })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
+    res.json({ ok: true, estado })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── ADMIN: Miembros ───────────────────────────────────────────
+app.get('/api/admin/soul-club/miembros', async (req, res) => {
+  const { wsId, estado } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const filter = estado ? `ws_id=eq.${wsId}&estado=eq.${estado}&order=created_at.desc` : `ws_id=eq.${wsId}&order=created_at.desc`
+    const r = await _supa('GET', 'soul_club_miembros', { filter })
     res.json(r.data || [])
   } catch(e) { res.status(500).json({ error: e.message }) }
 })

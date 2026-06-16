@@ -303,6 +303,7 @@
   <div class="sc-hero-divider"></div>
   <p class="sc-hero-sub">Primero en enterarte. Drops, eventos y beneficios solo para la comunidad SOULAB.</p>
 
+  <!-- Estado: join form -->
   <div class="sc-form-wrap" id="join-wrap">
     <div class="sc-form-field">
       <input class="sc-input" id="join-nombre" placeholder="Tu nombre" autocomplete="given-name">
@@ -310,14 +311,38 @@
     <div class="sc-form-field">
       <input class="sc-input" id="join-email" placeholder="Tu email" type="email" autocomplete="email">
     </div>
-    <button class="sc-btn-primary" id="join-btn" onclick="joinClub()">Unirme al Soul Club</button>
-    <div class="sc-form-note">Sin spam. Solo lo que importa.</div>
-    <div class="sc-success" id="join-ok">✦ &nbsp;Bienvenido al Soul Club &nbsp;✦<br><span style="font-size:10px;opacity:.7">Te avisamos antes que nadie.</span></div>
+    <div class="sc-form-field">
+      <input class="sc-input" id="join-wapp" placeholder="WhatsApp (ej: +549...)" type="tel">
+    </div>
+    <div class="sc-form-field">
+      <input class="sc-input" id="join-instagram" placeholder="@instagram">
+    </div>
+    <button class="sc-btn-primary" id="join-btn" onclick="joinClub()">Solicitar acceso</button>
+    <div class="sc-form-note">Tu solicitud será revisada. Solo lo que importa.</div>
+  </div>
+
+  <!-- Estado: pendiente -->
+  <div class="sc-form-wrap" id="state-pendiente" style="display:none">
+    <div style="text-align:center;padding:24px 0">
+      <div style="font-size:11px;letter-spacing:.4em;text-transform:uppercase;color:var(--marron-cl);margin-bottom:16px">Solicitud enviada</div>
+      <div style="font-family:var(--fs);font-size:28px;color:var(--marfil);margin-bottom:14px;letter-spacing:.04em">REVISANDO TU SOLICITUD</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.8;max-width:320px;margin:0 auto 24px">Estamos revisando tu solicitud. Te avisamos por WhatsApp o email cuando seas aceptado.</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.2);letter-spacing:.1em">SOULAB SOUL CLUB</div>
+    </div>
+  </div>
+
+  <!-- Estado: rechazado -->
+  <div class="sc-form-wrap" id="state-rechazado" style="display:none">
+    <div style="text-align:center;padding:24px 0">
+      <div style="font-size:11px;letter-spacing:.4em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px">Solicitud</div>
+      <div style="font-family:var(--fs);font-size:28px;color:var(--marfil);margin-bottom:14px;letter-spacing:.04em">NO ACEPTADO</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.8;max-width:320px;margin:0 auto 24px">Tu solicitud no fue aceptada en esta oportunidad. Podés contactarnos por Instagram para más información.</div>
+    </div>
   </div>
 </section>
 
 <!-- ═══ EVENTOS ═══ -->
-<section class="sc-section" id="eventos">
+<section class="sc-section" id="eventos" style="display:none">
   <div class="sc-section-inner">
     <div class="sc-section-head">
       <div>
@@ -333,7 +358,7 @@
 </section>
 
 <!-- ═══ DROPS ═══ -->
-<section class="sc-section dark" id="drops">
+<section class="sc-section dark" id="drops" style="display:none">
   <div class="sc-section-inner">
     <div class="sc-section-head">
       <div>
@@ -349,7 +374,7 @@
 </section>
 
 <!-- ═══ BENEFICIOS ═══ -->
-<section class="sc-section alt" id="beneficios">
+<section class="sc-section alt" id="beneficios" style="display:none">
   <div class="sc-section-inner">
     <div class="sc-section-head">
       <div>
@@ -408,10 +433,34 @@
     return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
   }
 
+  // ── MEMBERSHIP CHECK ──────────────────────────────────────
+  const SC_KEY = 'sc_email_' + WS;
+
+  function showState(estado) {
+    document.getElementById('join-wrap').style.display       = estado === null ? '' : 'none';
+    document.getElementById('state-pendiente').style.display = estado === 'pendiente' ? '' : 'none';
+    document.getElementById('state-rechazado').style.display = estado === 'rechazado' ? '' : 'none';
+    const showContent = estado === 'aceptado';
+    ['eventos','drops','beneficios'].forEach(s => {
+      document.getElementById(s).style.display = showContent ? '' : 'none';
+    });
+    if (showContent) { loadEventos(); loadDrops(); loadBeneficios(); }
+  }
+
+  async function checkMembership(email) {
+    try {
+      const r = await fetch(`/api/soul-club/check-member?ws=${encodeURIComponent(WS)}&email=${encodeURIComponent(email)}`);
+      const d = await r.json();
+      showState(d.estado);
+    } catch(e) { showState(null); }
+  }
+
   // ── JOIN CLUB ──────────────────────────────────────────────
   async function joinClub() {
-    const nombre = document.getElementById('join-nombre').value.trim();
-    const email  = document.getElementById('join-email').value.trim();
+    const nombre    = document.getElementById('join-nombre').value.trim();
+    const email     = document.getElementById('join-email').value.trim();
+    const wapp      = document.getElementById('join-wapp').value.trim();
+    const instagram = document.getElementById('join-instagram').value.trim();
     if (!email || !email.includes('@')) { toast('Ingresá un email válido'); return; }
     if (!WS) { toast('Link inválido'); return; }
     const btn = document.getElementById('join-btn');
@@ -419,19 +468,16 @@
     try {
       const r = await fetch('/api/soul-club/join', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wsId: WS, email, nombre })
+        body: JSON.stringify({ wsId: WS, email, nombre, wapp, instagram })
       });
       const d = await r.json();
-      if (d.ok || d.ya_miembro) {
-        document.getElementById('join-nombre').style.display = 'none';
-        document.getElementById('join-email').style.display = 'none';
-        btn.style.display = 'none';
-        document.querySelector('.sc-form-note').style.display = 'none';
-        document.getElementById('join-ok').style.display = 'block';
+      if (d.ok) {
+        localStorage.setItem(SC_KEY, email);
+        showState(d.estado || 'pendiente');
       } else {
-        toast(d.error || 'Algo salió mal'); btn.disabled = false; btn.textContent = 'Unirme al Soul Club';
+        toast(d.error || 'Algo salió mal'); btn.disabled = false; btn.textContent = 'Solicitar acceso';
       }
-    } catch(e) { toast('Error de red'); btn.disabled = false; btn.textContent = 'Unirme al Soul Club'; }
+    } catch(e) { toast('Error de red'); btn.disabled = false; btn.textContent = 'Solicitar acceso'; }
   }
 
   // ── CARGAR SECCIONES ──────────────────────────────────────
@@ -578,10 +624,14 @@
 
   // ── INIT ──────────────────────────────────────────────────
   if (WS) {
-    loadEventos();
-    loadDrops();
-    loadBeneficios();
+    const savedEmail = localStorage.getItem(SC_KEY);
+    if (savedEmail) {
+      checkMembership(savedEmail);
+    } else {
+      showState(null);
+    }
   } else {
+    showState(null);
     ['eventos-grid','drops-grid','beneficios-grid'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.innerHTML = '<div class="sc-empty">Link inválido — falta el parámetro ws.</div>';

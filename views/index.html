@@ -2078,6 +2078,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button class="nav-tab active" id="sc-tab-btn-eventos" onclick="switchScTab('eventos',this)">Eventos</button>
     <button class="nav-tab" id="sc-tab-btn-drops" onclick="switchScTab('drops',this)">Drops</button>
     <button class="nav-tab" id="sc-tab-btn-beneficios" onclick="switchScTab('beneficios',this)">Beneficios</button>
+    <button class="nav-tab" id="sc-tab-btn-solicitudes" onclick="switchScTab('solicitudes',this)">Solicitudes <span id="sc-solicitudes-badge" style="background:#e0533322;color:#e05333;font-size:10px;padding:1px 7px;border-radius:9px;margin-left:2px;display:none">0</span></button>
     <button class="nav-tab" id="sc-tab-btn-miembros" onclick="switchScTab('miembros',this)">Miembros <span id="sc-miembros-badge" style="background:var(--s2);color:var(--muted);font-size:10px;padding:1px 7px;border-radius:9px;margin-left:2px">0</span></button>
   </nav>
   <nav class="nav-tabs" id="nav-tienda" style="display:none">
@@ -4356,9 +4357,18 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <div id="sc-beneficios-list"></div>
   </div>
 
+  <!-- ── TAB: SOLICITUDES ── -->
+  <div id="sc-tab-solicitudes" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap">
+      <div style="font-size:15px;font-weight:700;color:var(--text)">Solicitudes pendientes</div>
+      <button class="btn btn-xs" onclick="loadScSolicitudes()">↻ Actualizar</button>
+    </div>
+    <div id="sc-solicitudes-list"></div>
+  </div>
+
   <!-- ── TAB: MIEMBROS ── -->
   <div id="sc-tab-miembros" style="display:none">
-    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px">Miembros del club</div>
+    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px">Miembros aceptados</div>
     <div id="sc-miembros-list"></div>
   </div>
 
@@ -23225,20 +23235,21 @@ document.getElementById('ugc-modal')?.addEventListener('click',function(e){
 // ═══════════════════════════════════════════════════════════════
 
 let _scTab = 'eventos';
-let _scEventos = [], _scDrops = [], _scBeneficios = [], _scMiembros = [];
-let _scImgPending = null; // { base64, contentType, filename }
+let _scEventos = [], _scDrops = [], _scBeneficios = [], _scMiembros = [], _scSolicitudes = [];
+let _scImgPending = null;
 
 function switchScTab(tab, btn) {
   _scTab = tab;
-  ['eventos','drops','beneficios','miembros'].forEach(t => {
+  ['eventos','drops','beneficios','solicitudes','miembros'].forEach(t => {
     const el = document.getElementById('sc-tab-' + t);
     if (el) el.style.display = t === tab ? '' : 'none';
     const b = document.getElementById('sc-tab-btn-' + t);
     if (b) b.classList.toggle('active', t === tab);
   });
-  if (tab === 'eventos' && !_scEventos.length) loadScEventos();
-  else if (tab === 'drops' && !_scDrops.length) loadScDrops();
-  else if (tab === 'beneficios' && !_scBeneficios.length) loadScBeneficios();
+  if (tab === 'eventos') loadScEventos();
+  else if (tab === 'drops') loadScDrops();
+  else if (tab === 'beneficios') loadScBeneficios();
+  else if (tab === 'solicitudes') loadScSolicitudes();
   else if (tab === 'miembros') loadScMiembros();
 }
 
@@ -23247,7 +23258,15 @@ function initScPage() {
   const url = location.origin + '/soul-club?ws=' + wsId;
   const el = document.getElementById('sc-portal-url');
   if (el) el.textContent = url;
+  // Reset data para forzar recarga al cambiar workspace
+  _scEventos = []; _scDrops = []; _scBeneficios = []; _scMiembros = []; _scSolicitudes = [];
   switchScTab('eventos', document.getElementById('sc-tab-btn-eventos'));
+  // Cargar badge de solicitudes en background
+  fetch('/api/admin/soul-club/solicitudes?wsId=' + wsId)
+    .then(r => r.json()).then(list => {
+      const badge = document.getElementById('sc-solicitudes-badge');
+      if (badge) { badge.textContent = list.length; badge.style.display = list.length ? '' : 'none'; }
+    }).catch(() => {});
 }
 
 function copyScPortalLink() {
@@ -23290,28 +23309,77 @@ async function loadScBeneficios() {
   } catch(e) { el.innerHTML = '<div style="color:var(--coral);font-size:12px">Error al cargar</div>'; }
 }
 
+async function loadScSolicitudes() {
+  const wsId = _activeWsId; if (!wsId) return;
+  const el = document.getElementById('sc-solicitudes-list'); if (!el) return;
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px 0">Cargando...</div>';
+  try {
+    const r = await fetch('/api/admin/soul-club/solicitudes?wsId=' + wsId);
+    _scSolicitudes = await r.json();
+    const badge = document.getElementById('sc-solicitudes-badge');
+    if (badge) { badge.textContent = _scSolicitudes.length; badge.style.display = _scSolicitudes.length ? '' : 'none'; }
+    if (!_scSolicitudes.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:24px;text-align:center;background:var(--s1);border-radius:10px;border:1px dashed var(--border2)">No hay solicitudes pendientes.</div>';
+      return;
+    }
+    el.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px">' + _scSolicitudes.map(m => `
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:180px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:3px">${m.nombre||'Sin nombre'}</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:2px">${m.email}</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">
+            ${m.wapp ? `<span style="font-size:11px;color:var(--text)">📱 ${m.wapp}</span>` : ''}
+            ${m.instagram ? `<span style="font-size:11px;color:var(--text)">📷 ${m.instagram}</span>` : ''}
+            <span style="font-size:10px;color:var(--muted)">${_fmtDate(m.created_at)}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0">
+          <button class="btn btn-xs" onclick="resolveScSolicitud('${m.id}','aceptar')" style="background:rgba(52,199,123,.15);color:var(--green);border-color:rgba(52,199,123,.3)">✓ Aceptar</button>
+          <button class="btn btn-xs" onclick="resolveScSolicitud('${m.id}','rechazar')" style="color:var(--coral)">✗ Rechazar</button>
+        </div>
+      </div>`).join('') + '</div>';
+  } catch(e) { el.innerHTML = '<div style="color:var(--coral);font-size:12px">Error al cargar</div>'; }
+}
+
+async function resolveScSolicitud(id, accion) {
+  const wsId = _activeWsId; if (!wsId) return;
+  try {
+    const r = await fetch(`/api/admin/soul-club/solicitudes/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accion, wsId })
+    });
+    const d = await r.json();
+    if (d.ok) { notify(accion === 'aceptar' ? 'Miembro aceptado ✓' : 'Rechazado'); loadScSolicitudes(); }
+    else notify(d.error || 'Error', 'error');
+  } catch(e) { notify('Error de red', 'error'); }
+}
+
 async function loadScMiembros() {
   const wsId = _activeWsId; if (!wsId) return;
   const el = document.getElementById('sc-miembros-list'); if (!el) return;
   el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px 0">Cargando...</div>';
   try {
-    const r = await fetch('/api/admin/soul-club/miembros?wsId=' + wsId);
+    const r = await fetch('/api/admin/soul-club/miembros?wsId=' + wsId + '&estado=aceptado');
     _scMiembros = await r.json();
     const badge = document.getElementById('sc-miembros-badge');
     if (badge) badge.textContent = _scMiembros.length;
     if (!_scMiembros.length) {
-      el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:24px;text-align:center;background:var(--s1);border-radius:10px;border:1px dashed var(--border2)">Ningún miembro registrado aún. Compartí el link del portal.</div>';
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:24px;text-align:center;background:var(--s1);border-radius:10px;border:1px dashed var(--border2)">Ningún miembro aceptado aún.</div>';
       return;
     }
     el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr style="border-bottom:1px solid var(--border2)">
         <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Nombre</th>
         <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Email</th>
-        <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Fecha</th>
+        <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">WhatsApp</th>
+        <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Instagram</th>
+        <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Desde</th>
       </tr></thead>
       <tbody>` + _scMiembros.map(m => `<tr style="border-bottom:1px solid var(--border)">
         <td style="padding:10px;font-weight:600">${m.nombre||'—'}</td>
         <td style="padding:10px;color:var(--muted)">${m.email}</td>
+        <td style="padding:10px;color:var(--muted)">${m.wapp||'—'}</td>
+        <td style="padding:10px;color:var(--muted)">${m.instagram||'—'}</td>
         <td style="padding:10px;color:var(--muted)">${_fmtDate(m.created_at)}</td>
       </tr>`).join('') + '</tbody></table>';
   } catch(e) { el.innerHTML = '<div style="color:var(--coral);font-size:12px">Error al cargar</div>'; }
@@ -23414,7 +23482,7 @@ function scPreviewImg(input) {
     document.getElementById('sc-form-img-url').value = '';
     document.getElementById('sc-img-status').textContent = '✓ Lista para subir';
     _scImgPending = {
-      base64: e.target.result.split(',')[1],
+      data: e.target.result.split(',')[1],
       contentType: file.type,
       filename: file.name
     };
