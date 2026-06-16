@@ -6121,9 +6121,11 @@ app.post('/api/ugc/auth/verify', async (req, res) => {
 
 // ── PORTAL: canjes disponibles (SIN cupón) ────────────────────
 app.get('/api/ugc/canjes', _requireCreadora, async (req, res) => {
+  const wsId = req.query.ws
+  if (!wsId) return res.status(400).json({ error: 'Falta parámetro ws' })
   try {
     const r = await _supa('GET', 'ugc_canjes', {
-      filter: 'estado=eq.disponible&order=created_at.desc',
+      filter: `ws_id=eq.${wsId}&estado=eq.disponible&order=created_at.desc`,
       select: 'id,producto,brief,producto_url,pago_monto,demora_max_dias,estado,created_at'
       // cupon_codigo excluido explícitamente
     })
