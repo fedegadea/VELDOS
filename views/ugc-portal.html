@@ -2,208 +2,287 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<title>Canjes — Soul Studios</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Soul PR — SOULAB</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#08080f;--s1:#111118;--s2:#18181f;--s3:#222229;
-  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);
-  --text:#f0f0f5;--muted:#666;--muted2:#999;
-  --accent:#a855f7;--accent2:#7c3aed;
-  --green:#16a34a;--amber:#d97706;--red:#dc2626;--blue:#2563eb;
-  --radius:12px;--font:'Inter',system-ui,sans-serif;
+  --negro:#111111;--blanco:#FFFFFF;--marfil:#F4EFE6;
+  --gris-cl:#E2DBD3;--gris:#9A9590;--gris-dk:#5C5855;
+  --marron:#7A5C42;--marron-cl:#C4A882;
+  --green:#2d7a4f;--amber:#a0692a;--red:#8b2020;
+  --fs:'Bebas Neue','Barlow Condensed',Impact,sans-serif;
+  --fb:'Barlow',-apple-system,BlinkMacSystemFont,sans-serif;
 }
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
-input,select,button{font-family:var(--font)}
+body{font-family:var(--fb);background:var(--negro);color:var(--marfil);min-height:100vh;-webkit-font-smoothing:antialiased}
+input,select,button,textarea{font-family:var(--fb)}
 .screen{display:none;min-height:100vh;flex-direction:column}
 .screen.active{display:flex}
 
-/* ── Auth screens ── */
-.auth-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:24px}
-.auth-card{width:100%;max-width:380px;background:var(--s1);border:1px solid var(--border2);border-radius:20px;padding:32px 28px}
-.auth-logo{font-size:28px;font-weight:900;letter-spacing:-.05em;margin-bottom:6px}
-.auth-logo em{font-style:italic;color:var(--accent)}
-.auth-sub{font-size:13px;color:var(--muted2);margin-bottom:28px;line-height:1.5}
-.field{margin-bottom:14px}
-.field label{display:block;font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
-.field input{width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:10px;padding:13px 14px;font-size:15px;color:var(--text);outline:none;transition:border-color .2s}
-.field input:focus{border-color:var(--accent)}
-.field input::placeholder{color:var(--muted)}
-.btn-primary{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .2s;margin-top:4px}
-.btn-primary:hover{opacity:.88}
+/* ── Auth ── */
+.auth-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--negro)}
+.auth-card{width:100%;max-width:380px}
+.auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px}
+.auth-logo img{height:26px;filter:invert(1) brightness(2)}
+.auth-logo-fallback{font-family:var(--fs);font-size:22px;color:var(--marfil);letter-spacing:.1em}
+.auth-title{font-family:var(--fs);font-size:42px;color:var(--marfil);letter-spacing:.04em;line-height:.9;margin-bottom:10px}
+.auth-sub{font-size:12px;color:rgba(255,255,255,.4);margin-bottom:32px;line-height:1.7;font-weight:300;letter-spacing:.02em}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:9px;font-weight:600;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.2em;margin-bottom:8px}
+.field input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-bottom-color:rgba(255,255,255,.25);padding:14px 16px;font-size:14px;color:var(--marfil);outline:none;transition:border-color .2s;border-radius:0;-webkit-appearance:none}
+.field input:focus{border-color:var(--marron-cl);background:rgba(255,255,255,.09)}
+.field input::placeholder{color:rgba(255,255,255,.2)}
+.btn-primary{width:100%;padding:15px;background:var(--marfil);color:var(--negro);border:none;font-size:10px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;cursor:pointer;transition:background .2s;margin-top:4px}
+.btn-primary:hover{background:var(--marron-cl)}
 .btn-primary:disabled{opacity:.45;cursor:not-allowed}
-.auth-err{font-size:12px;color:var(--red);min-height:18px;margin-top:6px;text-align:center}
-.auth-link{font-size:12px;color:var(--muted2);text-align:center;margin-top:16px;cursor:pointer}
-.auth-link span{color:var(--accent);text-decoration:underline;cursor:pointer}
-.otp-hint{font-size:12px;color:var(--muted2);background:var(--s2);border-radius:8px;padding:10px 12px;margin-bottom:14px;line-height:1.5}
+.auth-err{font-size:11px;color:var(--marron-cl);min-height:18px;margin-top:8px}
+.auth-link{font-size:11px;color:rgba(255,255,255,.3);text-align:center;margin-top:16px;cursor:pointer;letter-spacing:.05em}
+.auth-link span{color:var(--marron-cl);cursor:pointer}
 
-/* ── Main app ── */
-.app-header{background:var(--s1);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
-.app-logo{font-size:16px;font-weight:900;letter-spacing:-.04em}
-.app-logo em{font-style:italic;color:var(--accent)}
+/* ── App header ── */
+.app-header{
+  background:var(--negro);border-bottom:1px solid rgba(255,255,255,.07);
+  padding:0 20px;height:58px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100
+}
+.header-logo{display:flex;align-items:center;gap:10px}
+.header-logo img{height:22px;filter:invert(1) brightness(2)}
+.header-logo-text{font-family:var(--fs);font-size:16px;color:var(--marfil);letter-spacing:.15em}
+.header-logo-sub{font-size:8px;letter-spacing:.35em;text-transform:uppercase;color:var(--gris);display:block;margin-top:1px}
 .app-user{display:flex;align-items:center;gap:8px;cursor:pointer}
-.app-user-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
-.app-user-name{font-size:12px;color:var(--muted2);max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app-user-avatar{width:32px;height:32px;background:var(--marron);display:flex;align-items:center;justify-content:center;font-family:var(--fs);font-size:15px;color:var(--marfil);flex-shrink:0}
+.app-user-name{font-size:11px;color:rgba(255,255,255,.4);max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
 
-.app-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--s1);sticky:top;position:sticky;top:61px;z-index:99}
-.app-tab{flex:1;padding:14px 8px;text-align:center;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:color .2s,border-color .2s;position:relative}
-.app-tab.active{color:var(--text);border-color:var(--accent)}
+/* ── Tabs ── */
+.app-tabs{display:flex;border-bottom:1px solid rgba(255,255,255,.07);background:var(--negro);position:sticky;top:58px;z-index:99}
+.app-tab{flex:1;padding:14px 8px;text-align:center;font-size:9px;font-weight:600;color:rgba(255,255,255,.3);cursor:pointer;border-bottom:2px solid transparent;transition:color .2s,border-color .2s;letter-spacing:.2em;text-transform:uppercase}
+.app-tab.active{color:var(--marfil);border-bottom-color:var(--marron-cl)}
 
-.app-content{flex:1;padding:20px 16px;max-width:600px;width:100%;margin:0 auto}
+.app-content{flex:1;padding:20px 16px;max-width:640px;width:100%;margin:0 auto}
+
+/* ── Profile panel ── */
+.profile-panel{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:16px;margin-bottom:16px;display:none}
+.profile-panel.open{display:block}
 
 /* ── Canje cards ── */
-.canje-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:12px;transition:border-color .2s;cursor:default}
-.canje-card:hover{border-color:var(--border2)}
-.canje-titulo{font-size:15px;font-weight:700;margin-bottom:6px}
-.canje-url{font-size:12px;color:var(--accent);margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.canje-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.canje-chip{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid var(--border2);color:var(--muted2)}
-.canje-chip.pago{color:#16a34a;border-color:#16a34a30;background:#16a34a0f}
-.canje-chip.plazo{color:var(--muted2)}
-.brief-list{font-size:12px;color:var(--muted2);margin-bottom:14px;display:flex;flex-direction:column;gap:4px}
-.brief-item{display:flex;align-items:center;gap:8px}
-.brief-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0}
-.btn-solicitar{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s}
-.btn-solicitar:hover{opacity:.88}
-.btn-solicitar:disabled{background:var(--s3);color:var(--muted);cursor:not-allowed;opacity:1}
+.canje-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);margin-bottom:1px;transition:border-color .2s}
+.canje-card:hover{border-color:rgba(255,255,255,.15)}
+.canje-cover{width:100%;aspect-ratio:16/7;object-fit:cover;display:block;background:rgba(255,255,255,.05)}
+.canje-cover-ph{width:100%;aspect-ratio:16/7;background:linear-gradient(160deg,#1e1c1a,#2e2a26);display:flex;align-items:center;justify-content:center}
+.canje-cover-ph span{font-family:var(--fs);font-size:32px;color:rgba(255,255,255,.1);letter-spacing:.1em}
+.canje-body{padding:18px 18px 22px}
+.canje-tipo-tag{font-size:8px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--marron-cl);margin-bottom:8px;display:block}
+.canje-titulo{font-family:var(--fs);font-size:24px;color:var(--marfil);letter-spacing:.03em;margin-bottom:8px;line-height:1}
+.canje-lugar{font-size:11px;color:rgba(255,255,255,.35);margin-bottom:10px;display:flex;align-items:center;gap:5px}
+.canje-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.canje-chip{font-size:9px;font-weight:600;padding:3px 9px;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.5);letter-spacing:.08em;text-transform:uppercase}
+.canje-chip.pago{color:var(--marron-cl);border-color:var(--marron)}
+.canje-chip.desc{color:var(--marron-cl);border-color:var(--marron)}
+.brief-list{font-size:12px;color:rgba(255,255,255,.4);margin-bottom:16px;display:flex;flex-direction:column;gap:5px}
+.brief-item{display:flex;align-items:flex-start;gap:8px;font-weight:300}
+.brief-dot{width:4px;height:4px;border-radius:50%;background:var(--marron-cl);flex-shrink:0;margin-top:5px}
+.btn-solicitar{width:100%;padding:13px;background:var(--marfil);color:var(--negro);border:none;font-size:9px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;cursor:pointer;transition:background .2s}
+.btn-solicitar:hover{background:var(--marron-cl)}
+.btn-solicitar:disabled{background:rgba(255,255,255,.08);color:rgba(255,255,255,.25);cursor:not-allowed}
 
-/* ── Solicitud cards ── */
-.sol-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:12px}
-.sol-estado{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:10px}
-.cupon-box{background:linear-gradient(135deg,var(--accent2),var(--accent));border-radius:10px;padding:16px;margin-top:12px;text-align:center}
-.cupon-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
-.cupon-code{font-size:24px;font-weight:900;letter-spacing:.12em;color:#fff;font-family:monospace}
-.cupon-copy{margin-top:10px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:12px;font-weight:600;padding:7px 16px;border-radius:20px;cursor:pointer;font-family:var(--font)}
+/* ── Sol cards ── */
+.sol-card{border:1px solid rgba(255,255,255,.08);margin-bottom:12px;padding:18px}
+.sol-estado{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:700;padding:3px 10px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:12px}
+.cupon-box{background:var(--marron);padding:18px;margin-top:14px;text-align:center;border:1px solid var(--marron-cl)}
+.cupon-label{font-size:9px;font-weight:700;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.2em;margin-bottom:8px}
+.cupon-code{font-family:'Courier New',monospace;font-size:26px;font-weight:900;letter-spacing:.15em;color:var(--marfil)}
+.cupon-copy{margin-top:12px;background:rgba(255,255,255,.15);border:none;color:var(--marfil);font-size:9px;font-weight:700;padding:8px 18px;cursor:pointer;letter-spacing:.15em;text-transform:uppercase;font-family:var(--fb);transition:background .2s}
 .cupon-copy:hover{background:rgba(255,255,255,.25)}
-.fecha-limite{font-size:11px;color:var(--amber);margin-top:8px;text-align:center}
-.fecha-limite.vencida{color:var(--red)}
+.fecha-limite{font-size:10px;color:rgba(255,255,255,.4);margin-top:8px;letter-spacing:.05em}
+.fecha-limite.vencida{color:#e07575}
 
-.empty{text-align:center;padding:48px 24px;color:var(--muted2)}
-.empty-icon{font-size:40px;margin-bottom:12px}
-.empty-text{font-size:14px;font-weight:500;margin-bottom:6px;color:var(--muted2)}
-.empty-sub{font-size:12px;color:var(--muted)}
+.empty{text-align:center;padding:56px 24px;color:rgba(255,255,255,.25)}
+.empty-icon{font-size:36px;margin-bottom:14px;opacity:.5}
+.empty-text{font-family:var(--fs);font-size:22px;color:rgba(255,255,255,.3);letter-spacing:.05em;margin-bottom:8px}
+.empty-sub{font-size:11px;color:rgba(255,255,255,.2);font-weight:300;letter-spacing:.05em}
 
-.spinner{display:inline-block;width:20px;height:20px;border:2px solid rgba(255,255,255,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+.loading-wrap{display:flex;justify-content:center;padding:48px}
+.spinner{width:20px;height:20px;border:2px solid rgba(255,255,255,.1);border-top-color:var(--marron-cl);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.loading-wrap{display:flex;justify-content:center;padding:40px}
 
-.notif{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--s3);color:var(--text);border:1px solid var(--border2);border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
-.notif.show{opacity:1}
+.notif{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--marfil);color:var(--negro);padding:11px 22px;font-size:11px;font-weight:700;letter-spacing:.05em;z-index:999;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;white-space:nowrap}
+.notif.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* ── Profile edit inline ── */
-.profile-panel{background:var(--s2);border-radius:12px;padding:16px;margin-bottom:16px;display:none}
-.profile-panel.open{display:block}
+@media(min-width:600px){
+  .app-content{padding:28px 24px}
+  .canje-titulo{font-size:30px}
+}
 </style>
 </head>
 <body>
 
-<!-- ═══ SCREEN: LOGIN ═══ -->
+<!-- ═══ LOGIN ═══ -->
 <div class="screen active" id="screen-login">
   <div class="auth-wrap">
     <div class="auth-card">
-      <div class="auth-logo">Soul <em>Canjes</em></div>
-      <div class="auth-sub">Ingresá con tu número de WhatsApp para acceder a los canjes disponibles.</div>
+      <div class="auth-logo">
+        <img src="/soulab-logo.png" alt="SOULAB" onerror="this.style.display='none';document.querySelector('.auth-logo-fallback').style.display='block'">
+        <span class="auth-logo-fallback" style="display:none">SOULAB</span>
+      </div>
+      <h1 class="auth-title">SOUL<br>PR</h1>
+      <p class="auth-sub">Portal exclusivo de colaboraciones y relaciones públicas. Ingresá con tu número de WhatsApp.</p>
       <div class="field">
-        <label>Tu número de WhatsApp</label>
+        <label>WhatsApp</label>
         <input type="tel" id="login-telefono" placeholder="+54 9 11 xxxx xxxx" inputmode="tel" onkeydown="if(event.key==='Enter')loginDirecto()">
       </div>
       <div class="auth-err" id="login-err"></div>
-      <button class="btn-primary" id="login-btn" onclick="loginDirecto()">Ingresar →</button>
-      <div class="auth-link" style="margin-top:20px;font-size:11px;color:var(--muted)">Solo tu número es necesario — sin contraseñas.</div>
+      <button class="btn-primary" id="login-btn" onclick="loginDirecto()">Ingresar</button>
+      <div class="auth-link" style="margin-top:20px">Sin contraseñas — solo tu número.</div>
     </div>
   </div>
 </div>
 
-<!-- ═══ SCREEN: PERFIL (primer login) ═══ -->
+<!-- ═══ PERFIL (primer login) ═══ -->
 <div class="screen" id="screen-perfil">
   <div class="auth-wrap">
     <div class="auth-card">
-      <div class="auth-logo" style="font-size:22px">¡Bienvenida! 🎉</div>
-      <div class="auth-sub">Completá tu perfil para que la marca pueda conocerte.</div>
+      <div class="auth-logo">
+        <img src="/soulab-logo.png" alt="SOULAB" onerror="this.style.display='none'">
+      </div>
+      <h1 class="auth-title" style="font-size:34px">COMPLETÁ<br>TU PERFIL</h1>
+      <p class="auth-sub" style="margin-bottom:24px">La marca necesita conocerte para trabajar con vos.</p>
       <div class="field">
         <label>Tu nombre</label>
-        <input type="text" id="perfil-nombre" placeholder="Ej: Valentina García" autocomplete="name">
+        <input type="text" id="perfil-nombre" placeholder="Valentina García" autocomplete="name">
       </div>
       <div class="field">
-        <label>Tu perfil de Instagram</label>
+        <label>Instagram (URL)</label>
         <input type="url" id="perfil-ig" placeholder="https://instagram.com/tu_usuario">
       </div>
       <div class="auth-err" id="perfil-err"></div>
-      <button class="btn-primary" id="perfil-btn" onclick="guardarPerfil()">Entrar a los canjes →</button>
+      <button class="btn-primary" id="perfil-btn" onclick="guardarPerfil()">Guardar y entrar</button>
       <div class="auth-link"><span onclick="guardarPerfil(true)">Omitir por ahora</span></div>
     </div>
   </div>
 </div>
 
-<!-- ═══ SCREEN: APP PRINCIPAL ═══ -->
+<!-- ═══ APP PRINCIPAL ═══ -->
 <div class="screen" id="screen-app">
-  <div class="app-header">
-    <div class="app-logo">Soul <em>Canjes</em></div>
+  <header class="app-header">
+    <div class="header-logo">
+      <img src="/soulab-logo.png" alt="SOULAB" onerror="this.style.display='none'">
+      <div>
+        <span class="header-logo-text">SOUL PR</span>
+        <span class="header-logo-sub">by SOULAB</span>
+      </div>
+    </div>
     <div class="app-user" onclick="toggleProfile()">
       <div class="app-user-avatar" id="user-avatar">?</div>
       <div class="app-user-name" id="user-name">—</div>
     </div>
-  </div>
+  </header>
 
-  <!-- Perfil inline edit -->
-  <div style="max-width:600px;width:100%;margin:0 auto;padding:0 16px">
+  <!-- Perfil inline -->
+  <div style="max-width:640px;width:100%;margin:0 auto;padding:0 16px">
     <div class="profile-panel" id="profile-panel">
-      <div style="font-size:12px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Tu perfil</div>
+      <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.2em;margin-bottom:14px">Tu perfil</div>
       <div class="field" style="margin-bottom:10px">
         <label>Nombre</label>
         <input type="text" id="edit-nombre" placeholder="Tu nombre">
       </div>
-      <div class="field" style="margin-bottom:10px">
+      <div class="field" style="margin-bottom:14px">
         <label>Instagram</label>
-        <input type="url" id="edit-ig" placeholder="https://instagram.com/tu_usuario">
+        <input type="url" id="edit-ig" placeholder="https://instagram.com/usuario">
       </div>
       <div style="display:flex;gap:8px">
-        <button onclick="guardarPerfilEdit()" style="flex:1;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Guardar</button>
-        <button onclick="logout()" style="padding:10px 16px;background:var(--s3);color:var(--muted2);border:none;border-radius:8px;font-size:13px;cursor:pointer">Salir</button>
+        <button onclick="guardarPerfilEdit()" style="flex:1;padding:11px;background:var(--marfil);color:var(--negro);border:none;font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;cursor:pointer">Guardar</button>
+        <button onclick="logout()" style="padding:11px 16px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.4);border:none;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;cursor:pointer">Salir</button>
       </div>
     </div>
   </div>
 
-  <div class="app-tabs">
-    <div class="app-tab active" id="tab-canjes" onclick="switchTab('canjes',this)">Canjes disponibles</div>
-    <div class="app-tab" id="tab-solicitudes" onclick="switchTab('solicitudes',this)">Mis solicitudes <span id="sol-count" style="display:none;background:var(--accent);color:#fff;font-size:10px;padding:1px 7px;border-radius:9px;margin-left:2px">0</span></div>
-  </div>
+  <nav class="app-tabs">
+    <div class="app-tab active" id="tab-canjes" onclick="switchTab('canjes',this)">Colaboraciones disponibles</div>
+    <div class="app-tab" id="tab-solicitudes" onclick="switchTab('solicitudes',this)">Mis solicitudes <span id="sol-count" style="display:none;background:var(--marron);color:var(--marfil);font-size:9px;padding:1px 7px;border-radius:0;margin-left:4px">0</span></div>
+  </nav>
 
-  <!-- Canjes tab -->
   <div class="app-content" id="content-canjes">
     <div class="loading-wrap"><div class="spinner"></div></div>
   </div>
 
-  <!-- Solicitudes tab -->
   <div class="app-content" id="content-solicitudes" style="display:none">
     <div class="loading-wrap"><div class="spinner"></div></div>
   </div>
 </div>
 
-<!-- Toast -->
+<!-- ═══ ACCESS GATE: solicitar acceso ═══ -->
+<div class="screen" id="screen-access">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo"><div class="auth-logo-fallback">SOUL CANJES</div></div>
+      <h1 class="auth-title">ACCESO<br>EXCLUSIVO</h1>
+      <p class="auth-sub">Soul Canjes es solo para creadores seleccionados. Completá el formulario y te avisamos.</p>
+      <div class="field">
+        <label>Nombre</label>
+        <input type="text" id="access-nombre" placeholder="Tu nombre">
+      </div>
+      <div class="field">
+        <label>WhatsApp</label>
+        <input type="tel" id="access-wapp" placeholder="+54 9 11 XXXX-XXXX">
+      </div>
+      <div class="field">
+        <label>Instagram</label>
+        <input type="text" id="access-instagram" placeholder="@usuario">
+      </div>
+      <div class="auth-err" id="access-err"></div>
+      <button class="btn-primary" id="access-btn" onclick="solicitarAcceso()">Solicitar acceso</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ACCESS GATE: pendiente ═══ -->
+<div class="screen" id="screen-pending">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo"><div class="auth-logo-fallback">SOUL CANJES</div></div>
+      <h1 class="auth-title" style="font-size:34px">SOLICITUD<br>ENVIADA</h1>
+      <p class="auth-sub" style="margin-bottom:32px">Tu solicitud está en revisión. Te avisamos por WhatsApp cuando sea aprobada.</p>
+      <div style="text-align:center;font-size:11px;color:rgba(255,255,255,.3);letter-spacing:.1em;cursor:pointer" onclick="logout()">Cerrar sesión</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ACCESS GATE: rechazado ═══ -->
+<div class="screen" id="screen-rejected">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo"><div class="auth-logo-fallback">SOUL CANJES</div></div>
+      <h1 class="auth-title" style="font-size:34px">NO<br>DISPONIBLE</h1>
+      <p class="auth-sub">Por el momento no podemos ofrecerte acceso a Soul Canjes.</p>
+      <div style="text-align:center;font-size:11px;color:rgba(255,255,255,.3);letter-spacing:.1em;cursor:pointer;margin-top:24px" onclick="logout()">Cerrar sesión</div>
+    </div>
+  </div>
+</div>
+
 <div class="notif" id="notif"></div>
 
 <script>
-// ── Estado ────────────────────────────────────────────────
-const P = new URLSearchParams(location.search);
+const P  = new URLSearchParams(location.search);
 const WS = P.get('ws') || '';
-let _token   = localStorage.getItem('ugc_token') || '';
+let _token    = localStorage.getItem('ugc_token') || '';
 let _creadora = null;
 try { _creadora = JSON.parse(localStorage.getItem('ugc_creadora') || 'null'); } catch(e){}
-let _telefono = '';
-let _canjes   = [];
+let _canjes      = [];
 let _solicitudes = [];
-let _activeTab = 'canjes';
+
+const _FMT_LABEL = { stories:'Stories', carruseles:'Carruseles', reel:'Reel', tiktok:'TikTok', collab:'Collab' };
+
+const _TIPO_LABEL  = { producto:'Producto', descuento:'Descuento exclusivo', lugar:'Visita al local' };
+const _TIPO_KICKER = { producto:'Canje de producto', descuento:'Descuento especial', lugar:'Canje presencial' };
 
 // ── Init ─────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  if (_token && _creadora) {
-    showScreen('screen-app');
-    initApp();
-  } else {
-    showScreen('screen-login');
-  }
+  if (_token && _creadora) checkAccess();
+  else showScreen('screen-login');
 });
 
 function showScreen(id) {
@@ -211,7 +290,43 @@ function showScreen(id) {
   document.getElementById(id)?.classList.add('active');
 }
 
-// ── Auth: login directo con número de WhatsApp ────────────
+async function checkAccess() {
+  if (!WS) { showScreen('screen-app'); initApp(); return; }
+  const email = _creadora?.email || _creadora?.telefono || '';
+  if (!email) { showScreen('screen-access'); return; }
+  try {
+    const r = await fetch('/api/soul-canjes/check?ws=' + WS + '&email=' + encodeURIComponent(email));
+    const d = await r.json();
+    if (d.estado === 'aceptado') { showScreen('screen-app'); initApp(); }
+    else if (d.estado === 'pendiente') showScreen('screen-pending');
+    else if (d.estado === 'rechazado') showScreen('screen-rejected');
+    else showScreen('screen-access');
+  } catch(e) { showScreen('screen-app'); initApp(); }
+}
+
+async function solicitarAcceso() {
+  if (!_creadora || !WS) return;
+  const email = _creadora.email || _creadora.telefono || '';
+  const nombre = document.getElementById('access-nombre').value.trim() || _creadora.nombre || '';
+  const wapp = document.getElementById('access-wapp').value.trim();
+  const instagram = document.getElementById('access-instagram').value.trim();
+  if (!email) { document.getElementById('access-err').textContent = 'Error: sin email de sesión'; return; }
+  const btn = document.getElementById('access-btn');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  document.getElementById('access-err').textContent = '';
+  try {
+    const r = await fetch('/api/soul-canjes/join', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ wsId: WS, email, nombre, wapp, instagram })
+    });
+    const d = await r.json();
+    if (d.ok) showScreen('screen-pending');
+    else document.getElementById('access-err').textContent = d.error || 'Error al enviar';
+  } catch(e) { document.getElementById('access-err').textContent = 'Error de conexión'; }
+  finally { btn.disabled = false; btn.textContent = 'Solicitar acceso'; }
+}
+
+// ── Login ─────────────────────────────────────────────────
 async function loginDirecto() {
   const tel = document.getElementById('login-telefono').value.trim();
   if (!tel) { document.getElementById('login-err').textContent = 'Ingresá tu número'; return; }
@@ -229,80 +344,52 @@ async function loginDirecto() {
     _creadora = d.creadora;
     localStorage.setItem('ugc_token',    _token);
     localStorage.setItem('ugc_creadora', JSON.stringify(_creadora));
-    if (!_creadora.instagram_url && !_creadora.nombre) {
-      showScreen('screen-perfil');
-    } else {
-      showScreen('screen-app');
-      initApp();
-    }
-  } catch(e) {
-    document.getElementById('login-err').textContent = 'Error de conexión';
-  } finally {
-    btn.disabled = false; btn.textContent = 'Ingresar →';
-  }
+    if (!_creadora.instagram_url && !_creadora.nombre) showScreen('screen-perfil');
+    else checkAccess();
+  } catch(e) { document.getElementById('login-err').textContent = 'Error de conexión'; }
+  finally { btn.disabled = false; btn.textContent = 'Ingresar'; }
 }
 
-// ── Perfil primer login ───────────────────────────────────
+// ── Perfil ────────────────────────────────────────────────
 async function guardarPerfil(omitir) {
   const nombre = omitir ? '' : document.getElementById('perfil-nombre').value.trim();
   const ig     = omitir ? '' : document.getElementById('perfil-ig').value.trim();
-  if (!omitir && !nombre && !ig) {
-    document.getElementById('perfil-err').textContent = 'Completá al menos tu nombre o Instagram';
-    return;
-  }
+  if (!omitir && !nombre && !ig) { document.getElementById('perfil-err').textContent = 'Completá al menos un campo'; return; }
   const btn = document.getElementById('perfil-btn');
   btn.disabled = true; btn.textContent = 'Guardando...';
   try {
     if (!omitir) {
       const r = await fetch('/api/ugc/mi-perfil', {
-        method: 'PATCH', headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+_token },
+        method: 'PATCH', headers: {'Content-Type':'application/json','Authorization':'Bearer '+_token},
         body: JSON.stringify({ nombre, instagram_url: ig || null })
       });
       const d = await r.json();
-      if (d.ok && d.creadora) {
-        _creadora = d.creadora;
-        localStorage.setItem('ugc_creadora', JSON.stringify(_creadora));
-      }
+      if (d.ok && d.creadora) { _creadora = d.creadora; localStorage.setItem('ugc_creadora', JSON.stringify(_creadora)); }
     }
-    showScreen('screen-app');
-    initApp();
-  } catch(e) {
-    document.getElementById('perfil-err').textContent = 'Error de conexión';
-  } finally {
-    btn.disabled = false; btn.textContent = 'Entrar a los canjes →';
-  }
+    checkAccess();
+  } catch(e) { document.getElementById('perfil-err').textContent = 'Error de conexión'; }
+  finally { btn.disabled = false; btn.textContent = 'Guardar y entrar'; }
 }
 
-// ── App principal ─────────────────────────────────────────
-function initApp() {
-  updateUserHeader();
-  loadCanjes();
-  loadSolicitudes();
-}
+function initApp() { updateUserHeader(); loadCanjes(); loadSolicitudes(); }
 
 function updateUserHeader() {
-  const avatar = document.getElementById('user-avatar');
-  const name   = document.getElementById('user-name');
   if (!_creadora) return;
   const initial = (_creadora.nombre || _creadora.telefono || '?')[0].toUpperCase();
-  if (avatar) avatar.textContent = initial;
-  if (name)   name.textContent   = _creadora.nombre || _creadora.telefono || '—';
-  // Fill edit fields
+  document.getElementById('user-avatar').textContent = initial;
+  document.getElementById('user-name').textContent   = _creadora.nombre || _creadora.telefono || '—';
   document.getElementById('edit-nombre').value = _creadora.nombre || '';
   document.getElementById('edit-ig').value     = _creadora.instagram_url || '';
 }
 
-function toggleProfile() {
-  const panel = document.getElementById('profile-panel');
-  panel?.classList.toggle('open');
-}
+function toggleProfile() { document.getElementById('profile-panel')?.classList.toggle('open'); }
 
 async function guardarPerfilEdit() {
   const nombre = document.getElementById('edit-nombre').value.trim();
   const ig     = document.getElementById('edit-ig').value.trim();
   try {
     const r = await fetch('/api/ugc/mi-perfil', {
-      method: 'PATCH', headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+_token },
+      method: 'PATCH', headers: {'Content-Type':'application/json','Authorization':'Bearer '+_token},
       body: JSON.stringify({ nombre, instagram_url: ig || null })
     });
     const d = await r.json();
@@ -317,24 +404,19 @@ async function guardarPerfilEdit() {
 }
 
 function logout() {
-  localStorage.removeItem('ugc_token');
-  localStorage.removeItem('ugc_creadora');
-  _token = ''; _creadora = null;
-  showScreen('screen-login');
+  localStorage.removeItem('ugc_token'); localStorage.removeItem('ugc_creadora');
+  _token = ''; _creadora = null; showScreen('screen-login');
 }
 
 // ── Tabs ─────────────────────────────────────────────────
 function switchTab(tab, btn) {
-  _activeTab = tab;
   document.querySelectorAll('.app-tab').forEach(t => t.classList.remove('active'));
   btn?.classList.add('active');
-  document.getElementById('content-canjes').style.display     = tab === 'canjes' ? '' : 'none';
+  document.getElementById('content-canjes').style.display      = tab === 'canjes' ? '' : 'none';
   document.getElementById('content-solicitudes').style.display = tab === 'solicitudes' ? '' : 'none';
 }
 
 // ── Canjes ────────────────────────────────────────────────
-const _FMT_LABEL = {stories:'Stories', carruseles:'Carruseles', reel:'Reel', tiktok:'TikTok', collab:'Collab'};
-
 async function loadCanjes() {
   const el = document.getElementById('content-canjes');
   el.innerHTML = '<div class="loading-wrap"><div class="spinner"></div></div>';
@@ -343,79 +425,78 @@ async function loadCanjes() {
     if (r.status === 401) { logout(); return; }
     _canjes = await r.json();
     renderCanjes();
-  } catch(e) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Error al cargar</div></div>';
-  }
+  } catch(e) { el.innerHTML = '<div class="empty"><div class="empty-icon">⚠</div><div class="empty-text">Error al cargar</div></div>'; }
 }
 
 function renderCanjes() {
   const el = document.getElementById('content-canjes');
   if (!_canjes.length) {
-    el.innerHTML = `<div class="empty">
-      <div class="empty-icon">🎁</div>
-      <div class="empty-text">No hay canjes disponibles</div>
-      <div class="empty-sub">Volvé a revisar pronto</div>
+    el.innerHTML = `<div class="empty" style="padding-top:80px">
+      <div class="empty-icon">—</div>
+      <div class="empty-text">SIN COLABORACIONES</div>
+      <div class="empty-sub" style="margin-top:8px">Volvé a revisar pronto</div>
     </div>`;
     return;
   }
-  // Check which canjes already requested
   const requestedIds = new Set(_solicitudes.map(s => s.canje_id));
-  el.innerHTML = _canjes.map(c => {
-    const b = c.brief || {};
-    const fmts = Object.entries(b)
-      .filter(([,v]) => v?.cantidad > 0)
-      .map(([k,v]) => `<div class="brief-item"><div class="brief-dot"></div><span><strong>${v.cantidad} ${_FMT_LABEL[k]||k}</strong>${v.sube_a_su_cuenta ? ' — subir a tu cuenta' : ' — solo para la marca'}</span></div>`)
-      .join('');
+  el.innerHTML = '<div style="display:flex;flex-direction:column;gap:12px">' + _canjes.map(c => {
+    const b    = c.brief || {};
+    const tipo = c.tipo_accion || 'producto';
+    const fmts = Object.entries(b).filter(([,v]) => v?.cantidad > 0)
+      .map(([k,v]) => `<div class="brief-item"><div class="brief-dot"></div><span>${v.cantidad} ${_FMT_LABEL[k]||k}${v.sube_a_su_cuenta ? ' — sube a tu cuenta' : ''}</span></div>`).join('');
+
     const yaRequested = requestedIds.has(c.id);
     const solicitud   = _solicitudes.find(s => s.canje_id === c.id);
     let btnHtml;
     if (yaRequested && solicitud) {
-      const estadoColors = { solicitado:'var(--amber)', aceptado:'var(--green)', rechazado:'var(--muted)', entregado:'var(--green)', vencido:'var(--red)' };
-      const estadoLabels = { solicitado:'Pendiente de aprobación', aceptado:'¡Aceptada!', rechazado:'Rechazada', entregado:'Entregada', vencido:'Vencida' };
-      btnHtml = `<button disabled class="btn-solicitar" style="background:var(--s3);color:${estadoColors[solicitud.estado]||'var(--muted)'}">
-        ${estadoLabels[solicitud.estado] || solicitud.estado}</button>`;
+      const sColors = { solicitado:'var(--amber)', aceptado:'var(--marron-cl)', rechazado:'rgba(255,255,255,.25)', entregado:'var(--marron-cl)', vencido:'#e07575' };
+      const sLabels = { solicitado:'En revisión', aceptado:'Aceptada ✓', rechazado:'Rechazada', entregado:'Entregada', vencido:'Vencida' };
+      btnHtml = `<button disabled class="btn-solicitar" style="background:rgba(255,255,255,.06);color:${sColors[solicitud.estado]||'rgba(255,255,255,.3)'}">${sLabels[solicitud.estado]||solicitud.estado}</button>`;
     } else {
-      btnHtml = `<button class="btn-solicitar" onclick="solicitarCanje('${c.id}', this)">Solicitar canje</button>`;
+      btnHtml = `<button class="btn-solicitar" onclick="solicitarCanje('${c.id}',this)">Solicitar colaboración</button>`;
     }
+
     return `<div class="canje-card">
-      <div class="canje-titulo">${c.producto}</div>
-      ${c.producto_url ? `<a class="canje-url" href="${c.producto_url}" target="_blank">🔗 Ver producto</a>` : ''}
-      <div class="canje-meta">
-        ${c.pago_monto ? `<span class="canje-chip pago">💰 $${c.pago_monto} de pago</span>` : ''}
-        ${c.descuento_tipo ? `<span class="canje-chip" style="background:#7c4dff18;color:#7c4dff;border:1px solid #7c4dff30">🏷 ${c.descuento_tipo}</span>` : ''}
-        <span class="canje-chip plazo">⏱ ${c.demora_max_dias} días para entregar</span>
+      ${c.portada_url
+        ? `<img class="canje-cover" src="${esc(c.portada_url)}" alt="${esc(c.producto)}" loading="lazy">`
+        : `<div class="canje-cover-ph"><span>SOULAB</span></div>`}
+      <div class="canje-body">
+        <span class="canje-tipo-tag">${_TIPO_KICKER[tipo]||'Colaboración'}</span>
+        <div class="canje-titulo">${esc(c.producto)}</div>
+        ${tipo === 'lugar' && c.lugar_nombre ? `<div class="canje-lugar">📍 ${esc(c.lugar_nombre)}</div>` : ''}
+        ${c.producto_url && tipo === 'producto' ? `<a href="${esc(c.producto_url)}" target="_blank" style="font-size:11px;color:var(--marron-cl);display:block;margin-bottom:10px;letter-spacing:.03em">Ver producto →</a>` : ''}
+        <div class="canje-meta">
+          ${c.pago_monto ? `<span class="canje-chip pago">$${c.pago_monto} de pago</span>` : ''}
+          ${c.descuento_tipo ? `<span class="canje-chip desc">${esc(c.descuento_tipo)}</span>` : ''}
+          <span class="canje-chip">${c.demora_max_dias||7} días para entregar</span>
+        </div>
+        ${fmts ? `<div class="brief-list"><div style="font-size:8px;font-weight:700;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.2em;margin-bottom:8px">Qué publicar</div>${fmts}</div>` : ''}
+        ${btnHtml}
       </div>
-      ${fmts ? `<div class="brief-list"><div style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Qué publicar</div>${fmts}</div>` : ''}
-      ${btnHtml}
     </div>`;
-  }).join('');
+  }).join('') + '</div>';
 }
 
 async function solicitarCanje(canje_id, btn) {
-  btn.disabled = true; btn.textContent = 'Solicitando...';
+  btn.disabled = true; btn.textContent = 'Enviando...';
   try {
     const r = await fetch('/api/ugc/solicitudes', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json', Authorization: 'Bearer ' + _token },
+      method: 'POST', headers: {'Content-Type':'application/json', Authorization: 'Bearer ' + _token},
       body: JSON.stringify({ canje_id })
     });
     const d = await r.json();
-    if (r.status === 409) { showNotif('Ya solicitaste este canje'); btn.disabled=false; btn.textContent='Solicitar canje'; return; }
-    if (!d.ok) { showNotif(d.error || 'Error al solicitar'); btn.disabled=false; btn.textContent='Solicitar canje'; return; }
+    if (r.status === 409) { showNotif('Ya solicitaste esta colaboración'); btn.disabled=false; btn.textContent='Solicitar colaboración'; return; }
+    if (!d.ok) { showNotif(d.error || 'Error'); btn.disabled=false; btn.textContent='Solicitar colaboración'; return; }
     _solicitudes.push(d.solicitud);
-    // Update sol badge
     const badge = document.getElementById('sol-count');
     if (badge) { badge.textContent = _solicitudes.length; badge.style.display = ''; }
-    showNotif('¡Solicitud enviada! La marca la revisará pronto 🎉');
-    renderCanjes(); // re-render to update buttons
-  } catch(e) {
-    showNotif('Error de conexión'); btn.disabled=false; btn.textContent='Solicitar canje';
-  }
+    showNotif('¡Solicitud enviada! La revisaremos pronto.');
+    renderCanjes();
+  } catch(e) { showNotif('Error de conexión'); btn.disabled=false; btn.textContent='Solicitar colaboración'; }
 }
 
 // ── Mis solicitudes ───────────────────────────────────────
 async function loadSolicitudes() {
-  const el = document.getElementById('content-solicitudes');
   try {
     const r = await fetch('/api/ugc/mis-solicitudes', { headers: { Authorization: 'Bearer ' + _token } });
     if (r.status === 401) { logout(); return; }
@@ -426,77 +507,69 @@ async function loadSolicitudes() {
   } catch(e) {}
 }
 
-const _SOL_ESTADO_COLOR = { solicitado:'var(--amber)', aceptado:'var(--green)', rechazado:'var(--muted)', entregado:'#7c3aed', vencido:'var(--red)' };
-const _SOL_ESTADO_LABEL = { solicitado:'En revisión ⏳', aceptado:'¡Aceptada! ✓', rechazado:'Rechazada', entregado:'Entregada 🎉', vencido:'Vencida' };
+const _SOL_COL = { solicitado:'var(--amber)', aceptado:'var(--marron-cl)', rechazado:'rgba(255,255,255,.2)', entregado:'var(--marron-cl)', vencido:'#e07575' };
+const _SOL_LBL = { solicitado:'En revisión', aceptado:'Aceptada ✓', rechazado:'Rechazada', entregado:'Entregada ✓', vencido:'Vencida' };
 
 function renderSolicitudes() {
   const el = document.getElementById('content-solicitudes');
   if (!_solicitudes.length) {
-    el.innerHTML = `<div class="empty">
-      <div class="empty-icon">📋</div>
-      <div class="empty-text">Todavía no solicitaste ningún canje</div>
-      <div class="empty-sub">Explorá los canjes disponibles y solicitá los que te interesen</div>
+    el.innerHTML = `<div class="empty" style="padding-top:80px">
+      <div class="empty-icon">—</div>
+      <div class="empty-text">SIN SOLICITUDES AÚN</div>
+      <div class="empty-sub" style="margin-top:8px">Explorá las colaboraciones disponibles</div>
     </div>`;
     return;
   }
   el.innerHTML = _solicitudes.map(s => {
     const c   = s.ugc_canjes || {};
-    const col = _SOL_ESTADO_COLOR[s.estado] || 'var(--muted)';
-    const lbl = _SOL_ESTADO_LABEL[s.estado] || s.estado;
+    const col = _SOL_COL[s.estado] || 'rgba(255,255,255,.2)';
+    const lbl = _SOL_LBL[s.estado] || s.estado;
     const limite = s.fecha_limite_entrega ? new Date(s.fecha_limite_entrega) : null;
     const vencida = limite && limite < new Date();
     return `<div class="sol-card">
-      <span class="sol-estado" style="color:${col};background:${col}18;border:1px solid ${col}30">${lbl}</span>
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px">${c.producto || '—'}</div>
-      ${c.producto_url ? `<a href="${c.producto_url}" target="_blank" style="font-size:12px;color:var(--accent)">🔗 Ver producto</a>` : ''}
-      <div style="font-size:11px;color:var(--muted);margin-top:6px">Solicitado el ${_fmtDate(s.fecha_solicitud)}</div>
+      <span class="sol-estado" style="color:${col};background:${col}18;border:1px solid ${col}40">${lbl}</span>
+      <div style="font-family:var(--fs);font-size:22px;color:var(--marfil);letter-spacing:.03em;margin-bottom:4px">${esc(c.producto||'—')}</div>
+      ${c.producto_url ? `<a href="${esc(c.producto_url)}" target="_blank" style="font-size:11px;color:var(--marron-cl);letter-spacing:.03em">Ver producto →</a>` : ''}
+      <div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:8px;letter-spacing:.05em">Solicitada el ${_fmtDate(s.fecha_solicitud)}</div>
       ${s.cupon_liberado && s.estado === 'aceptado'
         ? `<div class="cupon-box">
-            <div class="cupon-label">Tu código de canje</div>
+            <div class="cupon-label">Tu código</div>
             <div class="cupon-code" id="cupon-${s.id}">Cargando...</div>
             <button class="cupon-copy" onclick="copiarCupon('${s.id}')">Copiar código</button>
           </div>
-          ${limite ? `<div class="fecha-limite${vencida?' vencida':''}">
-            ${vencida ? '⚠️ Plazo vencido' : '📅 Entregar antes del '+_fmtDate(s.fecha_limite_entrega)}
-          </div>` : ''}`
+          ${limite ? `<div class="fecha-limite${vencida?' vencida':''}">${vencida?'⚠ Plazo vencido':'Entregá antes del '+_fmtDate(s.fecha_limite_entrega)}</div>` : ''}`
         : ''}
     </div>`;
   }).join('');
-  // Load cupones for accepted ones
   _solicitudes.filter(s => s.cupon_liberado && s.estado === 'aceptado').forEach(s => loadCupon(s.id));
 }
 
 async function loadCupon(solId) {
-  const el = document.getElementById('cupon-'+solId);
-  if (!el) return;
+  const el = document.getElementById('cupon-'+solId); if (!el) return;
   try {
-    const r = await fetch('/api/ugc/solicitudes/'+solId+'/cupon', {
-      headers: { Authorization: 'Bearer ' + _token }
-    });
+    const r = await fetch('/api/ugc/solicitudes/'+solId+'/cupon', { headers: { Authorization: 'Bearer '+_token } });
     const d = await r.json();
     el.textContent = d.cupon_codigo || '—';
     el.dataset.code = d.cupon_codigo || '';
-  } catch(e) { el.textContent = 'Error'; }
+  } catch(e) { el.textContent = '—'; }
 }
 
 function copiarCupon(solId) {
   const el = document.getElementById('cupon-'+solId);
   const code = el?.dataset.code || el?.textContent || '';
   if (!code || code === 'Cargando...') return;
-  navigator.clipboard.writeText(code).then(() => showNotif('¡Código copiado!')).catch(() => {});
+  navigator.clipboard.writeText(code).then(() => showNotif('Código copiado')).catch(() => {});
 }
 
 // ── Utils ─────────────────────────────────────────────────
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function _fmtDate(d) {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('es-AR', { day:'numeric', month:'short', year:'numeric' });
+  return new Date(d).toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'});
 }
-
 function showNotif(msg) {
-  const el = document.getElementById('notif');
-  if (!el) return;
-  el.textContent = msg;
-  el.classList.add('show');
+  const el = document.getElementById('notif'); if (!el) return;
+  el.textContent = msg; el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 3000);
 }
 </script>

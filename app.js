@@ -275,8 +275,13 @@ async function patchWorkspace(wsId, data, fullRow = null) {
     // ── Merge finanzas: nunca perder entradas del servidor (ej: ventas web creadas por checkout) ──
     if (cur.finanzas?.length) {
       if (!data.finanzas) data.finanzas = []
-      const clientFinIds = new Set(data.finanzas.map(f => f.id).filter(Boolean))
-      const serverOnlyFin = cur.finanzas.filter(f => f.id && !clientFinIds.has(f.id))
+      // Construir set de claves del cliente usando id, tn_id, o tn_id_ref como identificador
+      const _finKey = f => f.id || (f.tn_id ? 'tn_'+f.tn_id : null) || f.tn_id_ref || null
+      const clientFinKeys = new Set(data.finanzas.map(_finKey).filter(Boolean))
+      const serverOnlyFin = cur.finanzas.filter(f => {
+        const k = _finKey(f)
+        return k && !clientFinKeys.has(k)
+      })
       if (serverOnlyFin.length) data.finanzas = [...data.finanzas, ...serverOnlyFin]
     }
 
@@ -298,6 +303,16 @@ async function patchWorkspace(wsId, data, fullRow = null) {
     // ── Guard flows: nunca sobreescribir flows si el save no los incluye ──
     if (cur.flows?.length && !data.flows?.length) {
       data.flows = cur.flows
+    }
+
+    // ── Guard difListas: nunca perder listas de difusión guardadas ──
+    if (cur.difListas?.length && !data.difListas?.length) {
+      data.difListas = cur.difListas
+    } else if (cur.difListas?.length && data.difListas?.length) {
+      // Merge por id: preservar listas del servidor que el cliente no tiene
+      const clientIds = new Set(data.difListas.map(l => l.id).filter(Boolean))
+      const serverOnly = cur.difListas.filter(l => l.id && !clientIds.has(l.id))
+      if (serverOnly.length) data.difListas = [...data.difListas, ...serverOnly]
     }
 
     // ── Guard tokens: nunca perder sesiones activas en un save del admin ──
@@ -422,7 +437,7 @@ app.get("/api/tn/callback", async (req, res) => {
           connectedAt: new Date().toISOString()
         }}
         await patchWorkspace(wsId, wsData)
-        return res.redirect("/?tn_connected=1")
+        return res.redirect("/?tn_connected=" + encodeURIComponent(wsId))
       }
     }
 
@@ -473,6 +488,7 @@ app.get("/api/tn/orders", async (req, res) => {
       console.log(`[TN orders] page ${page} status:`, r.status)
 
       if (r.status === 404) break // no more orders
+      if (r.status === 401) return res.status(401).json({ error: 'TOKEN_INVALIDO', message: 'El token de Tienda Nube es inválido o fue revocado. Desconectá y volvé a conectar la tienda desde Integraciones.' })
       if (!r.ok) {
         const txt = await r.text()
         console.log("[TN orders] error:", txt)
@@ -1439,29 +1455,33 @@ app.post('/api/wa/send', async (req, res) => {
       const chatId = phone.includes('@') ? phone : `${wahaNum}@c.us`
       const base = serverUrl.replace(/\/$/, '')
 
-      // Verificar que la sesión esté conectada antes de enviar
-      const statusChk = await fetch(`${base}/api/sessions/${sess}`, { headers }).catch(() => null)
+      // Verificar que la sesión esté conectada antes de enviar (timeout 5s para no bloquear)
+      const _statusTimeout = (url, hdrs, ms = 5000) => {
+        const ctrl = new AbortController()
+        const t = setTimeout(() => ctrl.abort(), ms)
+        return fetch(url, { headers: hdrs, signal: ctrl.signal }).finally(() => clearTimeout(t))
+      }
+      const statusChk = await _statusTimeout(`${base}/api/sessions/${sess}`, headers).catch(() => null)
       const stData = statusChk?.ok ? await statusChk.json().catch(() => ({})) : {}
       const stVal = stData.status || stData.engine?.status || stData.state || ''
       console.log(`[wa/send] session="${sess}" status="${stVal}" chatId="${chatId}"`)
-      const CONNECTED_ST = ['WORKING','AUTHENTICATED','CONNECTED','ONLINE']
-      if (!statusChk || !CONNECTED_ST.includes(stVal)) {
-        return res.status(400).json({ error: `WAHA no conectado — estado actual: "${stVal || 'sin respuesta'}". Verificá que el servidor WAHA sea accesible y escaneá el QR.` })
+      const CONNECTED_ST = ['WORKING','AUTHENTICATED','CONNECTED','ONLINE','SCAN_QR_CODE']
+      if (statusChk && !CONNECTED_ST.includes(stVal) && stVal !== '') {
+        return res.status(400).json({ error: `WAHA no conectado — estado: "${stVal}". Escaneá el QR o reiniciá el container.` })
       }
+      // Si el status check no responde, intentamos enviar igual (WAHA puede estar cargando)
 
-      // Intentar enviar — probar múltiples formatos de endpoint con timeout de 12s cada uno
-      const fetchWithTimeout = (url, opts, ms = 12000) => {
+      // Intentar enviar — 2 formatos de endpoint, timeout 8s cada uno (safe para Vercel 30s)
+      const fetchWithTimeout = (url, opts, ms = 8000) => {
         const ctrl = new AbortController()
         const t = setTimeout(() => ctrl.abort(), ms)
         return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(t))
       }
       const attempts = [
-        // WAHA v2026 / v1: session en body (endpoint principal)
+        // WAHA v1/v2026: session en body
         { url: `${base}/api/sendText`,         body: { session: sess, chatId, text } },
         // WAHA v2: session en URL path
         { url: `${base}/api/${sess}/sendText`, body: { chatId, text } },
-        // WAHA v2 alternativo: session en ambos lados
-        { url: `${base}/api/${sess}/sendText`, body: { session: sess, chatId, text } },
       ]
       let lastErr = 'WAHA error'
       let sent = false
@@ -6126,7 +6146,7 @@ app.get('/api/ugc/canjes', _requireCreadora, async (req, res) => {
   try {
     const r = await _supa('GET', 'ugc_canjes', {
       filter: `ws_id=eq.${wsId}&estado=eq.disponible&order=created_at.desc`,
-      select: 'id,producto,brief,producto_url,pago_monto,demora_max_dias,estado,created_at'
+      select: 'id,producto,brief,producto_url,pago_monto,demora_max_dias,estado,portada_url,tipo_accion,lugar_nombre,descuento_tipo,created_at'
       // cupon_codigo excluido explícitamente
     })
     res.json(r.data || [])
@@ -6366,6 +6386,13 @@ app.post('/api/soul-club/upload', async (req, res) => {
   const imgData = data || base64
   if (!imgData || !contentType) return res.status(400).json({ error: 'Faltan datos' })
   try {
+    // Crear bucket si no existe (409 = ya existe, se ignora)
+    await fetch(`${SUPA_URL}/storage/v1/bucket`, {
+      method: 'POST',
+      headers: { apikey: SUPA_KEY(), Authorization: 'Bearer ' + SUPA_KEY(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: 'soul-club', name: 'soul-club', public: true })
+    }).catch(() => {})
+
     const buffer = Buffer.from(imgData, 'base64')
     const safeName = (filename || Date.now() + '.jpg').replace(/[^a-zA-Z0-9._-]/g, '-')
     const key = `${Date.now()}-${safeName}`
@@ -6510,6 +6537,24 @@ app.patch('/api/admin/soul-club/solicitudes/:id', async (req, res) => {
   try {
     const r = await _supa('PATCH', `soul_club_miembros?id=eq.${id}&ws_id=eq.${wsId}`, { body: { estado } })
     if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
+    // Get the member data
+    const memR = await _supa('GET', 'soul_club_miembros', { filter: `id=eq.${id}` })
+    const mem = memR.data?.[0]
+    if (mem && accion === 'aceptar') {
+      const ws = await getWorkspace(wsId)
+      const crm = ws?.data?.crm || []
+      const phone = (mem.wapp || '').replace(/\D/g, '')
+      if (phone) {
+        const idx = crm.findIndex(c => c.tel?.replace(/\D/g,'') === phone || c.email === mem.email)
+        if (idx >= 0) {
+          crm[idx].scMiembro = true
+          crm[idx].tags = Array.isArray(crm[idx].tags) ? [...new Set([...crm[idx].tags, 'soul-club'])] : ['soul-club']
+        } else {
+          crm.push({ id: 'sc_' + mem.id, nombre: mem.nombre || '', email: mem.email || '', tel: phone, scMiembro: true, tags: ['soul-club'], origen: 'soul-club', etapa: 'cliente' })
+        }
+        await patchWorkspace(wsId, { crm })
+      }
+    }
     res.json({ ok: true, estado })
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
@@ -6531,6 +6576,7 @@ app.get('/api/admin/soul-club/eventos', async (req, res) => {
   if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
   try {
     const r = await _supa('GET', 'soul_club_eventos', { filter: `ws_id=eq.${wsId}&order=created_at.desc` })
+    if (!r.ok) return res.status(r.status||500).json({ error: r.data?.message || 'Error Supabase', _supaErr: r.data })
     res.json(r.data || [])
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
@@ -6579,6 +6625,7 @@ app.get('/api/admin/soul-club/drops', async (req, res) => {
   if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
   try {
     const r = await _supa('GET', 'soul_club_drops', { filter: `ws_id=eq.${wsId}&order=created_at.desc` })
+    if (!r.ok) return res.status(r.status||500).json({ error: r.data?.message || 'Error Supabase', _supaErr: r.data })
     res.json(r.data || [])
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
@@ -6627,6 +6674,7 @@ app.get('/api/admin/soul-club/beneficios', async (req, res) => {
   if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
   try {
     const r = await _supa('GET', 'soul_club_beneficios', { filter: `ws_id=eq.${wsId}&order=created_at.desc` })
+    if (!r.ok) return res.status(r.status||500).json({ error: r.data?.message || 'Error Supabase', _supaErr: r.data })
     res.json(r.data || [])
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
@@ -6658,6 +6706,76 @@ app.delete('/api/admin/soul-club/beneficios/:id', async (req, res) => {
   try {
     await _supa('DELETE', `soul_club_beneficios?id=eq.${id}&ws_id=eq.${wsId}`, { prefer: 'return=minimal' })
     res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── SOUL CANJES: Public access request ──────────────────
+app.post('/api/soul-canjes/join', async (req, res) => {
+  const { wsId, email, nombre, wapp, instagram } = req.body
+  if (!wsId || !email) return res.status(400).json({ error: 'wsId y email requeridos' })
+  const emailClean = email.toLowerCase().trim()
+  try {
+    const existing = await _supa('GET', 'ugc_acceso_solicitudes', { filter: `ws_id=eq.${wsId}&email=eq.${emailClean}` })
+    if (existing.data?.length) return res.json({ ok: true, estado: existing.data[0].estado })
+    const r = await _supa('POST', 'ugc_acceso_solicitudes', {
+      prefer: 'return=representation',
+      body: { ws_id: wsId, email: emailClean, nombre: nombre?.trim()||null, wapp: wapp?.trim()||null, instagram: instagram?.trim()||null, estado: 'pendiente' }
+    })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
+    res.json({ ok: true, estado: 'pendiente' })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.get('/api/soul-canjes/check', async (req, res) => {
+  const { ws, email } = req.query
+  if (!ws || !email) return res.json({ estado: null })
+  try {
+    const r = await _supa('GET', 'ugc_acceso_solicitudes', { filter: `ws_id=eq.${ws}&email=eq.${email.toLowerCase().trim()}` })
+    if (!r.data?.length) return res.json({ estado: null })
+    res.json({ estado: r.data[0].estado })
+  } catch(e) { res.json({ estado: null }) }
+})
+
+app.get('/api/admin/soul-canjes/solicitudes', async (req, res) => {
+  const { wsId, estado } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const filter = estado && estado !== 'todas'
+      ? `ws_id=eq.${wsId}&estado=eq.${estado}&order=created_at.desc`
+      : `ws_id=eq.${wsId}&order=created_at.desc`
+    const r = await _supa('GET', 'ugc_acceso_solicitudes', { filter })
+    res.json(r.data || [])
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.patch('/api/admin/soul-canjes/solicitudes/:id', async (req, res) => {
+  const { id } = req.params
+  const { accion, wsId } = req.body
+  if (!accion || !wsId) return res.status(400).json({ error: 'Faltan datos' })
+  const estado = accion === 'aceptar' ? 'aceptado' : 'rechazado'
+  try {
+    const r = await _supa('PATCH', `ugc_acceso_solicitudes?id=eq.${id}&ws_id=eq.${wsId}`, { body: { estado } })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
+    // Si se acepta, upsert en CRM con tag soul_pr
+    if (accion === 'aceptar') {
+      const memR = await _supa('GET', 'ugc_acceso_solicitudes', { filter: `id=eq.${id}` })
+      const mem = memR.data?.[0]
+      if (mem) {
+        const ws = await getWorkspace(wsId)
+        const crm = ws?.data?.crm || []
+        const phone = (mem.wapp || '').replace(/\D/g, '')
+        if (phone) {
+          const idx = crm.findIndex(c => c.tel?.replace(/\D/g,'') === phone || c.email === mem.email)
+          if (idx >= 0) {
+            crm[idx].tags = Array.isArray(crm[idx].tags) ? [...new Set([...crm[idx].tags, 'soul-pr', 'ugc'])] : ['soul-pr', 'ugc']
+          } else {
+            crm.push({ id: 'sc_canje_' + mem.id, nombre: mem.nombre||'', email: mem.email||'', tel: phone, tags: ['soul-pr','ugc'], origen: 'soul-canjes', etapa: 'cliente' })
+          }
+          await patchWorkspace(wsId, { crm })
+        }
+      }
+    }
+    res.json({ ok: true, estado })
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 

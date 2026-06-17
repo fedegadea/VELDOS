@@ -618,7 +618,12 @@ body.light .btn-primary{box-shadow:0 2px 8px rgba(37,99,235,.25)}
 .fin-period input[type=date]{background:var(--s2);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:12px;padding:7px 12px;border-radius:8px;outline:none;transition:border-color .2s}
 .fin-period input[type=date]:focus{border-color:var(--gold)}
 .fin-period-sep{color:var(--muted);font-size:12px}
- 
+.fin-qbtn{color:var(--muted)!important;border-color:transparent!important;background:transparent!important;font-size:11px!important;padding:5px 12px!important;transition:all .15s}
+.fin-qbtn:hover{color:var(--text)!important;background:var(--s2)!important}
+.fin-qbtn.active{color:var(--text)!important;background:var(--s2)!important;border-color:var(--border2)!important;font-weight:600!important}
+@media(max-width:900px){#fin-hero-grid{grid-template-columns:1fr!important}#fin-sec-grid{grid-template-columns:repeat(3,1fr)!important}}
+@media(max-width:600px){#fin-sec-grid{grid-template-columns:1fr 1fr!important}}
+
 /* ── KPI Scoreboard ── */
 .kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
 .kpi-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;position:relative;overflow:hidden;transition:border-color .15s}
@@ -2070,8 +2075,9 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button class="nav-tab" onclick="switchMetaTab('whatsapp',this)"><i class="ti ti-brand-whatsapp"></i> WhatsApp</button>
   </nav>
   <nav class="nav-tabs" id="nav-ugc" style="display:none">
-    <button class="nav-tab active" id="ugc-tab-btn-canjes" onclick="switchUgcTab('canjes',this)">Canjes</button>
+    <button class="nav-tab active" id="ugc-tab-btn-canjes" onclick="switchUgcTab('canjes',this)">Campañas</button>
     <button class="nav-tab" id="ugc-tab-btn-solicitudes" onclick="switchUgcTab('solicitudes',this)">Solicitudes <span id="ugc-pending-badge" style="display:none;background:var(--accent);color:#fff;font-size:10px;padding:1px 7px;border-radius:9px;margin-left:2px">0</span></button>
+    <button class="nav-tab" id="ugc-tab-btn-accesos" onclick="switchUgcTab('accesos',this)">Accesos <span id="ugc-accesos-badge" style="display:none;background:rgba(239,68,68,.8);color:#fff;font-size:10px;padding:1px 7px;border-radius:9px;margin-left:2px">0</span></button>
     <button class="nav-tab" id="ugc-tab-btn-creadoras" onclick="switchUgcTab('creadoras',this)">Creadoras</button>
   </nav>
   <nav class="nav-tabs" id="nav-soul-club" style="display:none">
@@ -2127,7 +2133,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button class="sb-item" id="sbi-hojas" onclick="sbNav('hojas','hojas',this)"><span class="sb-item-icon"><i class="ti ti-files"></i></span>Hojas</button>
     <button class="sb-item" id="sbi-stock" onclick="sbNav('stock','stock',this)"><span class="sb-item-icon"><i class="ti ti-package"></i></span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Stock<span style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Inventario · Alertas</span></span></button>
     <button class="sb-item" id="sbi-tienda" onclick="sbNav('tienda','tienda',this)"><span class="sb-item-icon"><i class="ti ti-building-store"></i></span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Mi Tienda<span style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Productos · Órdenes · Analytics</span></span></button>
-    <button class="sb-item" id="sbi-ugc" onclick="sbNav('ugc','ugc',this)"><span class="sb-item-icon"><i class="ti ti-heart-handshake"></i></span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Canjes<span id="ugc-sb-badge" style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Colaboraciones UGC</span></span></button>
+    <button class="sb-item" id="sbi-ugc" onclick="sbNav('ugc','ugc',this)"><span class="sb-item-icon"><i class="ti ti-heart-handshake"></i></span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Soul PR<span id="ugc-sb-badge" style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">PR & Colaboraciones</span></span></button>
     <button class="sb-item" id="sbi-soul-club" onclick="sbNav('soul-club','soul-club',this)"><span class="sb-item-icon" style="font-size:13px;font-weight:700;font-family:serif;font-style:italic">S</span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Soul Club<span style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Miembros · Drops · Eventos</span></span></button>
   </div>
   <div class="sb-bottom">
@@ -3435,61 +3441,93 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
  
   <!-- ── TAB: MOVIMIENTOS ── -->
   <div class="fin-tab active" id="fintab-movimientos">
-    <div class="fin-period">
-      <label>Período</label>
-      <input type="date" id="fin-desde" onchange="renderFinanzas()">
-      <div class="fin-period-sep">→</div>
-      <input type="date" id="fin-hasta" onchange="renderFinanzas()">
-      <button class="btn btn-sm" onclick="setPeriod('week')">Esta semana</button>
-      <button class="btn btn-sm" onclick="setPeriod('month')">Este mes</button>
-      <button class="btn btn-sm" onclick="setPeriod('30')">30 días</button>
-      <button class="btn btn-sm" onclick="setPeriod('90')">90 días</button>
+
+    <!-- ── Barra período + acción ── -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:0;background:var(--s1);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+        <input type="date" id="fin-desde" onchange="renderFinanzas();_clearFinPeriodActive()" style="background:none;border:none;border-right:1px solid var(--border);color:var(--text);font-size:12px;font-family:var(--fb);padding:7px 12px;outline:none">
+        <span style="padding:0 6px;color:var(--muted);font-size:11px">→</span>
+        <input type="date" id="fin-hasta" onchange="renderFinanzas();_clearFinPeriodActive()" style="background:none;border:none;color:var(--text);font-size:12px;font-family:var(--fb);padding:7px 12px;outline:none">
+      </div>
+      <div style="display:flex;gap:4px">
+        <button class="btn btn-sm fin-qbtn" id="fqb-week"  onclick="setPeriod('week',this)">Semana</button>
+        <button class="btn btn-sm fin-qbtn" id="fqb-month" onclick="setPeriod('month',this)">Este mes</button>
+        <button class="btn btn-sm fin-qbtn" id="fqb-30"    onclick="setPeriod('30',this)">30 d</button>
+        <button class="btn btn-sm fin-qbtn" id="fqb-90"    onclick="setPeriod('90',this)">90 d</button>
+      </div>
     </div>
-    <!-- KPI Scoreboard -->
-    <div class="kpi-grid">
-      <div class="kpi-card kpi-ing">
-        <div class="kpi-label">Ingresos brutos</div>
-        <div class="kpi-value" id="kpi-ing" style="color:var(--green)">$0</div>
-        <div class="kpi-sub" id="kpi-ing-sub">en el período</div>
-        <div class="kpi-minibar"><div class="kpi-minibar-fill" id="kpi-ing-bar" style="width:100%;background:var(--green);opacity:.5"></div></div>
+
+    <!-- Hidden compat spans (JS los sigue escribiendo) -->
+    <span id="kpi-gan" style="display:none"></span>
+    <span id="kpi-gan-bar" style="display:none"></span>
+    <span id="kpi-ing-bar" style="display:none"></span>
+    <span id="kpi-gas-bar" style="display:none"></span>
+    <span id="kpi-pnl-bar" style="display:none"></span>
+    <span id="kpi-margen-sub" style="display:none"></span>
+    <span id="kpi-ticket-sub" style="display:none"></span>
+    <span id="kpi-tn-card" style="display:none"></span>
+    <span id="kpi-tn-orders" style="display:none"></span>
+    <span id="kpi-tn-sub" style="display:none"></span>
+
+    <!-- ── Hero KPIs (los 3 números que más importan) ── -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:10px">
+
+      <!-- Ingresos -->
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:22px 24px;position:relative;overflow:hidden">
+        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px">Ingresos brutos</div>
+        <div style="font-size:30px;font-weight:800;color:var(--text);line-height:1;margin-bottom:5px;font-variant-numeric:tabular-nums" id="kpi-ing">$0</div>
+        <div style="font-size:11px;color:var(--muted)" id="kpi-ing-sub">en el período</div>
+        <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:rgba(52,199,123,.5)"></div>
       </div>
-      <div class="kpi-card kpi-gas">
-        <div class="kpi-label">Costos totales</div>
-        <div class="kpi-value" id="kpi-gas" style="color:var(--coral)">$0</div>
-        <div class="kpi-sub" id="kpi-gas-sub">gastos + fees</div>
-        <div class="kpi-minibar"><div class="kpi-minibar-fill" id="kpi-gas-bar" style="width:0%;background:var(--coral);opacity:.5"></div></div>
+
+      <!-- Ganancia neta P&L -->
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:22px 24px;position:relative;overflow:hidden">
+        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px">Ganancia neta (P&amp;L)</div>
+        <div style="font-size:30px;font-weight:800;line-height:1;margin-bottom:5px;font-variant-numeric:tabular-nums" id="kpi-pnl">$0</div>
+        <div style="font-size:11px;color:var(--muted)" id="kpi-pnl-sub">margen real: 0%</div>
+        <div style="position:absolute;bottom:0;left:0;right:0;height:2px" id="kpi-pnl-accent" style="background:rgba(52,199,123,.5)"></div>
       </div>
-      <div class="kpi-card kpi-gan">
-        <div class="kpi-label">Caja (cash)</div>
-        <div class="kpi-value" id="kpi-gan" style="color:var(--gold)">$0</div>
-        <div class="kpi-sub" id="kpi-margen-sub" title="Ingresos − gastos del período (sin contar costos de productos vendidos)">margen: 0%</div>
-        <div class="kpi-minibar"><div class="kpi-minibar-fill" id="kpi-gan-bar" style="width:0%;background:var(--gold)"></div></div>
+
+      <!-- Margen bruto -->
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:22px 24px;position:relative;overflow:hidden">
+        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px">Margen bruto</div>
+        <div style="font-size:30px;font-weight:800;color:var(--gold);line-height:1;margin-bottom:5px" id="kpi-margen-bruto">—</div>
+        <div style="font-size:11px;color:var(--muted)">(ingresos − COGS) / ingresos</div>
+        <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:rgba(215,185,95,.5)"></div>
       </div>
-      <div class="kpi-card kpi-cogs">
-        <div class="kpi-label" title="Costo de los productos vendidos en el período (solo ventas con producto vinculado)">COGS</div>
-        <div class="kpi-value" id="kpi-cogs" style="color:#d57c50">$0</div>
-        <div class="kpi-sub" id="kpi-cogs-sub">costo de productos vendidos</div>
+    </div>
+
+    <!-- ── Secondary KPIs ── -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px">
+
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:14px 16px">
+        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Costos totales</div>
+        <div style="font-size:20px;font-weight:700;color:var(--coral);font-variant-numeric:tabular-nums" id="kpi-gas">$0</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px" id="kpi-gas-sub">gastos + fees + fijos</div>
       </div>
-      <div class="kpi-card kpi-pnl">
-        <div class="kpi-label" title="Ingresos − COGS − comisiones − gastos OPEX (sin contar compras de mercadería)">Ganancia real (P&amp;L)</div>
-        <div class="kpi-value" id="kpi-pnl" style="color:var(--green)">$0</div>
-        <div class="kpi-sub" id="kpi-pnl-sub">margen real: 0%</div>
-        <div class="kpi-minibar"><div class="kpi-minibar-fill" id="kpi-pnl-bar" style="width:0%;background:var(--green)"></div></div>
+
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:14px 16px">
+        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">COGS</div>
+        <div style="font-size:20px;font-weight:700;color:#c27c50;font-variant-numeric:tabular-nums" id="kpi-cogs">$0</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px" id="kpi-cogs-sub">costo productos</div>
       </div>
-      <div class="kpi-card kpi-ventas">
-        <div class="kpi-label">Ventas</div>
-        <div class="kpi-value" id="kpi-ventas" style="color:var(--blue)">0</div>
-        <div class="kpi-sub" id="kpi-ticket-sub">ticket prom: —</div>
+
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:14px 16px">
+        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Meta Ads</div>
+        <div style="font-size:20px;font-weight:700;color:var(--purple);font-variant-numeric:tabular-nums" id="kpi-ads">$0</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px" id="kpi-ads-sub">del gasto: 0%</div>
       </div>
-      <div class="kpi-card kpi-ads">
-        <div class="kpi-label">Ads (Meta)</div>
-        <div class="kpi-value" id="kpi-ads" style="color:var(--purple)">$0</div>
-        <div class="kpi-sub" id="kpi-ads-sub">del gasto: 0%</div>
+
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:14px 16px">
+        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Ticket promedio</div>
+        <div style="font-size:20px;font-weight:700;color:var(--blue);font-variant-numeric:tabular-nums" id="kpi-ticket">—</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px">por venta</div>
       </div>
-      <div class="kpi-card kpi-tn" id="kpi-tn-card" style="display:none">
-        <div class="kpi-label" style="color:#00a99d">🛍️ Tienda Nube</div>
-        <div class="kpi-value" id="kpi-tn-orders" style="color:#00a99d">0</div>
-        <div class="kpi-sub" id="kpi-tn-sub">órdenes en período</div>
+
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:14px 16px">
+        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Ventas</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums" id="kpi-ventas">0</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px" id="kpi-ventas-sub">unidades</div>
       </div>
     </div>
 
@@ -4246,6 +4284,19 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <div id="ugc-solicitudes-list"></div>
   </div>
 
+  <!-- ── Accesos Soul Canjes ── -->
+  <div id="ugc-tab-accesos" style="display:none;margin-top:36px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap">
+      <div style="font-size:15px;font-weight:700;color:var(--text)">Accesos Soul Canjes</div>
+      <div style="display:flex;gap:4px">
+        <button class="btn btn-xs" style="background:var(--accent);color:#fff" onclick="filterCanjesAccesos('pendiente',this)">Pendientes</button>
+        <button class="btn btn-xs" onclick="filterCanjesAccesos('todas',this)">Todas</button>
+        <button class="btn btn-xs" onclick="filterCanjesAccesos('aceptado',this)">Aceptadas</button>
+      </div>
+    </div>
+    <div id="ugc-accesos-list"></div>
+  </div>
+
   <!-- Creadoras — siempre visible debajo -->
   <div id="ugc-tab-creadoras" style="margin-top:36px">
     <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px">Creadoras registradas</div>
@@ -4262,13 +4313,38 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
 
       <input type="hidden" id="ugc-form-id">
 
+      <!-- Portada -->
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Foto de portada</label>
+        <div id="ugc-portada-preview" style="width:100%;aspect-ratio:16/6;background:var(--s2);border:1px dashed var(--border2);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;overflow:hidden;cursor:pointer;position:relative" onclick="document.getElementById('ugc-portada-input').click()">
+          <img id="ugc-portada-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none">
+          <span id="ugc-portada-ph" style="font-size:12px;color:var(--muted)">+ Subir imagen de portada</span>
+          <button id="ugc-portada-remove" onclick="removeUgcPortada(event)" style="display:none;position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;color:#fff;font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer">Quitar</button>
+        </div>
+        <input type="file" id="ugc-portada-input" accept="image/*" style="display:none" onchange="ugcPortadaPreview(event)">
+      </div>
+
+      <!-- Tipo de acción -->
       <div class="form-group">
-        <label class="form-label">Producto *</label>
+        <label class="form-label">Tipo de acción *</label>
+        <select class="form-input" id="ugc-form-tipo" onchange="onUgcTipoChange()">
+          <option value="producto">Producto — se envía producto físico</option>
+          <option value="descuento">Descuento — código de X% OFF</option>
+          <option value="lugar">Lugar — visita al local, etiqueta a SOULAB</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Título / nombre de la campaña *</label>
         <input class="form-input" id="ugc-form-producto" placeholder="Ej: Vestido Linen Blanco">
       </div>
-      <div class="form-group">
+      <div class="form-group" id="ugc-field-url">
         <label class="form-label">URL del producto</label>
         <input class="form-input" id="ugc-form-url" placeholder="https://...">
+      </div>
+      <div class="form-group" id="ugc-field-lugar" style="display:none">
+        <label class="form-label">Nombre del local / lugar</label>
+        <input class="form-input" id="ugc-form-lugar" placeholder="Ej: SOULAB Palermo">
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div class="form-group">
@@ -4381,6 +4457,15 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
       </div>
       <input type="hidden" id="sc-form-id">
       <input type="hidden" id="sc-form-tipo">
+      <!-- Selector de sección — solo visible al crear nuevo (no al editar) -->
+      <div id="sc-form-tipo-picker-wrap" style="margin-bottom:16px">
+        <label class="form-label">Sección</label>
+        <div style="display:flex;gap:8px">
+          <button type="button" id="sc-tipo-btn-evento" onclick="scPickTipo('evento')" style="flex:1;padding:9px;font-size:11px;font-weight:700;border-radius:8px;border:1px solid var(--border2);background:var(--accent);color:#fff;cursor:pointer">📅 Evento</button>
+          <button type="button" id="sc-tipo-btn-drop" onclick="scPickTipo('drop')" style="flex:1;padding:9px;font-size:11px;font-weight:700;border-radius:8px;border:1px solid var(--border2);background:var(--s2);color:var(--text);cursor:pointer">💧 Drop</button>
+          <button type="button" id="sc-tipo-btn-beneficio" onclick="scPickTipo('beneficio')" style="flex:1;padding:9px;font-size:11px;font-weight:700;border-radius:8px;border:1px solid var(--border2);background:var(--s2);color:var(--text);cursor:pointer">🎁 Beneficio</button>
+        </div>
+      </div>
 
       <!-- Imagen -->
       <div class="form-group" style="margin-bottom:14px">
@@ -4396,6 +4481,18 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
           <span id="sc-img-status" style="font-size:11px;color:var(--muted)"></span>
         </div>
         <input class="form-input" id="sc-form-img-url" placeholder="O pegá una URL de imagen" style="margin-top:8px" oninput="scUrlImgChanged()">
+      </div>
+      <!-- Video -->
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Video (opcional)</label>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <label style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--border2);padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;color:var(--text)">
+            🎬 Elegir video
+            <input type="file" id="sc-form-video-file" accept="video/*" style="display:none" onchange="scPickVideo(this)">
+          </label>
+          <span id="sc-video-status" style="font-size:11px;color:var(--muted)"></span>
+        </div>
+        <input class="form-input" id="sc-form-video-url" placeholder="O pegá una URL de video" style="margin-top:8px">
       </div>
 
       <!-- Título -->
@@ -5901,6 +5998,17 @@ function save(){
     }, 1500);
   }
 }
+// Igual que save() pero escribe a Supabase de inmediato (sin debounce).
+// Usar cuando es crítico que el dato sobreviva una recarga rápida (ej: listas de difusión).
+function _saveNow(){
+  const ws=getActiveWs();
+  if(ws){ws.data=S;ws.lastAccess=new Date().toISOString().slice(0,10);}
+  _localSave();
+  if(ws){
+    clearTimeout(_saveTimer);
+    supaUpsert(ws).catch(e=>console.warn('[Supabase] _saveNow error:',e));
+  }
+}
 function load(){return null;}
 
 function _enterWorkspace(ws){
@@ -6321,13 +6429,23 @@ async function _loadWorkspacesAndRender(){
 
   // Handle TN OAuth redirect back
   const _tnParams=new URLSearchParams(window.location.search);
-  if(_tnParams.get('tn_connected')==='1'){
+  const _tnConnWsId=_tnParams.get('tn_connected');
+  if(_tnConnWsId){
     history.replaceState({},'',window.location.pathname);
+    // Primero restaurar el workspace correcto, luego navegar a integraciones
+    await _restoreActiveWorkspace();
+    if(_tnConnWsId!=='1'){
+      // Si el callback mandó el wsId, asegurar que es el workspace activo
+      if(_activeWsId!==_tnConnWsId){
+        const wsBtn=document.querySelector(`[data-wsid="${_tnConnWsId}"]`);
+        if(wsBtn) wsBtn.click();
+        await new Promise(r=>setTimeout(r,500));
+      }
+    }
     setTimeout(()=>{
       sbNav('integraciones','integraciones',document.getElementById('sbi-integraciones'));
       notify('🛍️ Tienda Nube conectada correctamente');
-    },400);
-    _restoreActiveWorkspace();
+    },200);
     return;
   }
 
@@ -9491,12 +9609,15 @@ function getCostosFijosEnPeriodo(desde,hasta){
   const cf=S.finCfg?.costosFijos||[];
   if(!desde||!hasta)return 0;
   const desdeD=new Date(desde),hastaD=new Date(hasta);
-  const meses=Math.max(1,Math.ceil((hastaD-desdeD)/(30*24*3600*1000)));
-  const freqMap={Mensual:1,Bimestral:2,Trimestral:3,Semestral:6,Anual:12};
-  return Math.round(cf.reduce((a,c)=>a+(c.monto*(meses/( freqMap[c.recurrencia]||1))),0));
+  // Días reales del período (inclusivo)
+  const diasPeriodo=Math.max(1,Math.round((hastaD-desdeD)/(24*3600*1000))+1);
+  // Días por ciclo de recurrencia
+  const diasCiclo={Mensual:30,Bimestral:60,Trimestral:90,Semestral:180,Anual:365};
+  return Math.round(cf.reduce((a,c)=>a+c.monto*(diasPeriodo/(diasCiclo[c.recurrencia]||30)),0));
 }
  
-function setPeriod(p){
+function _clearFinPeriodActive(){document.querySelectorAll('.fin-qbtn').forEach(b=>b.classList.remove('active'));}
+function setPeriod(p,btn){
   const now=new Date();let desde,hasta=new Date(now);
   if(p==='week'){desde=new Date(now);desde.setDate(now.getDate()-now.getDay()+1);}
   else if(p==='month'){desde=new Date(now.getFullYear(),now.getMonth(),1);hasta=new Date(now.getFullYear(),now.getMonth()+1,0);}
@@ -9504,6 +9625,8 @@ function setPeriod(p){
   else{desde=new Date(now);desde.setDate(now.getDate()-90);}
   document.getElementById('fin-desde').value=fmtDate(desde);
   document.getElementById('fin-hasta').value=fmtDate(hasta);
+  _clearFinPeriodActive();
+  if(btn)btn.classList.add('active');
   renderFinanzas();
 }
  
@@ -9541,10 +9664,12 @@ async function _syncFinanzasFromBackend() {
     const freshFinanzas = freshWs.data.finanzas || [];
     if (!S.finanzas) S.finanzas = [];
     // Mergear: agregar transacciones del backend que no están en S (vienen de ventas web)
-    const existingIds = new Set(S.finanzas.map(f => f.id).filter(Boolean));
+    const _fk = f => f.id || (f.tn_id ? 'tn_'+f.tn_id : null) || f.tn_id_ref || null;
+    const existingKeys = new Set(S.finanzas.map(_fk).filter(Boolean));
     let added = 0;
     freshFinanzas.forEach(f => {
-      if (f.id && !existingIds.has(f.id)) {
+      const k = _fk(f);
+      if (k && !existingKeys.has(k)) {
         S.finanzas.push(f);
         added++;
       }
@@ -9581,8 +9706,9 @@ function renderFinanzas(){
   const gananciaReal=ingresosBrutos-cogs-comisiones-gastosOpex-costosFijos;
   const margenReal=ingresosBrutos>0?Math.round(gananciaReal/ingresosBrutos*100):0;
   const adsGasto=txs.filter(t=>t.categoria==='Meta Ads').reduce((a,t)=>a+t.monto,0);
-  const ventas=txs.filter(t=>t.tipo==='ingreso').reduce((a,t)=>a+(t.unidades||0),0);
-  const ticket=ingresosBrutos>0&&ventas>0?Math.round(ingresosBrutos/ventas):0;
+  const ventasTxs=txs.filter(t=>t.tipo==='ingreso');
+  const ventas=ventasTxs.length;
+  const ticket=ventas>0?Math.round(ingresosBrutos/ventas):0;
  
   // TN-specific metrics
   const tnTxs=txs.filter(t=>t.tipo==='ingreso'&&t.tn_id);
@@ -9632,6 +9758,19 @@ function renderFinanzas(){
   if(tnOrdEl)tnOrdEl.textContent=tnOrders;
   const tnSubEl=document.getElementById('kpi-tn-sub');
   if(tnSubEl)tnSubEl.textContent=tnOrders===1?'1 orden TN':tnOrders+' órdenes TN';
+
+  // ── Nuevos KPIs del dashboard redesign ──
+  const margenBruto=ingresosBrutos>0?Math.round((ingresosBrutos-cogs)/ingresosBrutos*100):null;
+  const kpiMBEl=document.getElementById('kpi-margen-bruto');
+  if(kpiMBEl){
+    kpiMBEl.textContent=margenBruto!==null?margenBruto+'%':'—';
+    kpiMBEl.style.color=margenBruto===null?'var(--muted)':margenBruto>=40?'var(--green)':margenBruto>=20?'var(--gold)':'var(--coral)';
+  }
+  const kpiTickEl=document.getElementById('kpi-ticket');
+  if(kpiTickEl)kpiTickEl.textContent=ticket?fmtMoney(ticket):'—';
+  // Accent bar del P&L (color dinámico)
+  const pnlAccent=document.getElementById('kpi-pnl-accent');
+  if(pnlAccent)pnlAccent.style.background=gananciaReal>=0?'rgba(52,199,123,.5)':'rgba(255,100,80,.5)';
 
   // TN Pulse row
   const pulseRow=document.getElementById('tn-pulse-row');
@@ -12235,7 +12374,13 @@ async function fetchTNOrders(){
     const r=await fetch(`/api/tn/orders?desde=${desde}&hasta=${hasta}&wsId=${encodeURIComponent(_activeWsId)}`);
     const orders=await r.json();
     await syncPromise; // esperar costos antes de renderizar la preview con margen
-    if(!r.ok||orders.error){area.innerHTML=`<div style="color:var(--coral);font-size:12px;padding:8px 0">Error: ${orders.error||'no se pudo conectar'}</div>`;return;}
+    if(!r.ok||orders.error){
+      const isTokenErr=orders.error==='TOKEN_INVALIDO'||r.status===401;
+      area.innerHTML=isTokenErr
+        ?`<div style="color:var(--coral);font-size:12px;padding:8px 0">Token de Tienda Nube inválido o revocado. <button onclick="sbNav('integraciones','integraciones',document.getElementById('sbi-integraciones'))" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px;text-decoration:underline">Ir a Integraciones → Reconectar</button></div>`
+        :`<div style="color:var(--coral);font-size:12px;padding:8px 0">Error: ${orders.error||'no se pudo conectar'}</div>`;
+      return;
+    }
     if(!orders.length){
       area.innerHTML=`<div style="font-size:12px;color:var(--muted);padding:8px 0">No se encontraron ventas pagadas en ese período. Probá ampliar el rango de fechas.</div>`;
       return;
@@ -12475,12 +12620,12 @@ function importTNSelected(orders){
     S.finanzas.push(ingresoTx);
     // Auto-gasto: costo de envío
     if(envioMonto>0){
-      S.finanzas.push({tipo:'gasto',fecha,concepto:`Envío TN #${o.number}`,categoria:'Envíos',monto:envioMonto,medioPago:medio,tn_id_ref:`${o.id}_envio`});
+      S.finanzas.push({id:`tn_${o.id}_envio`,tipo:'gasto',fecha,concepto:`Envío TN #${o.number}`,categoria:'Envíos',monto:envioMonto,medioPago:medio,tn_id_ref:`${o.id}_envio`});
     }
     // Auto-gasto: comisión gateway (MP, Pago Nube, etc.)
     const comisionMonto=calcComisionTx(ingresoTx);
     if(comisionMonto>0){
-      S.finanzas.push({tipo:'gasto',fecha,concepto:`Comisión TN #${o.number}`,categoria:'Comisiones',monto:comisionMonto,medioPago:medio,tn_id_ref:`${o.id}_com`});
+      S.finanzas.push({id:`tn_${o.id}_com`,tipo:'gasto',fecha,concepto:`Comisión TN #${o.number}`,categoria:'Comisiones',monto:comisionMonto,medioPago:medio,tn_id_ref:`${o.id}_com`});
     }
     if(o.customer)upsertCRMFromTN(o,fecha,total);
     count++;
@@ -13677,10 +13822,21 @@ function openModal(tipo,data,idx){
     const estados=[...new Set((S.crm||[]).map(c=>c.estado).filter(Boolean))];
     const tags=[...new Set((S.crm||[]).flatMap(c=>c.tags||[]))];
     const ciudades=[...new Set((S.crm||[]).map(c=>c.ciudad).filter(Boolean))].sort();
+    const _dlCanal=lista?.canal||'wapp';
     document.getElementById('modal-body').innerHTML=`
       <div style="display:flex;flex-direction:column;gap:12px">
         <div class="form-group"><label class="form-label">Nombre de la lista</label>
           <input class="form-input" id="dlf-nombre" placeholder="Ej: Clientes SOULAB" value="${lista?.nombre||''}"></div>
+        <div class="form-group"><label class="form-label">Canal</label>
+          <div style="display:flex;gap:6px">
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;flex:1;background:var(--s2);border:2px solid ${_dlCanal==='wapp'?'var(--green)':'var(--border)'};border-radius:8px;padding:7px 10px;transition:border-color .15s">
+              <input type="radio" name="dlf-canal" value="wapp" ${_dlCanal==='wapp'?'checked':''} onchange="_dlUpdateCanalUi()"> <span>📱 WhatsApp</span></label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;flex:1;background:var(--s2);border:2px solid ${_dlCanal==='email'?'var(--blue)':'var(--border)'};border-radius:8px;padding:7px 10px;transition:border-color .15s">
+              <input type="radio" name="dlf-canal" value="email" ${_dlCanal==='email'?'checked':''} onchange="_dlUpdateCanalUi()"> <span>📧 Email</span></label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;flex:1;background:var(--s2);border:2px solid ${_dlCanal==='ambos'?'var(--gold)':'var(--border)'};border-radius:8px;padding:7px 10px;transition:border-color .15s">
+              <input type="radio" name="dlf-canal" value="ambos" ${_dlCanal==='ambos'?'checked':''} onchange="_dlUpdateCanalUi()"> <span>📧+📱 Ambos</span></label>
+          </div>
+        </div>
         <div class="form-group"><label class="form-label">Tipo</label>
           <div style="display:flex;gap:8px">
             <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;flex:1;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:8px 12px">
@@ -13713,13 +13869,16 @@ function openModal(tipo,data,idx){
                   <span style="font-size:11px;color:var(--muted)">días</span>
                 </div></div>
             </div>
-            <div class="form-group" style="margin:0"><label class="form-label">Solo con teléfono cargado</label>
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
-                <input type="checkbox" id="dlf-solo-tel" ${lista?.filtros?.soloTel!==false?'checked':''} onchange="difListaPreview()"> Solo contactos con número de WA cargado</label>
+            <div class="form-group" style="margin:0"><label class="form-label">Compras mínimas</label>
+              <input class="form-input" id="dlf-compras-min" type="number" min="0" placeholder="0 = sin filtro" value="${lista?.filtros?.cantComprasMin||''}" oninput="difListaPreview()" style="max-width:160px"></div>
+            <div style="display:flex;gap:14px;flex-wrap:wrap;padding:2px 0">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px">
+                <input type="checkbox" id="dlf-solo-tel" ${lista?.filtros?.soloTel!==false?'checked':''} onchange="difListaPreview()"> Solo con WhatsApp</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px">
+                <input type="checkbox" id="dlf-solo-email" ${lista?.filtros?.soloEmail?'checked':''} onchange="difListaPreview()"> Solo con email</label>
             </div>
           </div>
         </div>
-        <!-- Preview -->
         <div id="dlf-preview" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;color:var(--muted)">Ajustá los filtros para ver un preview…</div>
         <div class="modal-footer">
           <button class="btn" onclick="closeModal()">Cancelar</button>
@@ -14067,7 +14226,7 @@ function saveTx(){
     costoUnit:productoId?costoUnit:undefined,
     costoTotal:productoId?costoTotal:undefined
   });
-  save();closeModal();renderFinanzas();
+  _saveNow();closeModal();renderFinanzas();
   const extras=[clienteId?`cliente "${clienteNombre}" en CRM`:'',productoId?`COGS $${costoTotal.toLocaleString('es-AR')}${stockMsg}`:''].filter(Boolean).join(' · ');
   notify('Movimiento guardado ✓'+(extras?` (${extras})`:''));
 }
@@ -17050,7 +17209,7 @@ async function syncVentasALaFecha(silent=false){
       });
       const coupons=o.coupon||o.coupons||[];
       const descuento=Array.isArray(coupons)&&coupons.length?coupons.map(c=>c.code).filter(Boolean).join(', '):(typeof coupons==='string'?coupons:'');
-      S.finanzas.unshift({fecha,concepto:`TN #${o.number} · ${productos}`,categoria:'Ventas tienda',tipo:'ingreso',bruto:total,monto:total,fee:0,medio,tn_id:o.id,tn_number:o.number,tn_cliente:o.customer?.name||'',tn_envio:envioMonto,tn_descuento:descuento,costoTotal,productoId:matchedProductoId});
+      S.finanzas.unshift({id:'tn_'+o.id,fecha,concepto:`TN #${o.number} · ${productos}`,categoria:'Ventas tienda',tipo:'ingreso',bruto:total,monto:total,fee:0,medio,tn_id:o.id,tn_number:o.number,tn_cliente:o.customer?.name||'',tn_envio:envioMonto,tn_descuento:descuento,costoTotal,productoId:matchedProductoId});
     });
     save();renderFinanzas();renderInicio();
     // Siempre notificar si hay ventas nuevas, incluso en modo silencioso
@@ -20086,11 +20245,7 @@ function crealPublishToMeta() {
 
   <!-- TAB: LISTAS -->
   <div class="plan-section" id="diftab-listas">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <span style="font-size:12px;color:var(--muted)">Guardá grupos de contactos reutilizables</span>
-      <button class="btn btn-primary" onclick="openModal('newDifLista')">+ Nueva lista</button>
-    </div>
-    <div id="dif-listas-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px"></div>
+    <div id="dif-listas-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px"></div>
   </div>
 
   <!-- TAB: HISTORIAL -->
@@ -20114,11 +20269,13 @@ function crealPublishToMeta() {
 
           <!-- Listas guardadas -->
           <div style="margin-bottom:10px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-              <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em">Mis listas</div>
-              <button class="btn btn-xs" onclick="emailSaveList()" style="font-size:10px">+ Guardar selección actual</button>
+            <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Mis listas</div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <select id="email-lista-select" style="flex:1;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:11px;font-family:var(--fb)" onchange="emailLoadListaSelect()">
+                <option value="">— Cargar lista —</option>
+              </select>
+              <button class="btn btn-xs" onclick="switchDifTab('listas',document.getElementById('diftab-btn-listas'))" style="font-size:10px;white-space:nowrap">+ Nueva</button>
             </div>
-            <div id="email-saved-lists"><div style="font-size:10px;color:var(--muted)">Sin listas guardadas</div></div>
           </div>
 
           <!-- Buscador + lista -->
@@ -20136,17 +20293,29 @@ function crealPublishToMeta() {
         <!-- Config remitente -->
         <div class="dif-card">
           <div class="dif-card-title">⚙️ Remitente</div>
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <div>
-              <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">Nombre del remitente</label>
-              <input type="text" id="em-from-name" placeholder="Soul eCommlab" value="" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:12px">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;gap:8px">
+              <div style="flex:1">
+                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">Nombre visible</label>
+                <input type="text" id="em-from-name" placeholder="Soul eCommlab" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:12px" oninput="_emUpdateFromPreview()">
+              </div>
             </div>
             <div>
-              <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">Email de respuesta (reply-to)</label>
+              <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">Email de envío (from)</label>
+              <div style="display:flex;align-items:center;gap:0;background:var(--s2);border:1px solid var(--border);border-radius:8px;overflow:hidden">
+                <input type="text" id="em-from-user-dif" placeholder="hola" style="background:none;border:none;padding:7px 6px 7px 10px;color:var(--text);font-size:12px;width:90px;outline:none" oninput="_emUpdateFromPreview()">
+                <span style="color:var(--muted);font-size:13px;padding:0 2px">@</span>
+                <input type="text" id="em-from-domain-dif" placeholder="midominio.com" style="flex:1;background:none;border:none;border-left:1px solid var(--border);padding:7px 10px;color:var(--text);font-size:12px;outline:none" oninput="_emUpdateFromPreview()">
+                <button class="btn btn-xs" onclick="_emSaveFromConfig()" style="margin:4px 6px;font-size:10px;padding:3px 10px;flex-shrink:0">Guardar</button>
+              </div>
+              <div id="em-from-preview" style="font-size:10px;color:var(--muted);margin-top:4px;padding:4px 8px;background:rgba(0,0,0,.15);border-radius:5px;font-family:monospace"></div>
+            </div>
+            <div>
+              <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">Reply-to (a dónde llegan las respuestas)</label>
               <input type="email" id="em-reply-to" placeholder="hola@tudominio.com" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:12px">
             </div>
-            <div style="font-size:10px;color:var(--muted);background:rgba(201,180,138,.08);border-radius:6px;padding:7px 10px;line-height:1.5">
-              📧 Los emails salen desde la dirección configurada en <strong>Mi Tienda → Configuración → Email</strong>. El reply-to define a dónde llegan las respuestas de los destinatarios.
+            <div style="font-size:10px;color:var(--muted);background:rgba(201,180,138,.06);border:1px solid rgba(201,180,138,.15);border-radius:6px;padding:7px 10px;line-height:1.6">
+              ⚠️ Para enviar desde tu propio dominio necesitás verificarlo en <strong>Resend.com</strong>. Sin dominio propio, los mails salen desde <code style="background:var(--s2);padding:1px 4px;border-radius:3px;font-size:10px">onboarding@resend.dev</code>.
             </div>
           </div>
         </div>
@@ -20279,9 +20448,10 @@ function crealPublishToMeta() {
 
         <button class="btn btn-primary" onclick="sendEmailBroadcast()" style="width:100%;padding:11px">📧 Enviar campaña</button>
         <div id="em-progress" style="display:none;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-            <span id="em-progress-text" style="font-size:11px">Enviando…</span>
-            <span id="em-progress-pct" style="font-size:11px;color:var(--gold);font-weight:600">0%</span>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span id="em-progress-text" style="font-size:11px;flex:1">Enviando…</span>
+            <span id="em-progress-pct" style="font-size:11px;color:var(--gold);font-weight:600;margin-right:8px">0%</span>
+            <button id="em-pause-btn" class="btn btn-xs" onclick="toggleEmailPause()" style="font-size:10px;padding:3px 12px;min-width:80px">⏸ Pausar</button>
           </div>
           <div class="dif-progress-bar"><div class="dif-progress-fill" id="em-progress-fill" style="width:0%"></div></div>
         </div>
@@ -21348,6 +21518,7 @@ async function _runDifusionFromJob(job) {
       : activeTpl;
 
     let ok = false;
+    let lastErrMsg = '';
     // Intentar envío con 1 reintento automático en caso de fallo de red
     for (let attempt = 0; attempt < 2 && !ok; attempt++) {
       if (attempt > 0) await new Promise(r => setTimeout(r, 3000)); // esperar 3s antes de reintentar
@@ -21361,6 +21532,10 @@ async function _runDifusionFromJob(job) {
           if (r.ok) {
             const d = await r.json();
             ok = !d.error;
+            if (!ok) lastErrMsg = d.error || 'Error local';
+          } else {
+            const d = await r.json().catch(() => ({}));
+            lastErrMsg = d.error || `HTTP ${r.status}`;
           }
         } else {
           const r = await fetch('/api/wa/send', {
@@ -21371,9 +21546,19 @@ async function _runDifusionFromJob(job) {
           if (r.ok) {
             const d = await r.json();
             ok = !!d.ok;
+            if (!ok) lastErrMsg = d.error || 'Error desconocido';
+          } else {
+            const d = await r.json().catch(() => ({}));
+            lastErrMsg = d.error || `Error HTTP ${r.status}`;
           }
         }
-      } catch(e) { ok = false; }
+      } catch(e) { ok = false; lastErrMsg = e.name === 'TimeoutError' ? 'Timeout de red' : e.message; }
+    }
+
+    // Mostrar primer error al usuario para diagnóstico
+    if (!ok && failed === 0 && lastErrMsg) {
+      if (progText) progText.textContent = `❌ Error en primer envío: ${lastErrMsg}`;
+      notify(`❌ Error WAHA: ${lastErrMsg}`, 8000);
     }
 
     // logContact FUERA del try/catch — si falla no afecta el conteo
@@ -21544,6 +21729,7 @@ function switchDifTab(tab, btn) {
   if (tab === 'listas') renderDifListas();
   if (tab === 'historial') renderDifLog();
   if (tab === 'envio') { renderDifusiones(); }
+  if (tab === 'email') { _emLoadFromConfig(); renderEmailRecipients?.(); }
   if (tab === 'popup') { loadCaptureTabSettings(); }
 }
 
@@ -21622,13 +21808,36 @@ function difSelectVisible() {
 }
 
 // ── LISTAS DE DIFUSIÓN ──
+
+// Listas inteligentes (built-in, no editables) — definido aquí para que esté disponible antes que renderDifListas
+const _DIF_SMART_LISTS = [
+  { id:'sl_popup',   nombre:'Leads del Popup',  icon:'🎯', desc:'Captados desde el formulario web',    canal:'ambos', filtros:{source:'popup'} },
+  { id:'sl_compras', nombre:'Compradores',       icon:'🛍', desc:'Con al menos 1 compra registrada',    canal:'ambos', filtros:{source:'compras'} },
+  { id:'sl_vip',     nombre:'VIP (3+ compras)', icon:'⭐', desc:'Mejores clientes, 3 o más compras',   canal:'ambos', filtros:{source:'vip'} },
+  { id:'sl_sclub',   nombre:'Soul Club',         icon:'✨', desc:'Miembros de Soul Club (base de datos)',canal:'ambos', filtros:{source:'soul_club'}, supabase_api:'/api/dif/soul-club' },
+  { id:'sl_scanjes', nombre:'Soul Canjes',        icon:'🎁', desc:'Accesos aprobados a Soul Canjes',     canal:'ambos', filtros:{source:'soul_canjes'}, supabase_api:'/api/dif/soul-canjes' },
+  { id:'sl_spr',     nombre:'Soul PR (CRM)',      icon:'📸', desc:'Participantes en Soul PR / canjes (por tags CRM)', canal:'ambos', filtros:{source:'soul_pr'} },
+];
+
 function _evalListaFiltros(filtros) {
-  return (S.crm || []).filter((c, ri) => {
-    if (filtros.soloTel !== false && !c.tel) return false;
-    if (filtros.nombre && !((c.nombre || '') + ' ' + (c.apellido || '')).toLowerCase().includes(filtros.nombre.toLowerCase())) return false;
-    if (filtros.estado && (c.estado || '') !== filtros.estado) return false;
-    if (filtros.ciudad && !(c.ciudad || '').toLowerCase().includes(filtros.ciudad.toLowerCase())) return false;
-    if (filtros.tag && !(c.tags || []).some(t => t.toLowerCase().includes(filtros.tag.toLowerCase()))) return false;
+  if (!filtros) return [];
+  // c.tags puede ser string o array según cómo se guardó en el CRM
+  const _tags = c => { const t = c.tags; return Array.isArray(t) ? t : (t ? String(t).split(',').map(s=>s.trim()).filter(Boolean) : []); };
+  let base = S.crm || [];
+  // Smart source filters
+  if (filtros.source === 'popup')     base = base.filter(c => c.origen === 'popup' || c.etapa === 'lead' || _tags(c).includes('popup'));
+  if (filtros.source === 'compras')   base = base.filter(c => (parseInt(c.cantCompras||c.cantidadCompras)||0) > 0);
+  if (filtros.source === 'vip')       base = base.filter(c => (parseInt(c.cantCompras||c.cantidadCompras)||0) >= 3);
+  if (filtros.source === 'soul_club') base = base.filter(c => _tags(c).some(t => /soul.?club/i.test(t)) || c.scMiembro);
+  if (filtros.source === 'soul_pr')   base = base.filter(c => _tags(c).some(t => /soul.?pr|ugc|canje/i.test(t)));
+  return base.filter(c => {
+    if (filtros.soloTel   && !c.tel)   return false;
+    if (filtros.soloEmail && !c.email) return false;
+    if (filtros.cantComprasMin && (parseInt(c.cantCompras||c.cantidadCompras)||0) < parseInt(filtros.cantComprasMin)) return false;
+    if (filtros.nombre && !((c.nombre||'') + ' ' + (c.apellido||'')).toLowerCase().includes(filtros.nombre.toLowerCase())) return false;
+    if (filtros.estado && (c.estado||'') !== filtros.estado) return false;
+    if (filtros.ciudad && !(c.ciudad||'').toLowerCase().includes(filtros.ciudad.toLowerCase())) return false;
+    if (filtros.tag && !_tags(c).some(t => t.toLowerCase().includes(filtros.tag.toLowerCase()))) return false;
     if (filtros.dias) {
       const d = c.ultimoContacto ? Math.floor((new Date() - new Date(c.ultimoContacto)) / 86400000) : 9999;
       if (d < parseInt(filtros.dias)) return false;
@@ -21640,92 +21849,173 @@ function _evalListaFiltros(filtros) {
 function difListaPreview() {
   const filtros = _getDlfFiltros();
   const matches = _evalListaFiltros(filtros);
+  const emailC = matches.filter(c=>c.email).length;
+  const wappC  = matches.filter(c=>c.tel).length;
   const el = document.getElementById('dlf-preview');
   if (!el) return;
-  if (!matches.length) {
-    el.innerHTML = '<span style="color:var(--muted)">Sin contactos que coincidan con esos filtros</span>';
-    return;
-  }
-  el.innerHTML = `<div style="margin-bottom:6px;color:var(--text);font-weight:500">${matches.length} contacto${matches.length!==1?'s':''} incluido${matches.length!==1?'s':''}</div>` +
-    matches.slice(0, 8).map(c => `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)"><span>${c.nombre||'—'}${c.apellido?' '+c.apellido:''}</span><span style="color:var(--muted)">${c.estado||''}</span></div>`).join('') +
-    (matches.length > 8 ? `<div style="color:var(--muted);margin-top:4px">…y ${matches.length - 8} más</div>` : '');
+  if (!matches.length) { el.innerHTML = '<span style="color:var(--muted)">Sin contactos que coincidan con esos filtros</span>'; return; }
+  el.innerHTML = `<div style="margin-bottom:8px;display:flex;gap:16px;flex-wrap:wrap">
+    <span style="color:var(--text);font-weight:600">${matches.length} total</span>
+    ${emailC?`<span style="color:var(--blue)">📧 ${emailC} con email</span>`:''}
+    ${wappC?`<span style="color:var(--green)">📱 ${wappC} con WhatsApp</span>`:''}
+  </div>` +
+  matches.slice(0,6).map(c=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)"><span>${c.nombre||'—'}${c.apellido?' '+c.apellido:''}</span><span style="font-size:10px;color:var(--muted)">${c.email?'📧':''} ${c.tel?'📱':''}</span></div>`).join('') +
+  (matches.length>6?`<div style="color:var(--muted);margin-top:4px">…y ${matches.length-6} más</div>`:'');
 }
 
 function _getDlfFiltros() {
   return {
-    nombre: document.getElementById('dlf-nombre-filtro')?.value?.trim() || '',
-    estado: document.getElementById('dlf-estado')?.value || '',
-    ciudad: document.getElementById('dlf-ciudad')?.value?.trim() || '',
-    tag: document.getElementById('dlf-tag')?.value?.trim() || '',
-    dias: document.getElementById('dlf-dias')?.value || '',
-    soloTel: document.getElementById('dlf-solo-tel')?.checked ?? true,
+    canal:         document.querySelector('input[name="dlf-canal"]:checked')?.value || 'wapp',
+    nombre:        document.getElementById('dlf-nombre-filtro')?.value?.trim() || '',
+    estado:        document.getElementById('dlf-estado')?.value || '',
+    ciudad:        document.getElementById('dlf-ciudad')?.value?.trim() || '',
+    tag:           document.getElementById('dlf-tag')?.value?.trim() || '',
+    dias:          document.getElementById('dlf-dias')?.value || '',
+    soloTel:       document.getElementById('dlf-solo-tel')?.checked ?? true,
+    soloEmail:     document.getElementById('dlf-solo-email')?.checked ?? false,
+    cantComprasMin:document.getElementById('dlf-compras-min')?.value || '',
   };
+}
+
+function _dlUpdateCanalUi() {
+  const canal = document.querySelector('input[name="dlf-canal"]:checked')?.value || 'wapp';
+  const telCb = document.getElementById('dlf-solo-tel');
+  const emailCb = document.getElementById('dlf-solo-email');
+  if (canal === 'wapp')  { if(telCb)telCb.checked=true;  if(emailCb)emailCb.checked=false; }
+  else if (canal === 'email') { if(telCb)telCb.checked=false; if(emailCb)emailCb.checked=true; }
+  else { if(telCb)telCb.checked=false; if(emailCb)emailCb.checked=false; }
+  // Update border colors on canal labels
+  document.querySelectorAll('[name="dlf-canal"]').forEach(r => {
+    const lbl = r.closest('label'); if(!lbl) return;
+    const colors = {wapp:'var(--green)',email:'var(--blue)',ambos:'var(--gold)'};
+    lbl.style.borderColor = r.value===canal ? colors[r.value] : 'var(--border)';
+  });
+  difListaPreview();
 }
 
 function saveDifLista(idx) {
   const nombre = document.getElementById('dlf-nombre')?.value?.trim();
   if (!nombre) { notify('Poné un nombre a la lista'); return; }
-  const tipo = document.querySelector('input[name="dlf-tipo"]:checked')?.value || 'dinamica';
+  const tipo   = document.querySelector('input[name="dlf-tipo"]:checked')?.value || 'dinamica';
   const filtros = _getDlfFiltros();
+  const canal   = filtros.canal || 'wapp';
   const matches = _evalListaFiltros(filtros);
   if (!S.difListas) S.difListas = [];
+  const prev = (idx !== null && idx !== undefined) ? S.difListas[idx] : null;
   const obj = {
-    id: (idx !== null && idx !== undefined && S.difListas[idx]) ? S.difListas[idx].id : ('dl_' + Date.now()),
-    nombre, tipo, filtros,
+    id: prev ? prev.id : ('dl_' + Date.now()),
+    nombre, tipo, canal, filtros,
     contactIds: tipo === 'estatica' ? matches.map(c => c.id).filter(Boolean) : [],
-    creado: (idx !== null && idx !== undefined && S.difListas[idx]) ? S.difListas[idx].creado : new Date().toISOString().slice(0,10),
-    ultimaDifusion: (idx !== null && idx !== undefined && S.difListas[idx]) ? S.difListas[idx].ultimaDifusion : null,
+    creado: prev ? prev.creado : new Date().toISOString().slice(0,10),
+    ultimaDifusion: prev ? prev.ultimaDifusion : null,
   };
-  if (idx !== null && idx !== undefined) S.difListas[idx] = obj;
-  else S.difListas.unshift(obj);
-  save();
+  if (prev) S.difListas[idx] = obj; else S.difListas.unshift(obj);
+  _saveNow(); // inmediato — no debounce
   closeModal();
-  notify(`Lista "${nombre}" guardada ✓ — ${matches.length} contactos`);
+  notify(`Lista "${nombre}" guardada ✓ — ${matches.filter(c=>canal==='email'?c.email:c.tel).length} contactos`);
   renderDifListas();
   _difRefreshListaSelect();
+  _emailRefreshListaSelect();
 }
 
 function renderDifListas() {
   if (!S.difListas) S.difListas = [];
   const el = document.getElementById('dif-listas-grid');
   if (!el) return;
-  _difRefreshListaSelect();
-  if (!S.difListas.length) {
-    el.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;font-size:12px;color:var(--muted)">No tenés listas guardadas aún.<br>Creá una para reutilizarla en tus difusiones.</div>';
-    return;
+  try {
+    _difRefreshListaSelect();
+    _emailRefreshListaSelect();
+  } catch(e) { /* no bloquear el render */ }
+
+  try {
+    // ── Sección listas inteligentes (string concat, sin template literals anidados) ──
+    let slCards = '';
+    for (const sl of _DIF_SMART_LISTS) {
+      const allC = _evalListaFiltros(sl.filtros);
+      const eC = allC.filter(c => c.email).length;
+      const wC = allC.filter(c => c.tel).length;
+      const canalColor = sl.canal === 'email' ? 'var(--blue)' : sl.canal === 'wapp' ? 'var(--green)' : 'var(--gold)';
+      const canalIcon  = sl.canal === 'email' ? '📧' : sl.canal === 'wapp' ? '📱' : '📧+📱';
+      const contactos  = (eC ? '📧 ' + eC + '  ' : '') + (wC ? '📱 ' + wC : (!eC ? '<span style="color:var(--muted)">Sin contactos</span>' : ''));
+      slCards +=
+        '<div class="dif-card" style="padding:13px">' +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">' +
+            '<div style="font-size:12px;font-weight:600">' + sl.icon + ' ' + sl.nombre + '</div>' +
+            '<span style="font-size:9px;color:' + canalColor + ';border:1px solid;padding:1px 6px;border-radius:10px">' + canalIcon + '</span>' +
+          '</div>' +
+          '<div style="font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.4">' + sl.desc + '</div>' +
+          '<div style="font-size:11px;margin-bottom:10px">' + contactos + '</div>' +
+          '<button class="btn btn-xs" style="width:100%;font-size:10px" onclick="difUsarSmartLista(\'' + sl.id + '\')">Usar en difusión →</button>' +
+        '</div>';
+    }
+
+    const header =
+      '<div style="grid-column:1/-1">' +
+        '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px">⚡ Listas inteligentes</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:20px">' + slCards + '</div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
+          '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em">Mis listas</div>' +
+          '<button class="btn btn-primary" onclick="openModal(\'newDifLista\')" style="font-size:11px;padding:5px 16px">+ Nueva lista</button>' +
+        '</div>' +
+      '</div>';
+
+    if (!S.difListas.length) {
+      el.innerHTML = header +
+        '<div style="grid-column:1/-1;text-align:center;padding:30px;background:var(--s1);border:1px dashed var(--border);border-radius:12px;font-size:12px;color:var(--muted)">No tenés listas personalizadas aún. Creá una para reutilizarla.</div>';
+      return;
+    }
+
+    let listCards = '';
+    for (let i = 0; i < S.difListas.length; i++) {
+      const l = S.difListas[i];
+      const allC = l.tipo === 'dinamica' ? _evalListaFiltros(l.filtros) : (S.crm || []).filter(c => l.contactIds?.includes(c.id));
+      const eC = allC.filter(c => c.email).length;
+      const wC = allC.filter(c => c.tel).length;
+      const canal = l.canal || 'wapp';
+      const ult = l.ultimaDifusion ? new Date(l.ultimaDifusion).toLocaleDateString('es-AR') : 'Nunca';
+      const tipoBadge = l.tipo === 'dinamica'
+        ? '<span style="font-size:9px;color:var(--blue);border:1px solid;padding:1px 7px;border-radius:10px">⟳ Dinámica</span>'
+        : '<span style="font-size:9px;color:var(--gold);border:1px solid;padding:1px 7px;border-radius:10px">📌 Estática</span>';
+      const canalBadge = canal === 'email'
+        ? '<span style="font-size:9px;color:var(--blue);border:1px solid;padding:1px 6px;border-radius:10px;margin-left:4px">📧 Email</span>'
+        : canal === 'ambos'
+        ? '<span style="font-size:9px;color:var(--gold);border:1px solid;padding:1px 6px;border-radius:10px;margin-left:4px">📧+📱</span>'
+        : '<span style="font-size:9px;color:var(--green);border:1px solid;padding:1px 6px;border-radius:10px;margin-left:4px">📱 WA</span>';
+      const filterParts = [
+        l.filtros?.nombre ? 'Nombre: "' + l.filtros.nombre + '"' : '',
+        l.filtros?.estado ? 'Estado: ' + l.filtros.estado : '',
+        l.filtros?.ciudad ? 'Ciudad: ' + l.filtros.ciudad : '',
+        l.filtros?.tag    ? 'Tag: '    + l.filtros.tag    : '',
+        l.filtros?.dias   ? 'Sin contactar +' + l.filtros.dias + 'd' : '',
+        l.filtros?.cantComprasMin ? l.filtros.cantComprasMin + '+ compras' : '',
+      ].filter(Boolean);
+      const filterDesc = filterParts.length ? filterParts.join(' · ') : 'Sin filtros adicionales';
+      const cuentas = (eC ? '📧 ' + eC + '  ' : '') + (wC ? '📱 ' + wC : '');
+      listCards +=
+        '<div class="dif-card" style="cursor:default">' +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">' +
+            '<div style="flex:1">' +
+              '<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px">' + (l.nombre || '—') + '</div>' +
+              '<div style="display:flex;gap:4px;flex-wrap:wrap">' + tipoBadge + canalBadge + '</div>' +
+            '</div>' +
+            '<div style="display:flex;gap:4px;margin-left:8px">' +
+              '<button class="btn btn-xs" onclick="editDifLista(' + i + ')" title="Editar">✎</button>' +
+              '<button class="btn btn-xs btn-danger" onclick="deleteDifLista(' + i + ')" title="Eliminar">×</button>' +
+            '</div>' +
+          '</div>' +
+          '<div style="font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.5">' + filterDesc + '</div>' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
+            '<span style="font-size:11px">' + cuentas + '</span>' +
+            '<span style="font-size:10px;color:var(--muted)">Última: ' + ult + '</span>' +
+          '</div>' +
+          '<button class="btn btn-primary" style="width:100%;font-size:11px;padding:7px" onclick="difUsarLista(' + i + ')">Usar en difusión →</button>' +
+        '</div>';
+    }
+    el.innerHTML = header + listCards;
+
+  } catch(e) {
+    el.innerHTML = '<div style="grid-column:1/-1;padding:20px;color:#ff6b6b;font-size:12px;border:1px solid rgba(255,80,80,.3);border-radius:8px">Error al cargar listas: ' + e.message + '</div>';
   }
-  el.innerHTML = S.difListas.map((l, i) => {
-    const count = l.tipo === 'dinamica' ? _evalListaFiltros(l.filtros).length : (l.contactIds?.length || 0);
-    const ult = l.ultimaDifusion ? new Date(l.ultimaDifusion).toLocaleDateString('es-AR') : 'Nunca';
-    const tipoBadge = l.tipo === 'dinamica'
-      ? '<span style="font-size:9px;background:rgba(138,159,196,.12);color:var(--blue);border:1px solid rgba(138,159,196,.2);padding:1px 7px;border-radius:10px">⟳ Dinámica</span>'
-      : '<span style="font-size:9px;background:rgba(201,180,138,.08);color:var(--gold);border:1px solid rgba(201,180,138,.2);padding:1px 7px;border-radius:10px">📌 Estática</span>';
-    const filterDesc = [
-      l.filtros?.nombre ? `Nombre: "${l.filtros.nombre}"` : '',
-      l.filtros?.estado ? `Estado: ${l.filtros.estado}` : '',
-      l.filtros?.ciudad ? `Ciudad: ${l.filtros.ciudad}` : '',
-      l.filtros?.tag ? `Tag: ${l.filtros.tag}` : '',
-      l.filtros?.dias ? `Sin contactar +${l.filtros.dias}d` : '',
-    ].filter(Boolean).join(' · ') || 'Sin filtros (todos los contactos)';
-    return `<div class="dif-card" style="cursor:default">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-        <div>
-          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">${l.nombre}</div>
-          ${tipoBadge}
-        </div>
-        <div style="display:flex;gap:4px">
-          <button class="btn btn-xs" onclick="editDifLista(${i})" title="Editar">✎</button>
-          <button class="btn btn-xs btn-danger" onclick="deleteDifLista(${i})" title="Eliminar">×</button>
-        </div>
-      </div>
-      <div style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.5">${filterDesc}</div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span style="font-size:12px;color:var(--text);font-weight:500">${count} contacto${count!==1?'s':''}</span>
-        <span style="font-size:10px;color:var(--muted)">Última difusión: ${ult}</span>
-      </div>
-      <button class="btn btn-primary" style="width:100%;font-size:11px;padding:7px" onclick="difUsarLista(${i})">📤 Usar en difusión</button>
-    </div>`;
-  }).join('');
 }
 
 function editDifLista(i) {
@@ -21735,37 +22025,108 @@ function editDifLista(i) {
 function deleteDifLista(i) {
   if (!confirm(`¿Eliminar la lista "${S.difListas[i]?.nombre}"?`)) return;
   S.difListas.splice(i, 1);
-  save(); renderDifListas();
+  _saveNow(); renderDifListas();
   notify('Lista eliminada');
 }
+
 
 function difUsarLista(i) {
   const l = S.difListas[i];
   if (!l) return;
-  const contacts = l.tipo === 'dinamica'
-    ? _evalListaFiltros(l.filtros)
-    : (S.crm || []).filter(c => l.contactIds?.includes(c.id));
-  _difSelected.clear();
-  contacts.forEach(c => { const ri = (S.crm||[]).indexOf(c); if(ri>=0) _difSelected.add(ri); });
-  switchDifTab('envio', document.getElementById('diftab-btn-envio'));
-  notify(`Lista "${l.nombre}" cargada — ${contacts.length} contactos`);
+  const allC = l.tipo === 'dinamica' ? _evalListaFiltros(l.filtros) : (S.crm||[]).filter(c=>l.contactIds?.includes(c.id));
+  const canal = l.canal || 'wapp';
+  if (canal === 'email') {
+    const emailC = allC.filter(c=>c.email);
+    _emailSelected.clear();
+    emailC.forEach(c => { const ri=(S.crm||[]).indexOf(c); if(ri>=0)_emailSelected.add(ri); });
+    switchDifTab('email', document.getElementById('diftab-btn-email'));
+    renderEmailRecipients?.();
+    notify(`Lista "${l.nombre}" cargada → Email — ${emailC.length} contactos`);
+  } else {
+    const wappC = allC.filter(c=>c.tel);
+    _difSelected.clear();
+    wappC.forEach(c => { const ri=(S.crm||[]).indexOf(c); if(ri>=0)_difSelected.add(ri); });
+    switchDifTab('envio', document.getElementById('diftab-btn-envio'));
+    notify(`Lista "${l.nombre}" cargada → WhatsApp — ${wappC.length} contactos`);
+  }
+}
+
+function difUsarSmartLista(slId) {
+  const sl = _DIF_SMART_LISTS.find(s=>s.id===slId);
+  if (!sl) return;
+  const allC = _evalListaFiltros(sl.filtros);
+  const emailC = allC.filter(c=>c.email);
+  const wappC  = allC.filter(c=>c.tel);
+  if (sl.canal === 'email') {
+    _emailSelected.clear();
+    emailC.forEach(c => { const ri=(S.crm||[]).indexOf(c); if(ri>=0)_emailSelected.add(ri); });
+    switchDifTab('email', document.getElementById('diftab-btn-email'));
+    renderEmailRecipients?.();
+    notify(`${sl.icon} ${sl.nombre} → Email — ${emailC.length} contactos`);
+  } else if (sl.canal === 'wapp') {
+    _difSelected.clear();
+    wappC.forEach(c => { const ri=(S.crm||[]).indexOf(c); if(ri>=0)_difSelected.add(ri); });
+    switchDifTab('envio', document.getElementById('diftab-btn-envio'));
+    notify(`${sl.icon} ${sl.nombre} → WhatsApp — ${wappC.length} contactos`);
+  } else {
+    // ambos: preguntar canal
+    const msg = `${sl.icon} ${sl.nombre}\n📧 ${emailC.length} con email · 📱 ${wappC.length} con WhatsApp\n\nOK = Email · Cancelar = WhatsApp`;
+    if (confirm(msg)) {
+      _emailSelected.clear();
+      emailC.forEach(c => { const ri=(S.crm||[]).indexOf(c); if(ri>=0)_emailSelected.add(ri); });
+      switchDifTab('email', document.getElementById('diftab-btn-email'));
+      renderEmailRecipients?.();
+      notify(`${sl.icon} ${sl.nombre} → Email — ${emailC.length} contactos`);
+    } else {
+      _difSelected.clear();
+      wappC.forEach(c => { const ri=(S.crm||[]).indexOf(c); if(ri>=0)_difSelected.add(ri); });
+      switchDifTab('envio', document.getElementById('diftab-btn-envio'));
+      notify(`${sl.icon} ${sl.nombre} → WhatsApp — ${wappC.length} contactos`);
+    }
+  }
 }
 
 function difLoadListaSelect() {
   const val = document.getElementById('dif-lista-select')?.value;
   if (!val) return;
-  const i = parseInt(val);
-  difUsarLista(i);
+  difUsarLista(parseInt(val));
   document.getElementById('dif-lista-select').value = '';
+}
+
+function emailLoadListaSelect() {
+  const val = document.getElementById('email-lista-select')?.value;
+  if (!val) return;
+  const l = (S.difListas||[])[parseInt(val)];
+  if (!l) return;
+  const allC = l.tipo==='dinamica' ? _evalListaFiltros(l.filtros) : (S.crm||[]).filter(c=>l.contactIds?.includes(c.id));
+  _emailSelected.clear();
+  allC.filter(c=>c.email).forEach(c=>{ const ri=(S.crm||[]).indexOf(c); if(ri>=0)_emailSelected.add(ri); });
+  renderEmailRecipients();
+  document.getElementById('email-lista-select').value='';
+  notify(`Lista cargada — ${_emailSelected.size} contactos con email`);
 }
 
 function _difRefreshListaSelect() {
   const sel = document.getElementById('dif-lista-select');
   if (!sel) return;
+  const listas = (S.difListas||[]).filter(l => !l.canal || l.canal==='wapp' || l.canal==='ambos');
   sel.innerHTML = '<option value="">— Cargar lista guardada —</option>' +
-    (S.difListas || []).map((l, i) => {
-      const count = l.tipo === 'dinamica' ? _evalListaFiltros(l.filtros).length : (l.contactIds?.length || 0);
-      return `<option value="${i}">${l.nombre} (${count})`;
+    listas.map(l => {
+      const i = (S.difListas||[]).indexOf(l);
+      const cnt = l.tipo==='dinamica' ? _evalListaFiltros(l.filtros).filter(c=>c.tel).length : (l.contactIds?.length||0);
+      return `<option value="${i}">${l.nombre} (${cnt} WA)`;
+    }).join('');
+}
+
+function _emailRefreshListaSelect() {
+  const sel = document.getElementById('email-lista-select');
+  if (!sel) return;
+  const listas = (S.difListas||[]).filter(l => !l.canal || l.canal==='email' || l.canal==='ambos');
+  sel.innerHTML = '<option value="">— Cargar lista —</option>' +
+    listas.map(l => {
+      const i = (S.difListas||[]).indexOf(l);
+      const cnt = l.tipo==='dinamica' ? _evalListaFiltros(l.filtros).filter(c=>c.email).length : (l.contactIds?.length||0);
+      return `<option value="${i}">${l.nombre} (${cnt})`;
     }).join('');
 }
 
@@ -21789,6 +22150,42 @@ setInterval(() => {
 let _emailSelected = new Set();
 let _emailSearch = '';
 let _emailSending = false;
+let _emailPaused  = false;
+
+function toggleEmailPause() {
+  _emailPaused = !_emailPaused;
+  const btn = document.getElementById('em-pause-btn');
+  const txt = document.getElementById('em-progress-text');
+  if (btn) { btn.textContent = _emailPaused ? '▶ Reanudar' : '⏸ Pausar'; btn.style.color = _emailPaused ? 'var(--green)' : ''; }
+  if (_emailPaused && txt) txt.textContent = '⏸ Envío pausado — presioná Reanudar para continuar';
+}
+
+function _emUpdateFromPreview() {
+  const name   = document.getElementById('em-from-name')?.value?.trim();
+  const user   = document.getElementById('em-from-user-dif')?.value?.trim() || 'onboarding';
+  const domain = document.getElementById('em-from-domain-dif')?.value?.trim() || 'resend.dev';
+  const addr   = `${user}@${domain}`;
+  const prev   = document.getElementById('em-from-preview');
+  if (prev) prev.textContent = name ? `${name} <${addr}>` : addr;
+}
+
+function _emSaveFromConfig() {
+  const cfg = (S.tienda = S.tienda||{}).settings = S.tienda.settings||{};
+  cfg.emailFromName   = document.getElementById('em-from-name')?.value?.trim() || cfg.emailFromName;
+  cfg.emailFromUser   = document.getElementById('em-from-user-dif')?.value?.trim() || cfg.emailFromUser;
+  cfg.emailFromDomain = document.getElementById('em-from-domain-dif')?.value?.trim() || cfg.emailFromDomain;
+  save();
+  notify('✅ Configuración de remitente guardada');
+}
+
+function _emLoadFromConfig() {
+  const cfg = S.tienda?.settings || S.store?.settings || {};
+  const fn = document.getElementById('em-from-name'); if(fn&&!fn.value) fn.value = cfg.emailFromName||'';
+  const fu = document.getElementById('em-from-user-dif'); if(fu&&!fu.value) fu.value = cfg.emailFromUser||'';
+  const fd = document.getElementById('em-from-domain-dif'); if(fd&&!fd.value) fd.value = cfg.emailFromDomain||'';
+  _emUpdateFromPreview();
+  _emailRefreshListaSelect();
+}
 
 let _emailRenderOffset = 0;
 function renderEmailRecipients() {
@@ -22665,11 +23062,11 @@ async function sendEmailBroadcast() {
   if (!html)    { notify('Escribí el cuerpo del email'); return; }
 
   const contacts = [..._emailSelected].map(ri => (S.crm||[])[ri]).filter(c=>c&&c.email);
-  // Construir from usando config guardada en Mi Tienda + override del campo manual
-  const _cfgSettings = S.store?.settings || S.tienda?.settings || {};
-  const _cfgName   = (document.getElementById('em-from-name')?.value?.trim()) || _cfgSettings.emailFromName || '';
-  const _cfgUser   = _cfgSettings.emailFromUser || 'onboarding';
-  const _cfgDomain = _cfgSettings.emailFromDomain || 'resend.dev';
+  // Construir from: campos del form tienen prioridad sobre store settings
+  const _cfgSettings = S.tienda?.settings || S.store?.settings || {};
+  const _cfgName   = document.getElementById('em-from-name')?.value?.trim() || _cfgSettings.emailFromName || '';
+  const _cfgUser   = document.getElementById('em-from-user-dif')?.value?.trim() || _cfgSettings.emailFromUser || 'onboarding';
+  const _cfgDomain = document.getElementById('em-from-domain-dif')?.value?.trim() || _cfgSettings.emailFromDomain || 'resend.dev';
   const _cfgAddr   = `${_cfgUser}@${_cfgDomain}`;
   const fromName = _cfgName ? `${_cfgName} <${_cfgAddr}>` : _cfgAddr;
   const replyTo  = document.getElementById('em-reply-to')?.value?.trim();
@@ -22708,8 +23105,11 @@ async function sendEmailBroadcast() {
   const progFill = document.getElementById('em-progress-fill');
   if (prog) prog.style.display = 'block';
 
+  _emailPaused = false;
   let sent = 0, failed = 0;
   for (let i = 0; i < contacts.length; i++) {
+    // Esperar si está pausado manualmente
+    while (_emailPaused) { await new Promise(r=>setTimeout(r,600)); }
     // Verificar horario antes de cada envío — pausa si está fuera de rango
     const ok = await _emEsperarHorario(progText);
     if (!ok) break; // cancelado durante la espera
@@ -22738,7 +23138,10 @@ async function sendEmailBroadcast() {
   }
 
   _emailSending = false;
+  _emailPaused  = false;
   if (prog) prog.style.display = 'none';
+  const pauseBtn = document.getElementById('em-pause-btn');
+  if (pauseBtn) { pauseBtn.textContent = '⏸ Pausar'; pauseBtn.style.color = ''; }
 
   // Guardar en historial
   if (!S.difLog) S.difLog = [];
@@ -22966,6 +23369,12 @@ function switchUgcTab(tab,btn){
   if(tab==='solicitudes') { filterUgcSolicitudes('todas'); return; }
   if(tab==='canjes')      { document.getElementById('ugc-tab-canjes')?.scrollIntoView({behavior:'smooth'}); return; }
   if(tab==='creadoras')   { document.getElementById('ugc-tab-creadoras')?.scrollIntoView({behavior:'smooth'}); return; }
+  if(tab==='accesos') {
+    const el = document.getElementById('ugc-tab-accesos');
+    if (el) { el.style.display = ''; el.scrollIntoView({behavior:'smooth'}); }
+    loadCanjesAccesos();
+    return;
+  }
 }
 
 async function loadUgcStats(){
@@ -23005,29 +23414,37 @@ async function loadUgcCanjes(){
       el.innerHTML='<div style="color:var(--muted);font-size:13px;padding:24px;text-align:center;background:var(--s1);border-radius:10px;border:1px dashed var(--border2)">No hay canjes aún · <button onclick="openUgcCanjeModal(null)" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px">Crear el primero →</button></div>';
       return;
     }
+    const _TIPO_LBL={producto:'Producto',descuento:'Descuento',lugar:'Local'};
     el.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px">`+_ugcCanjes.map(c=>{
       const brief=c.brief||{};
       const fmts=_UGC_FORMATS.filter(f=>brief[f]?.cantidad>0).map(f=>`${brief[f].cantidad} ${_UGC_FORMAT_LABEL[f]}`).join(', ')||'Sin brief';
-      return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
-        <div style="flex:1;min-width:200px">
-          <div style="font-weight:700;font-size:13px;margin-bottom:4px">${c.producto}</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:6px">${fmts}</div>
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            ${_ugcStatPill(c.estado)}
-            ${c.pago_monto?`<span style="font-size:10px;color:var(--green);font-weight:600">💰 $${c.pago_monto}</span>`:''}
-            ${c.descuento_tipo?`<span style="font-size:10px;color:var(--accent);font-weight:600">🏷 ${c.descuento_tipo}</span>`:''}
-            ${c.cupon_codigo?`<span style="font-size:10px;color:var(--muted)">🎟️ ${c.cupon_codigo}</span>`:'<span style="font-size:10px;color:var(--muted)">Sin cupón</span>'}
-            <span style="font-size:10px;color:var(--muted)">⏱ ${c.demora_max_dias}d</span>
+      const tipoLbl=_TIPO_LBL[c.tipo_accion||'producto']||'Producto';
+      return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+        ${c.portada_url?`<img src="${c.portada_url}" style="width:100%;height:80px;object-fit:cover;display:block">`:''}
+        <div style="padding:14px 16px;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+              <span style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent)18;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.05em">${tipoLbl}</span>
+            </div>
+            <div style="font-weight:700;font-size:13px;margin-bottom:4px">${c.producto}</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">${fmts}</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              ${_ugcStatPill(c.estado)}
+              ${c.pago_monto?`<span style="font-size:10px;color:var(--green);font-weight:600">💰 $${c.pago_monto}</span>`:''}
+              ${c.descuento_tipo?`<span style="font-size:10px;color:var(--accent);font-weight:600">🏷 ${c.descuento_tipo}</span>`:''}
+              ${c.cupon_codigo?`<span style="font-size:10px;color:var(--muted)">🎟️ ${c.cupon_codigo}</span>`:'<span style="font-size:10px;color:var(--muted)">Sin cupón</span>'}
+              <span style="font-size:10px;color:var(--muted)">⏱ ${c.demora_max_dias}d</span>
+            </div>
           </div>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
-          <button class="btn btn-xs" onclick="openUgcCanjeModal(${JSON.stringify(c).replace(/"/g,'&quot;')})">Editar</button>
-          ${c.estado==='disponible'
-            ?`<button class="btn btn-xs" onclick="ugcSetEstado('${c.id}','pausado')" style="color:var(--muted)">Pausar</button>`
-            :c.estado==='pausado'
-              ?`<button class="btn btn-xs" onclick="ugcSetEstado('${c.id}','disponible')" style="color:var(--green)">Reanudar</button>`
-              :''}
-          ${c.estado!=='cerrado'?`<button class="btn btn-xs" onclick="ugcSetEstado('${c.id}','cerrado')" style="color:var(--coral)">Cerrar</button>`:''}
+          <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+            <button class="btn btn-xs" onclick="openUgcCanjeModal(${JSON.stringify(c).replace(/"/g,'&quot;')})">Editar</button>
+            ${c.estado==='disponible'
+              ?`<button class="btn btn-xs" onclick="ugcSetEstado('${c.id}','pausado')" style="color:var(--muted)">Pausar</button>`
+              :c.estado==='pausado'
+                ?`<button class="btn btn-xs" onclick="ugcSetEstado('${c.id}','disponible')" style="color:var(--green)">Reanudar</button>`
+                :''}
+            ${c.estado!=='cerrado'?`<button class="btn btn-xs" onclick="ugcSetEstado('${c.id}','cerrado')" style="color:var(--coral)">Cerrar</button>`:''}
+          </div>
         </div>
       </div>`;
     }).join('')+'</div>';
@@ -23120,21 +23537,65 @@ async function loadUgcCreadoras(){
   }catch(e){el.innerHTML='<div style="color:var(--coral);font-size:12px">Error al cargar</div>';}
 }
 
+let _ugcPortadaPending=null;
+let _ugcPortadaUrl='';
+
+function ugcPortadaPreview(e){
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    _ugcPortadaPending={data:ev.target.result.split(',')[1],contentType:file.type,filename:file.name};
+    const img=document.getElementById('ugc-portada-img');
+    const ph=document.getElementById('ugc-portada-ph');
+    const rm=document.getElementById('ugc-portada-remove');
+    img.src=ev.target.result; img.style.display=''; ph.style.display='none'; rm.style.display='';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeUgcPortada(ev){
+  ev.stopPropagation();
+  _ugcPortadaPending=null; _ugcPortadaUrl='';
+  const img=document.getElementById('ugc-portada-img');
+  const ph=document.getElementById('ugc-portada-ph');
+  const rm=document.getElementById('ugc-portada-remove');
+  img.src=''; img.style.display='none'; ph.style.display=''; rm.style.display='none';
+  document.getElementById('ugc-portada-input').value='';
+}
+
+function onUgcTipoChange(){
+  const t=document.getElementById('ugc-form-tipo')?.value;
+  document.getElementById('ugc-field-url').style.display  = t==='lugar'?'none':'';
+  document.getElementById('ugc-field-lugar').style.display= t==='lugar'?'':'none';
+}
+
 function openUgcCanjeModal(canje){
   const modal=document.getElementById('ugc-modal');
   if(!modal)return;
+  _ugcPortadaPending=null;
+  _ugcPortadaUrl=canje?.portada_url||'';
+  // Reset portada preview
+  const img=document.getElementById('ugc-portada-img');
+  const ph=document.getElementById('ugc-portada-ph');
+  const rm=document.getElementById('ugc-portada-remove');
+  if(_ugcPortadaUrl){img.src=_ugcPortadaUrl;img.style.display='';ph.style.display='none';rm.style.display='';}
+  else{img.src='';img.style.display='none';ph.style.display='';rm.style.display='none';}
+  document.getElementById('ugc-portada-input').value='';
   // Reset form
   document.getElementById('ugc-form-id').value=canje?.id||'';
+  document.getElementById('ugc-form-tipo').value=canje?.tipo_accion||'producto';
   document.getElementById('ugc-form-producto').value=canje?.producto||'';
   document.getElementById('ugc-form-url').value=canje?.producto_url||'';
+  document.getElementById('ugc-form-lugar').value=canje?.lugar_nombre||'';
   document.getElementById('ugc-form-cupon').value=canje?.cupon_codigo||'';
   document.getElementById('ugc-form-pago').value=canje?.pago_monto||'';
   document.getElementById('ugc-form-descuento').value=canje?.descuento_tipo||'';
   document.getElementById('ugc-form-demora').value=canje?.demora_max_dias||7;
   document.getElementById('ugc-form-estado').value=canje?.estado||'disponible';
   document.getElementById('ugc-form-err').textContent='';
-  document.getElementById('ugc-modal-title').textContent=canje?'Editar canje':'Nuevo canje';
-  document.getElementById('ugc-form-save-btn').textContent=canje?'Guardar cambios':'Publicar canje';
+  document.getElementById('ugc-modal-title').textContent=canje?'Editar campaña':'Nueva campaña';
+  document.getElementById('ugc-form-save-btn').textContent=canje?'Guardar cambios':'Publicar campaña';
+  onUgcTipoChange();
   // Render brief rows
   const brief=canje?.brief||{};
   const rows=document.getElementById('ugc-brief-rows');
@@ -23158,7 +23619,22 @@ async function saveUgcCanje(){
   const wsId=_activeWsId; if(!wsId)return;
   const id=document.getElementById('ugc-form-id').value;
   const producto=document.getElementById('ugc-form-producto').value.trim();
-  if(!producto){document.getElementById('ugc-form-err').textContent='El producto es obligatorio.';return;}
+  if(!producto){document.getElementById('ugc-form-err').textContent='El título es obligatorio.';return;}
+
+  const btn=document.getElementById('ugc-form-save-btn');
+  btn.disabled=true; btn.textContent='Guardando...';
+
+  // Upload portada if new image pending
+  let portada_url=_ugcPortadaUrl||null;
+  if(_ugcPortadaPending){
+    try{
+      btn.textContent='Subiendo imagen...';
+      const ur=await fetch('/api/soul-club/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(_ugcPortadaPending)});
+      const ud=await ur.json();
+      if(ud.url) portada_url=ud.url;
+      else{document.getElementById('ugc-form-err').textContent='Error al subir imagen';btn.disabled=false;btn.textContent=id?'Guardar cambios':'Publicar campaña';return;}
+    }catch(e){document.getElementById('ugc-form-err').textContent='Error subiendo imagen';btn.disabled=false;btn.textContent=id?'Guardar cambios':'Publicar campaña';return;}
+  }
 
   const brief={};
   _UGC_FORMATS.forEach(f=>{
@@ -23167,9 +23643,11 @@ async function saveUgcCanje(){
     brief[f]={cantidad:cant,sube_a_su_cuenta:sube};
   });
 
+  const tipo_accion=document.getElementById('ugc-form-tipo').value||'producto';
   const body={
-    wsId, producto,
-    producto_url:document.getElementById('ugc-form-url').value.trim()||null,
+    wsId, producto, portada_url, tipo_accion,
+    producto_url:tipo_accion!=='lugar'?(document.getElementById('ugc-form-url').value.trim()||null):null,
+    lugar_nombre:tipo_accion==='lugar'?(document.getElementById('ugc-form-lugar').value.trim()||null):null,
     cupon_codigo:document.getElementById('ugc-form-cupon').value.trim()||null,
     pago_monto:parseFloat(document.getElementById('ugc-form-pago').value)||null,
     descuento_tipo:document.getElementById('ugc-form-descuento').value.trim()||null,
@@ -23178,18 +23656,77 @@ async function saveUgcCanje(){
     brief
   };
 
-  const btn=document.getElementById('ugc-form-save-btn');
-  btn.disabled=true; btn.textContent='Guardando...';
+  btn.textContent='Guardando...';
   try{
     const url=id?'/api/admin/ugc/canjes/'+id:'/api/admin/ugc/canjes';
     const r=await fetch(url,{method:id?'PATCH':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const d=await r.json();
-    if(!d.ok){document.getElementById('ugc-form-err').textContent=d.error||'Error al guardar';btn.disabled=false;btn.textContent=id?'Guardar cambios':'Publicar canje';return;}
+    if(!d.ok){document.getElementById('ugc-form-err').textContent=d.error||'Error al guardar';btn.disabled=false;btn.textContent=id?'Guardar cambios':'Publicar campaña';return;}
     closeUgcModal();
     await loadUgcStats();
     loadUgcCanjes();
-    notify(id?'Canje actualizado':'Canje publicado');
-  }catch(e){document.getElementById('ugc-form-err').textContent='Error de red';btn.disabled=false;btn.textContent=id?'Guardar cambios':'Publicar canje';}
+    notify(id?'Campaña actualizada':'Campaña publicada');
+  }catch(e){document.getElementById('ugc-form-err').textContent='Error de red';btn.disabled=false;btn.textContent=id?'Guardar cambios':'Publicar campaña';}
+}
+
+// ── Soul Canjes Accesos admin ─────────────────────────────
+let _canjesAccesos = [];
+let _canjesAccesosFiltro = 'pendiente';
+
+async function loadCanjesAccesos() {
+  const wsId = _activeWsId; if (!wsId) return;
+  const el = document.getElementById('ugc-accesos-list'); if (!el) return;
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px 0">Cargando...</div>';
+  try {
+    const url = '/api/admin/soul-canjes/solicitudes?wsId=' + wsId + (_canjesAccesosFiltro !== 'todas' ? '&estado=' + _canjesAccesosFiltro : '');
+    const r = await fetch(url);
+    _canjesAccesos = await r.json();
+    const badge = document.getElementById('ugc-accesos-badge');
+    const pendientes = _canjesAccesos.filter(a => a.estado === 'pendiente').length;
+    if (badge) { badge.textContent = pendientes; badge.style.display = pendientes ? '' : 'none'; }
+    if (!_canjesAccesos.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:24px;text-align:center;background:var(--s1);border-radius:10px;border:1px dashed var(--border2)">No hay solicitudes de acceso.</div>';
+      return;
+    }
+    el.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px">' + _canjesAccesos.map(a => {
+      const estadoColor = a.estado === 'aceptado' ? 'var(--green)' : a.estado === 'rechazado' ? 'var(--coral)' : 'var(--gold)';
+      return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:180px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:3px">${a.nombre||'Sin nombre'} <span style="font-size:10px;color:${estadoColor};font-weight:600;margin-left:6px">${a.estado}</span></div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:2px">${a.email||''}</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">
+            ${a.wapp ? `<span style="font-size:11px">📱 ${a.wapp}</span>` : ''}
+            ${a.instagram ? `<span style="font-size:11px">📷 ${a.instagram}</span>` : ''}
+            <span style="font-size:10px;color:var(--muted)">${_fmtDate(a.created_at)}</span>
+          </div>
+        </div>
+        ${a.estado === 'pendiente' ? `<div style="display:flex;gap:8px;flex-shrink:0">
+          <button class="btn btn-xs" onclick="resolveCanjesAcceso('${a.id}','aceptar')" style="background:rgba(52,199,123,.15);color:var(--green);border-color:rgba(52,199,123,.3)">✓ Aceptar</button>
+          <button class="btn btn-xs" onclick="resolveCanjesAcceso('${a.id}','rechazar')" style="color:var(--coral)">✗ Rechazar</button>
+        </div>` : ''}
+      </div>`;
+    }).join('') + '</div>';
+  } catch(e) { el.innerHTML = '<div style="color:var(--coral);font-size:12px">Error al cargar accesos</div>'; }
+}
+
+function filterCanjesAccesos(filtro, btn) {
+  _canjesAccesosFiltro = filtro;
+  document.querySelectorAll('#ugc-tab-accesos .btn-xs').forEach(b => b.style.background = b === btn ? 'var(--accent)' : '');
+  document.querySelectorAll('#ugc-tab-accesos .btn-xs').forEach(b => b.style.color = b === btn ? '#fff' : '');
+  loadCanjesAccesos();
+}
+
+async function resolveCanjesAcceso(id, accion) {
+  const wsId = _activeWsId; if (!wsId) return;
+  try {
+    const r = await fetch('/api/admin/soul-canjes/solicitudes/' + id, {
+      method: 'PATCH', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ accion, wsId })
+    });
+    const d = await r.json();
+    if (d.ok) { notify(accion === 'aceptar' ? 'Acceso aprobado ✓' : 'Rechazado'); loadCanjesAccesos(); }
+    else notify(d.error || 'Error');
+  } catch(e) { notify('Error de red'); }
 }
 
 async function ugcSetEstado(id,estado){
@@ -23276,15 +23813,27 @@ function copyScPortalLink() {
 }
 
 // ── CARGAR LISTAS ──────────────────────────────────────────────
+function _scErrHtml(msg) {
+  const sqlNeeded = msg && (msg.includes('does not exist') || msg.includes('schema cache') || msg.includes('42P01') || msg.includes('PGRST'));
+  return sqlNeeded
+    ? `<div style="background:rgba(224,83,51,.08);border:1px solid rgba(224,83,51,.2);border-radius:10px;padding:16px;font-size:12px;color:var(--coral)">
+        ⚠️ Las tablas de Soul Club no existen aún en Supabase.<br>
+        <span style="color:var(--muted);font-size:11px">Ejecutá el SQL del archivo <code>supabase/soul-club-schema.sql</code> en el SQL Editor de Supabase y recargá.</span>
+       </div>`
+    : `<div style="color:var(--coral);font-size:12px;padding:8px 0">Error: ${msg||'no se pudo conectar'}</div>`;
+}
+
 async function loadScEventos() {
   const wsId = _activeWsId; if (!wsId) return;
   const el = document.getElementById('sc-eventos-list'); if (!el) return;
   el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px 0">Cargando...</div>';
   try {
     const r = await fetch('/api/admin/soul-club/eventos?wsId=' + wsId);
-    _scEventos = await r.json();
+    const d = await r.json();
+    if (!r.ok || !Array.isArray(d)) { el.innerHTML = _scErrHtml(d?.error||d?.message); return; }
+    _scEventos = d;
     renderScList('eventos');
-  } catch(e) { el.innerHTML = '<div style="color:var(--coral);font-size:12px">Error al cargar</div>'; }
+  } catch(e) { el.innerHTML = _scErrHtml(e.message); }
 }
 
 async function loadScDrops() {
@@ -23293,9 +23842,11 @@ async function loadScDrops() {
   el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px 0">Cargando...</div>';
   try {
     const r = await fetch('/api/admin/soul-club/drops?wsId=' + wsId);
-    _scDrops = await r.json();
+    const d = await r.json();
+    if (!r.ok || !Array.isArray(d)) { el.innerHTML = _scErrHtml(d?.error||d?.message); return; }
+    _scDrops = d;
     renderScList('drops');
-  } catch(e) { el.innerHTML = '<div style="color:var(--coral);font-size:12px">Error al cargar</div>'; }
+  } catch(e) { el.innerHTML = _scErrHtml(e.message); }
 }
 
 async function loadScBeneficios() {
@@ -23304,9 +23855,11 @@ async function loadScBeneficios() {
   el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px 0">Cargando...</div>';
   try {
     const r = await fetch('/api/admin/soul-club/beneficios?wsId=' + wsId);
-    _scBeneficios = await r.json();
+    const d = await r.json();
+    if (!r.ok || !Array.isArray(d)) { el.innerHTML = _scErrHtml(d?.error||d?.message); return; }
+    _scBeneficios = d;
     renderScList('beneficios');
-  } catch(e) { el.innerHTML = '<div style="color:var(--coral);font-size:12px">Error al cargar</div>'; }
+  } catch(e) { el.innerHTML = _scErrHtml(e.message); }
 }
 
 async function loadScSolicitudes() {
@@ -23420,12 +23973,49 @@ function renderScList(tipo) {
 }
 
 // ── MODAL CREAR / EDITAR ───────────────────────────────────────
+function scPickTipo(tipo) {
+  document.getElementById('sc-form-tipo').value = tipo;
+  ['evento','drop','beneficio'].forEach(t => {
+    const btn = document.getElementById('sc-tipo-btn-' + t);
+    if (btn) { btn.style.background = t === tipo ? 'var(--accent)' : 'var(--s2)'; btn.style.color = t === tipo ? '#fff' : 'var(--text)'; }
+  });
+  // Adjust visible fields
+  const isEv = tipo === 'evento', isDr = tipo === 'drop', isBe = tipo === 'beneficio';
+  document.getElementById('sc-form-fecha-wrap').style.display = isBe ? 'none' : '';
+  document.getElementById('sc-form-lugar-wrap').style.display = isDr ? 'none' : '';
+  document.getElementById('sc-form-benef-wrap').style.display = isBe ? '' : 'none';
+  document.getElementById('sc-toggle-wl-wrap').style.display = isBe ? 'none' : '';
+  document.getElementById('sc-modal-title').textContent = 'Nuevo ' + tipo;
+  const fechaLabel = document.getElementById('sc-form-fecha-label');
+  if (fechaLabel) fechaLabel.textContent = isDr ? 'Fecha del drop' : 'Fecha del evento';
+}
+
+let _scVideoPending = null;
+function scPickVideo(input) {
+  const file = input.files[0]; if (!file) return;
+  const status = document.getElementById('sc-video-status');
+  status.textContent = '✓ ' + file.name + ' (' + Math.round(file.size/1024/1024*10)/10 + 'MB) — se sube al guardar';
+  _scVideoPending = { file, name: file.name, type: file.type };
+}
+
 function openScModal(tipo, item) {
   _scImgPending = null;
   const isEv = tipo === 'evento', isDr = tipo === 'drop', isBe = tipo === 'beneficio';
   document.getElementById('sc-form-id').value = item?.id || '';
   document.getElementById('sc-form-tipo').value = tipo;
   document.getElementById('sc-modal-title').textContent = item ? `Editar ${tipo}` : `Nuevo ${tipo}`;
+  // Show/hide section picker (only for new items)
+  const pickerWrap = document.getElementById('sc-form-tipo-picker-wrap');
+  if (pickerWrap) pickerWrap.style.display = item ? 'none' : '';
+  if (!item) scPickTipo(tipo);
+  // Reset video
+  _scVideoPending = null;
+  const videoFile = document.getElementById('sc-form-video-file');
+  if (videoFile) videoFile.value = '';
+  const videoStatus = document.getElementById('sc-video-status');
+  if (videoStatus) videoStatus.textContent = '';
+  const videoUrl = document.getElementById('sc-form-video-url');
+  if (videoUrl) videoUrl.value = item?.video_url || '';
   document.getElementById('sc-form-titulo').value = item?.titulo || '';
   document.getElementById('sc-form-desc').value = item?.descripcion || '';
   document.getElementById('sc-form-img-url').value = item?.imagen_url || '';
