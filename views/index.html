@@ -2080,13 +2080,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button class="nav-tab" id="ugc-tab-btn-accesos" onclick="switchUgcTab('accesos',this)">Accesos <span id="ugc-accesos-badge" style="display:none;background:rgba(239,68,68,.8);color:#fff;font-size:10px;padding:1px 7px;border-radius:9px;margin-left:2px">0</span></button>
     <button class="nav-tab" id="ugc-tab-btn-creadoras" onclick="switchUgcTab('creadoras',this)">Creadoras</button>
   </nav>
-  <nav class="nav-tabs" id="nav-soul-club" style="display:none">
-    <button class="nav-tab active" id="sc-tab-btn-eventos" onclick="switchScTab('eventos',this)">Eventos</button>
-    <button class="nav-tab" id="sc-tab-btn-drops" onclick="switchScTab('drops',this)">Drops</button>
-    <button class="nav-tab" id="sc-tab-btn-beneficios" onclick="switchScTab('beneficios',this)">Beneficios</button>
-    <button class="nav-tab" id="sc-tab-btn-solicitudes" onclick="switchScTab('solicitudes',this)">Solicitudes <span id="sc-solicitudes-badge" style="background:#e0533322;color:#e05333;font-size:10px;padding:1px 7px;border-radius:9px;margin-left:2px;display:none">0</span></button>
-    <button class="nav-tab" id="sc-tab-btn-miembros" onclick="switchScTab('miembros',this)">Miembros <span id="sc-miembros-badge" style="background:var(--s2);color:var(--muted);font-size:10px;padding:1px 7px;border-radius:9px;margin-left:2px">0</span></button>
-  </nav>
+  <nav class="nav-tabs" id="nav-soul-club" style="display:none"></nav>
   <nav class="nav-tabs" id="nav-tienda" style="display:none">
     <button class="nav-tab active" id="tienda-tab-productos" onclick="switchTiendaTab('productos',this)">Productos</button>
     <button class="nav-tab" id="tienda-tab-diseno" onclick="switchTiendaTab('diseno',this)">Diseño</button>
@@ -4404,6 +4398,15 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:uppercase">🏷 Portal Soul Club</span>
     <code id="sc-portal-url" style="font-size:11px;color:var(--text);background:var(--s2);padding:4px 10px;border-radius:6px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</code>
     <button onclick="copyScPortalLink()" class="btn btn-xs" style="white-space:nowrap;flex-shrink:0">📋 Copiar link</button>
+  </div>
+
+  <!-- ── TABS NAV ── -->
+  <div style="display:flex;gap:2px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:0;flex-wrap:wrap">
+    <button class="nav-tab active" id="sc-tab-btn-eventos" onclick="switchScTab('eventos',this)">Eventos</button>
+    <button class="nav-tab" id="sc-tab-btn-drops" onclick="switchScTab('drops',this)">Drops</button>
+    <button class="nav-tab" id="sc-tab-btn-beneficios" onclick="switchScTab('beneficios',this)">Beneficios</button>
+    <button class="nav-tab" id="sc-tab-btn-solicitudes" onclick="switchScTab('solicitudes',this)">Solicitudes <span id="sc-solicitudes-badge" style="background:#e0533322;color:#e05333;font-size:10px;padding:1px 7px;border-radius:9px;margin-left:2px;display:none">0</span></button>
+    <button class="nav-tab" id="sc-tab-btn-miembros" onclick="switchScTab('miembros',this)">Miembros <span id="sc-miembros-badge" style="background:var(--s2);color:var(--muted);font-size:10px;padding:1px 7px;border-radius:9px;margin-left:2px">0</span></button>
   </div>
 
   <!-- ── TAB: EVENTOS ── -->
