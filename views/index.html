@@ -1306,6 +1306,7 @@ tr:hover .tx-del{color:var(--muted)}
 .bf-cat[data-cat="marca"].on{background:#2979ff;border-color:#2979ff}
 .bf-cat[data-cat="ugc"].on{background:#34c77b;border-color:#34c77b}
 .bf-cat[data-cat="influencers"].on{background:#7c4dff;border-color:#7c4dff}
+.bf-cat[data-cat="pr"].on{background:#ff6450;border-color:#ff6450}
 
 /* ── BRIEF — FILTROS Y MODO IMPRESIÓN ── */
 .brief-fbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
@@ -2760,6 +2761,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
         </select>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn btn-sm" onclick="openBrandBriefModal()" title="Configurar identidad de marca">🏛 Marca</button>
         <button class="btn btn-sm" onclick="openCuentasModal()" title="Gestionar marcas / cuentas">🏢 Cuentas</button>
         <button class="btn btn-sm" onclick="openPilaresModal()" title="Gestionar pilares de contenido">⚙ Pilares</button>
         <button class="btn btn-sm" id="brief-print-btn" onclick="startBriefPrint()">🖨 Imprimir</button>
@@ -5977,7 +5979,7 @@ let _activePlanTab='calendario';
 let _pendingBriefId=null;
 
 function defaultData(){
-  return{briefs:[],creadoras:[],collabs:[],contenido:[],calendario:{},ideas:[],semana:{},estrategia:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[],flows:[],flowDone:{},flowHistory:[],tnProductCost:{},pilares:[],ofertasPlantilla:[],cuentas:[],progTargets:{briefs:7,canjes:7,collabs:4,cal:10},metaIntegration:null,metaAdsCache:null,waLog:[],metaRules:[],difLog:[],difListas:[]};
+  return{briefs:[],brandBrief:{},creadoras:[],collabs:[],contenido:[],calendario:{},ideas:[],semana:{},estrategia:{},checkGroups:defaultCheckGroups(),todos:[],marca:{},finanzas:[],finCfg:{mediosPago:[],costosFijos:[],tax:{},capital:{}},presupuestos:{},crm:[],customViews:[],stock:[],flows:[],flowDone:{},flowHistory:[],tnProductCost:{},pilares:[],ofertasPlantilla:[],cuentas:[],progTargets:{briefs:7,canjes:7,collabs:4,cal:10},metaIntegration:null,metaAdsCache:null,waLog:[],metaRules:[],difLog:[],difListas:[]};
 }
 
 function _localLoad(){
@@ -8520,9 +8522,9 @@ function closeCuentasModal(){
   renderBriefs();
 }
 
-const CAT_LABEL={marca:'🏷 Marca',ugc:'📱 UGC',influencers:'🤝 Influencers'};
-const CAT_COLOR={marca:'rgba(41,121,255,.12)',ugc:'rgba(52,199,123,.12)',influencers:'rgba(124,77,255,.12)'};
-const CAT_TEXT={marca:'var(--gold)',ugc:'var(--green)',influencers:'var(--purple)'};
+const CAT_LABEL={marca:'🏷 Marca',ugc:'📱 UGC',influencers:'🤝 Influencers',pr:'📣 PR'};
+const CAT_COLOR={marca:'rgba(41,121,255,.12)',ugc:'rgba(52,199,123,.12)',influencers:'rgba(124,77,255,.12)',pr:'rgba(255,100,80,.12)'};
+const CAT_TEXT={marca:'var(--gold)',ugc:'var(--green)',influencers:'var(--purple)',pr:'var(--coral)'};
 
 function _pilaresSelect(){
   const p=S.pilares||[];
@@ -8565,13 +8567,16 @@ function renderBriefs(){
     const selCls=_briefSelected.has(i)?'bf-selected':'';
     const selCheck=_briefPrintMode?`<div class="brief-sel-check">${_briefSelected.has(i)?'✓':''}</div>`:'';
     const clickSel=_briefPrintMode?`onclick="toggleBriefSel(${i},this)"`:''
+    const entregasHtml=(b.entregas||[]).map(e=>`<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:rgba(255,200,0,.07);color:var(--gold);border:1px solid rgba(255,200,0,.18)">${e.cantidad} ${e.tipo}</span>`).join('');
+    const firstImg=(b.imagenes||[]).find(img=>img?.data)||null;
+    const imgSrc=firstImg?.data||(typeof b.imagen==='string'&&b.imagen?b.imagen:null);
     return`<div class="brief-card ${selClass} ${selCls}" data-brief-idx="${i}" ${clickSel} style="position:relative">
       ${selCheck}
       <div class="brief-card-head">
         <div class="brief-num">${String(i+1).padStart(2,'0')}</div>
         <div class="brief-meta">
           <div class="brief-title">${b.titulo}${catBadge}${pilarBadge}${cuentaBadge}</div>
-          <div class="brief-tipo">${[b.formato,b.tipo].filter(Boolean).join(' · ')}</div>
+          ${entregasHtml?`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px">${entregasHtml}</div>`:''}
         </div>
         ${!_briefPrintMode?`<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deleteBrief(${i})" style="flex-shrink:0">×</button>`:''}
       </div>
@@ -8582,11 +8587,12 @@ function renderBriefs(){
         ${emos?`<div class="brief-tags" style="margin-bottom:8px">${emos}</div>`:''}
         ${b.cta?`<div style="font-size:10px;color:var(--muted2);margin-bottom:8px"><span style="color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em">CTA · </span>${b.cta}</div>`:''}
         ${b.producto?`<div class="brief-tags" style="margin-bottom:10px"><span class="tag tag-d" style="font-size:9px">${b.producto}</span></div>`:''}
-        ${b.imagen?`<img src="${b.imagen}" alt="Ref" style="width:100%;max-height:180px;object-fit:cover;border-radius:4px;margin-bottom:8px" onerror="this.style.display='none'">`:''}
+        ${imgSrc?`<img src="${imgSrc}" alt="" style="width:100%;max-height:160px;object-fit:cover;border-radius:4px;margin-bottom:8px" onerror="this.style.display='none'">`:''}
         ${!_briefPrintMode?`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:10px;margin-top:4px">
+          <button class="btn btn-xs" onclick="event.stopPropagation();openBriefModal(${i})">✏ Editar</button>
           <button class="btn btn-xs" onclick="copyBriefText(${i})">📋 Copiar</button>
           <button class="btn btn-xs" onclick="downloadBriefPDF(${i})">⬇ PDF</button>
-          <button class="btn btn-xs" onclick="asignarBriefACanje(${i})">🤝 Asignar</button>
+          <button class="btn btn-xs" onclick="event.stopPropagation();publishBriefToSoulPR(${i})">${b.publicadoEnSoulPR?'✓ Soul PR':'📤 Soul PR'}</button>
           ${asignado?`<span style="font-size:10px;color:var(--green)">✓ Asignado</span>`:''}
         </div>`:''}
       </div>
@@ -8720,8 +8726,18 @@ function printSelectedBriefs(){
 async function _renderMultiBriefPDF(briefs){
   const jsPDF=window.jspdf?.jsPDF||window.jsPDF;
   if(!jsPDF){notify('No se pudo cargar jsPDF');return;}
-  // Pre-fetch all reference images before starting PDF render
-  const imgs=await Promise.all(briefs.map(b=>b.imagen?_imgToBase64(b.imagen):Promise.resolve(null)));
+  const bb=S.brandBrief||{};
+  const bbImgB64=bb.imagen?await _imgToBase64(bb.imagen):null;
+  // Pre-fetch URL images for each brief
+  const briefImgSets=await Promise.all(briefs.map(async b=>{
+    const imgs=b.imagenes||[];
+    return Promise.all(imgs.map(async img=>{
+      if(!img)return null;
+      if(img.tipo==='base64')return{b64:img.data,caption:img.caption||''};
+      if(img.tipo==='url'){const b64=await _imgToBase64(img.data);return b64?{b64,caption:img.caption||''}:null;}
+      return null;
+    }));
+  }));
   const doc=new jsPDF({unit:'mm',format:'a4'});
   const W=210,PL=18,PR=18,CW=W-PL-PR;
   const fecha=new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
@@ -8739,6 +8755,21 @@ async function _renderMultiBriefPDF(briefs){
   drawHeader();
   let y=40;
 
+  // Brand brief header block (once per doc, first page)
+  if(bb.nombre){
+    doc.setFillColor(20,20,40);doc.roundedRect(PL,y,CW,bb.esencia?26:18,2,2,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(100,140,255);
+    doc.text('IDENTIDAD DE MARCA',PL+4,y+6);
+    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(255,255,255);
+    doc.text(bb.nombre,PL+4,y+13);
+    if(bb.esencia){
+      doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(180,180,210);
+      const ls=doc.splitTextToSize(bb.esencia,CW-8);
+      ls.slice(0,2).forEach((l,i)=>doc.text(l,PL+4,y+20+(i*4.5)));
+    }
+    y+=(bb.esencia?32:24);
+  }
+
   const addField=(label,value)=>{
     if(!value)return;
     if(y>268){doc.addPage();drawHeader();y=40;}
@@ -8751,39 +8782,55 @@ async function _renderMultiBriefPDF(briefs){
   };
 
   briefs.forEach((b,bi)=>{
-    // Separador de brief
     if(bi>0){
       if(y>240){doc.addPage();drawHeader();y=40;}
       else{doc.setDrawColor(41,121,255);doc.setLineWidth(0.3);doc.line(PL,y,W-PR,y);y+=8;}
     }
-    // Número + título del brief
     doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(41,121,255);
     doc.text(`${String(bi+1).padStart(2,'0')}  ${b.titulo||'Sin título'}`,PL,y);y+=7;
-    // Meta chips
-    const chips=[b.categoria?CAT_LABEL[b.categoria]:'',b.pilar,b.formato].filter(Boolean).join('  ·  ');
+    const chips=[b.categoria?CAT_LABEL[b.categoria]:'',b.pilar].filter(Boolean).join('  ·  ');
     if(chips){doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(120,120,150);doc.text(chips,PL,y);y+=7;}
     else y+=2;
     addField('Objetivo',b.objetivo);
+    addField('Audiencia',b.audiencia);
     addField('Tono',b.tono);
     addField('Hook — primeros 2 segundos',b.hook);
     addField('Mensaje central',b.mensaje);
     if(b.emociones&&b.emociones.length)addField('Emoción buscada',b.emociones.join(' · '));
     addField('CTA',b.cta);
-    addField('Planos / notas para el filmmaker',b.notas);
+    // Entregas
+    if(b.entregas&&b.entregas.length){
+      if(y>268){doc.addPage();drawHeader();y=40;}
+      doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(120,120,150);
+      doc.text('ENTREGAS',PL,y);y+=4.5;
+      b.entregas.forEach(e=>{
+        if(y>272){doc.addPage();drawHeader();y=40;}
+        doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.setTextColor(20,20,35);
+        doc.text(`${e.cantidad}x ${e.tipo}`,PL,y);
+        if(e.descripcion){doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(80,80,100);const ls=doc.splitTextToSize(e.descripcion,CW-20);doc.text(ls[0]||'',PL+22,y);}
+        y+=5.5;
+        if(e.specs){doc.setFont('helvetica','italic');doc.setFontSize(7.5);doc.setTextColor(130,130,155);const ls=doc.splitTextToSize(e.specs,CW-4);doc.text(ls[0]||'',PL+2,y);y+=4.5;}
+      });
+      y+=2;
+    }
     addField('Producto',b.producto);
+    addField('Planos / notas',b.notas);
     addField('Referencias',b.referencias);
-    if(imgs[bi]){
+    // Imágenes
+    const imgSet=(briefImgSets[bi]||[]).filter(Boolean);
+    if(imgSet.length){
       if(y>230){doc.addPage();drawHeader();y=40;}
       doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(120,120,150);
-      doc.text('IMAGEN DE REFERENCIA',PL,y);y+=4;
-      const imgH=Math.min(CW*0.5625,60);
-      try{doc.addImage(imgs[bi],'JPEG',PL,y,CW,imgH);}catch(e){}
+      doc.text('REFERENCIAS VISUALES',PL,y);y+=4;
+      const colW=(CW-4)/Math.min(imgSet.length,3);const imgH=Math.min(colW*0.75,52);
+      imgSet.slice(0,3).forEach((img,ii)=>{
+        try{doc.addImage(img.b64,'JPEG',PL+(ii*(colW+2)),y,colW,imgH);}catch(e){}
+      });
       y+=imgH+4;
     }
     y+=4;
   });
 
-  // Footer en todas las páginas
   const total=doc.getNumberOfPages();
   for(let p=1;p<=total;p++){
     doc.setPage(p);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(160,160,180);
@@ -8801,20 +8848,39 @@ async function _renderMultiBriefPDF(briefs){
 function _briefTxt(b){
   const lines=[];
   const add=(k,v)=>{if(v)lines.push(`${k.toUpperCase()}\n${v}\n`);};
+  const bb=S.brandBrief||{};
+  if(bb.nombre){
+    lines.push(`MARCA: ${bb.nombre}`);
+    if(bb.esencia)lines.push(`Esencia: ${bb.esencia}`);
+    if(bb.estetica)lines.push(`Estética: ${bb.estetica}`);
+    lines.push('');
+  }
   add('Título',b.titulo);
   if(b.categoria)add('Tipo de contenido',CAT_LABEL[b.categoria]||b.categoria);
   add('Pilar',b.pilar);
-  add('Formato',b.formato);
+  add('Audiencia',b.audiencia);
   add('Objetivo',b.objetivo);
-  add('Tono',b.tono);
-  add('Hook',b.hook);
   add('Mensaje central',b.mensaje);
+  add('Hook',b.hook);
+  add('Tono',b.tono);
   if(b.emociones&&b.emociones.length)lines.push(`EMOCIÓN BUSCADA\n${b.emociones.join(', ')}\n`);
   add('CTA',b.cta);
-  add('Planos / notas',b.notas);
+  if(b.entregas&&b.entregas.length){
+    lines.push('ENTREGAS');
+    b.entregas.forEach(e=>{
+      let s=`${e.cantidad}× ${e.tipo}`;
+      if(e.descripcion)s+=` — ${e.descripcion}`;
+      if(e.specs)s+=` (${e.specs})`;
+      lines.push(s);
+    });
+    lines.push('');
+  }
   add('Producto',b.producto);
+  add('Planos / notas',b.notas);
   add('Referencias',b.referencias);
-  if(b.imagen)lines.push(`IMAGEN DE REFERENCIA\n${b.imagen}\n`);
+  const urls=(b.imagenes||[]).filter(img=>img?.tipo==='url').map(img=>img.data);
+  if(urls.length)lines.push(`REFERENCIAS VISUALES\n${urls.join('\n')}\n`);
+  if(bb.hashtags)lines.push(`HASHTAGS\n${bb.hashtags}\n`);
   return`BRIEF DE CONTENIDO\n${'─'.repeat(30)}\n\n${lines.join('\n')}Soul Studio · Brief Creator`;
 }
 
@@ -8846,12 +8912,20 @@ function downloadBriefPDF(i){
 async function _renderBriefPDF(b){
   const jsPDF=window.jspdf?.jsPDF||window.jsPDF;
   if(!jsPDF){notify('No se pudo cargar jsPDF');return;}
-  const imgB64=b.imagen?await _imgToBase64(b.imagen):null;
+  const bb=S.brandBrief||{};
+  // Pre-fetch all images
+  const imgSet=await Promise.all((b.imagenes||[]).map(async img=>{
+    if(!img)return null;
+    if(img.tipo==='base64')return{b64:img.data,caption:img.caption||''};
+    if(img.tipo==='url'){const b64=await _imgToBase64(img.data);return b64?{b64,caption:img.caption||''}:null;}
+    return null;
+  }));
+  const validImgs=imgSet.filter(Boolean);
   const doc=new jsPDF({unit:'mm',format:'a4'});
   const W=210,PL=18,PR=18,CW=W-PL-PR;
   let y=0;
-  doc.setFillColor(10,10,20);
-  doc.rect(0,0,W,28,'F');
+  // Header bar
+  doc.setFillColor(10,10,20);doc.rect(0,0,W,28,'F');
   doc.setFont('helvetica','bold');doc.setFontSize(15);doc.setTextColor(255,255,255);
   doc.text('BRIEF DE CONTENIDO',PL,13);
   doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(140,140,170);
@@ -8860,8 +8934,30 @@ async function _renderBriefPDF(b){
   doc.text(fecha,W-PR,20,{align:'right'});
   y=36;
   doc.setDrawColor(41,121,255);doc.setLineWidth(0.5);doc.line(PL,y-4,W-PR,y-4);
+
+  // Brand brief header block
+  if(bb.nombre){
+    doc.setFillColor(20,20,40);doc.roundedRect(PL,y,CW,bb.esencia?28:18,2,2,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(100,140,255);
+    doc.text('IDENTIDAD DE MARCA',PL+4,y+7);
+    doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(255,255,255);
+    doc.text(bb.nombre,PL+4,y+14);
+    if(bb.esencia){
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(180,180,210);
+      const ls=doc.splitTextToSize(bb.esencia,CW-8);
+      ls.slice(0,2).forEach((l,i)=>doc.text(l,PL+4,y+21+(i*4.5)));
+    }
+    if(bb.donot){
+      doc.setFont('helvetica','italic');doc.setFontSize(7.5);doc.setTextColor(180,100,100);
+      const ls=doc.splitTextToSize('NO: '+bb.donot,CW-8);
+      doc.text(ls[0]||'',PL+4,y+(bb.esencia?30:20));
+    }
+    y+=(bb.esencia?36:26);
+  }
+
   const addRow=(label,value)=>{
     if(!value)return;
+    if(y>270){doc.addPage();y=20;}
     doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(120,120,150);
     doc.text(label.toUpperCase(),PL,y);y+=4.5;
     doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(20,20,35);
@@ -8869,26 +8965,67 @@ async function _renderBriefPDF(b){
     ls.forEach(l=>{if(y>272){doc.addPage();y=20;}doc.text(l,PL,y);y+=5.5;});
     doc.setDrawColor(230,230,240);doc.setLineWidth(0.25);doc.line(PL,y+1,W-PR,y+1);y+=7;
   };
+
   addRow('Título',b.titulo);
   if(b.categoria)addRow('Tipo de contenido',CAT_LABEL[b.categoria]||b.categoria);
   addRow('Pilar de contenido',b.pilar);
-  addRow('Formato',b.formato);
+  addRow('Audiencia',b.audiencia);
   addRow('Objetivo',b.objetivo);
-  addRow('Tono',b.tono);
-  addRow('Hook — primeros 2 segundos',b.hook);
   addRow('Mensaje central',b.mensaje);
+  addRow('Hook — primeros 2 segundos',b.hook);
+  addRow('Tono',b.tono);
   if(b.emociones&&b.emociones.length)addRow('Emoción buscada',b.emociones.join(' · '));
   addRow('CTA',b.cta);
-  addRow('Planos / locación / notas para el filmmaker',b.notas);
-  addRow('Referencias',b.referencias);
-  if(imgB64){
-    if(y>220){doc.addPage();y=20;}
+
+  // Entregas section
+  if(b.entregas&&b.entregas.length){
+    if(y>262){doc.addPage();y=20;}
     doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(120,120,150);
-    doc.text('IMAGEN DE REFERENCIA',PL,y);y+=5;
-    const imgH=Math.min(CW*0.5625,70);
-    try{doc.addImage(imgB64,'JPEG',PL,y,CW,imgH);}catch(e){doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(80,80,100);doc.text(b.imagen,PL,y);}
-    y+=imgH+4;
+    doc.text('ENTREGAS',PL,y);y+=5;
+    b.entregas.forEach(e=>{
+      if(y>272){doc.addPage();y=20;}
+      doc.setFillColor(240,242,255);doc.roundedRect(PL,y-3.5,CW,e.specs?14:10,1.5,1.5,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(20,20,35);
+      doc.text(`${e.cantidad}×  ${e.tipo}`,PL+3,y+2);
+      if(e.descripcion){
+        doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(60,60,80);
+        const ls=doc.splitTextToSize(e.descripcion,CW-30);
+        doc.text(ls[0]||'',PL+30,y+2);
+      }
+      if(e.specs){
+        doc.setFont('helvetica','italic');doc.setFontSize(7.5);doc.setTextColor(120,120,150);
+        doc.text(doc.splitTextToSize(e.specs,CW-6)[0]||'',PL+3,y+8);
+        y+=14;
+      }else y+=12;
+    });
+    doc.setDrawColor(230,230,240);doc.setLineWidth(0.25);doc.line(PL,y+1,W-PR,y+1);y+=7;
   }
+
+  addRow('Producto destacado',b.producto);
+  addRow('Planos / locación / notas técnicas',b.notas);
+  addRow('Referencias adicionales',b.referencias);
+
+  // Images grid
+  if(validImgs.length){
+    if(y>230){doc.addPage();y=20;}
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(120,120,150);
+    doc.text('REFERENCIAS VISUALES',PL,y);y+=5;
+    const cols=Math.min(validImgs.length,3);
+    const colW=(CW-(cols-1)*3)/cols;const imgH=Math.min(colW*0.75,60);
+    validImgs.slice(0,6).forEach((img,ii)=>{
+      const col=ii%cols;const row=Math.floor(ii/cols);
+      const xi=PL+col*(colW+3);const yi=y+row*(imgH+3);
+      if(yi+imgH>280){return;}
+      try{doc.addImage(img.b64,'JPEG',xi,yi,colW,imgH);}catch(e){}
+      if(img.caption){
+        doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(100,100,120);
+        doc.text(img.caption.slice(0,28),xi,yi+imgH+2.5);
+      }
+    });
+    const rows=Math.ceil(Math.min(validImgs.length,6)/cols);
+    y+=rows*(imgH+3)+4;
+  }
+
   const total=doc.getNumberOfPages();
   for(let p=1;p<=total;p++){
     doc.setPage(p);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(160,160,180);
@@ -8907,6 +9044,292 @@ function asignarBriefACanje(i){
   const b=S.briefs[i];if(!b)return;
   _pendingBriefId=b.id||b.titulo;
   openModal('creadora');
+}
+
+// ══════════════════════════════════════════════════════════════
+// BRIEF SYSTEM — modal dinámico, brand brief, entregas, imágenes
+// ══════════════════════════════════════════════════════════════
+let _briefDraft={entregas:[],imagenes:[]};
+
+function openBriefModal(editIdx){
+  _editIdx=(editIdx!==undefined&&editIdx!==null)?Number(editIdx):null;
+  const b=_editIdx!==null?S.briefs[_editIdx]:null;
+  _briefDraft={
+    entregas:b?.entregas?JSON.parse(JSON.stringify(b.entregas)):[],
+    imagenes:b?.imagenes?JSON.parse(JSON.stringify(b.imagenes)):[],
+  };
+  _restoreModalStructure();
+  document.getElementById('modal-title').textContent=b?'Editar brief':'Nuevo brief';
+  document.getElementById('modal-body').innerHTML=_buildBriefModalHtml(b);
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(()=>{
+    _pilaresSelect();_cuentasSelect('f-cuenta');
+    if(b){
+      if(b.cuenta)document.getElementById('f-cuenta').value=b.cuenta;
+      if(b.pilar)document.getElementById('f-pilar').value=b.pilar;
+      if(b.categoria)document.querySelectorAll('.bf-cat').forEach(btn=>{if(btn.dataset.cat===b.categoria)btn.classList.add('on');});
+      (b.emociones||[]).forEach(emo=>document.querySelectorAll('.bf-emo').forEach(btn=>{if(btn.dataset.emo===emo)btn.classList.add('on');}));
+    }
+    _renderBriefEntregas();_renderBriefImagenes();
+  },30);
+}
+
+function _buildBriefModalHtml(b){
+  const h=v=>v?String(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'):'';
+  const bb=S.brandBrief||{};
+  const bbHtml=bb.nombre?`<div style="background:rgba(41,121,255,.05);border:1px solid rgba(41,121,255,.15);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+    <div style="flex:1"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:rgba(41,121,255,.7);margin-bottom:2px">Identidad de marca activa</div>
+    <div style="font-size:12px;color:var(--text);font-weight:500">${h(bb.nombre)}</div>
+    ${bb.esencia?`<div style="font-size:10px;color:var(--muted2);margin-top:2px">${h(bb.esencia).slice(0,80)}…</div>`:''}
+    </div><button type="button" class="btn btn-xs" onclick="openBrandBriefModal()">Editar</button></div>`:'';
+  return `
+    ${bbHtml}
+    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:12px">Identificación</div>
+    <div class="form-group"><label class="form-label">Título del brief</label>
+      <input class="form-input" id="f-titulo" value="${h(b?.titulo)}" placeholder="Ej: Campaña verano — jeans de algodón"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Cuenta / Marca</label>
+        <div style="display:flex;gap:6px"><select class="form-select" id="f-cuenta" style="flex:1"></select>
+        <button type="button" class="btn btn-sm" onclick="openCuentasModal()">🏢</button></div></div>
+      <div class="form-group"><label class="form-label">Pilar</label>
+        <div style="display:flex;gap:6px"><select class="form-select" id="f-pilar" style="flex:1"></select>
+        <button type="button" class="btn btn-sm" onclick="openPilaresModal()">⚙</button></div></div>
+    </div>
+    <div class="form-group"><label class="form-label">Categoría</label>
+      <div class="bf-cat-wrap">
+        <button type="button" class="bf-cat" data-cat="marca" onclick="toggleBriefCat(this)">🏷 Marca</button>
+        <button type="button" class="bf-cat" data-cat="ugc" onclick="toggleBriefCat(this)">📱 UGC</button>
+        <button type="button" class="bf-cat" data-cat="influencers" onclick="toggleBriefCat(this)">🤝 Influencers</button>
+        <button type="button" class="bf-cat" data-cat="pr" onclick="toggleBriefCat(this)">📣 PR</button>
+      </div></div>
+
+    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);padding-bottom:8px;border-bottom:1px solid var(--border);margin:18px 0 12px">Campaña</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Objetivo</label>
+        <input class="form-input" id="f-objetivo" value="${h(b?.objetivo)}" placeholder="¿Qué querés lograr?"></div>
+      <div class="form-group"><label class="form-label">Audiencia</label>
+        <input class="form-input" id="f-audiencia" value="${h(b?.audiencia)}" placeholder="¿A quién va dirigido?"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Mensaje central — la única idea que tiene que quedarse</label>
+      <textarea class="form-textarea" id="f-mensaje" rows="2" placeholder="La marca X hace que te sientas…">${h(b?.mensaje)}</textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Hook — primeros 2 segundos</label>
+        <input class="form-input" id="f-hook" value="${h(b?.hook)}" placeholder="¿Qué dice o se ve al inicio?"></div>
+      <div class="form-group"><label class="form-label">Tono</label>
+        <input class="form-input" id="f-tono" value="${h(b?.tono)}" placeholder="cercano, aspiracional, divertido…"></div>
+    </div>
+    <div class="form-group"><label class="form-label">¿Qué tiene que sentir quien lo ve?</label>
+      <div class="bf-emo-wrap">
+        ${['Identificación','Deseo','Sorpresa','Urgencia','Confianza','Humor','FOMO','Nostalgia','Aspiración'].map(e=>`<button type="button" class="bf-emo" data-emo="${e}" onclick="toggleBriefEmo(this)">${e}</button>`).join('')}
+      </div></div>
+    <div class="form-group"><label class="form-label">CTA — ¿qué hace después?</label>
+      <input class="form-input" id="f-cta" value="${h(b?.cta)}" placeholder="visitar perfil, guardar, ir a la web, comprar…"></div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--border);margin:18px 0 10px">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--muted)">Entregas</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        ${['Reel','Story','TikTok','Carrusel','Post','UGC'].map(t=>`<button type="button" class="btn btn-xs" onclick="addEntregaBrief('${t}')">+ ${t}</button>`).join('')}
+      </div>
+    </div>
+    <div id="brief-entregas-list"></div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--border);margin:18px 0 10px">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--muted)">Referencias visuales</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button type="button" class="btn btn-xs" onclick="addBriefImageFromUrl()">+ URL</button>
+        <label class="btn btn-xs" style="cursor:pointer;margin:0;padding:4px 10px">+ Archivo<input type="file" accept="image/*" multiple style="display:none" onchange="addBriefImagesFromFiles(this)"></label>
+      </div>
+    </div>
+    <div id="brief-imagenes-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:4px"></div>
+
+    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);padding-bottom:8px;border-bottom:1px solid var(--border);margin:18px 0 12px">Producción</div>
+    <div class="form-group"><label class="form-label">Producto destacado</label>
+      <input class="form-input" id="f-producto" value="${h(b?.producto)}" placeholder="Ej: Jean negro tiro alto modelo Luna"></div>
+    <div class="form-group"><label class="form-label">Planos / locación / notas técnicas</label>
+      <textarea class="form-textarea" id="f-notas" rows="3" placeholder="Planos sugeridos, locación, encuadres, música de referencia, mood…">${h(b?.notas)}</textarea></div>
+    <div class="form-group"><label class="form-label">Referencias adicionales (texto)</label>
+      <input class="form-input" id="f-referencias" value="${h(b?.referencias)}" placeholder="Links, nombres de referencia, inspiraciones"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveBrief()">Guardar brief</button>
+    </div>`;
+}
+
+function addEntregaBrief(tipo){
+  _briefDraft.entregas.push({tipo,cantidad:1,descripcion:'',specs:'',caption:''});
+  _renderBriefEntregas();
+}
+function removeEntregaBrief(idx){
+  _briefDraft.entregas.splice(idx,1);_renderBriefEntregas();
+}
+function _renderBriefEntregas(){
+  const el=document.getElementById('brief-entregas-list');if(!el)return;
+  if(!_briefDraft.entregas.length){
+    el.innerHTML=`<div style="font-size:11px;color:var(--muted);padding:6px 0 10px">Usá los botones para agregar las entregas que pedís.</div>`;return;
+  }
+  el.innerHTML=_briefDraft.entregas.map((e,i)=>`
+    <div style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);background:rgba(255,200,0,.08);border:1px solid rgba(255,200,0,.2);padding:3px 10px;border-radius:4px;flex-shrink:0">${e.tipo}</span>
+        <label style="font-size:10px;color:var(--muted);flex-shrink:0">Cantidad</label>
+        <input type="number" min="1" max="99" value="${e.cantidad}"
+          style="width:50px;background:var(--s3);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:12px;padding:3px 6px;text-align:center"
+          onchange="_briefDraft.entregas[${i}].cantidad=Math.max(1,parseInt(this.value)||1)">
+        <button onclick="removeEntregaBrief(${i})" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:0 2px">×</button>
+      </div>
+      <input class="form-input" style="font-size:11px;padding:6px 10px;margin-bottom:6px" placeholder="Descripción — qué tiene que mostrar o comunicar"
+        value="${(e.descripcion||'').replace(/"/g,'&quot;')}" onchange="_briefDraft.entregas[${i}].descripcion=this.value">
+      <input class="form-input" style="font-size:11px;padding:6px 10px;margin-bottom:6px" placeholder="Specs técnicas (ej: 9:16 · 30-45 seg · sin texto en pantalla)"
+        value="${(e.specs||'').replace(/"/g,'&quot;')}" onchange="_briefDraft.entregas[${i}].specs=this.value">
+      <input class="form-input" style="font-size:11px;padding:6px 10px" placeholder="Caption sugerida (opcional)"
+        value="${(e.caption||'').replace(/"/g,'&quot;')}" onchange="_briefDraft.entregas[${i}].caption=this.value">
+    </div>`).join('');
+}
+
+async function addBriefImageFromUrl(){
+  const url=prompt('URL de la imagen de referencia:');
+  if(!url||!url.trim().startsWith('http'))return;
+  _briefDraft.imagenes.push({tipo:'url',data:url.trim(),caption:''});
+  _renderBriefImagenes();
+}
+async function addBriefImagesFromFiles(input){
+  notify('Comprimiendo imágenes…');
+  for(const file of [...input.files]){
+    const b64=await _compressImage(file);
+    if(b64)_briefDraft.imagenes.push({tipo:'base64',data:b64,caption:file.name.replace(/\.[^.]+$/,'')});
+  }
+  input.value='';_renderBriefImagenes();
+}
+async function _compressImage(file,maxW=900,quality=0.72){
+  return new Promise(res=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const ratio=Math.min(maxW/img.width,1);
+        const canvas=document.createElement('canvas');
+        canvas.width=Math.round(img.width*ratio);canvas.height=Math.round(img.height*ratio);
+        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+        res(canvas.toDataURL('image/jpeg',quality));
+      };
+      img.onerror=()=>res(null);img.src=e.target.result;
+    };
+    reader.onerror=()=>res(null);reader.readAsDataURL(file);
+  });
+}
+function removeBriefImage(idx){_briefDraft.imagenes.splice(idx,1);_renderBriefImagenes();}
+function _renderBriefImagenes(){
+  const el=document.getElementById('brief-imagenes-list');if(!el)return;
+  if(!_briefDraft.imagenes.length){
+    el.innerHTML=`<div style="font-size:11px;color:var(--muted);padding:4px 0 10px">Agregá imágenes de referencia de estética, producto o mood.</div>`;return;
+  }
+  el.innerHTML=_briefDraft.imagenes.map((img,i)=>`
+    <div style="position:relative;background:var(--s2);border:1px solid var(--border);border-radius:6px;overflow:hidden">
+      <img src="${img.data}" alt=""
+        style="width:100%;height:110px;object-fit:cover;display:block"
+        onerror="this.parentElement.style.display='none'">
+      <button onclick="removeBriefImage(${i})"
+        style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.75);border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+      <input class="form-input" style="font-size:10px;padding:4px 8px;border-radius:0;border:none;border-top:1px solid var(--border);background:var(--s3)"
+        placeholder="Descripción…" value="${(img.caption||'').replace(/"/g,'&quot;')}"
+        onchange="_briefDraft.imagenes[${i}].caption=this.value">
+    </div>`).join('');
+}
+
+// ── Brand Brief ──────────────────────────────────────────────
+function openBrandBriefModal(){
+  const bb=S.brandBrief||{};
+  const h=v=>v?String(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'):'';
+  _restoreModalStructure();
+  document.getElementById('modal-title').textContent='Identidad de Marca';
+  document.getElementById('modal-body').innerHTML=`
+    <div class="form-group"><label class="form-label">Nombre de la marca</label>
+      <input class="form-input" id="bb-nombre" value="${h(bb.nombre)}" placeholder="Ej: NUDE PROJECT"></div>
+    <div class="form-group"><label class="form-label">Esencia — quiénes son y qué los hace únicos</label>
+      <textarea class="form-textarea" id="bb-esencia" rows="2" placeholder="Marca de ropa para jóvenes que priorizan lo auténtico sobre lo perfecto…">${h(bb.esencia)}</textarea></div>
+    <div class="form-group"><label class="form-label">Estética y moodboard</label>
+      <textarea class="form-textarea" id="bb-estetica" rows="2" placeholder="Colores neutros, texturas naturales, fotografía cruda, luz natural, sin filtros pesados…">${h(bb.estetica)}</textarea></div>
+    <div class="form-group"><label class="form-label">Audiencia objetivo de la marca</label>
+      <input class="form-input" id="bb-audiencia" value="${h(bb.audiencia)}" placeholder="18-28 años, urbanos, interesados en moda sostenible y autenticidad"></div>
+    <div class="form-group"><label class="form-label">Qué NO hacer — restricciones de marca</label>
+      <textarea class="form-textarea" id="bb-donot" rows="2" placeholder="No logos en primer plano, no poses forzadas, no edición excesiva, no aspecto de publicidad…">${h(bb.donot)}</textarea></div>
+    <div class="form-group"><label class="form-label">Hashtags oficiales</label>
+      <input class="form-input" id="bb-hashtags" value="${h(bb.hashtags)}" placeholder="#nudeproject #nudecommunity"></div>
+    <div class="form-group"><label class="form-label">Imagen de referencia de marca (URL)</label>
+      <input class="form-input" id="bb-imagen" value="${h(bb.imagen)}" placeholder="https://…" type="url"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveBrandBrief()">Guardar identidad</button>
+    </div>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function saveBrandBrief(){
+  if(!S.brandBrief)S.brandBrief={};
+  S.brandBrief={
+    nombre:document.getElementById('bb-nombre')?.value?.trim()||'',
+    esencia:document.getElementById('bb-esencia')?.value?.trim()||'',
+    estetica:document.getElementById('bb-estetica')?.value?.trim()||'',
+    audiencia:document.getElementById('bb-audiencia')?.value?.trim()||'',
+    donot:document.getElementById('bb-donot')?.value?.trim()||'',
+    hashtags:document.getElementById('bb-hashtags')?.value?.trim()||'',
+    imagen:document.getElementById('bb-imagen')?.value?.trim()||'',
+  };
+  save();closeModal();notify('Identidad de marca guardada ✓');
+}
+
+// ── Publicar brief en Soul PR ────────────────────────────────
+function publishBriefToSoulPR(idx){
+  const b=S.briefs[idx];if(!b)return;
+  const wsId=_activeWsId;if(!wsId){notify('Sin workspace activo');return;}
+  const firstUrl=(b.imagenes||[]).find(img=>img?.tipo==='url')?.data||b.imagen||'';
+  const h=v=>v?String(v).replace(/"/g,'&quot;'):'';
+  _restoreModalStructure();
+  document.getElementById('modal-title').textContent='Publicar en Soul PR';
+  document.getElementById('modal-body').innerHTML=`
+    <p style="font-size:12px;color:var(--muted2);margin-bottom:14px">El brief <strong style="color:var(--text)">"${h(b.titulo)}"</strong> se publicará como colaboración disponible en Soul PR.</p>
+    <div class="form-group"><label class="form-label">Producto / Acción</label>
+      <input class="form-input" id="pub-producto" value="${h(b.producto||b.titulo)}" placeholder="Ej: Jean negro tiro alto"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Tipo de canje</label>
+        <select class="form-select" id="pub-tipo">
+          <option value="producto">Canje de producto</option>
+          <option value="descuento">Descuento especial</option>
+          <option value="lugar">Visita al local</option>
+        </select></div>
+      <div class="form-group"><label class="form-label">Días para entregar</label>
+        <input class="form-input" type="number" min="1" id="pub-dias" value="7"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Pago adicional (opcional)</label>
+      <input class="form-input" type="number" id="pub-pago" placeholder="Sin pago adicional"></div>
+    <div class="form-group"><label class="form-label">Imagen de portada (URL)</label>
+      <input class="form-input" id="pub-portada" type="url" placeholder="https://…" value="${h(firstUrl)}"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" id="pub-btn" onclick="_confirmarPublicarBrief(${idx})">📤 Publicar en Soul PR</button>
+    </div>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+async function _confirmarPublicarBrief(briefIdx){
+  const b=S.briefs[briefIdx];if(!b)return;
+  const wsId=_activeWsId;
+  const producto=document.getElementById('pub-producto')?.value?.trim()||b.titulo;
+  const tipo_accion=document.getElementById('pub-tipo')?.value||'producto';
+  const dias=parseInt(document.getElementById('pub-dias')?.value)||7;
+  const pago=parseFloat(document.getElementById('pub-pago')?.value)||undefined;
+  const portada=document.getElementById('pub-portada')?.value?.trim()||undefined;
+  const _TIPO_KEY={reel:'reel',story:'stories',stories:'stories',tiktok:'tiktok',carrusel:'carruseles',carrusel:'carruseles',post:'post',ugc:'ugc'};
+  const briefObj={};
+  (b.entregas||[]).forEach(e=>{const k=_TIPO_KEY[e.tipo.toLowerCase()]||e.tipo.toLowerCase();briefObj[k]={cantidad:e.cantidad,descripcion:e.descripcion||'',sube_a_su_cuenta:true};});
+  const btn=document.getElementById('pub-btn');
+  if(btn){btn.disabled=true;btn.textContent='Publicando…';}
+  try{
+    const r=await fetch('/api/admin/ugc/canjes',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({wsId,producto,tipo_accion,demora_max_dias:dias,pago_monto:pago,portada_url:portada,brief:briefObj,estado:'disponible'})});
+    const d=await r.json();
+    if(!r.ok||!d.ok)throw new Error(d.error||'Error del servidor');
+    S.briefs[briefIdx].publicadoEnSoulPR=true;
+    save();closeModal();notify('Publicado en Soul PR ✓');renderBriefs();
+  }catch(e){notify('Error: '+e.message);if(btn){btn.disabled=false;btn.textContent='📤 Publicar en Soul PR';}}
 }
 
 // ══════════════════════════════════════════
@@ -9102,7 +9525,7 @@ function switchPlanTab(id,btn){
     if(id==='ideas'){addBtn.textContent='+ Nueva idea';addBtn.onclick=()=>openModal('planidea');addBtn.style.display='';}
     else if(id==='biblioteca'){addBtn.textContent='+ Agregar pieza';addBtn.onclick=()=>openModal('contenido');addBtn.style.display='';}
     else if(id==='calendario'){addBtn.textContent='+ Agendar';addBtn.onclick=()=>openCalModal(dateKey(new Date().getFullYear(),new Date().getMonth(),new Date().getDate()));addBtn.style.display='';}
-    else if(id==='briefs'){addBtn.textContent='+ Nuevo brief';addBtn.onclick=()=>openModal('brief');addBtn.style.display='';}
+    else if(id==='briefs'){addBtn.textContent='+ Nuevo brief';addBtn.onclick=()=>openBriefModal();addBtn.style.display='';}
     else if(id==='canjes'){addBtn.textContent='+ Agregar creadora';addBtn.onclick=()=>openModal('creadora');addBtn.style.display='';}
     else if(id==='collabs'){addBtn.textContent='+ Agregar marca';addBtn.onclick=()=>openModal('collab');addBtn.style.display='';}
     else if(id==='estrategia'){addBtn.style.display='none';}
@@ -13983,11 +14406,9 @@ function openModal(tipo,data,idx){
     overlay.classList.add('open');
     return;
   }
+  if(tipo==='brief'){openBriefModal(idx!==undefined?idx:null);return;}
   document.getElementById('modal-body').innerHTML=forms[tipo]||'';
   overlay.classList.add('open');
-  if(tipo==='brief'){
-    setTimeout(()=>{_pilaresSelect();_cuentasSelect('f-cuenta');},30);
-  }
   if(tipo==='creadora'){
     setTimeout(()=>{
       _cuentasSelect('f-cuenta');
@@ -14055,26 +14476,27 @@ function saveBrief(){
   const emociones=[...document.querySelectorAll('.bf-emo.on')].map(b=>b.dataset.emo);
   const categoriaBtn=document.querySelector('.bf-cat.on');
   const categoria=categoriaBtn?.dataset?.cat||'';
-  S.briefs.push({
-    id:'b_'+Date.now(),
-    titulo:t,
-    categoria,
+  const obj={
+    id:(_editIdx!==null&&S.briefs[_editIdx]?.id)||'b_'+Date.now(),
+    titulo:t,categoria,
     cuenta:document.getElementById('f-cuenta')?.value||'',
     pilar:document.getElementById('f-pilar')?.value||'',
-    formato:document.getElementById('f-formato')?.value||'',
-    tipo:document.getElementById('f-tipo')?.value||'',
     objetivo:document.getElementById('f-objetivo')?.value?.trim()||'',
+    audiencia:document.getElementById('f-audiencia')?.value?.trim()||'',
+    mensaje:document.getElementById('f-mensaje')?.value?.trim()||'',
     tono:document.getElementById('f-tono')?.value?.trim()||'',
     hook:document.getElementById('f-hook')?.value?.trim()||'',
-    mensaje:document.getElementById('f-mensaje')?.value?.trim()||'',
     emociones,
     cta:document.getElementById('f-cta')?.value?.trim()||'',
     notas:document.getElementById('f-notas')?.value?.trim()||'',
     producto:document.getElementById('f-producto')?.value?.trim()||'',
     referencias:document.getElementById('f-referencias')?.value?.trim()||'',
-    imagen:document.getElementById('f-imagen')?.value?.trim()||'',
-  });
-  save();closeModal();renderBriefs();notify('Brief guardado ✓');
+    entregas:(_briefDraft?.entregas||[]),
+    imagenes:(_briefDraft?.imagenes||[]),
+    publicadoEnSoulPR:(_editIdx!==null&&S.briefs[_editIdx]?.publicadoEnSoulPR)||false,
+  };
+  if(_editIdx!==null)S.briefs[_editIdx]=obj;else S.briefs.push(obj);
+  save();closeModal();renderBriefs();notify(_editIdx!==null?'Brief actualizado ✓':'Brief guardado ✓');
 }
 function saveCreadora(){
   const n=document.getElementById('f-nombre')?.value?.trim();
@@ -17384,7 +17806,7 @@ function renderInicio(){
     const actions=[
       {icon:'📋',label:'Nueva lista',action:"addCheckGroup()"},
       {icon:'✅',label:'Nueva tarea',action:"openModal('todo')"},
-      {icon:'📝',label:'Nuevo brief',action:"navigate('planning/briefs');setTimeout(()=>openModal('brief'),200)"},
+      {icon:'📝',label:'Nuevo brief',action:"navigate('planning/briefs');setTimeout(()=>openBriefModal(),200)"},
       {icon:'💰',label:'Nuevo movimiento',action:"navigate('finanzas');setTimeout(()=>openModal('finanza'),300)"},
       {icon:'🤝',label:'Nueva collab',action:"navigate('planning/collabs');setTimeout(()=>openModal('collab'),200)"},
       {icon:'👤',label:'Nuevo contacto',action:"navigate('crm');setTimeout(()=>openModal('crm'),200)"},
