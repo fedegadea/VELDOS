@@ -5866,6 +5866,30 @@ function _wsToRow(ws){
     // Si no hay backup tampoco, se permite el save (no bloqueamos nunca)
   }
 
+  // ── Ajuste dinámico por tamaño — Vercel limita el body a ~4 MB ──────────
+  // Si el payload supera 3.5 MB, recortar progresivamente hasta que entre.
+  const _trim = () => {
+    const sz = JSON.stringify(data).length;
+    if (sz <= 3_500_000) return;
+    console.warn('[VELDOS] payload grande (' + (sz/1e6).toFixed(2) + ' MB), recortando...');
+    // Nivel 1: reducir límites a la mitad
+    if (Array.isArray(data.finanzas) && data.finanzas.length > 500)
+      data.finanzas = data.finanzas.slice(-500);
+    if (data.tienda && Array.isArray(data.tienda.ordenes) && data.tienda.ordenes.length > 200)
+      data.tienda.ordenes = data.tienda.ordenes.slice(-200);
+    if (Array.isArray(data.crm))
+      data.crm = data.crm.map(c => (!c || !Array.isArray(c.contactos) || c.contactos.length <= 30) ? c : {...c, contactos: c.contactos.slice(-30)});
+    if (Array.isArray(data.waLog)  && data.waLog.length  > 100) data.waLog  = data.waLog.slice(-100);
+    if (Array.isArray(data.difLog) && data.difLog.length > 100) data.difLog = data.difLog.slice(-100);
+    if (Array.isArray(data.flowHistory) && data.flowHistory.length > 50) data.flowHistory = data.flowHistory.slice(-50);
+    // Nivel 2: si sigue grande, vaciar contactos del CRM (estructura queda intacta)
+    if (JSON.stringify(data).length > 3_500_000) {
+      console.warn('[VELDOS] payload aún grande — vaciando contactos de CRM');
+      if (Array.isArray(data.crm)) data.crm = data.crm.map(c => c ? {...c, contactos: []} : c);
+    }
+  };
+  _trim();
+
   return {id:ws.id, name:ws.name, emoji:ws.emoji, color:ws.color, pin:ws.pin||'', users:ws.users||[], data, created_at:ws.createdAt||new Date().toISOString().slice(0,10), last_access:ws.lastAccess||''};
 }
 

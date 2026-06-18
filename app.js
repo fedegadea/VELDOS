@@ -6157,8 +6157,17 @@ app.post('/api/ugc/auth/otp', async (req, res) => {
       prefer: 'resolution=merge-duplicates,return=representation',
       body: { telefono: clean }
     })
-    const creadora = cR.data?.[0]
-    if (!creadora?.id) return res.status(500).json({ error: 'Error creando perfil' })
+    let creadora = cR.data?.[0]
+    // Supabase devuelve array vacío cuando el upsert no modifica nada (fila ya existe).
+    // En ese caso la buscamos explícitamente.
+    if (!creadora?.id) {
+      const fetchR = await _supa('GET', 'ugc_creadoras', { filter: `telefono=eq.${clean}` })
+      creadora = fetchR.data?.[0]
+    }
+    if (!creadora?.id) {
+      console.error('[ugc/auth] No se pudo crear/recuperar creadora para tel:', clean, 'upsert:', JSON.stringify(cR.data))
+      return res.status(500).json({ error: 'Error creando perfil' })
+    }
 
     // Token de sesión 30 días
     const token = crypto.randomUUID()
