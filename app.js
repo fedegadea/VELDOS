@@ -6172,10 +6172,22 @@ app.post('/api/ugc/auth/otp', async (req, res) => {
     // Token de sesión 30 días
     const token = crypto.randomUUID()
     const sesExp = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-    await _supa('POST', 'ugc_sessions', {
-      prefer: 'resolution=merge-duplicates,return=minimal',
-      body: { tipo: 'session', telefono: clean, token, creadora_id: creadora.id, expira_at: sesExp, codigo: null }
+    // INSERT simple — cada login crea una nueva sesión (las viejas expiran solas)
+    const sesR = await _supa('POST', 'ugc_sessions', {
+      prefer: 'return=minimal',
+      body: { tipo: 'session', telefono: clean, token, creadora_id: creadora.id, expira_at: sesExp }
     })
+    if (!sesR.ok) {
+      // Si falla (ej. constraint de unicidad), intenta PATCH sobre la sesión existente
+      const sesPatch = await _supa('PATCH', `ugc_sessions?telefono=eq.${encodeURIComponent(clean)}&tipo=eq.session`, {
+        prefer: 'return=minimal',
+        body: { token, creadora_id: creadora.id, expira_at: sesExp }
+      })
+      if (!sesPatch.ok) {
+        console.error('[ugc/auth] No se pudo crear sesión:', sesR.status, JSON.stringify(sesR.data).slice(0,200))
+        return res.status(500).json({ error: 'Error al iniciar sesión. Intentá de nuevo.' })
+      }
+    }
 
     res.json({ ok: true, token, creadora })
   } catch (e) {
@@ -6321,35 +6333,49 @@ app.get('/api/admin/ugc/solicitudes', async (req, res) => {
   try {
     const r = await _supa('GET', 'ugc_solicitudes', {
       filter: 'order=fecha_solicitud.desc',
-      select: 'id,estado,cupon_liberado,fecha_solicitud,fecha_resolucion,fecha_limite_entrega,canje_id,creadora_id,ugc_canjes(id,producto,ws_id),ugc_creadoras(id,nombre,telefono,instagram_url)'
+      select: 'id,estado,cupon_liberado,fecha_solicitud,fecha_resolucion,fecha_limite_entrega,canje_id,creadora_id,notas_admin,retorno_notas,retorno_alcance,retorno_ventas,link_publicacion,ugc_canjes(id,producto,ws_id,demora_max_dias),ugc_creadoras(id,nombre,telefono,instagram_url)'
     })
     const todo = r.data || []
-    // Filtrar por workspace
     res.json(todo.filter(s => s.ugc_canjes?.ws_id === wsId))
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
-// ── ADMIN: resolver solicitud (aceptar/rechazar/entregar) ─────
+// ── ADMIN: gestionar solicitud (ciclo completo de estados) ────
 app.patch('/api/admin/ugc/solicitudes/:id', async (req, res) => {
   const { id } = req.params
-  const { accion, demora_max_dias, wsId } = req.body
-  if (!['aceptar','rechazar','entregar'].includes(accion)) {
-    return res.status(400).json({ error: 'Acción inválida' })
-  }
+  const { accion, demora_max_dias, wsId, notas_admin, retorno_notas, retorno_alcance, retorno_ventas } = req.body
+  const ACCIONES = ['aceptar','rechazar','enviar','confirmar_entrega','marcar_realizada','entregar','notas','retorno']
+  if (!ACCIONES.includes(accion)) return res.status(400).json({ error: 'Acción inválida' })
+
   const now = new Date().toISOString()
-  const update = { fecha_resolucion: now }
+  const update = {}
+
   if (accion === 'aceptar') {
-    update.estado = 'aceptado'
+    update.estado = 'pendiente_envio'
     update.cupon_liberado = true
-    if (demora_max_dias) {
-      update.fecha_limite_entrega = new Date(Date.now() + Number(demora_max_dias) * 86400000).toISOString()
-    }
+    update.fecha_resolucion = now
+    if (demora_max_dias) update.fecha_limite_entrega = new Date(Date.now() + Number(demora_max_dias) * 86400000).toISOString()
   } else if (accion === 'rechazar') {
     update.estado = 'rechazado'
     update.cupon_liberado = false
-  } else {
-    update.estado = 'entregado'
+    update.fecha_resolucion = now
+  } else if (accion === 'enviar') {
+    update.estado = 'enviado'
+  } else if (accion === 'confirmar_entrega') {
+    update.estado = 'pendiente_publicacion'
+  } else if (accion === 'marcar_realizada' || accion === 'entregar') {
+    update.estado = 'realizada'
+    update.fecha_resolucion = now
+  } else if (accion === 'notas') {
+    if (notas_admin !== undefined) update.notas_admin = notas_admin
+  } else if (accion === 'retorno') {
+    if (retorno_notas !== undefined) update.retorno_notas = retorno_notas
+    if (retorno_alcance !== undefined) update.retorno_alcance = retorno_alcance || null
+    if (retorno_ventas !== undefined) update.retorno_ventas = retorno_ventas || null
   }
+
+  if (!Object.keys(update).length) return res.json({ ok: true })
+
   try {
     const r = await _supa('PATCH', `ugc_solicitudes?id=eq.${id}`, { body: update })
     if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0, 200) })
@@ -6374,9 +6400,8 @@ app.patch('/api/admin/ugc/solicitudes/:id', async (req, res) => {
               tipo: 'micro',
               nombre: creadora.nombre || creadora.telefono || '—',
               handle: creadora.instagram_url || '',
-              cuenta: '',
-              oferta,
-              notas: `Canje UGC aceptado el ${now.slice(0,10)}`,
+              cuenta: '', oferta,
+              notas: `Soul PR · Aceptada el ${now.slice(0,10)}`,
               estado: 'confirmada',
               wapp: creadora.telefono || '',
               briefId: ''
@@ -6384,12 +6409,42 @@ app.patch('/api/admin/ugc/solicitudes/:id', async (req, res) => {
             await patchWorkspace(wsId, { ...data, creadoras })
           }
         }
-      } catch (kErr) {
-        console.error('[ugc/aceptar] Error al crear entrada kanban:', kErr.message)
-      }
+      } catch (kErr) { console.error('[ugc/aceptar] kanban:', kErr.message) }
     }
 
-    res.json({ ok: true, solicitud: r.data?.[0] })
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── PORTAL CREADORA: acción propia sobre una solicitud ────────
+app.post('/api/ugc/solicitudes/:id/accion', _requireCreadora, async (req, res) => {
+  const { id } = req.params
+  const { accion, link_publicacion } = req.body
+  if (!['confirmar_recibo','marcar_publicado'].includes(accion)) {
+    return res.status(400).json({ error: 'Acción inválida' })
+  }
+  try {
+    // Verificar que la solicitud pertenece a esta creadora
+    const chk = await _supa('GET', 'ugc_solicitudes', {
+      filter: `id=eq.${id}&creadora_id=eq.${req.creadoraId}`,
+      select: 'id,estado'
+    })
+    const sol = chk.data?.[0]
+    if (!sol) return res.status(403).json({ error: 'Solicitud no encontrada' })
+
+    const update = {}
+    if (accion === 'confirmar_recibo' && sol.estado === 'enviado') {
+      update.estado = 'pendiente_publicacion'
+    } else if (accion === 'marcar_publicado' && sol.estado === 'pendiente_publicacion') {
+      update.estado = 'realizada'
+      if (link_publicacion) update.link_publicacion = link_publicacion
+    } else {
+      return res.status(400).json({ error: 'Acción no válida en el estado actual' })
+    }
+
+    const r = await _supa('PATCH', `ugc_solicitudes?id=eq.${id}`, { body: update })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
+    res.json({ ok: true })
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 

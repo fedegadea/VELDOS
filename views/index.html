@@ -4270,11 +4270,14 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
   <div id="ugc-tab-solicitudes" style="margin-top:36px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
       <div style="font-size:15px;font-weight:700;color:var(--text);flex:1">Solicitudes <span id="ugc-pending-badge" style="display:none;background:var(--accent);color:#fff;font-size:11px;padding:2px 9px;border-radius:9px;margin-left:4px;font-weight:600">0</span></div>
-      <div style="display:flex;gap:4px" id="ugc-sol-filters">
+      <div style="display:flex;gap:4px;flex-wrap:wrap" id="ugc-sol-filters">
         <button class="btn btn-xs" style="background:var(--accent);color:#fff" onclick="filterUgcSolicitudes('todas',this)">Todas</button>
-        <button class="btn btn-xs" onclick="filterUgcSolicitudes('solicitado',this)">Pendientes</button>
-        <button class="btn btn-xs" onclick="filterUgcSolicitudes('aceptado',this)">Aceptadas</button>
-        <button class="btn btn-xs" onclick="filterUgcSolicitudes('entregado',this)">Entregadas</button>
+        <button class="btn btn-xs" onclick="filterUgcSolicitudes('solicitado',this)">En revisión</button>
+        <button class="btn btn-xs" onclick="filterUgcSolicitudes('pendiente_envio',this)">Aceptadas</button>
+        <button class="btn btn-xs" onclick="filterUgcSolicitudes('enviado',this)">Enviadas</button>
+        <button class="btn btn-xs" onclick="filterUgcSolicitudes('pendiente_publicacion',this)">Esperando pub.</button>
+        <button class="btn btn-xs" onclick="filterUgcSolicitudes('realizada',this)">Realizadas</button>
+        <button class="btn btn-xs" onclick="filterUgcSolicitudes('rechazado',this)" style="color:var(--coral)">Rechazadas</button>
       </div>
     </div>
     <div id="ugc-solicitudes-list"></div>
@@ -23856,13 +23859,21 @@ const _UGC_FORMATS = ['stories','carruseles','reel','tiktok','collab'];
 const _UGC_FORMAT_LABEL = {stories:'Stories',carruseles:'Carruseles',reel:'Reel',tiktok:'TikTok',collab:'Collab'};
 const _UGC_ESTADO_COLOR = {
   disponible:'#16a34a', pausado:'#d97706', cerrado:'#6b7280',
-  solicitado:'#d97706', aceptado:'#2563eb', rechazado:'#dc2626',
-  entregado:'#16a34a', vencido:'#7c3aed'
+  solicitado:'#d97706',
+  pendiente_envio:'#2563eb', aceptado:'#2563eb',
+  enviado:'#0891b2',
+  pendiente_publicacion:'#d97706',
+  realizada:'#16a34a', entregado:'#16a34a',
+  rechazado:'#dc2626', vencido:'#7c3aed'
 };
 const _UGC_ESTADO_LABEL = {
   disponible:'Disponible', pausado:'Pausado', cerrado:'Cerrado',
-  solicitado:'Pendiente', aceptado:'Aceptada', rechazado:'Rechazada',
-  entregado:'Entregada', vencido:'Vencida'
+  solicitado:'En revisión',
+  pendiente_envio:'Aceptada', aceptado:'Aceptada',
+  enviado:'Enviado',
+  pendiente_publicacion:'Esperando pub.',
+  realizada:'Realizada ✓', entregado:'Realizada ✓',
+  rechazado:'Rechazada', vencido:'Vencida'
 };
 
 function _ugcStatPill(estado){
@@ -23980,7 +23991,8 @@ async function loadUgcSolicitudes(){
   try{
     const r=await fetch('/api/admin/ugc/solicitudes?wsId='+wsId);
     _ugcSolicitudes=await r.json();
-    const pending=_ugcSolicitudes.filter(s=>s.estado==='solicitado').length;
+    const REQUIEREN_ACCION=['solicitado','pendiente_envio','aceptado','enviado','pendiente_publicacion'];
+    const pending=_ugcSolicitudes.filter(s=>REQUIEREN_ACCION.includes(s.estado)).length;
     const badge=document.getElementById('ugc-pending-badge');
     if(badge){badge.textContent=pending;badge.style.display=pending?'':'none';}
     renderUgcSolicitudes();
@@ -23996,41 +24008,87 @@ function filterUgcSolicitudes(f,btn){
   renderUgcSolicitudes();
 }
 
+const _UGC_SOL_COL={solicitado:'var(--gold)',pendiente_envio:'#4a9eff',aceptado:'#4a9eff',enviado:'var(--green)',pendiente_publicacion:'var(--gold)',realizada:'var(--green)',entregado:'var(--green)',rechazado:'var(--coral)',vencido:'var(--coral)'};
+const _UGC_SOL_LBL={solicitado:'En revisión',pendiente_envio:'Aceptada',aceptado:'Aceptada',enviado:'Enviado',pendiente_publicacion:'Esperando publicación',realizada:'Realizada ✓',entregado:'Realizada ✓',rechazado:'Rechazada',vencido:'Vencida'};
+
 function renderUgcSolicitudes(){
   const el=document.getElementById('ugc-solicitudes-list'); if(!el)return;
-  const list=_ugcSolFilter==='todas'?_ugcSolicitudes:_ugcSolicitudes.filter(s=>s.estado===_ugcSolFilter);
+  const FILTROS_COMPAT={aceptado:'pendiente_envio',entregado:'realizada'};
+  const filtroEfectivo=_ugcSolFilter==='todas'?null:(_ugcSolFilter);
+  const list=filtroEfectivo===null?_ugcSolicitudes:_ugcSolicitudes.filter(s=>{
+    const e=FILTROS_COMPAT[s.estado]||s.estado;
+    return e===filtroEfectivo||s.estado===filtroEfectivo;
+  });
   if(!list.length){
     el.innerHTML='<div style="color:var(--muted);font-size:13px;padding:24px;text-align:center;background:var(--s1);border-radius:10px;border:1px dashed var(--border2)">No hay solicitudes en este estado</div>';
     return;
   }
-  el.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px">`+list.map(s=>{
+  el.innerHTML='<div style="display:flex;flex-direction:column;gap:10px">'+list.map(s=>{
     const cr=s.ugc_creadoras||{};
     const cj=s.ugc_canjes||{};
     const waNum=(cr.telefono||'').replace(/\D/g,'');
-    const waUrl=`https://wa.me/${waNum}`;
-    const igHandle=cr.instagram_url?cr.instagram_url.replace(/\/$/, '').split('/').pop():'';
-    return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:14px 16px">
-      <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
-        <div style="flex:1;min-width:180px">
-          <div style="font-weight:700;font-size:13px;margin-bottom:6px">${cr.nombre||cr.telefono||'—'}</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-            ${waNum?`<a href="${waUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:#25D366;color:#fff;text-decoration:none;font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.13.558 4.13 1.535 5.864L.057 23.428a.5.5 0 00.608.61l5.691-1.493A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.9 0-3.68-.51-5.21-1.4l-.374-.224-3.378.886.9-3.293-.244-.38A9.96 9.96 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>WhatsApp</a>`:''}
-            ${cr.instagram_url?`<a href="${cr.instagram_url}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);color:#fff;text-decoration:none;font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px">📷 @${igHandle||'Instagram'}</a>`:''}
+    const igHandle=cr.instagram_url?cr.instagram_url.replace(/\/$/,'').split('/').pop():'';
+    const col=_UGC_SOL_COL[s.estado]||'var(--muted)';
+    const lbl=_UGC_SOL_LBL[s.estado]||s.estado;
+    const limite=s.fecha_limite_entrega?new Date(s.fecha_limite_entrega):null;
+    const limitePasado=limite&&limite<new Date();
+    const diasRestantes=limite?Math.max(0,Math.round((limite-new Date())/86400000)):null;
+
+    // Botones de acción según estado
+    let accionBtns='';
+    if(s.estado==='solicitado'){
+      accionBtns=`<button class="btn btn-primary btn-xs" onclick="resolverSolicitud('${s.id}','aceptar')">✓ Aceptar</button>
+        <button class="btn btn-xs" onclick="resolverSolicitud('${s.id}','rechazar')" style="color:var(--coral)">✗ Rechazar</button>`;
+    }else if(s.estado==='pendiente_envio'||s.estado==='aceptado'){
+      accionBtns=`<button class="btn btn-primary btn-xs" onclick="resolverSolicitud('${s.id}','enviar')">📦 Marcar enviado</button>`;
+    }else if(s.estado==='enviado'){
+      accionBtns=`<button class="btn btn-xs" onclick="resolverSolicitud('${s.id}','confirmar_entrega')" style="background:rgba(52,199,123,.15);color:var(--green);border-color:rgba(52,199,123,.3)">✓ Creadora recibió</button>`;
+    }else if(s.estado==='pendiente_publicacion'){
+      accionBtns=`<button class="btn btn-xs" onclick="resolverSolicitud('${s.id}','marcar_realizada')" style="background:rgba(52,199,123,.15);color:var(--green);border-color:rgba(52,199,123,.3)">✓ Marcar realizada</button>`;
+    }
+
+    // Notas internas
+    const notasId=`notas-${s.id}`;
+    const retornoId=`retorno-${s.id}`;
+
+    return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+      <div style="padding:14px 16px">
+        <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:180px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+              <span style="font-weight:700;font-size:13px">${cr.nombre||cr.telefono||'—'}</span>
+              <span style="font-size:9px;font-weight:700;color:${col};background:${col}18;border:1px solid ${col}40;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.06em">${lbl}</span>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+              ${waNum?`<a href="https://wa.me/${waNum}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#25D366;color:#fff;text-decoration:none;font-size:10px;font-weight:700;padding:4px 9px;border-radius:20px">📱 WA</a>`:''}
+              ${cr.instagram_url?`<a href="${cr.instagram_url}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);color:#fff;text-decoration:none;font-size:10px;font-weight:700;padding:4px 9px;border-radius:20px">📷 @${igHandle||'IG'}</a>`:''}
+            </div>
+            <div style="font-size:11px;color:var(--muted)">📦 <strong style="color:var(--text)">${cj.producto||'—'}</strong></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:5px">
+              <span style="font-size:10px;color:var(--muted2)">Solicitó: ${_fmtDate(s.fecha_solicitud)}</span>
+              ${limite?`<span style="font-size:10px;color:${limitePasado?'var(--coral)':diasRestantes<=3?'var(--gold)':'var(--muted2)'}">Límite: ${_fmtDate(s.fecha_limite_entrega)}${diasRestantes!==null&&!limitePasado?' ('+diasRestantes+'d)':limitePasado?' ⚠ vencido':''}</span>`:''}
+              ${s.link_publicacion?`<a href="${s.link_publicacion}" target="_blank" style="font-size:10px;color:var(--accent)">🔗 Ver publicación</a>`:''}
+            </div>
           </div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:6px">📦 <strong style="color:var(--text)">${cj.producto||'—'}</strong></div>
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            ${_ugcStatPill(s.estado)}
-            <span style="font-size:10px;color:var(--muted)">Solicitó: ${_fmtDate(s.fecha_solicitud)}</span>
-            ${s.fecha_limite_entrega?`<span style="font-size:10px;color:${new Date(s.fecha_limite_entrega)<new Date()?'var(--coral)':'var(--muted)'}">Límite: ${_fmtDate(s.fecha_limite_entrega)}</span>`:''}
-          </div>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
-          ${s.estado==='solicitado'?`
-            <button class="btn btn-primary btn-xs" onclick="resolverSolicitud('${s.id}','aceptar')">✓ Aceptar</button>
-            <button class="btn btn-xs" onclick="resolverSolicitud('${s.id}','rechazar')" style="color:var(--coral)">✗ Rechazar</button>`:''}
-          ${s.estado==='aceptado'?`<button class="btn btn-primary btn-xs" onclick="resolverSolicitud('${s.id}','entregar')">✓ Marcar entregada</button>`:''}
+          <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;flex-wrap:wrap">${accionBtns}</div>
         </div>
       </div>
+      ${s.estado==='realizada'||s.estado==='entregado'?`
+      <div style="border-top:1px solid var(--border);padding:12px 16px;background:var(--s2)">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:8px">Seguimiento interno</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <input id="ret-alcance-${s.id}" type="number" placeholder="Alcance estimado" value="${s.retorno_alcance||''}"
+            style="flex:1;min-width:120px;background:var(--s3);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;padding:6px 10px"
+            onchange="guardarRetorno('${s.id}','alcance',this.value)">
+          <input id="ret-ventas-${s.id}" type="number" placeholder="Ventas generadas ($)" value="${s.retorno_ventas||''}"
+            style="flex:1;min-width:120px;background:var(--s3);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;padding:6px 10px"
+            onchange="guardarRetorno('${s.id}','ventas',this.value)">
+        </div>
+        <textarea id="ret-notas-${s.id}" placeholder="Notas internas (qué funcionó, qué no, próximos pasos...)" rows="2"
+          style="width:100%;background:var(--s3);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;padding:6px 10px;resize:vertical;font-family:inherit"
+          onchange="guardarRetorno('${s.id}','notas',this.value)">${s.retorno_notas||''}</textarea>
+      </div>`:''}
+      ${s.notas_admin&&s.estado!=='realizada'&&s.estado!=='entregado'?`<div style="border-top:1px solid var(--border);padding:8px 16px;font-size:10px;color:var(--muted2);font-style:italic">📝 ${s.notas_admin}</div>`:''}
     </div>`;
   }).join('')+'</div>';
 }
@@ -24264,18 +24322,34 @@ async function ugcSetEstado(id,estado){
 
 async function resolverSolicitud(id,accion){
   const wsId=_activeWsId; if(!wsId)return;
-  // Find demora from the canje
   const sol=_ugcSolicitudes.find(s=>s.id===id);
-  const demora=sol?_ugcCanjes.find(c=>c.id===sol.canje_id)?.demora_max_dias:7;
+  const demora=sol?(sol.ugc_canjes?.demora_max_dias||_ugcCanjes.find(c=>c.id===sol.canje_id)?.demora_max_dias||7):7;
+  const MSG={
+    aceptar:'Aceptada — pendiente de envío',
+    rechazar:'Solicitud rechazada',
+    enviar:'Marcada como enviada',
+    confirmar_entrega:'Creadora confirmó recibo — esperando publicación',
+    marcar_realizada:'Acción marcada como realizada ✓',
+    entregar:'Marcada como realizada ✓'
+  };
   try{
-    const r=await fetch('/api/admin/ugc/solicitudes/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({accion,demora_max_dias:demora||7,wsId})});
+    const r=await fetch('/api/admin/ugc/solicitudes/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({accion,demora_max_dias:demora,wsId})});
     const d=await r.json();
-    if(d.ok){
-      await loadUgcStats();
-      loadUgcSolicitudes();
-      notify(accion==='aceptar'?'Solicitud aceptada — cupón liberado':accion==='rechazar'?'Solicitud rechazada':'Marcada como entregada');
-    } else notify('Error: '+d.error,'error');
+    if(d.ok){await loadUgcStats();loadUgcSolicitudes();notify(MSG[accion]||'Actualizado');}
+    else notify('Error: '+d.error,'error');
   }catch(e){notify('Error de red','error');}
+}
+
+async function guardarRetorno(id,campo,valor){
+  const wsId=_activeWsId; if(!wsId)return;
+  const body={accion:'retorno',wsId};
+  if(campo==='alcance')body.retorno_alcance=parseInt(valor)||null;
+  if(campo==='ventas')body.retorno_ventas=parseFloat(valor)||null;
+  if(campo==='notas')body.retorno_notas=valor;
+  try{
+    await fetch('/api/admin/ugc/solicitudes/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    notify('Retorno guardado ✓');
+  }catch(e){}
 }
 
 function copyUgcPortalLink(){

@@ -267,7 +267,11 @@ input,select,button,textarea{font-family:var(--fb)}
 
 <script>
 const P  = new URLSearchParams(location.search);
-const WS = P.get('ws') || '';
+// Persistir WS: si viene en URL lo guardamos; si no, usamos el último conocido
+let WS = P.get('ws') || '';
+if (WS) localStorage.setItem('ugc_last_ws', WS);
+else     WS = localStorage.getItem('ugc_last_ws') || '';
+
 let _token    = localStorage.getItem('ugc_token') || '';
 let _creadora = null;
 try { _creadora = JSON.parse(localStorage.getItem('ugc_creadora') || 'null'); } catch(e){}
@@ -455,8 +459,8 @@ function renderCanjes() {
     const solicitud   = _solicitudes.find(s => s.canje_id === c.id);
     let btnHtml;
     if (yaRequested && solicitud) {
-      const sColors = { solicitado:'var(--amber)', aceptado:'var(--marron-cl)', rechazado:'rgba(255,255,255,.25)', entregado:'var(--marron-cl)', vencido:'#e07575' };
-      const sLabels = { solicitado:'En revisión', aceptado:'Aceptada ✓', rechazado:'Rechazada', entregado:'Entregada', vencido:'Vencida' };
+      const sColors = { solicitado:'var(--amber)', pendiente_envio:'#4a9eff', aceptado:'#4a9eff', enviado:'#34c77b', pendiente_publicacion:'var(--amber)', realizada:'#34c77b', entregado:'#34c77b', rechazado:'rgba(255,255,255,.25)', vencido:'#e07575' };
+      const sLabels = { solicitado:'En revisión', pendiente_envio:'Aceptada ✓', aceptado:'Aceptada ✓', enviado:'Enviado ✓', pendiente_publicacion:'Publicación pendiente', realizada:'Completada ✓', entregado:'Completada ✓', rechazado:'No aceptada', vencido:'Vencida' };
       btnHtml = `<button disabled class="btn-solicitar" style="background:rgba(255,255,255,.06);color:${sColors[solicitud.estado]||'rgba(255,255,255,.3)'}">${sLabels[solicitud.estado]||solicitud.estado}</button>`;
     } else {
       btnHtml = `<button class="btn-solicitar" onclick="solicitarCanje('${c.id}',this)">Solicitar colaboración</button>`;
@@ -513,8 +517,24 @@ async function loadSolicitudes() {
   } catch(e) {}
 }
 
-const _SOL_COL = { solicitado:'var(--amber)', aceptado:'var(--marron-cl)', rechazado:'rgba(255,255,255,.2)', entregado:'var(--marron-cl)', vencido:'#e07575' };
-const _SOL_LBL = { solicitado:'En revisión', aceptado:'Aceptada ✓', rechazado:'Rechazada', entregado:'Entregada ✓', vencido:'Vencida' };
+const _SOL_COL = {
+  solicitado:'var(--amber)',
+  pendiente_envio:'#4a9eff', aceptado:'#4a9eff',
+  enviado:'#34c77b',
+  pendiente_publicacion:'var(--amber)',
+  realizada:'#34c77b', entregado:'#34c77b',
+  rechazado:'rgba(255,255,255,.2)',
+  vencido:'#e07575'
+};
+const _SOL_LBL = {
+  solicitado:'En revisión',
+  pendiente_envio:'Aceptada ✓', aceptado:'Aceptada ✓',
+  enviado:'Enviado — Tu turno',
+  pendiente_publicacion:'Publicación pendiente',
+  realizada:'Completada ✓', entregado:'Completada ✓',
+  rechazado:'No aceptada',
+  vencido:'Vencida'
+};
 
 function renderSolicitudes() {
   const el = document.getElementById('content-solicitudes');
@@ -526,28 +546,80 @@ function renderSolicitudes() {
     </div>`;
     return;
   }
-  el.innerHTML = _solicitudes.map(s => {
+  el.innerHTML = _solicitudes.map((s, idx) => {
     const c   = s.ugc_canjes || {};
     const col = _SOL_COL[s.estado] || 'rgba(255,255,255,.2)';
     const lbl = _SOL_LBL[s.estado] || s.estado;
     const limite = s.fecha_limite_entrega ? new Date(s.fecha_limite_entrega) : null;
-    const vencida = limite && limite < new Date();
+    const diasRestantes = limite ? Math.max(0, Math.round((limite - new Date()) / 86400000)) : null;
+    const urgente = limite && diasRestantes !== null && diasRestantes <= 3 && s.estado === 'pendiente_publicacion';
+
+    // CTA basado en estado
+    let ctaHtml = '';
+    if (s.estado === 'enviado') {
+      ctaHtml = `<div style="margin-top:14px;padding:14px;background:rgba(52,199,123,.07);border:1px solid rgba(52,199,123,.2)">
+        <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:10px;font-weight:300">¿Ya recibiste el producto o la información de la marca?</div>
+        <button data-idx="${idx}" onclick="confirmarRecibo('${s.id}',${idx},this)" style="width:100%;padding:12px;background:#34c77b;color:#fff;border:none;font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;cursor:pointer">Confirmar que lo recibí</button>
+      </div>`;
+    } else if (s.estado === 'pendiente_publicacion') {
+      ctaHtml = `<div style="margin-top:14px;padding:14px;background:rgba(255,180,0,.06);border:1px solid ${urgente?'rgba(255,180,0,.4)':'rgba(255,180,0,.15)'}">
+        ${limite ? `<div style="font-size:11px;color:${urgente?'#ffb300':'rgba(255,255,255,.45)'};margin-bottom:10px;font-weight:${urgente?'700':'300'}">${urgente?'⚠ ':''}${diasRestantes===0?'¡Hoy es el último día!':'Publicá antes del '+_fmtDate(s.fecha_limite_entrega)+(diasRestantes!==null?' · '+diasRestantes+' días restantes':'')}</div>` : ''}
+        <input type="url" id="link-pub-${s.id}" placeholder="Link de tu publicación (opcional)" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-bottom-color:rgba(255,255,255,.25);padding:10px 12px;font-size:12px;color:var(--marfil);outline:none;margin-bottom:8px;font-family:var(--fb)">
+        <button onclick="marcarPublicado('${s.id}',${idx},this)" style="width:100%;padding:12px;background:var(--marfil);color:var(--negro);border:none;font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;cursor:pointer">Marcar como publicado ✓</button>
+      </div>`;
+    } else if (s.estado === 'pendiente_envio' || s.estado === 'aceptado') {
+      ctaHtml = `<div style="margin-top:12px;font-size:11px;color:#4a9eff;padding:10px 12px;background:rgba(74,158,255,.07);border:1px solid rgba(74,158,255,.15)">📦 ¡Aceptada! La marca está preparando tu envío. Te avisaremos cuando esté en camino.</div>`;
+    } else if (s.estado === 'realizada' || s.estado === 'entregado') {
+      ctaHtml = `<div style="margin-top:12px;font-size:11px;color:#34c77b;padding:10px 12px;background:rgba(52,199,123,.07);border:1px solid rgba(52,199,123,.15)">✓ Publicación completada — gracias por colaborar.</div>`;
+    }
+
+    const showCupon = s.cupon_liberado && ['pendiente_envio','aceptado','enviado','pendiente_publicacion','realizada','entregado'].includes(s.estado);
+
     return `<div class="sol-card">
       <span class="sol-estado" style="color:${col};background:${col}18;border:1px solid ${col}40">${lbl}</span>
       <div style="font-family:var(--fs);font-size:22px;color:var(--marfil);letter-spacing:.03em;margin-bottom:4px">${esc(c.producto||'—')}</div>
       ${c.producto_url ? `<a href="${esc(c.producto_url)}" target="_blank" style="font-size:11px;color:var(--marron-cl);letter-spacing:.03em">Ver producto →</a>` : ''}
       <div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:8px;letter-spacing:.05em">Solicitada el ${_fmtDate(s.fecha_solicitud)}</div>
-      ${s.cupon_liberado && s.estado === 'aceptado'
-        ? `<div class="cupon-box">
-            <div class="cupon-label">Tu código</div>
-            <div class="cupon-code" id="cupon-${s.id}">Cargando...</div>
-            <button class="cupon-copy" onclick="copiarCupon('${s.id}')">Copiar código</button>
-          </div>
-          ${limite ? `<div class="fecha-limite${vencida?' vencida':''}">${vencida?'⚠ Plazo vencido':'Entregá antes del '+_fmtDate(s.fecha_limite_entrega)}</div>` : ''}`
-        : ''}
+      ${showCupon ? `<div class="cupon-box">
+          <div class="cupon-label">Tu código exclusivo</div>
+          <div class="cupon-code" id="cupon-${s.id}">Cargando...</div>
+          <button class="cupon-copy" onclick="copiarCupon('${s.id}')">Copiar código</button>
+        </div>` : ''}
+      ${ctaHtml}
     </div>`;
   }).join('');
-  _solicitudes.filter(s => s.cupon_liberado && s.estado === 'aceptado').forEach(s => loadCupon(s.id));
+  _solicitudes.filter(s => s.cupon_liberado).forEach(s => loadCupon(s.id));
+}
+
+async function confirmarRecibo(solId, idx, btn) {
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  try {
+    const r = await fetch('/api/ugc/solicitudes/' + solId + '/accion', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _token },
+      body: JSON.stringify({ accion: 'confirmar_recibo' })
+    });
+    const d = await r.json();
+    if (!d.ok) { showNotif(d.error || 'Error'); btn.disabled = false; btn.textContent = 'Confirmar que lo recibí'; return; }
+    _solicitudes[idx].estado = 'pendiente_publicacion';
+    renderSolicitudes();
+    showNotif('¡Recibo confirmado! Ahora publicá tu contenido.');
+  } catch(e) { showNotif('Error de conexión'); btn.disabled = false; btn.textContent = 'Confirmar que lo recibí'; }
+}
+
+async function marcarPublicado(solId, idx, btn) {
+  const link = document.getElementById('link-pub-' + solId)?.value?.trim() || '';
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  try {
+    const r = await fetch('/api/ugc/solicitudes/' + solId + '/accion', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _token },
+      body: JSON.stringify({ accion: 'marcar_publicado', link_publicacion: link })
+    });
+    const d = await r.json();
+    if (!d.ok) { showNotif(d.error || 'Error'); btn.disabled = false; btn.textContent = 'Marcar como publicado ✓'; return; }
+    _solicitudes[idx].estado = 'realizada';
+    renderSolicitudes();
+    showNotif('¡Publicación registrada! Gracias por colaborar 🙌');
+  } catch(e) { showNotif('Error de conexión'); btn.disabled = false; btn.textContent = 'Marcar como publicado ✓'; }
 }
 
 async function loadCupon(solId) {
