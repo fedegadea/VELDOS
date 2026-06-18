@@ -4374,15 +4374,32 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
         </div>
       </div>
 
-      <!-- Brief -->
-      <div style="margin-top:4px;margin-bottom:8px">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Brief — qué publicar</div>
-        <div style="background:var(--s2);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px">
-          <div style="display:grid;grid-template-columns:100px 80px 1fr;gap:8px;align-items:center;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">
-            <span>Formato</span><span style="text-align:center">Cantidad</span><span>Sube a su cuenta</span>
+      <!-- Entregas — qué crear -->
+      <div style="margin-top:8px;margin-bottom:4px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:10px">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Entregas — qué crear</div>
+          <div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end">
+            <button type="button" class="btn btn-xs" onclick="addEntregaUgc('Reel')">+ Reel</button>
+            <button type="button" class="btn btn-xs" onclick="addEntregaUgc('Story')">+ Story</button>
+            <button type="button" class="btn btn-xs" onclick="addEntregaUgc('TikTok')">+ TikTok</button>
+            <button type="button" class="btn btn-xs" onclick="addEntregaUgc('Carrusel')">+ Carrusel</button>
+            <button type="button" class="btn btn-xs" onclick="addEntregaUgc('Post')">+ Post</button>
+            <button type="button" class="btn btn-xs" onclick="addEntregaUgc('UGC')">+ UGC</button>
+            <button type="button" class="btn btn-xs" onclick="addEntregaUgc('Collab')">+ Collab</button>
           </div>
-          <div id="ugc-brief-rows"></div>
         </div>
+        <div id="ugc-entregas-list"></div>
+      </div>
+      <!-- Imágenes de referencia -->
+      <div style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Imágenes de referencia</div>
+          <div style="display:flex;gap:4px;align-items:center">
+            <button type="button" class="btn btn-xs" onclick="addUgcImageFromUrl()">+ URL</button>
+            <label class="btn btn-xs" style="cursor:pointer;margin:0">+ Archivo<input type="file" multiple accept="image/*" style="display:none" onchange="addUgcImagesFromFiles(this)"></label>
+          </div>
+        </div>
+        <div id="ugc-imagenes-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
       </div>
 
       <div id="ugc-form-err" style="font-size:11px;color:var(--coral);min-height:14px;margin-bottom:6px"></div>
@@ -9320,14 +9337,13 @@ async function _confirmarPublicarBrief(briefIdx){
   const dias=parseInt(document.getElementById('pub-dias')?.value)||7;
   const pago=parseFloat(document.getElementById('pub-pago')?.value)||undefined;
   const portada=document.getElementById('pub-portada')?.value?.trim()||undefined;
-  const _TIPO_KEY={reel:'reel',story:'stories',stories:'stories',tiktok:'tiktok',carrusel:'carruseles',carrusel:'carruseles',post:'post',ugc:'ugc'};
-  const briefObj={};
-  (b.entregas||[]).forEach(e=>{const k=_TIPO_KEY[e.tipo.toLowerCase()]||e.tipo.toLowerCase();briefObj[k]={cantidad:e.cantidad,descripcion:e.descripcion||'',sube_a_su_cuenta:true};});
+  const brief=(b.entregas||[]).map(e=>({tipo:e.tipo,cantidad:e.cantidad,descripcion:e.descripcion||'',specs:e.specs||'',caption:e.caption||''}));
+  const imagenes=(b.imagenes||[]).map(img=>({...img}));
   const btn=document.getElementById('pub-btn');
   if(btn){btn.disabled=true;btn.textContent='Publicando…';}
   try{
     const r=await fetch('/api/admin/ugc/canjes',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({wsId,producto,tipo_accion,demora_max_dias:dias,pago_monto:pago,portada_url:portada,brief:briefObj,estado:'disponible'})});
+      body:JSON.stringify({wsId,producto,tipo_accion,demora_max_dias:dias,pago_monto:pago,portada_url:portada,brief,imagenes,estado:'disponible'})});
     const d=await r.json();
     if(!r.ok||!d.ok)throw new Error(d.error||'Error del servidor');
     S.briefs[briefIdx].publicadoEnSoulPR=true;
@@ -23857,6 +23873,72 @@ let _ugcSolicitudes = [];
 let _ugcSolFilter = 'todas';
 const _UGC_FORMATS = ['stories','carruseles','reel','tiktok','collab'];
 const _UGC_FORMAT_LABEL = {stories:'Stories',carruseles:'Carruseles',reel:'Reel',tiktok:'TikTok',collab:'Collab'};
+
+// ── UGC campaña draft (entregas + imagenes) ───────────────────
+let _ugcCampañaDraft={entregas:[],imagenes:[]};
+
+function _convertOldBriefToArray(brief){
+  if(!brief||typeof brief!=='object'||Array.isArray(brief))return[];
+  const LBL={stories:'Story',carruseles:'Carrusel',reel:'Reel',tiktok:'TikTok',collab:'Collab'};
+  return Object.entries(brief).filter(([,v])=>v?.cantidad>0).map(([k,v])=>({
+    tipo:LBL[k]||k,cantidad:v.cantidad||1,descripcion:'',specs:'',caption:''
+  }));
+}
+
+function addEntregaUgc(tipo){
+  _ugcCampañaDraft.entregas.push({tipo,cantidad:1,descripcion:'',specs:'',caption:''});
+  _renderUgcEntregas();
+}
+function removeEntregaUgc(idx){_ugcCampañaDraft.entregas.splice(idx,1);_renderUgcEntregas();}
+function _renderUgcEntregas(){
+  const el=document.getElementById('ugc-entregas-list');if(!el)return;
+  if(!_ugcCampañaDraft.entregas.length){
+    el.innerHTML='<div style="font-size:11px;color:var(--muted);padding:6px 0 10px">Usá los botones para agregar las entregas que pedís.</div>';return;
+  }
+  el.innerHTML=_ugcCampañaDraft.entregas.map((e,i)=>`
+    <div style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);background:rgba(255,200,0,.08);border:1px solid rgba(255,200,0,.2);padding:3px 10px;border-radius:4px;flex-shrink:0">${e.tipo}</span>
+        <label style="font-size:10px;color:var(--muted);flex-shrink:0">Cantidad</label>
+        <input type="number" min="1" max="99" value="${e.cantidad}"
+          style="width:50px;background:var(--s3);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:12px;padding:3px 6px;text-align:center"
+          onchange="_ugcCampañaDraft.entregas[${i}].cantidad=Math.max(1,parseInt(this.value)||1)">
+        <button onclick="removeEntregaUgc(${i})" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:0 2px">×</button>
+      </div>
+      <input class="form-input" style="font-size:11px;padding:6px 10px;margin-bottom:6px" placeholder="Descripción — qué tiene que mostrar o comunicar"
+        value="${(e.descripcion||'').replace(/"/g,'&quot;')}" onchange="_ugcCampañaDraft.entregas[${i}].descripcion=this.value">
+      <input class="form-input" style="font-size:11px;padding:6px 10px;margin-bottom:6px" placeholder="Specs técnicas (ej: 9:16 · 30-45 seg · sin texto en pantalla)"
+        value="${(e.specs||'').replace(/"/g,'&quot;')}" onchange="_ugcCampañaDraft.entregas[${i}].specs=this.value">
+      <input class="form-input" style="font-size:11px;padding:6px 10px" placeholder="Caption sugerida (opcional)"
+        value="${(e.caption||'').replace(/"/g,'&quot;')}" onchange="_ugcCampañaDraft.entregas[${i}].caption=this.value">
+    </div>`).join('');
+}
+
+async function addUgcImagesFromFiles(input){
+  const files=Array.from(input.files||[]);if(!files.length)return;
+  for(const file of files){
+    const comp=await _compressImage(file,900,.72);
+    _ugcCampañaDraft.imagenes.push({tipo:'base64',data:comp.split(',')[1],contentType:file.type});
+  }
+  _renderUgcImagenes();input.value='';
+}
+function addUgcImageFromUrl(){
+  const url=prompt('URL de la imagen:');if(!url)return;
+  _ugcCampañaDraft.imagenes.push({tipo:'url',data:url});
+  _renderUgcImagenes();
+}
+function removeUgcImage(idx){_ugcCampañaDraft.imagenes.splice(idx,1);_renderUgcImagenes();}
+function _renderUgcImagenes(){
+  const el=document.getElementById('ugc-imagenes-list');if(!el)return;
+  if(!_ugcCampañaDraft.imagenes.length){el.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px 0">Sin imágenes de referencia.</div>';return;}
+  el.innerHTML=_ugcCampañaDraft.imagenes.map((img,i)=>{
+    const src=img.tipo==='url'?img.data:`data:${img.contentType||'image/jpeg'};base64,${img.data}`;
+    return `<div style="position:relative;width:72px;height:72px;flex-shrink:0">
+      <img src="${src}" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--border2)" onerror="this.style.display='none'">
+      <button onclick="removeUgcImage(${i})" style="position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:var(--coral);border:none;color:#fff;font-size:11px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+    </div>`;
+  }).join('');
+}
 const _UGC_ESTADO_COLOR = {
   disponible:'#16a34a', pausado:'#d97706', cerrado:'#6b7280',
   solicitado:'#d97706',
@@ -23949,8 +24031,10 @@ async function loadUgcCanjes(){
     }
     const _TIPO_LBL={producto:'Producto',descuento:'Descuento',lugar:'Local'};
     el.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px">`+_ugcCanjes.map(c=>{
-      const brief=c.brief||{};
-      const fmts=_UGC_FORMATS.filter(f=>brief[f]?.cantidad>0).map(f=>`${brief[f].cantidad} ${_UGC_FORMAT_LABEL[f]}`).join(', ')||'Sin brief';
+      const brief=c.brief||[];
+      const fmts=Array.isArray(brief)
+        ?brief.filter(e=>e.cantidad>0).map(e=>`${e.cantidad} ${e.tipo}`).join(', ')||'Sin brief'
+        :Object.entries(brief).filter(([,v])=>v?.cantidad>0).map(([k,v])=>`${v.cantidad} ${_UGC_FORMAT_LABEL[k]||k}`).join(', ')||'Sin brief';
       const tipoLbl=_TIPO_LBL[c.tipo_accion||'producto']||'Producto';
       return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;overflow:hidden">
         ${c.portada_url?`<img src="${c.portada_url}" style="width:100%;height:80px;object-fit:cover;display:block">`:''}
@@ -24082,6 +24166,23 @@ function renderUgcSolicitudes(){
           <button class="btn btn-xs" onclick="guardarMensaje('${s.id}')" style="flex-shrink:0;margin-top:1px">Enviar</button>
         </div>
       </div>
+      ${(Array.isArray(s.checklist)&&s.checklist.length)?`
+      <div style="border-top:1px solid var(--border);padding:12px 16px;background:var(--s2)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)">Checklist</div>
+          <span style="font-size:10px;font-weight:700;color:${s.checklist.every(i=>i.completado)?'var(--green)':'var(--gold)'}">${s.checklist.filter(i=>i.completado).length}/${s.checklist.length}</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          ${s.checklist.map(item=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--s1);border-radius:5px">
+            <span style="font-size:13px;flex-shrink:0">${item.completado?'✅':'⬜'}</span>
+            <div style="flex:1;min-width:0">
+              <span style="font-size:11px;font-weight:600;color:var(--text)">${item.tipo} ${item.num}</span>
+              ${item.descripcion?`<span style="font-size:10px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px">${item.descripcion}</span>`:''}
+            </div>
+            ${item.link?`<a href="${item.link}" target="_blank" style="font-size:10px;color:var(--accent);white-space:nowrap;flex-shrink:0">🔗 Ver</a>`:''}
+          </div>`).join('')}
+        </div>
+      </div>`:''}
       ${s.estado==='realizada'||s.estado==='entregado'?`
       <div style="border-top:1px solid var(--border);padding:12px 16px;background:var(--s2)">
         <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:8px">Retorno de la acción</div>
@@ -24185,18 +24286,14 @@ function openUgcCanjeModal(canje){
   document.getElementById('ugc-modal-title').textContent=canje?'Editar campaña':'Nueva campaña';
   document.getElementById('ugc-form-save-btn').textContent=canje?'Guardar cambios':'Publicar campaña';
   onUgcTipoChange();
-  // Render brief rows
-  const brief=canje?.brief||{};
-  const rows=document.getElementById('ugc-brief-rows');
-  if(rows) rows.innerHTML=_UGC_FORMATS.map(f=>`
-    <div style="display:grid;grid-template-columns:100px 80px 1fr;gap:8px;align-items:center">
-      <label style="font-size:12px;font-weight:600;color:var(--text)">${_UGC_FORMAT_LABEL[f]}</label>
-      <input type="number" min="0" max="20" value="${brief[f]?.cantidad||0}" id="ugc-brief-${f}-cant" class="form-input" style="padding:6px 10px;font-size:12px;text-align:center">
-      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);cursor:pointer">
-        <input type="checkbox" id="ugc-brief-${f}-sube" ${brief[f]?.sube_a_su_cuenta?'checked':''}> Sube a su cuenta
-      </label>
-    </div>`).join('');
+  // Init draft from existing canje (convert old format if needed)
+  const rawBrief=canje?.brief;
+  _ugcCampañaDraft={
+    entregas:Array.isArray(rawBrief)?JSON.parse(JSON.stringify(rawBrief)):_convertOldBriefToArray(rawBrief),
+    imagenes:Array.isArray(canje?.imagenes)?JSON.parse(JSON.stringify(canje.imagenes)):[]
+  };
   modal.style.display='flex';
+  setTimeout(()=>{_renderUgcEntregas();_renderUgcImagenes();},30);
 }
 
 function closeUgcModal(){
@@ -24225,12 +24322,8 @@ async function saveUgcCanje(){
     }catch(e){document.getElementById('ugc-form-err').textContent='Error subiendo imagen';btn.disabled=false;btn.textContent=id?'Guardar cambios':'Publicar campaña';return;}
   }
 
-  const brief={};
-  _UGC_FORMATS.forEach(f=>{
-    const cant=parseInt(document.getElementById('ugc-brief-'+f+'-cant')?.value||0);
-    const sube=document.getElementById('ugc-brief-'+f+'-sube')?.checked||false;
-    brief[f]={cantidad:cant,sube_a_su_cuenta:sube};
-  });
+  const brief=_ugcCampañaDraft.entregas.map(e=>({...e}));
+  const imagenes=_ugcCampañaDraft.imagenes.map(img=>({...img}));
 
   const tipo_accion=document.getElementById('ugc-form-tipo').value||'producto';
   const body={
@@ -24242,7 +24335,7 @@ async function saveUgcCanje(){
     descuento_tipo:document.getElementById('ugc-form-descuento').value.trim()||null,
     demora_max_dias:parseInt(document.getElementById('ugc-form-demora').value)||7,
     estado:document.getElementById('ugc-form-estado').value,
-    brief
+    brief, imagenes
   };
 
   btn.textContent='Guardando...';

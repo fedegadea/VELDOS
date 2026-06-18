@@ -6242,7 +6242,7 @@ app.get('/api/ugc/mis-solicitudes', _requireCreadora, async (req, res) => {
   try {
     const r = await _supa('GET', 'ugc_solicitudes', {
       filter: `creadora_id=eq.${req.creadoraId}&order=fecha_solicitud.desc`,
-      select: 'id,estado,cupon_liberado,fecha_solicitud,fecha_resolucion,fecha_limite_entrega,canje_id,mensaje_para_creadora,link_publicacion,ugc_canjes(id,producto,brief,producto_url,pago_monto,demora_max_dias)'
+      select: 'id,estado,cupon_liberado,fecha_solicitud,fecha_resolucion,fecha_limite_entrega,canje_id,mensaje_para_creadora,link_publicacion,checklist,ugc_canjes(id,producto,brief,imagenes,producto_url,pago_monto,demora_max_dias)'
     })
     // NUNCA devolver cupon_codigo en este endpoint
     res.json(r.data || [])
@@ -6333,7 +6333,7 @@ app.get('/api/admin/ugc/solicitudes', async (req, res) => {
   try {
     const r = await _supa('GET', 'ugc_solicitudes', {
       filter: 'order=fecha_solicitud.desc',
-      select: 'id,estado,cupon_liberado,fecha_solicitud,fecha_resolucion,fecha_limite_entrega,canje_id,creadora_id,notas_admin,retorno_notas,retorno_alcance,retorno_ventas,link_publicacion,mensaje_para_creadora,ugc_canjes(id,producto,ws_id,demora_max_dias),ugc_creadoras(id,nombre,telefono,instagram_url)'
+      select: 'id,estado,cupon_liberado,fecha_solicitud,fecha_resolucion,fecha_limite_entrega,canje_id,creadora_id,notas_admin,retorno_notas,retorno_alcance,retorno_ventas,link_publicacion,mensaje_para_creadora,checklist,ugc_canjes(id,producto,ws_id,demora_max_dias),ugc_creadoras(id,nombre,telefono,instagram_url)'
     })
     const todo = r.data || []
     res.json(todo.filter(s => s.ugc_canjes?.ws_id === wsId))
@@ -6356,6 +6356,31 @@ app.patch('/api/admin/ugc/solicitudes/:id', async (req, res) => {
     update.fecha_resolucion = now
     if (demora_max_dias) update.fecha_limite_entrega = new Date(Date.now() + Number(demora_max_dias) * 86400000).toISOString()
     if (mensaje_para_creadora !== undefined) update.mensaje_para_creadora = mensaje_para_creadora
+    // Generate checklist from canje brief
+    try {
+      const solRow = await _supa('GET', 'ugc_solicitudes', { filter: `id=eq.${id}`, select: 'canje_id' })
+      const canjeId = solRow.data?.[0]?.canje_id
+      if (canjeId) {
+        const canjeRow = await _supa('GET', 'ugc_canjes', { filter: `id=eq.${canjeId}`, select: 'brief' })
+        const brief = canjeRow.data?.[0]?.brief
+        const checklist = []
+        const LBL = {stories:'Story',carruseles:'Carrusel',reel:'Reel',tiktok:'TikTok',collab:'Collab'}
+        if (Array.isArray(brief)) {
+          brief.forEach(item => {
+            for (let n = 1; n <= Math.max(1, parseInt(item.cantidad) || 1); n++) {
+              checklist.push({ tipo: item.tipo, num: n, descripcion: item.descripcion || '', specs: item.specs || '', completado: false, link: '' })
+            }
+          })
+        } else if (brief && typeof brief === 'object') {
+          Object.entries(brief).forEach(([k, v]) => {
+            for (let n = 1; n <= Math.max(1, parseInt(v?.cantidad) || 1); n++) {
+              checklist.push({ tipo: LBL[k] || k, num: n, descripcion: '', completado: false, link: '' })
+            }
+          })
+        }
+        if (checklist.length) update.checklist = checklist
+      }
+    } catch (err) { console.error('[ugc/aceptar] checklist:', err.message) }
   } else if (accion === 'rechazar') {
     update.estado = 'rechazado'
     update.cupon_liberado = false
@@ -6462,6 +6487,33 @@ app.post('/api/ugc/solicitudes/:id/accion', _requireCreadora, async (req, res) =
     const r = await _supa('PATCH', `ugc_solicitudes?id=eq.${id}`, { body: update })
     if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
     res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── PORTAL CREADORA: actualizar checklist ────────────────────
+app.patch('/api/ugc/solicitudes/:id/checklist', _requireCreadora, async (req, res) => {
+  const { id } = req.params
+  const { idx, completado, link } = req.body
+  if (idx === undefined || idx === null) return res.status(400).json({ error: 'Falta idx' })
+  try {
+    const solR = await _supa('GET', 'ugc_solicitudes', {
+      filter: `id=eq.${id}&creadora_id=eq.${req.creadoraId}`,
+      select: 'id,checklist,estado'
+    })
+    const sol = solR.data?.[0]
+    if (!sol) return res.status(403).json({ error: 'Solicitud no encontrada' })
+
+    const checklist = Array.isArray(sol.checklist) ? [...sol.checklist] : []
+    if (idx < 0 || idx >= checklist.length) return res.status(400).json({ error: 'Índice inválido' })
+
+    checklist[idx] = { ...checklist[idx], completado: !!completado }
+    if (link !== undefined) checklist[idx].link = link || ''
+
+    const r = await _supa('PATCH', `ugc_solicitudes?id=eq.${id}`, { body: { checklist } })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0, 200) })
+
+    const allDone = checklist.every(i => i.completado)
+    res.json({ ok: true, checklist, allDone })
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 

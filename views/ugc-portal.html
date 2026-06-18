@@ -562,10 +562,37 @@ function renderSolicitudes() {
         <button data-idx="${idx}" onclick="confirmarRecibo('${s.id}',${idx},this)" style="width:100%;padding:12px;background:#34c77b;color:#fff;border:none;font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;cursor:pointer">Confirmar que lo recibí</button>
       </div>`;
     } else if (s.estado === 'pendiente_publicacion') {
+      const checklist = Array.isArray(s.checklist) ? s.checklist : [];
+      const done = checklist.filter(i=>i.completado).length;
+      const total = checklist.length;
+      const allDone = total === 0 || done === total;
+      const checklistHtml = total ? `
+        <div style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em">Publicaciones a crear</span>
+            <span style="font-size:10px;font-weight:700;color:${allDone?'#34c77b':'#ffb300'}">${done}/${total}</span>
+          </div>
+          <div style="background:rgba(255,255,255,.08);border-radius:4px;height:4px;margin-bottom:10px;overflow:hidden">
+            <div style="height:100%;background:${allDone?'#34c77b':'#ffb300'};border-radius:4px;width:${total?Math.round(done/total*100):0}%;transition:width .3s"></div>
+          </div>
+          ${checklist.map((item,ci)=>`
+          <div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:8px;margin-bottom:6px">
+            <button onclick="toggleChecklistItem('${s.id}',${idx},${ci},${!item.completado},this)" style="flex-shrink:0;width:22px;height:22px;border-radius:50%;border:2px solid ${item.completado?'#34c77b':'rgba(255,255,255,.25)'};background:${item.completado?'#34c77b':'transparent'};color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;margin-top:1px">${item.completado?'✓':''}</button>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:700;color:var(--marfil);margin-bottom:2px">${item.tipo} ${item.num}</div>
+              ${item.descripcion?`<div style="font-size:10px;color:rgba(255,255,255,.45);margin-bottom:6px;line-height:1.4">${item.descripcion}</div>`:''}
+              ${item.specs?`<div style="font-size:10px;color:rgba(255,255,255,.35);margin-bottom:4px;font-style:italic">${item.specs}</div>`:''}
+              <input type="url" placeholder="Link de la publicación" value="${item.link||''}"
+                style="width:100%;background:rgba(255,255,255,.04);border:none;border-bottom:1px solid rgba(255,255,255,.15);padding:6px 0;font-size:11px;color:var(--marfil);outline:none;font-family:var(--fb)"
+                onchange="guardarLinkChecklist('${s.id}',${idx},${ci},this.value)">
+            </div>
+          </div>`).join('')}
+        </div>` : '';
       ctaHtml = `<div style="margin-top:14px;padding:14px;background:rgba(255,180,0,.06);border:1px solid ${urgente?'rgba(255,180,0,.4)':'rgba(255,180,0,.15)'}">
         ${limite ? `<div style="font-size:11px;color:${urgente?'#ffb300':'rgba(255,255,255,.45)'};margin-bottom:10px;font-weight:${urgente?'700':'300'}">${urgente?'⚠ ':''}${diasRestantes===0?'¡Hoy es el último día!':'Publicá antes del '+_fmtDate(s.fecha_limite_entrega)+(diasRestantes!==null?' · '+diasRestantes+' días restantes':'')}</div>` : ''}
-        <input type="url" id="link-pub-${s.id}" placeholder="Link de tu publicación (opcional)" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-bottom-color:rgba(255,255,255,.25);padding:10px 12px;font-size:12px;color:var(--marfil);outline:none;margin-bottom:8px;font-family:var(--fb)">
-        <button onclick="marcarPublicado('${s.id}',${idx},this)" style="width:100%;padding:12px;background:var(--marfil);color:var(--negro);border:none;font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;cursor:pointer">Marcar como publicado ✓</button>
+        ${checklistHtml}
+        ${allDone ? `<button onclick="marcarPublicado('${s.id}',${idx},this)" style="width:100%;padding:12px;background:var(--marfil);color:var(--negro);border:none;font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;cursor:pointer">Marcar como publicado ✓</button>`
+          : `<div style="text-align:center;font-size:11px;color:rgba(255,255,255,.4);padding:8px 0">Completá todos los ítems para marcar como publicado</div>`}
       </div>`;
     } else if (s.estado === 'pendiente_envio' || s.estado === 'aceptado') {
       ctaHtml = `<div style="margin-top:12px;font-size:11px;color:#4a9eff;padding:10px 12px;background:rgba(74,158,255,.07);border:1px solid rgba(74,158,255,.15)">📦 ¡Aceptada! La marca está preparando tu envío. Te avisaremos cuando esté en camino.</div>`;
@@ -613,8 +640,36 @@ async function confirmarRecibo(solId, idx, btn) {
   } catch(e) { showNotif('Error de conexión'); btn.disabled = false; btn.textContent = 'Confirmar que lo recibí'; }
 }
 
+async function toggleChecklistItem(solId, solIdx, itemIdx, completado, btn) {
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/ugc/solicitudes/' + solId + '/checklist', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _token },
+      body: JSON.stringify({ idx: itemIdx, completado })
+    });
+    const d = await r.json();
+    if (!d.ok) { showNotif(d.error || 'Error'); btn.disabled = false; return; }
+    _solicitudes[solIdx].checklist = d.checklist;
+    renderSolicitudes();
+  } catch(e) { showNotif('Error de conexión'); btn.disabled = false; }
+}
+
+async function guardarLinkChecklist(solId, solIdx, itemIdx, link) {
+  try {
+    const checklist = _solicitudes[solIdx]?.checklist || [];
+    const completado = checklist[itemIdx]?.completado || false;
+    const r = await fetch('/api/ugc/solicitudes/' + solId + '/checklist', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _token },
+      body: JSON.stringify({ idx: itemIdx, completado, link })
+    });
+    const d = await r.json();
+    if (d.ok) _solicitudes[solIdx].checklist = d.checklist;
+  } catch(e) {}
+}
+
 async function marcarPublicado(solId, idx, btn) {
-  const link = document.getElementById('link-pub-' + solId)?.value?.trim() || '';
+  const checklist = _solicitudes[idx]?.checklist || [];
+  const link = checklist.find(i => i.link)?.link || '';
   btn.disabled = true; btn.textContent = 'Enviando...';
   try {
     const r = await fetch('/api/ugc/solicitudes/' + solId + '/accion', {
