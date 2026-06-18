@@ -5887,7 +5887,8 @@ function renderPaymentMethods() {
 function selectPayMethod(method) {
   _selectedPayMethod = method
   renderPaymentMethods()
-  const isHosted = settings.payway?.siteId && !settings.payway?.publicKey
+  // Siempre hosted cuando hay siteId — la publicKey solo se necesita en el backend
+  const isHosted = !!(settings.payway?.siteId)
   const cardForm = document.getElementById('pw-card-form')
   if (cardForm) cardForm.style.display = (method === 'tarjeta' && !isHosted) ? 'block' : 'none'
   const hostedInfo = document.getElementById('pw-hosted-info')
@@ -6009,8 +6010,8 @@ async function submitCheckout() {
 
   btn.disabled = true; btn.textContent = 'Procesando...'
 
-  // PayWay Formulario de Pago (hosted form — siteId sin publicKey)
-  if (_selectedPayMethod === 'tarjeta' && settings.payway?.siteId && !settings.payway?.publicKey) {
+  // PayWay Formulario de Pago (hosted form — siempre que haya siteId)
+  if (_selectedPayMethod === 'tarjeta' && settings.payway?.siteId) {
     btn.disabled = true; btn.textContent = 'Redirigiendo a PayWay...'
     try {
       const subtotal = cart.reduce((s,i)=>s+i.precio*i.qty, 0)
@@ -6030,26 +6031,8 @@ async function submitCheckout() {
       })
       const data = await r.json()
       if (!data.ok || !data.checkoutUrl) throw new Error(data.error || 'Error generando link de pago')
-      // Abrir en popup centrado
-      const pw = window.open(
-        data.checkoutUrl, 'payway_checkout',
-        `width=640,height=740,top=${Math.round((screen.height-740)/2)},left=${Math.round((screen.width-640)/2)},resizable=yes,scrollbars=yes`
-      )
-      if (!pw || pw.closed || typeof pw.closed === 'undefined') {
-        // Popup bloqueado — redirigir normalmente
-        window.location.href = data.checkoutUrl
-        return
-      }
-      btn.disabled = true; btn.textContent = '⏳ Procesando pago...'
-      _showPayWayOverlay(data.checkoutUrl)
-      // Detectar cuando el popup se cierra sin pagar
-      const _pwPoll = setInterval(() => {
-        if (pw.closed) {
-          clearInterval(_pwPoll)
-          _hidePayWayOverlay()
-          btn.disabled = false; btn.textContent = 'Confirmar pedido →'
-        }
-      }, 900)
+      // Redirigir en la misma pestaña (los popups son bloqueados por browsers modernos)
+      window.location.href = data.checkoutUrl
     } catch(e) {
       btn.disabled = false; btn.textContent = 'Confirmar pedido →'
       errEl.textContent = e.message || 'Error al conectar con PayWay'
@@ -6058,9 +6041,9 @@ async function submitCheckout() {
     return
   }
 
-  // PayWay tokenization
+  // PayWay tokenization embebida (solo cuando NO hay siteId — modo hosted ya manejado arriba)
   let paywayToken = null, paywayBin = null
-  if (_selectedPayMethod === 'tarjeta' && (settings.payway?.publicKey || settings.payway?.siteId)) {
+  if (_selectedPayMethod === 'tarjeta' && settings.payway?.publicKey && !settings.payway?.siteId) {
     try {
       btn.textContent = 'Procesando tarjeta...'
       const tokenResult = await _paywayTokenize()
