@@ -370,6 +370,31 @@ async function patchWorkspace(wsId, data, fullRow = null) {
     }
   } catch(e) { /* si falla el merge, continuar con el guardado normal */ }
 
+  // ── Trim server-side igual que _wsToRow en el cliente ──
+  if (Array.isArray(data.finanzas) && data.finanzas.length > 3000)
+    data.finanzas = data.finanzas.slice(-3000)
+  if (data.tienda && Array.isArray(data.tienda.ordenes) && data.tienda.ordenes.length > 1000)
+    data.tienda.ordenes = data.tienda.ordenes.slice(-1000)
+  if (Array.isArray(data.waLog)  && data.waLog.length  > 500)  data.waLog  = data.waLog.slice(-500)
+  if (Array.isArray(data.difLog) && data.difLog.length > 500)  data.difLog = data.difLog.slice(-500)
+  if (Array.isArray(data.flowHistory) && data.flowHistory.length > 500)
+    data.flowHistory = data.flowHistory.slice(-500)
+  if (data.flowDone && typeof data.flowDone === 'object') {
+    const fdKeys = Object.keys(data.flowDone)
+    if (fdKeys.length > 2000) {
+      const keep = {}
+      fdKeys.slice(-2000).forEach(k => { keep[k] = data.flowDone[k] })
+      data.flowDone = keep
+    }
+  }
+  // CRM: cap contacts per customer
+  if (Array.isArray(data.crm)) {
+    data.crm = data.crm.map(c => {
+      if (!c || !Array.isArray(c.contactos) || c.contactos.length <= 200) return c
+      return { ...c, contactos: c.contactos.slice(-200) }
+    })
+  }
+
   // When a full row is available (e.g. new workspace creation), include all columns so the
   // INSERT succeeds. For data-only saves the row already exists so partial body is fine.
   const supaBody = fullRow ? { ...fullRow, data } : { id: wsId, data }
@@ -5883,29 +5908,36 @@ app.post('/api/store/payway-link', async (req, res) => {
 
     const orderId = 'pwp_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
     const numero  = (t.ordenes?.length || 0) + 1
-    const host    = req.get('host')
-    const proto   = req.headers['x-forwarded-proto'] || req.protocol || 'https'
+    // Siempre HTTPS en producción — x-forwarded-proto puede estar vacío en cold starts
+    const host    = req.get('host') || 'soul-ecommlab.com'
+    const proto   = req.headers['x-forwarded-proto'] || 'https'
     const baseUrl = `${proto}://${host}`
 
-    // Store pending order in workspace
-    const freshWs = await getWorkspace(wsId)
-    const wd = freshWs?.data || {}
-    if (!wd.pendingPaywayOrders) wd.pendingPaywayOrders = {}
-    // Clean stale pending orders (> 2 hours)
-    for (const [k, v] of Object.entries(wd.pendingPaywayOrders)) {
-      if (Date.now() - (v.ts || 0) > 7_200_000) delete wd.pendingPaywayOrders[k]
+    // Store pending order in workspace (non-fatal — si falla igual seguimos con el link)
+    try {
+      const freshWs = await getWorkspace(wsId)
+      const wd = freshWs?.data || {}
+      if (!wd.pendingPaywayOrders) wd.pendingPaywayOrders = {}
+      // Clean stale pending orders (> 2 hours)
+      for (const [k, v] of Object.entries(wd.pendingPaywayOrders)) {
+        if (Date.now() - (v.ts || 0) > 7_200_000) delete wd.pendingPaywayOrders[k]
+      }
+      wd.pendingPaywayOrders[orderId] = {
+        cart, cliente, envio: envio || {},
+        total: parseFloat(total),
+        descuento: parseFloat(descuento || 0),
+        cuponCodigo: cuponCodigo || null,
+        numero, ts: Date.now()
+      }
+      await patchWorkspace(wsId, wd)
+      _invalidateWsCache(wsId)
+    } catch(saveErr) {
+      console.warn(`[payway-link] pendingOrder save failed (non-fatal): ${saveErr.message}`)
     }
-    wd.pendingPaywayOrders[orderId] = {
-      cart, cliente, envio: envio || {},
-      total: parseFloat(total),
-      descuento: parseFloat(descuento || 0),
-      cuponCodigo: cuponCodigo || null,
-      numero, ts: Date.now()
-    }
-    await patchWorkspace(wsId, wd)
-    _invalidateWsCache(wsId)
 
+    const customerEmail = cliente.email && cliente.email.includes('@') ? cliente.email : undefined
     const payload = {
+      site_transaction_id: orderId,
       origin_platform: 'EXTERNAL',
       currency: 'ARS',
       total_price: parseFloat(total),
@@ -5914,16 +5946,17 @@ app.post('/api/store/payway-link', async (req, res) => {
       redirect_url:      `${baseUrl}/api/store/payway-return?wsId=${wsId}&orderId=${orderId}`,
       cancel_url:        `${baseUrl}/tienda?ws=${wsId}&payway=cancelado`,
       notifications_url: `${baseUrl}/api/store/payway-notify?wsId=${wsId}&orderId=${orderId}`,
-      installments: [1],
+      installments: [1, 3, 6, 12],
       ...(pw.publicKey ? { public_apikey: pw.publicKey } : {}),
       payment_description: `Pedido #${numero}`,
       customer: {
-        id: String(cliente.tel || cliente.email || orderId),
+        id: String(cliente.tel || cliente.email || orderId).slice(0, 40),
         name: `${cliente.nombre || ''} ${cliente.apellido || ''}`.trim() || 'Cliente',
-        email: cliente.email || ''
+        ...(customerEmail ? { email: customerEmail } : {})
       }
     }
 
+    console.log(`[payway-link] Llamando PayWay para ws=${wsId} siteId=${pw.siteId} total=${total} template=${payload.template_id}`)
     const r = await fetch(endpoint, {
       method: 'POST',
       headers: { 'apikey': pw.privateKey, 'Content-Type': 'application/json' },
@@ -5932,8 +5965,10 @@ app.post('/api/store/payway-link', async (req, res) => {
     const rawText = await r.text()
     let data; try { data = JSON.parse(rawText) } catch(e) { data = { rawText } }
     if (!r.ok) {
-      console.error('[payway-link] Error HTTP', r.status, ':', rawText)
-      return res.status(r.status).json({ error: data.validation_errors?.[0]?.code || data.param || data.description || 'Error creando link PayWay', raw: data })
+      const errDetail = data.validation_errors?.[0]?.message || data.validation_errors?.[0]?.code
+        || data.param || data.description || data.error || rawText.slice(0, 200)
+      console.error(`[payway-link] Error HTTP ${r.status}: ${rawText.slice(0, 500)}`)
+      return res.status(502).json({ error: `PayWay error ${r.status}: ${errDetail}`, raw: data })
     }
 
     // PayWay devuelve payment_link directo con la URL completa
