@@ -5839,6 +5839,16 @@ function _wsToRow(ws){
   // metaAdsCache: dato pesado y regenerable — no persistir
   data.metaAdsCache = null;
 
+  // finanzas: mantener solo los últimos 3000 movimientos
+  if (Array.isArray(data.finanzas) && data.finanzas.length > 3000) {
+    data.finanzas = data.finanzas.slice(-3000);
+  }
+
+  // tienda.ordenes: mantener solo las últimas 1000 órdenes
+  if (data.tienda && Array.isArray(data.tienda.ordenes) && data.tienda.ordenes.length > 1000) {
+    data.tienda.ordenes = data.tienda.ordenes.slice(-1000);
+  }
+
   // CRM: limitar historial de contactos por cliente (max 200 por contacto)
   if (Array.isArray(data.crm)) {
     data.crm = data.crm.map(c => {
@@ -5884,11 +5894,12 @@ async function supaLoadAll(){
 async function supaUpsert(ws){
   const row = _wsToRow(ws);
   if (!row) { console.warn('[VELDOS] supaUpsert cancelado — guard de CRM activado'); return; }
-  // Send the full row so the server can INSERT new workspaces with all required columns
+  // Send row without duplicating data (row.data already has it)
+  const { data: _d, ...rowMeta } = row;
   const r = await fetch('/api/workspace/save', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ wsId: row.id, data: row.data, row })
+    body: JSON.stringify({ wsId: row.id, data: row.data, row: rowMeta })
   });
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
