@@ -450,10 +450,11 @@ function renderCanjes() {
   }
   const requestedIds = new Set(_solicitudes.map(s => s.canje_id));
   el.innerHTML = '<div style="display:flex;flex-direction:column;gap:12px">' + _canjes.map(c => {
-    const b    = c.brief || {};
+    const b    = c.brief || [];
     const tipo = c.tipo_accion || 'producto';
-    const fmts = Object.entries(b).filter(([,v]) => v?.cantidad > 0)
-      .map(([k,v]) => `<div class="brief-item"><div class="brief-dot"></div><span>${v.cantidad} ${_FMT_LABEL[k]||k}${v.sube_a_su_cuenta ? ' — sube a tu cuenta' : ''}</span></div>`).join('');
+    const fmts = Array.isArray(b)
+      ? b.filter(e => e.cantidad > 0).map(e => `<div class="brief-item"><div class="brief-dot"></div><span>${e.cantidad} ${esc(e.tipo)}</span></div>`).join('')
+      : Object.entries(b).filter(([,v]) => v?.cantidad > 0).map(([k,v]) => `<div class="brief-item"><div class="brief-dot"></div><span>${v.cantidad} ${_FMT_LABEL[k]||k}</span></div>`).join('');
 
     const yaRequested = requestedIds.has(c.id);
     const solicitud   = _solicitudes.find(s => s.canje_id === c.id);
@@ -603,13 +604,46 @@ function renderSolicitudes() {
     const showCupon = s.cupon_liberado && ['pendiente_envio','aceptado','enviado','pendiente_publicacion','realizada','entregado'].includes(s.estado);
     const msg = s.mensaje_para_creadora?.trim();
 
+    // Brief detail expandible
+    const brief = c.brief || [];
+    const briefItems = Array.isArray(brief)
+      ? brief.filter(e => e.cantidad > 0)
+      : Object.entries(brief).filter(([,v]) => v?.cantidad > 0).map(([k,v]) => ({tipo: _FMT_LABEL[k]||k, cantidad: v.cantidad, descripcion: '', specs: '', caption: ''}));
+    const briefImages = Array.isArray(c.imagenes) ? c.imagenes : [];
+    const hasBriefDetail = briefItems.length > 0 || briefImages.length > 0;
+    const briefDetailHtml = hasBriefDetail ? `
+      <div id="brief-det-${s.id}" style="display:none;margin:12px 0;border:1px solid rgba(255,255,255,.08);padding:14px;background:rgba(255,255,255,.02)">
+        <div style="font-size:8px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.2em;margin-bottom:12px">Brief de la campaña</div>
+        ${briefItems.map(e => `
+          <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.06)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <span style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--marron-cl);background:rgba(180,130,80,.1);border:1px solid rgba(180,130,80,.2);padding:2px 8px">${esc(e.tipo)}</span>
+              <span style="font-size:10px;color:rgba(255,255,255,.4)">${e.cantidad} ${e.cantidad === 1 ? 'pieza' : 'piezas'}</span>
+            </div>
+            ${e.descripcion ? `<div style="font-size:12px;color:rgba(255,255,255,.7);line-height:1.5;margin-bottom:4px;font-weight:300">${esc(e.descripcion)}</div>` : ''}
+            ${e.specs ? `<div style="font-size:10px;color:rgba(255,255,255,.35);font-style:italic;margin-bottom:3px">${esc(e.specs)}</div>` : ''}
+            ${e.caption ? `<div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:3px"><span style="color:rgba(255,255,255,.2)">Caption: </span>${esc(e.caption)}</div>` : ''}
+          </div>`).join('')}
+        ${briefImages.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+          ${briefImages.map(img => {
+            const src = img.tipo === 'url' ? img.data : `data:${img.contentType||'image/jpeg'};base64,${img.data}`;
+            return `<img src="${src}" style="width:64px;height:64px;object-fit:cover;border:1px solid rgba(255,255,255,.1)" onerror="this.style.display='none'">`;
+          }).join('')}
+        </div>` : ''}
+      </div>` : '';
+
     return `<div class="sol-card">
+      ${c.portada_url ? `<img src="${esc(c.portada_url)}" style="width:calc(100% + 36px);height:120px;object-fit:cover;display:block;margin:-18px -18px 14px;border-bottom:1px solid rgba(255,255,255,.06)" onerror="this.style.display='none'">` : ''}
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
         <span class="sol-estado" style="color:${col};background:${col}18;border:1px solid ${col}40;margin-bottom:0">${lbl}</span>
         <span style="font-size:9px;color:rgba(255,255,255,.2);letter-spacing:.08em">${_fmtDate(s.fecha_solicitud)}</span>
       </div>
-      <div style="font-family:var(--fs);font-size:24px;color:var(--marfil);letter-spacing:.03em;margin-bottom:6px;line-height:1">${esc(c.producto||'—')}</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">
+        <div style="font-family:var(--fs);font-size:24px;color:var(--marfil);letter-spacing:.03em;line-height:1">${esc(c.producto||'—')}</div>
+        ${hasBriefDetail ? `<button onclick="toggleBriefDetail('${s.id}')" style="flex-shrink:0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:5px 10px;cursor:pointer;white-space:nowrap">Ver brief</button>` : ''}
+      </div>
       ${c.producto_url ? `<a href="${esc(c.producto_url)}" target="_blank" style="font-size:11px;color:var(--marron-cl);letter-spacing:.03em;display:inline-block;margin-bottom:4px">Ver producto →</a>` : ''}
+      ${briefDetailHtml}
       ${msg ? `<div style="margin:12px 0;padding:12px 14px;background:rgba(255,255,255,.05);border-left:3px solid ${col};border-radius:0 4px 4px 0">
         <div style="font-size:8px;font-weight:700;color:${col};text-transform:uppercase;letter-spacing:.2em;margin-bottom:5px">Mensaje de la marca</div>
         <div style="font-size:12px;color:var(--marfil);font-weight:300;line-height:1.6">${esc(msg)}</div>
@@ -623,6 +657,15 @@ function renderSolicitudes() {
     </div>`;
   }).join('');
   _solicitudes.filter(s => s.cupon_liberado).forEach(s => loadCupon(s.id));
+}
+
+function toggleBriefDetail(solId) {
+  const el = document.getElementById('brief-det-' + solId);
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  const btn = document.querySelector(`button[onclick="toggleBriefDetail('${solId}')"]`);
+  if (btn) btn.textContent = open ? 'Ver brief' : 'Ocultar';
 }
 
 async function confirmarRecibo(solId, idx, btn) {

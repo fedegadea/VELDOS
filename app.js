@@ -6242,7 +6242,7 @@ app.get('/api/ugc/mis-solicitudes', _requireCreadora, async (req, res) => {
   try {
     const r = await _supa('GET', 'ugc_solicitudes', {
       filter: `creadora_id=eq.${req.creadoraId}&order=fecha_solicitud.desc`,
-      select: 'id,estado,cupon_liberado,fecha_solicitud,fecha_resolucion,fecha_limite_entrega,canje_id,mensaje_para_creadora,link_publicacion,checklist,ugc_canjes(id,producto,brief,imagenes,producto_url,pago_monto,demora_max_dias)'
+      select: 'id,estado,cupon_liberado,fecha_solicitud,fecha_resolucion,fecha_limite_entrega,canje_id,mensaje_para_creadora,link_publicacion,checklist,ugc_canjes(id,producto,brief,imagenes,portada_url,producto_url,pago_monto,demora_max_dias)'
     })
     // NUNCA devolver cupon_codigo en este endpoint
     res.json(r.data || [])
