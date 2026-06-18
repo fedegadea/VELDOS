@@ -388,14 +388,20 @@ async function guardarPerfilEdit() {
   const nombre = document.getElementById('edit-nombre').value.trim();
   const ig     = document.getElementById('edit-ig').value.trim();
   try {
+    const patch = {};
+    if (nombre) patch.nombre = nombre;
+    if (ig)     patch.instagram_url = ig;
+    if (!Object.keys(patch).length) { showNotif('Sin cambios'); return; }
     const r = await fetch('/api/ugc/mi-perfil', {
       method: 'PATCH', headers: {'Content-Type':'application/json','Authorization':'Bearer '+_token},
-      body: JSON.stringify({ nombre, instagram_url: ig || null })
+      body: JSON.stringify(patch)
     });
     const d = await r.json();
-    if (d.ok && d.creadora) {
-      _creadora = d.creadora;
-      localStorage.setItem('ugc_creadora', JSON.stringify(_creadora));
+    if (d.ok) {
+      if (d.creadora) {
+        _creadora = d.creadora;
+        localStorage.setItem('ugc_creadora', JSON.stringify(_creadora));
+      }
       updateUserHeader();
       document.getElementById('profile-panel')?.classList.remove('open');
       showNotif('Perfil actualizado');

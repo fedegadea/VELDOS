@@ -6261,11 +6261,23 @@ app.get('/api/ugc/solicitudes/:id/cupon', _requireCreadora, async (req, res) => 
 // ── PORTAL: actualizar perfil ─────────────────────────────────
 app.patch('/api/ugc/mi-perfil', _requireCreadora, async (req, res) => {
   const { instagram_url, nombre } = req.body
+  // Don't overwrite existing data with empty strings
+  const patch = {}
+  if (nombre !== undefined && nombre !== '') patch.nombre = nombre
+  if (instagram_url !== undefined && instagram_url !== '') patch.instagram_url = instagram_url
+  if (!Object.keys(patch).length) return res.json({ ok: true })
   try {
     const r = await _supa('PATCH', `ugc_creadoras?id=eq.${req.creadoraId}`, {
-      body: { instagram_url, nombre }
+      prefer: 'return=representation',
+      body: patch
     })
-    res.json({ ok: true, creadora: r.data?.[0] })
+    let creadora = r.data?.[0]
+    // Supabase sometimes returns empty on PATCH with no changes — fetch current row
+    if (!creadora?.id) {
+      const fetchR = await _supa('GET', 'ugc_creadoras', { filter: `id=eq.${req.creadoraId}` })
+      creadora = fetchR.data?.[0]
+    }
+    res.json({ ok: true, creadora })
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
@@ -6796,8 +6808,15 @@ app.post('/api/soul-canjes/join', async (req, res) => {
 app.get('/api/soul-canjes/check', async (req, res) => {
   const { ws, email } = req.query
   if (!ws || !email) return res.json({ estado: null })
+  const val = email.toLowerCase().trim()
+  const cleanPhone = val.replace(/\D/g, '')
   try {
-    const r = await _supa('GET', 'ugc_acceso_solicitudes', { filter: `ws_id=eq.${ws}&email=eq.${email.toLowerCase().trim()}` })
+    // Check by email column first
+    let r = await _supa('GET', 'ugc_acceso_solicitudes', { filter: `ws_id=eq.${ws}&email=eq.${val}` })
+    // Fallback: phone-login users store their phone in the email column OR in wapp
+    if (!r.data?.length && cleanPhone.length >= 7) {
+      r = await _supa('GET', 'ugc_acceso_solicitudes', { filter: `ws_id=eq.${ws}&wapp=eq.${cleanPhone}` })
+    }
     if (!r.data?.length) return res.json({ estado: null })
     res.json({ estado: r.data[0].estado })
   } catch(e) { res.json({ estado: null }) }
