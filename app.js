@@ -6766,7 +6766,7 @@ app.get('/api/admin/soul-canjes/solicitudes', async (req, res) => {
       ? `ws_id=eq.${wsId}&estado=eq.${estado}&order=created_at.desc`
       : `ws_id=eq.${wsId}&order=created_at.desc`
     const r = await _supa('GET', 'ugc_acceso_solicitudes', { filter })
-    res.json(r.data || [])
+    res.json(Array.isArray(r.data) ? r.data : [])
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 

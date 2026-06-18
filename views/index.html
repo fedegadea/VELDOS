@@ -4279,7 +4279,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
   </div>
 
   <!-- ── Accesos Soul Canjes ── -->
-  <div id="ugc-tab-accesos" style="display:none;margin-top:36px">
+  <div id="ugc-tab-accesos" style="margin-top:36px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap">
       <div style="font-size:15px;font-weight:700;color:var(--text)">Accesos Soul Canjes</div>
       <div style="display:flex;gap:4px">
@@ -23378,6 +23378,7 @@ async function initUgcPage(){
   loadUgcCanjes();
   loadUgcSolicitudes();
   loadUgcCreadoras();
+  loadCanjesAccesos();
 }
 
 function switchUgcTab(tab,btn){
@@ -23386,9 +23387,7 @@ function switchUgcTab(tab,btn){
   if(tab==='canjes')      { document.getElementById('ugc-tab-canjes')?.scrollIntoView({behavior:'smooth'}); return; }
   if(tab==='creadoras')   { document.getElementById('ugc-tab-creadoras')?.scrollIntoView({behavior:'smooth'}); return; }
   if(tab==='accesos') {
-    const el = document.getElementById('ugc-tab-accesos');
-    if (el) { el.style.display = ''; el.scrollIntoView({behavior:'smooth'}); }
-    loadCanjesAccesos();
+    document.getElementById('ugc-tab-accesos')?.scrollIntoView({behavior:'smooth'});
     return;
   }
 }
