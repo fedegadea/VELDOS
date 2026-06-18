@@ -24073,22 +24073,31 @@ function renderUgcSolicitudes(){
           <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;flex-wrap:wrap">${accionBtns}</div>
         </div>
       </div>
+      <div style="border-top:1px solid var(--border);padding:10px 16px;background:var(--s2)">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:6px">Mensaje para la creadora</div>
+        <div style="display:flex;gap:6px;align-items:flex-start">
+          <textarea id="msg-${s.id}" rows="1" placeholder="Ej: Te enviamos el producto el lunes, llegará en 3-5 días hábiles. Esperamos la publicación para el viernes."
+            style="flex:1;background:var(--s3);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;padding:6px 10px;resize:none;font-family:inherit;line-height:1.5"
+            onfocus="this.rows=3" onblur="if(!this.value)this.rows=1">${(s.mensaje_para_creadora||'').replace(/</g,'&lt;')}</textarea>
+          <button class="btn btn-xs" onclick="guardarMensaje('${s.id}')" style="flex-shrink:0;margin-top:1px">Enviar</button>
+        </div>
+      </div>
       ${s.estado==='realizada'||s.estado==='entregado'?`
       <div style="border-top:1px solid var(--border);padding:12px 16px;background:var(--s2)">
-        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:8px">Seguimiento interno</div>
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:8px">Retorno de la acción</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-          <input id="ret-alcance-${s.id}" type="number" placeholder="Alcance estimado" value="${s.retorno_alcance||''}"
+          <input id="ret-alcance-${s.id}" type="number" placeholder="Alcance estimado (personas)" value="${s.retorno_alcance||''}"
             style="flex:1;min-width:120px;background:var(--s3);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;padding:6px 10px"
             onchange="guardarRetorno('${s.id}','alcance',this.value)">
           <input id="ret-ventas-${s.id}" type="number" placeholder="Ventas generadas ($)" value="${s.retorno_ventas||''}"
             style="flex:1;min-width:120px;background:var(--s3);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;padding:6px 10px"
             onchange="guardarRetorno('${s.id}','ventas',this.value)">
         </div>
-        <textarea id="ret-notas-${s.id}" placeholder="Notas internas (qué funcionó, qué no, próximos pasos...)" rows="2"
+        <textarea id="ret-notas-${s.id}" placeholder="Notas internas — qué funcionó, qué mejorar, próximos pasos..." rows="2"
           style="width:100%;background:var(--s3);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;padding:6px 10px;resize:vertical;font-family:inherit"
           onchange="guardarRetorno('${s.id}','notas',this.value)">${s.retorno_notas||''}</textarea>
+        ${s.link_publicacion?`<a href="${s.link_publicacion}" target="_blank" style="display:inline-block;margin-top:8px;font-size:11px;color:var(--accent)">🔗 Ver publicación</a>`:''}
       </div>`:''}
-      ${s.notas_admin&&s.estado!=='realizada'&&s.estado!=='entregado'?`<div style="border-top:1px solid var(--border);padding:8px 16px;font-size:10px;color:var(--muted2);font-style:italic">📝 ${s.notas_admin}</div>`:''}
     </div>`;
   }).join('')+'</div>';
 }
@@ -24324,18 +24333,41 @@ async function resolverSolicitud(id,accion){
   const wsId=_activeWsId; if(!wsId)return;
   const sol=_ugcSolicitudes.find(s=>s.id===id);
   const demora=sol?(sol.ugc_canjes?.demora_max_dias||_ugcCanjes.find(c=>c.id===sol.canje_id)?.demora_max_dias||7):7;
+  // Tomar el mensaje que el admin haya escrito en el textarea de esa card
+  const msgEl=document.getElementById('msg-'+id);
+  const mensaje_para_creadora=msgEl?.value?.trim()||undefined;
   const MSG={
     aceptar:'Aceptada — pendiente de envío',
     rechazar:'Solicitud rechazada',
-    enviar:'Marcada como enviada',
-    confirmar_entrega:'Creadora confirmó recibo — esperando publicación',
+    enviar:'Marcada como enviada — creadora notificada',
+    confirmar_entrega:'Esperando publicación de la creadora',
     marcar_realizada:'Acción marcada como realizada ✓',
     entregar:'Marcada como realizada ✓'
   };
   try{
-    const r=await fetch('/api/admin/ugc/solicitudes/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({accion,demora_max_dias:demora,wsId})});
+    const r=await fetch('/api/admin/ugc/solicitudes/'+id,{
+      method:'PATCH',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({accion,demora_max_dias:demora,wsId,mensaje_para_creadora})
+    });
     const d=await r.json();
+    if(d.needsMigration){
+      notify('⚠ Ejecutá la migración SQL en Supabase primero','error');
+      return;
+    }
     if(d.ok){await loadUgcStats();loadUgcSolicitudes();notify(MSG[accion]||'Actualizado');}
+    else notify('Error: '+d.error,'error');
+  }catch(e){notify('Error de red','error');}
+}
+
+async function guardarMensaje(id){
+  const wsId=_activeWsId; if(!wsId)return;
+  const el=document.getElementById('msg-'+id); if(!el)return;
+  const msg=el.value.trim();
+  try{
+    const r=await fetch('/api/admin/ugc/solicitudes/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({accion:'mensaje',mensaje_para_creadora:msg,wsId})});
+    const d=await r.json();
+    if(d.ok)notify('Mensaje enviado a la creadora ✓');
     else notify('Error: '+d.error,'error');
   }catch(e){notify('Error de red','error');}
 }

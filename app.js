@@ -6242,7 +6242,7 @@ app.get('/api/ugc/mis-solicitudes', _requireCreadora, async (req, res) => {
   try {
     const r = await _supa('GET', 'ugc_solicitudes', {
       filter: `creadora_id=eq.${req.creadoraId}&order=fecha_solicitud.desc`,
-      select: 'id,estado,cupon_liberado,fecha_solicitud,fecha_resolucion,fecha_limite_entrega,canje_id,ugc_canjes(id,producto,brief,producto_url,pago_monto,demora_max_dias)'
+      select: 'id,estado,cupon_liberado,fecha_solicitud,fecha_resolucion,fecha_limite_entrega,canje_id,mensaje_para_creadora,link_publicacion,ugc_canjes(id,producto,brief,producto_url,pago_monto,demora_max_dias)'
     })
     // NUNCA devolver cupon_codigo en este endpoint
     res.json(r.data || [])
@@ -6333,7 +6333,7 @@ app.get('/api/admin/ugc/solicitudes', async (req, res) => {
   try {
     const r = await _supa('GET', 'ugc_solicitudes', {
       filter: 'order=fecha_solicitud.desc',
-      select: 'id,estado,cupon_liberado,fecha_solicitud,fecha_resolucion,fecha_limite_entrega,canje_id,creadora_id,notas_admin,retorno_notas,retorno_alcance,retorno_ventas,link_publicacion,ugc_canjes(id,producto,ws_id,demora_max_dias),ugc_creadoras(id,nombre,telefono,instagram_url)'
+      select: 'id,estado,cupon_liberado,fecha_solicitud,fecha_resolucion,fecha_limite_entrega,canje_id,creadora_id,notas_admin,retorno_notas,retorno_alcance,retorno_ventas,link_publicacion,mensaje_para_creadora,ugc_canjes(id,producto,ws_id,demora_max_dias),ugc_creadoras(id,nombre,telefono,instagram_url)'
     })
     const todo = r.data || []
     res.json(todo.filter(s => s.ugc_canjes?.ws_id === wsId))
@@ -6343,8 +6343,8 @@ app.get('/api/admin/ugc/solicitudes', async (req, res) => {
 // ── ADMIN: gestionar solicitud (ciclo completo de estados) ────
 app.patch('/api/admin/ugc/solicitudes/:id', async (req, res) => {
   const { id } = req.params
-  const { accion, demora_max_dias, wsId, notas_admin, retorno_notas, retorno_alcance, retorno_ventas } = req.body
-  const ACCIONES = ['aceptar','rechazar','enviar','confirmar_entrega','marcar_realizada','entregar','notas','retorno']
+  const { accion, demora_max_dias, wsId, notas_admin, retorno_notas, retorno_alcance, retorno_ventas, mensaje_para_creadora } = req.body
+  const ACCIONES = ['aceptar','rechazar','enviar','confirmar_entrega','marcar_realizada','entregar','notas','mensaje','retorno']
   if (!ACCIONES.includes(accion)) return res.status(400).json({ error: 'Acción inválida' })
 
   const now = new Date().toISOString()
@@ -6355,19 +6355,26 @@ app.patch('/api/admin/ugc/solicitudes/:id', async (req, res) => {
     update.cupon_liberado = true
     update.fecha_resolucion = now
     if (demora_max_dias) update.fecha_limite_entrega = new Date(Date.now() + Number(demora_max_dias) * 86400000).toISOString()
+    if (mensaje_para_creadora !== undefined) update.mensaje_para_creadora = mensaje_para_creadora
   } else if (accion === 'rechazar') {
     update.estado = 'rechazado'
     update.cupon_liberado = false
     update.fecha_resolucion = now
+    if (mensaje_para_creadora !== undefined) update.mensaje_para_creadora = mensaje_para_creadora
   } else if (accion === 'enviar') {
     update.estado = 'enviado'
+    if (mensaje_para_creadora !== undefined) update.mensaje_para_creadora = mensaje_para_creadora
   } else if (accion === 'confirmar_entrega') {
     update.estado = 'pendiente_publicacion'
+    if (mensaje_para_creadora !== undefined) update.mensaje_para_creadora = mensaje_para_creadora
   } else if (accion === 'marcar_realizada' || accion === 'entregar') {
     update.estado = 'realizada'
     update.fecha_resolucion = now
+    if (mensaje_para_creadora !== undefined) update.mensaje_para_creadora = mensaje_para_creadora
   } else if (accion === 'notas') {
     if (notas_admin !== undefined) update.notas_admin = notas_admin
+  } else if (accion === 'mensaje') {
+    if (mensaje_para_creadora !== undefined) update.mensaje_para_creadora = mensaje_para_creadora
   } else if (accion === 'retorno') {
     if (retorno_notas !== undefined) update.retorno_notas = retorno_notas
     if (retorno_alcance !== undefined) update.retorno_alcance = retorno_alcance || null
@@ -6378,7 +6385,17 @@ app.patch('/api/admin/ugc/solicitudes/:id', async (req, res) => {
 
   try {
     const r = await _supa('PATCH', `ugc_solicitudes?id=eq.${id}`, { body: update })
-    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0, 200) })
+    if (!r.ok) {
+      const errStr = JSON.stringify(r.data)
+      // Detectar violación de CHECK constraint (error 23514) — requiere migración SQL
+      if (errStr.includes('23514') || errStr.includes('check_violation')) {
+        return res.status(400).json({
+          error: 'La base de datos no tiene los nuevos estados. Ejecutá la migración SQL en Supabase.',
+          needsMigration: true
+        })
+      }
+      return res.status(400).json({ error: errStr.slice(0, 200) })
+    }
 
     // Al aceptar: crear entrada en kanban de planificación
     if (accion === 'aceptar' && wsId) {
