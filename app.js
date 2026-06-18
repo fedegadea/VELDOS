@@ -5860,7 +5860,10 @@ app.post('/api/store/payway-link', async (req, res) => {
     return res.status(400).json({ error: 'Faltan datos (wsId, cart, cliente, total)' })
   try {
     const result = await getTienda(wsId)
-    if (!result) return res.status(404).json({ error: 'Tienda no encontrada' })
+    if (!result) {
+      console.error(`[payway-link] getTienda null para wsId=${wsId}`)
+      return res.status(404).json({ error: 'Tienda no encontrada', wsId })
+    }
     const { t, d } = result
     const _pwRaw = t.settings?.payway || {}
     const pw = {
