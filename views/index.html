@@ -8620,7 +8620,7 @@ function renderBriefs(){
   }).join('');
 }
 
-function deleteBrief(i){S.briefs.splice(i,1);save();renderBriefs();notify('Brief eliminado');}
+function deleteBrief(i){S.briefs.splice(i,1);_saveNow();renderBriefs();notify('Brief eliminado');}
 
 // ── Pilares ──
 function openPilaresModal(){
@@ -9347,7 +9347,7 @@ async function _confirmarPublicarBrief(briefIdx){
     const d=await r.json();
     if(!r.ok||!d.ok)throw new Error(d.error||'Error del servidor');
     S.briefs[briefIdx].publicadoEnSoulPR=true;
-    save();closeModal();notify('Publicado en Soul PR ✓');renderBriefs();
+    _saveNow();closeModal();notify('Publicado en Soul PR ✓');renderBriefs();
   }catch(e){notify('Error: '+e.message);if(btn){btn.disabled=false;btn.textContent='📤 Publicar en Soul PR';}}
 }
 
@@ -14515,7 +14515,7 @@ function saveBrief(){
     publicadoEnSoulPR:(_editIdx!==null&&S.briefs[_editIdx]?.publicadoEnSoulPR)||false,
   };
   if(_editIdx!==null)S.briefs[_editIdx]=obj;else S.briefs.push(obj);
-  save();closeModal();renderBriefs();notify(_editIdx!==null?'Brief actualizado ✓':'Brief guardado ✓');
+  _saveNow();closeModal();renderBriefs();notify(_editIdx!==null?'Brief actualizado ✓':'Brief guardado ✓');
 }
 function saveCreadora(){
   const n=document.getElementById('f-nombre')?.value?.trim();
