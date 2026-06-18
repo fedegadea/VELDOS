@@ -9601,8 +9601,9 @@ function getComision(medioPago,cuotas){
 }
  
 function calcComisionTx(tx){
-  if(tx.tipo!=='ingreso'||!tx.medioPago||tx.medioPago==='transferencia'||tx.medioPago==='Efectivo')return 0;
-  return Math.round(tx.monto*(getComision(tx.medioPago,tx.cuotas)/100));
+  const mp=tx.medioPago||tx.medio||'';
+  if(tx.tipo!=='ingreso'||!mp||mp==='transferencia'||mp==='Efectivo')return 0;
+  return Math.round(tx.monto*(getComision(mp,tx.cuotas)/100));
 }
  
 function getCostosFijosEnPeriodo(desde,hasta){
@@ -17209,7 +17210,19 @@ async function syncVentasALaFecha(silent=false){
       });
       const coupons=o.coupon||o.coupons||[];
       const descuento=Array.isArray(coupons)&&coupons.length?coupons.map(c=>c.code).filter(Boolean).join(', '):(typeof coupons==='string'?coupons:'');
-      S.finanzas.unshift({id:'tn_'+o.id,fecha,concepto:`TN #${o.number} · ${productos}`,categoria:'Ventas tienda',tipo:'ingreso',bruto:total,monto:total,fee:0,medio,tn_id:o.id,tn_number:o.number,tn_cliente:o.customer?.name||'',tn_envio:envioMonto,tn_descuento:descuento,costoTotal,productoId:matchedProductoId});
+      const ingresoTx={id:'tn_'+o.id,fecha,concepto:`TN #${o.number} · ${productos}`,categoria:'Ventas tienda',tipo:'ingreso',bruto:total,monto:total,fee:0,medioPago:medio,tn_id:o.id,tn_number:o.number,tn_cliente:o.customer?.name||'',tn_envio:envioMonto,tn_descuento:descuento,costoTotal,productoId:matchedProductoId};
+      S.finanzas.unshift(ingresoTx);
+      // Auto-gasto: costo de envío
+      if(envioMonto>0){
+        const existeEnvio=S.finanzas.some(t=>t.id===`tn_${o.id}_envio`);
+        if(!existeEnvio)S.finanzas.push({id:`tn_${o.id}_envio`,tipo:'gasto',fecha,concepto:`Envío TN #${o.number}`,categoria:'Envíos',monto:envioMonto,medioPago:medio,tn_id_ref:`${o.id}_envio`});
+      }
+      // Auto-gasto: comisión gateway usando mediosPago configurados
+      const comisionMonto=calcComisionTx(ingresoTx);
+      if(comisionMonto>0){
+        const existeCom=S.finanzas.some(t=>t.id===`tn_${o.id}_com`);
+        if(!existeCom)S.finanzas.push({id:`tn_${o.id}_com`,tipo:'gasto',fecha,concepto:`Comisión TN #${o.number}`,categoria:'Comisiones',monto:comisionMonto,medioPago:medio,tn_id_ref:`${o.id}_com`});
+      }
     });
     save();renderFinanzas();renderInicio();
     // Siempre notificar si hay ventas nuevas, incluso en modo silencioso
