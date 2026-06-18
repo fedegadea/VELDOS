@@ -555,7 +555,37 @@ function renderSolicitudes() {
     const diasRestantes = limite ? Math.max(0, Math.round((limite - new Date()) / 86400000)) : null;
     const urgente = limite && diasRestantes !== null && diasRestantes <= 3 && s.estado === 'pendiente_publicacion';
 
-    // CTA basado en estado
+    // ── Checklist (visible siempre que exista, independiente del estado) ──
+    const checklist = Array.isArray(s.checklist) ? s.checklist : [];
+    const ckDone = checklist.filter(i => i.completado).length;
+    const ckTotal = checklist.length;
+    const ckAllDone = ckTotal === 0 || ckDone === ckTotal;
+    const isActive = ['pendiente_envio','aceptado','enviado','pendiente_publicacion'].includes(s.estado);
+    const checklistSection = ckTotal > 0 ? `
+      <div style="margin-top:14px;border:1px solid rgba(255,255,255,.1);padding:14px;background:rgba(255,255,255,.02)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:rgba(255,255,255,.35)">Publicaciones a crear</span>
+          <span style="font-size:10px;font-weight:700;color:${ckAllDone?'#34c77b':'#ffb300'}">${ckDone}/${ckTotal} completadas</span>
+        </div>
+        <div style="background:rgba(255,255,255,.08);border-radius:4px;height:3px;margin-bottom:12px;overflow:hidden">
+          <div style="height:100%;background:${ckAllDone?'#34c77b':'#ffb300'};border-radius:4px;width:${Math.round(ckDone/ckTotal*100)}%;transition:width .4s"></div>
+        </div>
+        ${checklist.map((item, ci) => `
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+          <button onclick="${isActive ? `toggleChecklistItem('${s.id}',${idx},${ci},${!item.completado},this)` : ''}"
+            style="flex-shrink:0;width:22px;height:22px;border-radius:50%;border:2px solid ${item.completado?'#34c77b':'rgba(255,255,255,.25)'};background:${item.completado?'#34c77b':'transparent'};color:#fff;font-size:12px;${isActive?'cursor:pointer;':'cursor:default;'}display:flex;align-items:center;justify-content:center;padding:0;margin-top:2px">${item.completado?'✓':''}</button>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:700;color:var(--marfil);margin-bottom:3px">${esc(item.tipo)} <span style="color:rgba(255,255,255,.4);font-weight:400">#${item.num}</span></div>
+            ${item.descripcion ? `<div style="font-size:11px;color:rgba(255,255,255,.55);line-height:1.5;margin-bottom:5px;font-weight:300">${esc(item.descripcion)}</div>` : ''}
+            ${item.specs ? `<div style="font-size:10px;color:rgba(255,255,255,.3);font-style:italic;margin-bottom:6px">${esc(item.specs)}</div>` : ''}
+            ${isActive ? `<input type="url" placeholder="Link de tu publicación" value="${esc(item.link||'')}"
+              style="width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.12);padding:5px 0;font-size:11px;color:rgba(255,255,255,.6);outline:none;font-family:var(--fb)"
+              onchange="guardarLinkChecklist('${s.id}',${idx},${ci},this.value)">` : (item.link ? `<a href="${esc(item.link)}" target="_blank" style="font-size:10px;color:var(--marron-cl)">🔗 Ver publicación</a>` : '')}
+          </div>
+        </div>`).join('')}
+      </div>` : '';
+
+    // ── CTA basado en estado ──
     let ctaHtml = '';
     if (s.estado === 'enviado') {
       ctaHtml = `<div style="margin-top:14px;padding:14px;background:rgba(52,199,123,.07);border:1px solid rgba(52,199,123,.2)">
@@ -563,37 +593,11 @@ function renderSolicitudes() {
         <button data-idx="${idx}" onclick="confirmarRecibo('${s.id}',${idx},this)" style="width:100%;padding:12px;background:#34c77b;color:#fff;border:none;font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;cursor:pointer">Confirmar que lo recibí</button>
       </div>`;
     } else if (s.estado === 'pendiente_publicacion') {
-      const checklist = Array.isArray(s.checklist) ? s.checklist : [];
-      const done = checklist.filter(i=>i.completado).length;
-      const total = checklist.length;
-      const allDone = total === 0 || done === total;
-      const checklistHtml = total ? `
-        <div style="margin-bottom:12px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-            <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em">Publicaciones a crear</span>
-            <span style="font-size:10px;font-weight:700;color:${allDone?'#34c77b':'#ffb300'}">${done}/${total}</span>
-          </div>
-          <div style="background:rgba(255,255,255,.08);border-radius:4px;height:4px;margin-bottom:10px;overflow:hidden">
-            <div style="height:100%;background:${allDone?'#34c77b':'#ffb300'};border-radius:4px;width:${total?Math.round(done/total*100):0}%;transition:width .3s"></div>
-          </div>
-          ${checklist.map((item,ci)=>`
-          <div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:8px;margin-bottom:6px">
-            <button onclick="toggleChecklistItem('${s.id}',${idx},${ci},${!item.completado},this)" style="flex-shrink:0;width:22px;height:22px;border-radius:50%;border:2px solid ${item.completado?'#34c77b':'rgba(255,255,255,.25)'};background:${item.completado?'#34c77b':'transparent'};color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;margin-top:1px">${item.completado?'✓':''}</button>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:11px;font-weight:700;color:var(--marfil);margin-bottom:2px">${item.tipo} ${item.num}</div>
-              ${item.descripcion?`<div style="font-size:10px;color:rgba(255,255,255,.45);margin-bottom:6px;line-height:1.4">${item.descripcion}</div>`:''}
-              ${item.specs?`<div style="font-size:10px;color:rgba(255,255,255,.35);margin-bottom:4px;font-style:italic">${item.specs}</div>`:''}
-              <input type="url" placeholder="Link de la publicación" value="${item.link||''}"
-                style="width:100%;background:rgba(255,255,255,.04);border:none;border-bottom:1px solid rgba(255,255,255,.15);padding:6px 0;font-size:11px;color:var(--marfil);outline:none;font-family:var(--fb)"
-                onchange="guardarLinkChecklist('${s.id}',${idx},${ci},this.value)">
-            </div>
-          </div>`).join('')}
-        </div>` : '';
-      ctaHtml = `<div style="margin-top:14px;padding:14px;background:rgba(255,180,0,.06);border:1px solid ${urgente?'rgba(255,180,0,.4)':'rgba(255,180,0,.15)'}">
-        ${limite ? `<div style="font-size:11px;color:${urgente?'#ffb300':'rgba(255,255,255,.45)'};margin-bottom:10px;font-weight:${urgente?'700':'300'}">${urgente?'⚠ ':''}${diasRestantes===0?'¡Hoy es el último día!':'Publicá antes del '+_fmtDate(s.fecha_limite_entrega)+(diasRestantes!==null?' · '+diasRestantes+' días restantes':'')}</div>` : ''}
-        ${checklistHtml}
-        ${allDone ? `<button onclick="marcarPublicado('${s.id}',${idx},this)" style="width:100%;padding:12px;background:var(--marfil);color:var(--negro);border:none;font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;cursor:pointer">Marcar como publicado ✓</button>`
-          : `<div style="text-align:center;font-size:11px;color:rgba(255,255,255,.4);padding:8px 0">Completá todos los ítems para marcar como publicado</div>`}
+      ctaHtml = `<div style="margin-top:12px;padding:12px 14px;background:rgba(255,180,0,.06);border:1px solid ${urgente?'rgba(255,180,0,.4)':'rgba(255,180,0,.15)'}">
+        ${limite ? `<div style="font-size:11px;color:${urgente?'#ffb300':'rgba(255,255,255,.45)'};margin-bottom:10px;font-weight:${urgente?'700':'300'}">${urgente?'⚠ ':''}${diasRestantes===0?'¡Hoy es el último día!':'Publicá antes del '+_fmtDate(s.fecha_limite_entrega)+(diasRestantes!==null?' · '+diasRestantes+' días':'')} </div>` : ''}
+        ${ckAllDone
+          ? `<button onclick="marcarPublicado('${s.id}',${idx},this)" style="width:100%;padding:12px;background:var(--marfil);color:var(--negro);border:none;font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;cursor:pointer">Marcar como publicado ✓</button>`
+          : `<div style="text-align:center;font-size:11px;color:rgba(255,255,255,.4);padding:4px 0">Completá todas las publicaciones del checklist para continuar</div>`}
       </div>`;
     } else if (s.estado === 'pendiente_envio' || s.estado === 'aceptado') {
       ctaHtml = `<div style="margin-top:12px;font-size:11px;color:#4a9eff;padding:10px 12px;background:rgba(74,158,255,.07);border:1px solid rgba(74,158,255,.15)">📦 ¡Aceptada! La marca está preparando tu envío. Te avisaremos cuando esté en camino.</div>`;
@@ -653,6 +657,7 @@ function renderSolicitudes() {
           <div class="cupon-code" id="cupon-${s.id}">Cargando...</div>
           <button class="cupon-copy" onclick="copiarCupon('${s.id}')">Copiar código</button>
         </div>` : ''}
+      ${checklistSection}
       ${ctaHtml}
     </div>`;
   }).join('');

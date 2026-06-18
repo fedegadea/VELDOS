@@ -6239,12 +6239,20 @@ app.post('/api/ugc/solicitudes', _requireCreadora, async (req, res) => {
 
 // ── PORTAL: mis solicitudes ───────────────────────────────────
 app.get('/api/ugc/mis-solicitudes', _requireCreadora, async (req, res) => {
+  const FILTER = `creadora_id=eq.${req.creadoraId}&order=fecha_solicitud.desc`
   try {
-    const r = await _supa('GET', 'ugc_solicitudes', {
-      filter: `creadora_id=eq.${req.creadoraId}&order=fecha_solicitud.desc`,
+    // Try full select with new columns; fall back if migration not yet run
+    let r = await _supa('GET', 'ugc_solicitudes', {
+      filter: FILTER,
       select: 'id,estado,cupon_liberado,fecha_solicitud,fecha_resolucion,fecha_limite_entrega,canje_id,mensaje_para_creadora,link_publicacion,checklist,ugc_canjes(id,producto,brief,imagenes,portada_url,producto_url,pago_monto,demora_max_dias)'
     })
-    // NUNCA devolver cupon_codigo en este endpoint
+    if (!r.ok) {
+      // Columnas nuevas no existen aún — fallback sin checklist/imagenes
+      r = await _supa('GET', 'ugc_solicitudes', {
+        filter: FILTER,
+        select: 'id,estado,cupon_liberado,fecha_solicitud,fecha_resolucion,fecha_limite_entrega,canje_id,mensaje_para_creadora,link_publicacion,ugc_canjes(id,producto,brief,portada_url,producto_url,pago_monto,demora_max_dias)'
+      })
+    }
     res.json(r.data || [])
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
