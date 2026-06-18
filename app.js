@@ -5872,8 +5872,6 @@ app.post('/api/store/payway-link', async (req, res) => {
     }
     if (!pw.siteId || !pw.privateKey)
       return res.status(400).json({ error: 'PayWay no configurado — ingresá Site ID y API Key privada en Integraciones → PayWay' })
-    if (!pw.publicKey)
-      return res.status(400).json({ error: 'Falta la API Key pública de PayWay — ingresala en Integraciones → PayWay → "API Key pública (client-side)"' })
 
     const sandbox = pw.sandbox || false
     const endpoint = sandbox
@@ -5909,12 +5907,12 @@ app.post('/api/store/payway-link', async (req, res) => {
       currency: 'ARS',
       total_price: parseFloat(total),
       site: String(pw.siteId),
-      template_id: 1,
+      template_id: parseInt(pw.templateId) || 1,
       redirect_url:      `${baseUrl}/api/store/payway-return?wsId=${wsId}&orderId=${orderId}`,
       cancel_url:        `${baseUrl}/tienda?ws=${wsId}&payway=cancelado`,
       notifications_url: `${baseUrl}/api/store/payway-notify?wsId=${wsId}&orderId=${orderId}`,
       installments: [1],
-      public_apikey: pw.publicKey || pw.privateKey,
+      ...(pw.publicKey ? { public_apikey: pw.publicKey } : {}),
       payment_description: `Pedido #${numero}`,
       customer: {
         id: String(cliente.tel || cliente.email || orderId),
