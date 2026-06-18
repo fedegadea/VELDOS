@@ -216,6 +216,11 @@ async function patchWorkspace(wsId, data, fullRow = null) {
     const current = await getWorkspace(wsId)
     const cur = current?.data || {}
 
+    // ── BASE: empezar con el estado COMPLETO del servidor, luego aplicar el patch encima ──
+    // Esto garantiza que nunca se pierda ningún campo (finCfg, stock, todos, etc.)
+    // aunque el caller solo pase un subset como { crm } o { crm, finanzas }
+    data = { ...cur, ...data }
+
     // ── Merge tienda.ordenes: preservar órdenes del servidor que el cliente no tiene ──
     if (cur.tienda?.ordenes?.length) {
       const clientOrdenes = data.tienda?.ordenes || []
