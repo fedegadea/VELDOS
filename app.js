@@ -6323,6 +6323,19 @@ app.post('/api/admin/ugc/canjes', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
+app.delete('/api/admin/ugc/canjes/:id', async (req, res) => {
+  const { id } = req.params
+  const { wsId } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    // Borrar solicitudes asociadas primero
+    await _supa('DELETE', `ugc_solicitudes?canje_id=eq.${id}`, { prefer: 'return=minimal' })
+    const r = await _supa('DELETE', `ugc_canjes?id=eq.${id}&ws_id=eq.${wsId}`, { prefer: 'return=minimal' })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0, 200) })
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
 app.patch('/api/admin/ugc/canjes/:id', async (req, res) => {
   const { id } = req.params
   const { wsId, ...campos } = req.body

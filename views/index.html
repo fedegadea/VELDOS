@@ -24061,6 +24061,7 @@ async function loadUgcCanjes(){
                 ?`<button class="btn btn-xs" onclick="ugcSetEstado('${c.id}','disponible')" style="color:var(--green)">Reanudar</button>`
                 :''}
             ${c.estado!=='cerrado'?`<button class="btn btn-xs" onclick="ugcSetEstado('${c.id}','cerrado')" style="color:var(--coral)">Cerrar</button>`:''}
+            <button class="btn btn-xs" onclick="deleteUgcCanje('${c.id}','${(c.producto||'').replace(/'/g,'')}')" style="color:var(--coral);opacity:.6">🗑</button>
           </div>
         </div>
       </div>`;
@@ -24418,6 +24419,17 @@ async function ugcSetEstado(id,estado){
     const r=await fetch('/api/admin/ugc/canjes/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId,estado})});
     const d=await r.json();
     if(d.ok){loadUgcCanjes();loadUgcStats();notify('Estado actualizado');}
+    else notify('Error: '+d.error,'error');
+  }catch(e){notify('Error de red','error');}
+}
+
+async function deleteUgcCanje(id,nombre){
+  if(!confirm(`¿Eliminar "${nombre}"? Se borrará el canje y todas sus solicitudes. Esta acción no se puede deshacer.`))return;
+  const wsId=_activeWsId; if(!wsId)return;
+  try{
+    const r=await fetch('/api/admin/ugc/canjes/'+id,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId})});
+    const d=await r.json();
+    if(d.ok){loadUgcCanjes();loadUgcStats();notify('Canje eliminado');}
     else notify('Error: '+d.error,'error');
   }catch(e){notify('Error de red','error');}
 }
