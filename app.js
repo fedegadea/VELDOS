@@ -6544,16 +6544,33 @@ app.patch('/api/admin/soul-club/solicitudes/:id', async (req, res) => {
       const ws = await getWorkspace(wsId)
       const crm = ws?.data?.crm || []
       const phone = (mem.wapp || '').replace(/\D/g, '')
-      if (phone) {
-        const idx = crm.findIndex(c => c.tel?.replace(/\D/g,'') === phone || c.email === mem.email)
-        if (idx >= 0) {
-          crm[idx].scMiembro = true
-          crm[idx].tags = Array.isArray(crm[idx].tags) ? [...new Set([...crm[idx].tags, 'soul-club'])] : ['soul-club']
-        } else {
-          crm.push({ id: 'sc_' + mem.id, nombre: mem.nombre || '', email: mem.email || '', tel: phone, scMiembro: true, tags: ['soul-club'], origen: 'soul-club', etapa: 'cliente' })
-        }
-        await patchWorkspace(wsId, { crm })
+      const emailClean = (mem.email || '').toLowerCase().trim()
+      // Buscar contacto existente: email primero (más confiable), luego teléfono
+      let idx = emailClean ? crm.findIndex(c => (c.email || '').toLowerCase().trim() === emailClean) : -1
+      if (idx < 0 && phone) idx = crm.findIndex(c => (c.tel || '').replace(/\D/g,'') === phone)
+      if (idx >= 0) {
+        // Actualizar contacto existente: solo añadir datos, nunca pisar lo que ya tiene
+        const c = crm[idx]
+        c.scMiembro = true
+        c.tags = Array.isArray(c.tags) ? [...new Set([...c.tags, 'soul-club'])] : ['soul-club']
+        if (!c.tel && phone) c.tel = mem.wapp
+        if (!c.nombre && mem.nombre) c.nombre = mem.nombre
+        if (!c.instagram && mem.instagram) c.instagram = mem.instagram
+      } else {
+        // Crear contacto nuevo con todos los datos disponibles
+        crm.push({
+          id: 'sc_' + mem.id,
+          nombre: mem.nombre || '',
+          email: emailClean,
+          tel: mem.wapp || '',
+          instagram: mem.instagram || '',
+          scMiembro: true,
+          tags: ['soul-club'],
+          origen: 'soul-club',
+          etapa: 'cliente'
+        })
       }
+      await patchWorkspace(wsId, { crm })
     }
     res.json({ ok: true, estado })
   } catch(e) { res.status(500).json({ error: e.message }) }
@@ -6756,7 +6773,7 @@ app.patch('/api/admin/soul-canjes/solicitudes/:id', async (req, res) => {
   try {
     const r = await _supa('PATCH', `ugc_acceso_solicitudes?id=eq.${id}&ws_id=eq.${wsId}`, { body: { estado } })
     if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
-    // Si se acepta, upsert en CRM con tag soul_pr
+    // Si se acepta, upsert en CRM con tag soul-pr
     if (accion === 'aceptar') {
       const memR = await _supa('GET', 'ugc_acceso_solicitudes', { filter: `id=eq.${id}` })
       const mem = memR.data?.[0]
@@ -6764,15 +6781,28 @@ app.patch('/api/admin/soul-canjes/solicitudes/:id', async (req, res) => {
         const ws = await getWorkspace(wsId)
         const crm = ws?.data?.crm || []
         const phone = (mem.wapp || '').replace(/\D/g, '')
-        if (phone) {
-          const idx = crm.findIndex(c => c.tel?.replace(/\D/g,'') === phone || c.email === mem.email)
-          if (idx >= 0) {
-            crm[idx].tags = Array.isArray(crm[idx].tags) ? [...new Set([...crm[idx].tags, 'soul-pr', 'ugc'])] : ['soul-pr', 'ugc']
-          } else {
-            crm.push({ id: 'sc_canje_' + mem.id, nombre: mem.nombre||'', email: mem.email||'', tel: phone, tags: ['soul-pr','ugc'], origen: 'soul-canjes', etapa: 'cliente' })
-          }
-          await patchWorkspace(wsId, { crm })
+        const emailClean = (mem.email || '').toLowerCase().trim()
+        let idx = emailClean ? crm.findIndex(c => (c.email || '').toLowerCase().trim() === emailClean) : -1
+        if (idx < 0 && phone) idx = crm.findIndex(c => (c.tel || '').replace(/\D/g,'') === phone)
+        if (idx >= 0) {
+          const c = crm[idx]
+          c.tags = Array.isArray(c.tags) ? [...new Set([...c.tags, 'soul-pr', 'ugc'])] : ['soul-pr', 'ugc']
+          if (!c.tel && phone) c.tel = mem.wapp
+          if (!c.nombre && mem.nombre) c.nombre = mem.nombre
+          if (!c.instagram && mem.instagram) c.instagram = mem.instagram
+        } else {
+          crm.push({
+            id: 'sc_canje_' + mem.id,
+            nombre: mem.nombre || '',
+            email: emailClean,
+            tel: mem.wapp || '',
+            instagram: mem.instagram || '',
+            tags: ['soul-pr', 'ugc'],
+            origen: 'soul-canjes',
+            etapa: 'cliente'
+          })
         }
+        await patchWorkspace(wsId, { crm })
       }
     }
     res.json({ ok: true, estado })
