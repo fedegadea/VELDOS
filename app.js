@@ -5928,28 +5928,6 @@ app.post('/api/store/payway-link', async (req, res) => {
     const proto   = req.headers['x-forwarded-proto'] || 'https'
     const baseUrl = `${proto}://${host}`
 
-    // Store pending order in workspace (non-fatal — si falla igual seguimos con el link)
-    try {
-      const freshWs = await getWorkspace(wsId)
-      const wd = freshWs?.data || {}
-      if (!wd.pendingPaywayOrders) wd.pendingPaywayOrders = {}
-      // Clean stale pending orders (> 2 hours)
-      for (const [k, v] of Object.entries(wd.pendingPaywayOrders)) {
-        if (Date.now() - (v.ts || 0) > 7_200_000) delete wd.pendingPaywayOrders[k]
-      }
-      wd.pendingPaywayOrders[orderId] = {
-        cart, cliente, envio: envio || {},
-        total: parseFloat(total),
-        descuento: parseFloat(descuento || 0),
-        cuponCodigo: cuponCodigo || null,
-        numero, ts: Date.now()
-      }
-      await patchWorkspace(wsId, wd)
-      _invalidateWsCache(wsId)
-    } catch(saveErr) {
-      console.warn(`[payway-link] pendingOrder save failed (non-fatal): ${saveErr.message}`)
-    }
-
     const customerEmail = cliente.email && cliente.email.includes('@') ? cliente.email : undefined
     const payload = {
       site_transaction_id: orderId,
@@ -5971,9 +5949,10 @@ app.post('/api/store/payway-link', async (req, res) => {
       }
     }
 
+    // Llamar a PayWay PRIMERO — el pending order save puede colgar si el workspace es grande
     console.log(`[payway-link] Llamando PayWay para ws=${wsId} siteId=${pw.siteId} total=${total} template=${payload.template_id}`)
     const _pwAbort = new AbortController()
-    const _pwTimeout = setTimeout(() => _pwAbort.abort(), 15000)
+    const _pwTimeout = setTimeout(() => _pwAbort.abort(), 12000)
     let r
     try {
       r = await fetch(endpoint, {
@@ -6002,6 +5981,32 @@ app.post('/api/store/payway-link', async (req, res) => {
       console.error('[payway-link] Sin URL en respuesta:', rawText)
       return res.status(400).json({ error: 'PayWay no devolvió URL de pago', raw: data })
     }
+
+    // Guardar pending order DESPUÉS de tener el link (non-fatal, con timeout de 6s para no bloquear)
+    const _pendingSave = (async () => {
+      try {
+        const freshWs = await getWorkspace(wsId)
+        const wd = freshWs?.data || {}
+        if (!wd.pendingPaywayOrders) wd.pendingPaywayOrders = {}
+        for (const [k, v] of Object.entries(wd.pendingPaywayOrders)) {
+          if (Date.now() - (v.ts || 0) > 7_200_000) delete wd.pendingPaywayOrders[k]
+        }
+        wd.pendingPaywayOrders[orderId] = {
+          cart, cliente, envio: envio || {},
+          total: parseFloat(total),
+          descuento: parseFloat(descuento || 0),
+          cuponCodigo: cuponCodigo || null,
+          numero, ts: Date.now()
+        }
+        await patchWorkspace(wsId, wd)
+        _invalidateWsCache(wsId)
+      } catch(saveErr) {
+        console.warn(`[payway-link] pendingOrder save failed (non-fatal): ${saveErr.message}`)
+      }
+    })()
+    const _saveTimeout = new Promise(resolve => setTimeout(resolve, 6000, 'timeout'))
+    const _saveResult = await Promise.race([_pendingSave, _saveTimeout])
+    if (_saveResult === 'timeout') console.warn('[payway-link] pendingOrder save timed out — continuando')
 
     console.log(`[payway-link] Link creado para ws ${wsId}, orderId ${orderId}: ${checkoutUrl}`)
     res.json({ ok: true, checkoutUrl, paywayId: data.payment_id || orderId })
