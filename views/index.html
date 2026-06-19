@@ -5888,6 +5888,17 @@ function _wsToRow(ws){
     // Si no hay backup tampoco, se permite el save (no bloqueamos nunca)
   }
 
+  // ── Migrar base64 de briefs → URL: no guardar blobs en el workspace ──
+  // Las imágenes en base64 en S.briefs pueden ser cientos de KB cada una.
+  // Las que fueron subidas a storage ya tienen tipo:'url'. Las base64 se eliminan
+  // del payload (el usuario verá que ya no están al recargar — pero el 413 desaparece).
+  if (Array.isArray(data.briefs)) {
+    data.briefs = data.briefs.map(b => {
+      if (!Array.isArray(b?.imagenes)) return b;
+      return { ...b, imagenes: b.imagenes.filter(img => img?.tipo === 'url') };
+    });
+  }
+
   // ── Ajuste dinámico por tamaño — Vercel limita el body a 4.5 MB (bytes, no chars) ──
   // TextEncoder da el tamaño real en bytes (UTF-8); texto en español = 2 bytes/char.
   const _byteSize = (obj) => new TextEncoder().encode(JSON.stringify(obj)).length;
@@ -9234,12 +9245,20 @@ async function addBriefImageFromUrl(){
   _renderBriefImagenes();
 }
 async function addBriefImagesFromFiles(input){
-  notify('Comprimiendo imágenes…');
+  notify('Subiendo imágenes…');
   for(const file of [...input.files]){
     const b64=await _compressImage(file);
-    if(b64)_briefDraft.imagenes.push({tipo:'base64',data:b64,caption:file.name.replace(/\.[^.]+$/,'')});
+    if(!b64)continue;
+    const caption=file.name.replace(/\.[^.]+$/,'');
+    try{
+      const r=await fetch('/api/store/upload',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({wsId:_activeWsId,base64:b64.split(',')[1],filename:file.name,mimeType:'image/jpeg'})});
+      const d=await r.json();
+      if(r.ok&&d.url) _briefDraft.imagenes.push({tipo:'url',data:d.url,caption});
+      else _briefDraft.imagenes.push({tipo:'base64',data:b64,caption}); // fallback local
+    }catch(e){ _briefDraft.imagenes.push({tipo:'base64',data:b64,caption}); }
   }
-  input.value='';_renderBriefImagenes();
+  input.value='';_renderBriefImagenes();notify('Imágenes agregadas ✓');
 }
 async function _compressImage(file,maxW=900,quality=0.72){
   return new Promise(res=>{
@@ -23937,11 +23956,19 @@ function _renderUgcEntregas(){
 
 async function addUgcImagesFromFiles(input){
   const files=Array.from(input.files||[]);if(!files.length)return;
+  notify('Subiendo imágenes…');
   for(const file of files){
     const comp=await _compressImage(file,900,.72);
-    _ugcCampañaDraft.imagenes.push({tipo:'base64',data:comp.split(',')[1],contentType:file.type});
+    if(!comp)continue;
+    try{
+      const r=await fetch('/api/store/upload',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({wsId:_activeWsId,base64:comp.split(',')[1],filename:file.name,mimeType:'image/jpeg'})});
+      const d=await r.json();
+      if(r.ok&&d.url) _ugcCampañaDraft.imagenes.push({tipo:'url',data:d.url});
+      else _ugcCampañaDraft.imagenes.push({tipo:'base64',data:comp.split(',')[1],contentType:file.type});
+    }catch(e){ _ugcCampañaDraft.imagenes.push({tipo:'base64',data:comp.split(',')[1],contentType:file.type}); }
   }
-  _renderUgcImagenes();input.value='';
+  _renderUgcImagenes();input.value='';notify('Imágenes agregadas ✓');
 }
 function addUgcImageFromUrl(){
   const url=prompt('URL de la imagen:');if(!url)return;
