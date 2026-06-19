@@ -370,15 +370,18 @@ async function patchWorkspace(wsId, data, fullRow = null) {
     }
   } catch(e) { /* si falla el merge, continuar con el guardado normal */ }
 
-  // ── Trim server-side igual que _wsToRow en el cliente ──
-  if (Array.isArray(data.finanzas) && data.finanzas.length > 3000)
-    data.finanzas = data.finanzas.slice(-3000)
-  if (data.tienda && Array.isArray(data.tienda.ordenes) && data.tienda.ordenes.length > 1000)
-    data.tienda.ordenes = data.tienda.ordenes.slice(-1000)
-  if (Array.isArray(data.waLog)  && data.waLog.length  > 500)  data.waLog  = data.waLog.slice(-500)
-  if (Array.isArray(data.difLog) && data.difLog.length > 500)  data.difLog = data.difLog.slice(-500)
-  if (Array.isArray(data.flowHistory) && data.flowHistory.length > 500)
-    data.flowHistory = data.flowHistory.slice(-500)
+  // ── Trim server-side — Supabase también tiene límites de tamaño por fila ──
+  // Aplicar antes del write para evitar que filas muy grandes fallen silenciosamente.
+  const _srvByteSize = s => Buffer.byteLength(JSON.stringify(s), 'utf8')
+  const SRV_TARGET = 4_000_000 // 4 MB bytes — Supabase row limit suele ser ~1GB pero el cuerpo de respuesta del cliente ya viene trimeado
+  if (Array.isArray(data.finanzas) && data.finanzas.length > 1500)
+    data.finanzas = data.finanzas.slice(-1500)
+  if (data.tienda && Array.isArray(data.tienda.ordenes) && data.tienda.ordenes.length > 500)
+    data.tienda.ordenes = data.tienda.ordenes.slice(-500)
+  if (Array.isArray(data.waLog)  && data.waLog.length  > 200)  data.waLog  = data.waLog.slice(-200)
+  if (Array.isArray(data.difLog) && data.difLog.length > 200)  data.difLog = data.difLog.slice(-200)
+  if (Array.isArray(data.flowHistory) && data.flowHistory.length > 200)
+    data.flowHistory = data.flowHistory.slice(-200)
   if (data.flowDone && typeof data.flowDone === 'object') {
     const fdKeys = Object.keys(data.flowDone)
     if (fdKeys.length > 2000) {
@@ -386,6 +389,12 @@ async function patchWorkspace(wsId, data, fullRow = null) {
       fdKeys.slice(-2000).forEach(k => { keep[k] = data.flowDone[k] })
       data.flowDone = keep
     }
+  }
+  // Nivel 2 server: si todavía es muy grande, recorte adicional
+  if (_srvByteSize(data) > SRV_TARGET) {
+    if (Array.isArray(data.finanzas) && data.finanzas.length > 300) data.finanzas = data.finanzas.slice(-300)
+    if (Array.isArray(data.crm)) data.crm = data.crm.map(c => c ? {...c, contactos: (c.contactos||[]).slice(-10)} : c)
+    console.warn(`[patchWorkspace] payload grande post-trim: ${(_srvByteSize(data)/1e6).toFixed(2)} MB`)
   }
   // CRM: cap contacts per customer
   if (Array.isArray(data.crm)) {

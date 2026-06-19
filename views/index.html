@@ -5888,27 +5888,35 @@ function _wsToRow(ws){
     // Si no hay backup tampoco, se permite el save (no bloqueamos nunca)
   }
 
-  // ── Ajuste dinámico por tamaño — Vercel limita el body a ~4 MB ──────────
-  // Si el payload supera 3.5 MB, recortar progresivamente hasta que entre.
+  // ── Ajuste dinámico por tamaño — Vercel limita el body a 4.5 MB (bytes, no chars) ──
+  // TextEncoder da el tamaño real en bytes (UTF-8); texto en español = 2 bytes/char.
+  const _byteSize = (obj) => new TextEncoder().encode(JSON.stringify(obj)).length;
+  const TARGET = 3_800_000; // 3.8 MB bytes — margen seguro bajo el límite de 4.5 MB de Vercel
   const _trim = () => {
-    const sz = JSON.stringify(data).length;
-    if (sz <= 3_500_000) return;
-    console.warn('[VELDOS] payload grande (' + (sz/1e6).toFixed(2) + ' MB), recortando...');
-    // Nivel 1: reducir límites a la mitad
+    if (_byteSize(data) <= TARGET) return;
+    // Nivel 1: recortar arrays grandes a la mitad de sus límites normales
     if (Array.isArray(data.finanzas) && data.finanzas.length > 500)
       data.finanzas = data.finanzas.slice(-500);
     if (data.tienda && Array.isArray(data.tienda.ordenes) && data.tienda.ordenes.length > 200)
       data.tienda.ordenes = data.tienda.ordenes.slice(-200);
     if (Array.isArray(data.crm))
-      data.crm = data.crm.map(c => (!c || !Array.isArray(c.contactos) || c.contactos.length <= 30) ? c : {...c, contactos: c.contactos.slice(-30)});
-    if (Array.isArray(data.waLog)  && data.waLog.length  > 100) data.waLog  = data.waLog.slice(-100);
-    if (Array.isArray(data.difLog) && data.difLog.length > 100) data.difLog = data.difLog.slice(-100);
-    if (Array.isArray(data.flowHistory) && data.flowHistory.length > 50) data.flowHistory = data.flowHistory.slice(-50);
-    // Nivel 2: si sigue grande, vaciar contactos del CRM (estructura queda intacta)
-    if (JSON.stringify(data).length > 3_500_000) {
-      console.warn('[VELDOS] payload aún grande — vaciando contactos de CRM');
-      if (Array.isArray(data.crm)) data.crm = data.crm.map(c => c ? {...c, contactos: []} : c);
+      data.crm = data.crm.map(c => (!c || !Array.isArray(c.contactos) || c.contactos.length <= 20) ? c : {...c, contactos: c.contactos.slice(-20)});
+    if (Array.isArray(data.waLog)  && data.waLog.length  > 50) data.waLog  = data.waLog.slice(-50);
+    if (Array.isArray(data.difLog) && data.difLog.length > 50) data.difLog = data.difLog.slice(-50);
+    if (Array.isArray(data.flowHistory) && data.flowHistory.length > 30) data.flowHistory = data.flowHistory.slice(-30);
+    if (_byteSize(data) <= TARGET) return;
+    // Nivel 2: recorte agresivo
+    if (Array.isArray(data.finanzas) && data.finanzas.length > 100) data.finanzas = data.finanzas.slice(-100);
+    if (Array.isArray(data.crm)) data.crm = data.crm.map(c => c ? {...c, contactos: []} : c);
+    if (Array.isArray(data.contenido) && data.contenido.length > 50) data.contenido = data.contenido.slice(-50);
+    if (_byteSize(data) <= TARGET) return;
+    // Nivel 3: último recurso — vaciar logs y flowDone antiguo
+    data.waLog = []; data.difLog = []; data.flowHistory = [];
+    if (data.flowDone && typeof data.flowDone === 'object') {
+      const keys = Object.keys(data.flowDone);
+      if (keys.length > 200) { const keep={}; keys.slice(-200).forEach(k=>{keep[k]=data.flowDone[k];}); data.flowDone=keep; }
     }
+    console.warn('[VELDOS] payload grande — trim nivel 3 aplicado, tamaño:', _byteSize(data));
   };
   _trim();
 
