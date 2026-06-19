@@ -5950,7 +5950,6 @@ app.post('/api/store/payway-link', async (req, res) => {
     }
 
     // Llamar a PayWay PRIMERO — el pending order save puede colgar si el workspace es grande
-    console.log(`[payway-link] Llamando PayWay para ws=${wsId} siteId=${pw.siteId} total=${total} template=${payload.template_id}`)
     const _pwAbort = new AbortController()
     const _pwTimeout = setTimeout(() => _pwAbort.abort(), 12000)
     let r
@@ -5968,8 +5967,8 @@ app.post('/api/store/payway-link', async (req, res) => {
     let data; try { data = JSON.parse(rawText) } catch(e) { data = { rawText } }
     if (!r.ok) {
       const errDetail = data.validation_errors?.[0]?.message || data.validation_errors?.[0]?.code
-        || data.param || data.description || data.error || rawText.slice(0, 200)
-      console.error(`[payway-link] Error HTTP ${r.status}: ${rawText.slice(0, 500)}`)
+        || data.param || data.description || data.error || rawText.slice(0, 300)
+      console.log(`[payway-link] ERROR ${r.status} siteId=${pw.siteId} tmpl=${payload.template_id}: ${rawText.slice(0, 400)}`)
       return res.status(502).json({ error: `PayWay error ${r.status}: ${errDetail}`, raw: data })
     }
 
