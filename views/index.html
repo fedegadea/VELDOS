@@ -8234,23 +8234,23 @@ function saveCheckText(gi,ii){
   if(!inp)return;
   const val=inp.value.trim();
   if(val)S.checkGroups[gi].items[ii].text=val;
-  save();renderChecklist();notify('Guardado ✓');
+  _saveNow();renderChecklist();notify('Guardado ✓');
 }
-function deleteCheckItem(gi,ii){S.checkGroups[gi].items.splice(ii,1);save();renderChecklist();}
+function deleteCheckItem(gi,ii){S.checkGroups[gi].items.splice(ii,1);_saveNow();renderChecklist();}
 function addCheckItem(gi){
   S.checkGroups[gi].items.push({id:'c'+Date.now(),text:'Nueva tarea',owner:'',done:false});
-  save();renderChecklist();
+  _saveNow();renderChecklist();
   const ii=S.checkGroups[gi].items.length-1;
   setTimeout(()=>editCheckItem(gi,ii),50);
 }
 function setCheckOwner(gi,ii,val){
   const v=(val||'').trim();
   S.checkGroups[gi].items[ii].owner=v;
-  save();renderChecklist();
+  _saveNow();renderChecklist();
 }
 function clearCheckOwner(gi,ii){
   S.checkGroups[gi].items[ii].owner='';
-  save();renderChecklist();
+  _saveNow();renderChecklist();
 }
 function focusOwnerInput(gi,ii){
   const inp=document.getElementById(`ci-owner-inp-${gi}-${ii}`);
@@ -8262,7 +8262,7 @@ function focusOwnerInput(gi,ii){
 }
 function toggleCheck(gi,ii){
   S.checkGroups[gi].items[ii].done=!S.checkGroups[gi].items[ii].done;
-  save();renderChecklist();
+  _saveNow();renderChecklist();
   // Si se marcó como done y no tiene owner, auto-focus el input
   if(S.checkGroups[gi].items[ii].done&&!S.checkGroups[gi].items[ii].owner){
     setTimeout(()=>document.getElementById(`ci-owner-inp-${gi}-${ii}`)?.focus(),80);
@@ -8436,7 +8436,7 @@ function todoDrop(e,est){
   if(S.todos[_todoDragIdx].estado===est){_todoDragIdx=null;return;}
   S.todos[_todoDragIdx].estado=est;
   _todoDragIdx=null;
-  save();renderTodo();notify(`Movido a "${TODO_ESTADO_LABEL[est]}" ✓`);
+  _saveNow();renderTodo();notify(`Movido a "${TODO_ESTADO_LABEL[est]}" ✓`);
 }
 // ── Swipe (mobile) ──
 let _todoTouchStartX=null;
@@ -8451,11 +8451,11 @@ function todoTouchEnd(e,ri,estActual){
   const next=dx>0?cols[ci-1]:cols[ci+1];
   if(!next)return;
   S.todos[ri].estado=next;
-  save();renderTodo();notify(`Movido a "${TODO_ESTADO_LABEL[next]}" ✓`);
+  _saveNow();renderTodo();notify(`Movido a "${TODO_ESTADO_LABEL[next]}" ✓`);
 }
 function respClass(r){return{Fede:'fede',CM:'cm',Diseñadora:'dis','Vendedora WA':'wa',Todos:'todos'}[r]||'todos';}
-function moveTodo(i,estado){S.todos[i].estado=estado;save();renderTodo();notify(`Movido a "${TODO_ESTADO_LABEL[estado]}" ✓`);}
-function deleteTodo(i){if(!confirm('¿Eliminar tarea?'))return;S.todos.splice(i,1);save();renderTodo();}
+function moveTodo(i,estado){S.todos[i].estado=estado;_saveNow();renderTodo();notify(`Movido a "${TODO_ESTADO_LABEL[estado]}" ✓`);}
+function deleteTodo(i){if(!confirm('¿Eliminar tarea?'))return;S.todos.splice(i,1);_saveNow();renderTodo();}
  
 // ══════════════════════════════════════════
 // BRIEFS — RENDER, FILTROS, PILARES, IMPRESIÓN
@@ -8514,17 +8514,17 @@ function addCuenta(){
   if(!S.cuentas)S.cuentas=[];
   if(S.cuentas.includes(v)){notify('Ya existe esa cuenta');return;}
   S.cuentas.push(v);
-  save();inp.value='';
+  _saveNow();inp.value='';
   const body=document.getElementById('cuentas-modal-body');
   if(body)body.innerHTML=_renderCuentaList();
 }
 function editCuenta(i,val){
   if(!val.trim()||!S.cuentas)return;
-  S.cuentas[i]=val.trim();save();
+  S.cuentas[i]=val.trim();_saveNow();
 }
 function deleteCuenta(i){
   if(!S.cuentas)return;
-  S.cuentas.splice(i,1);save();
+  S.cuentas.splice(i,1);_saveNow();
   const body=document.getElementById('cuentas-modal-body');
   if(body)body.innerHTML=_renderCuentaList();
 }
@@ -8660,7 +8660,7 @@ function addPilar(){
   if(!S.pilares)S.pilares=[];
   if(S.pilares.includes(v)){notify('Ya existe ese pilar');return;}
   S.pilares.push(v);
-  save();
+  _saveNow();
   inp.value='';
   const body=document.getElementById('pilares-modal-body');
   if(body)body.innerHTML=_renderPilarList();
@@ -8670,13 +8670,13 @@ function addPilar(){
 function editPilar(i,val){
   if(!val.trim()||!S.pilares)return;
   S.pilares[i]=val.trim();
-  save();_pilaresSelect();
+  _saveNow();_pilaresSelect();
 }
 
 function deletePilar(i){
   if(!S.pilares)return;
   S.pilares.splice(i,1);
-  save();
+  _saveNow();
   const body=document.getElementById('pilares-modal-body');
   if(body)body.innerHTML=_renderPilarList();
   _pilaresSelect();
@@ -9467,8 +9467,8 @@ function renderKanban(tipo){
     </div>`;
   }).join('');
 }
-function moverCreadora(i,estado){S.creadoras[i].estado=estado;save();render();notify(`"${ESTADOS_LABEL[estado]}" ✓`);}
-function deleteCreadora(i){S.creadoras.splice(i,1);save();render();}
+function moverCreadora(i,estado){S.creadoras[i].estado=estado;_saveNow();render();notify(`"${ESTADOS_LABEL[estado]}" ✓`);}
+function deleteCreadora(i){S.creadoras.splice(i,1);_saveNow();render();}
  
 // ══════════════════════════════════════════
 // COLLABS
@@ -9504,15 +9504,15 @@ function renderCollabCard(col,ri){
 }
 function activarCollab(i){
   if(S.collabs.filter(c=>c.estado==='activa').length>=4){notify('Ya tenés 4 activas');return;}
-  S.collabs[i].estado='activa';save();renderCollabs();notify('Collab activada ✓');
+  S.collabs[i].estado='activa';_saveNow();renderCollabs();notify('Collab activada ✓');
 }
 function toggleCollabStep(i,step){
   if(!S.collabs[i].steps)S.collabs[i].steps=[];
   const idx=S.collabs[i].steps.indexOf(step);
   if(idx>-1)S.collabs[i].steps.splice(idx,1);else S.collabs[i].steps.push(step);
-  save();renderCollabs();
+  _saveNow();renderCollabs();
 }
-function deleteCollab(i){S.collabs.splice(i,1);save();renderCollabs();}
+function deleteCollab(i){S.collabs.splice(i,1);_saveNow();renderCollabs();}
  
 // ══════════════════════════════════════════
 // DRIVE + CALENDARIO
@@ -9595,8 +9595,8 @@ function renderBiblioteca(){
       </div>
     </div>`).join('');
 }
-function toggleTesteado(i){S.contenido[i].testeado=!S.contenido[i].testeado;save();renderBiblioteca();}
-function deletePieza(i){if(!confirm('¿Eliminar esta pieza?'))return;S.contenido.splice(i,1);save();renderBiblioteca();}
+function toggleTesteado(i){S.contenido[i].testeado=!S.contenido[i].testeado;_saveNow();renderBiblioteca();}
+function deletePieza(i){if(!confirm('¿Eliminar esta pieza?'))return;S.contenido.splice(i,1);_saveNow();renderBiblioteca();}
 
 // ── IDEAS ──
 function setIdeaFilter(btn,tipo){
@@ -9648,7 +9648,7 @@ function setPlanIdeaEstado(i,estado){
 }
 function deletePlanIdea(i){
   if(!confirm('¿Eliminar esta idea?'))return;
-  S.ideas.splice(i,1);save();renderPlanIdeas();
+  S.ideas.splice(i,1);_saveNow();renderPlanIdeas();
 }
 function editPlanIdea(i){openModal('planidea',i);}
 
@@ -9876,7 +9876,7 @@ function renderColors(){
       <div class="color-hex">${c.hex}</div>
     </div>`).join('')+`<button class="color-add" onclick="openModal('color')" title="Agregar color">+</button>`;
 }
-function deleteColor(i){S.marca.colors.splice(i,1);save();renderColors();}
+function deleteColor(i){S.marca.colors.splice(i,1);_saveNow();renderColors();}
  
 const OBJ_COLORS={corto:'var(--gold)',medio:'var(--coral)',largo:'var(--purple)'};
 function renderObjetivos(){
@@ -9896,7 +9896,7 @@ function renderObjetivos(){
       </div>
     </div>`).join('');
 }
-function deleteObj(i){S.marca.objetivos.splice(i,1);save();renderObjetivos();}
+function deleteObj(i){S.marca.objetivos.splice(i,1);_saveNow();renderObjetivos();}
  
 const IDEA_CATS=[
   {key:'producto',label:'Producto',bg:'rgba(201,180,138,.12)',text:'var(--gold)',border:'rgba(201,180,138,.2)'},
@@ -9921,7 +9921,7 @@ function renderIdeas(){
       <button class="idea-del" onclick="deleteIdea(${i})">×</button>
     </div>`).join('');
 }
-function deleteIdea(i){S.marca.ideas.splice(i,1);save();renderIdeas();}
+function deleteIdea(i){S.marca.ideas.splice(i,1);_saveNow();renderIdeas();}
  
 function renderInspo(){
   const el=document.getElementById('inspo-grid');
@@ -9938,7 +9938,7 @@ function renderInspo(){
       </div>
     </div>`).join('');
 }
-function deleteInspo(i){S.marca.inspo.splice(i,1);save();renderInspo();}
+function deleteInspo(i){S.marca.inspo.splice(i,1);_saveNow();renderInspo();}
  
 // ══════════════════════════════════════════
 // PIN / FINANZAS LOCK
@@ -13280,7 +13280,7 @@ function renderFinChart(desde,hasta){
   </div>`;
 }
  
-function deleteTx(i){S.finanzas.splice(i,1);save();renderFinanzas();notify('Movimiento eliminado');}
+function deleteTx(i){S.finanzas.splice(i,1);_saveNow();renderFinanzas();notify('Movimiento eliminado');}
  
 function renderMediosPago(){
   const el=document.getElementById('medios-pago-list');
@@ -13299,7 +13299,7 @@ function renderMediosPago(){
       </div>
     </div>`).join('');
 }
-function deleteMedioPago(i){S.finCfg.mediosPago.splice(i,1);save();renderMediosPago();}
+function deleteMedioPago(i){S.finCfg.mediosPago.splice(i,1);_saveNow();renderMediosPago();}
  
 function renderCostosFijos(){
   const el=document.getElementById('costos-fijos-list');
@@ -13315,7 +13315,7 @@ function renderCostosFijos(){
       </div>
     </div>`).join('');
 }
-function deleteCostoFijo(i){S.finCfg.costosFijos.splice(i,1);save();renderCostosFijos();}
+function deleteCostoFijo(i){S.finCfg.costosFijos.splice(i,1);_saveNow();renderCostosFijos();}
  
 function loadTaxConfig(){
   const t=S.finCfg?.tax||{};
@@ -13798,11 +13798,11 @@ function renderOpsChecklist(){
 }
 function toggleOpsCheck(id){
   const item=S.opsChecks?.find(c=>c.id===id);
-  if(item){item.done=!item.done;save();renderOpsChecklist();}
+  if(item){item.done=!item.done;_saveNow();renderOpsChecklist();}
 }
 function deleteOpsCheck(id){
   if(!S.opsChecks)return;
-  S.opsChecks=S.opsChecks.filter(c=>c.id!==id);save();renderOpsChecklist();
+  S.opsChecks=S.opsChecks.filter(c=>c.id!==id);_saveNow();renderOpsChecklist();
 }
 function addOpsCheck(freq){
   if(!S.opsChecks)S.opsChecks=getOpsChecks();
@@ -13830,11 +13830,11 @@ function renderReclamos(){
       </div>
     </div>`).join('');
 }
-function updateReclamoEstado(i,estado){S.reclamos[i].estado=estado;save();renderReclamos();}
+function updateReclamoEstado(i,estado){S.reclamos[i].estado=estado;_saveNow();renderReclamos();}
 function deleteReclamo(i){
   const r=S.reclamos[i];
   if(!confirm(`¿Borrar reclamo de "${r.cliente} — ${r.tipo}"?`))return;
-  S.reclamos.splice(i,1);save();renderReclamos();
+  S.reclamos.splice(i,1);_saveNow();renderReclamos();
 }
  
 // ══════════════════════════════════════════
@@ -14521,7 +14521,7 @@ function saveCreadora(){
   const n=document.getElementById('f-nombre')?.value?.trim();
   if(!n){notify('Escribí un nombre');return;}
   S.creadoras.push({nombre:n,handle:document.getElementById('f-handle').value,tipo:document.getElementById('f-ctipo').value,estado:document.getElementById('f-estado').value,cuenta:document.getElementById('f-cuenta')?.value||'',oferta:document.getElementById('f-oferta').value,wapp:document.getElementById('f-wapp').value,notas:document.getElementById('f-notas').value,briefId:document.getElementById('f-brief-id')?.value||''});
-  save();closeModal();render();notify('Creadora guardada ✓');
+  _saveNow();closeModal();render();notify('Creadora guardada ✓');
 }
 function populateBriefSelect(selectId){
   const sel=document.getElementById(selectId);
@@ -14541,7 +14541,7 @@ function linkBriefToCreadora(ri){
   sel.innerHTML='<option value="">Sin brief</option>'+opts;
   sel.style.cssText='width:100%;background:var(--s3);border:1px solid var(--border2);color:var(--text);font-family:var(--fb);font-size:12px;padding:6px 10px;border-radius:6px;outline:none;margin-top:4px';
   sel.value=cr.briefId||'';
-  sel.onchange=()=>{S.creadoras[ri].briefId=sel.value;save();render();notify('Brief vinculado ✓');};
+  sel.onchange=()=>{S.creadoras[ri].briefId=sel.value;_saveNow();render();notify('Brief vinculado ✓');};
   // Show as inline widget inside the card
   const cardBriefEl=document.getElementById('card-brief-'+ri);
   if(cardBriefEl){cardBriefEl.innerHTML='';cardBriefEl.appendChild(sel);setTimeout(()=>sel.focus(),50);}
@@ -14551,7 +14551,7 @@ function saveCollab(){
   if(!m){notify('Escribí la marca');return;}
   if(document.getElementById('f-cest').value==='activa'&&S.collabs.filter(c=>c.estado==='activa').length>=4){notify('Ya tenés 4 activas');return;}
   S.collabs.push({marca:m,instagram:document.getElementById('f-ig').value,estado:document.getElementById('f-cest').value,propuesta:document.getElementById('f-propuesta').value,beneficio:document.getElementById('f-beneficio').value,notas:document.getElementById('f-notas2').value,steps:[]});
-  save();closeModal();renderCollabs();notify('Marca guardada ✓');
+  _saveNow();closeModal();renderCollabs();notify('Marca guardada ✓');
 }
 function saveContenido(){
   const n=document.getElementById('f-pnombre')?.value?.trim();
@@ -16244,12 +16244,12 @@ function addTablaRow(){
   if(!h)return;
   if(!h.rows)h.rows=[];
   h.rows.push({cells:{}});
-  save();openHoja(_openHojaId);
+  _saveNow();openHoja(_openHojaId);
 }
 function delTablaRow(ri){
   const h=S.customViews.find(v=>v.id===_openHojaId);
   if(!h)return;
-  h.rows.splice(ri,1);save();openHoja(_openHojaId);
+  h.rows.splice(ri,1);_saveNow();openHoja(_openHojaId);
 }
 function saveTablaCell(ri,cid,val){
   const h=S.customViews.find(v=>v.id===_openHojaId);
@@ -16276,13 +16276,13 @@ function addChecklistItem(){
   if(!h)return;
   if(!h.items)h.items=[];
   h.items.push({id:'i_'+Date.now(),text:'',done:false});
-  save();openHoja(_openHojaId);
+  _saveNow();openHoja(_openHojaId);
   setTimeout(()=>{const inputs=document.querySelectorAll('.hoja-ci-text');if(inputs.length)inputs[inputs.length-1].focus();},50);
 }
 function toggleChecklistItem(i){
   const h=S.customViews.find(v=>v.id===_openHojaId);
   if(!h||!h.items[i])return;
-  h.items[i].done=!h.items[i].done;save();openHoja(_openHojaId);
+  h.items[i].done=!h.items[i].done;_saveNow();openHoja(_openHojaId);
 }
 function saveChecklistText(i,val){
   const h=S.customViews.find(v=>v.id===_openHojaId);
@@ -16292,7 +16292,7 @@ function saveChecklistText(i,val){
 function delChecklistItem(i){
   const h=S.customViews.find(v=>v.id===_openHojaId);
   if(!h)return;
-  h.items.splice(i,1);save();openHoja(_openHojaId);
+  h.items.splice(i,1);_saveNow();openHoja(_openHojaId);
 }
 
 // ══════════════════════════════════════════
@@ -16407,7 +16407,7 @@ function _saveNewCheckGroup(){
 }
 function deleteCheckGroup(gi){
   if(!confirm('¿Eliminar esta lista?'))return;
-  S.checkGroups.splice(gi,1);save();renderChecklist();notify('Lista eliminada');
+  S.checkGroups.splice(gi,1);_saveNow();renderChecklist();notify('Lista eliminada');
 }
 
 // ══════════════════════════════════════════
