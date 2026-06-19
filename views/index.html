@@ -5959,17 +5959,13 @@ async function supaLoadAll(){
 async function supaUpsert(ws){
   const row = _wsToRow(ws);
   if (!row) { console.warn('[VELDOS] supaUpsert cancelado — guard de CRM activado'); return; }
-  // Send row without duplicating data (row.data already has it)
-  const { data: _d, ...rowMeta } = row;
-  const r = await fetch('/api/workspace/save', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ wsId: row.id, data: row.data, row: rowMeta })
+  // Escribir DIRECTO a Supabase — bypasea el límite de 4.5MB de Vercel.
+  // Supabase acepta payloads grandes sin ese límite de infraestructura.
+  await supaFetch('/rest/v1/workspaces?id=eq.' + encodeURIComponent(row.id), {
+    method: 'PATCH',
+    prefer: 'return=minimal',
+    body: { data: row.data, last_access: row.last_access }
   });
-  if (!r.ok) {
-    const err = await r.json().catch(() => ({}));
-    throw new Error(err.error || 'Error guardando workspace');
-  }
 }
 async function supaDelete(id){
   await supaFetch('/rest/v1/workspaces?id=eq.'+encodeURIComponent(id),{method:'DELETE'});
