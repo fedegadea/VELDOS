@@ -6044,30 +6044,43 @@ function _localSave(){
 function getActiveWs(){return WORKSPACES.workspaces.find(w=>w.id===_activeWsId);}
 
 let _saveTimer=null;
+let _saveInFlight=false;
+let _saveQueued=false;
+
+// Core: serializa todos los saves — nunca dos requests en paralelo al mismo servidor.
+// Si llega un save mientras otro está en vuelo, lo encola y lo ejecuta cuando termina el actual,
+// garantizando que el servidor siempre recibe el estado MÁS RECIENTE de S.
+async function _doSave(){
+  if(_saveInFlight){_saveQueued=true;return;}
+  const ws=getActiveWs();
+  if(!ws)return;
+  ws.data=S;ws.lastAccess=new Date().toISOString().slice(0,10);
+  _localSave();
+  _saveInFlight=true;_saveQueued=false;
+  try{
+    await supaUpsert(ws);
+  }catch(e){
+    console.warn('[Supabase] save error:',e);
+    notify('⚠️ Error al guardar — verificá tu conexión','error');
+  }finally{
+    _saveInFlight=false;
+    if(_saveQueued){_saveQueued=false;_doSave();}
+  }
+}
+
 function save(){
   const ws=getActiveWs();
   if(ws){ws.data=S;ws.lastAccess=new Date().toISOString().slice(0,10);}
-  // localStorage: sincrónico pero liviano (solo metadatos del workspace)
   _localSave();
-  // Supabase: debounce 1.5s — múltiples save() rápidos se colapsan en uno solo
-  // evita flood de writes a Supabase cuando varias operaciones disparan save() seguidas
   if(ws){
     clearTimeout(_saveTimer);
-    _saveTimer=setTimeout(function(){
-      supaUpsert(ws).catch(e=>console.warn('[Supabase] save error:',e));
-    }, 1500);
+    _saveTimer=setTimeout(_doSave,1500);
   }
 }
-// Igual que save() pero escribe a Supabase de inmediato (sin debounce).
-// Usar cuando es crítico que el dato sobreviva una recarga rápida (ej: listas de difusión).
+// Escribe a Supabase de inmediato, cancelando cualquier debounce pendiente.
 function _saveNow(){
-  const ws=getActiveWs();
-  if(ws){ws.data=S;ws.lastAccess=new Date().toISOString().slice(0,10);}
-  _localSave();
-  if(ws){
-    clearTimeout(_saveTimer);
-    supaUpsert(ws).catch(e=>console.warn('[Supabase] _saveNow error:',e));
-  }
+  clearTimeout(_saveTimer);
+  _doSave();
 }
 function load(){return null;}
 
