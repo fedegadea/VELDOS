@@ -5931,7 +5931,7 @@ app.post('/api/store/payway-link', async (req, res) => {
     const customerEmail = cliente.email && cliente.email.includes('@') ? cliente.email : undefined
     const payload = {
       site_transaction_id: orderId,
-      origin_platform: 'EXTERNAL',
+      origin_platform: 'WEB',
       currency: 'ARS',
       total_price: parseFloat(total),
       site: String(pw.siteId),
@@ -5968,7 +5968,9 @@ app.post('/api/store/payway-link', async (req, res) => {
     if (!r.ok) {
       const errDetail = data.validation_errors?.[0]?.message || data.validation_errors?.[0]?.code
         || data.param || data.description || data.error || rawText.slice(0, 300)
-      console.log(`[payway-link] ERROR ${r.status} siteId=${pw.siteId} tmpl=${payload.template_id}: ${rawText.slice(0, 400)}`)
+      console.log(`[PW-ERR-A] ${r.status} site=${pw.siteId} tmpl=${payload.template_id}`)
+      console.log(`[PW-ERR-B] ${rawText.slice(0, 280)}`)
+      console.log(`[PW-ERR-C] ${rawText.slice(280, 560)}`)
       return res.status(502).json({ error: `PayWay error ${r.status}: ${errDetail}`, raw: data })
     }
 
