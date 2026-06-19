@@ -24155,7 +24155,10 @@ function renderUgcSolicitudes(){
               ${s.link_publicacion?`<a href="${s.link_publicacion}" target="_blank" style="font-size:10px;color:var(--accent)">🔗 Ver publicación</a>`:''}
             </div>
           </div>
-          <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;flex-wrap:wrap">${accionBtns}</div>
+          <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;flex-wrap:wrap">
+            ${accionBtns}
+            <button class="btn btn-xs" onclick="deleteUgcSolicitud('${s.id}','${(cr.nombre||cr.telefono||'').replace(/'/g,'')}')" style="color:var(--coral);opacity:.55" title="Eliminar solicitud">🗑</button>
+          </div>
         </div>
       </div>
       <div style="border-top:1px solid var(--border);padding:10px 16px;background:var(--s2)">
@@ -24219,11 +24222,13 @@ async function loadUgcCreadoras(){
         <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Creadora</th>
         <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Instagram</th>
         <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Registrada</th>
+        <th style="padding:8px 10px"></th>
       </tr></thead>
       <tbody>`+list.map(c=>`<tr style="border-bottom:1px solid var(--border)">
         <td style="padding:10px;"><div style="font-weight:600">${c.nombre||'—'}</div><div style="color:var(--muted);font-size:11px">📱 ${c.telefono}</div></td>
         <td style="padding:10px;">${c.instagram_url?`<a href="${c.instagram_url}" target="_blank" style="color:var(--accent);text-decoration:none;font-size:11px">📷 Ver perfil</a>`:'<span style="color:var(--muted)">—</span>'}</td>
         <td style="padding:10px;color:var(--muted)">${_fmtDate(c.created_at)}</td>
+        <td style="padding:10px;text-align:right"><button class="btn btn-xs" onclick="deleteUgcCreadora('${c.id}','${(c.nombre||c.telefono||'').replace(/'/g,'')}')" style="color:var(--coral);opacity:.55" title="Eliminar creadora">🗑</button></td>
       </tr>`).join('')+'</tbody></table>';
   }catch(e){el.innerHTML='<div style="color:var(--coral);font-size:12px">Error al cargar</div>';}
 }
@@ -24419,6 +24424,26 @@ async function ugcSetEstado(id,estado){
     const r=await fetch('/api/admin/ugc/canjes/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId,estado})});
     const d=await r.json();
     if(d.ok){loadUgcCanjes();loadUgcStats();notify('Estado actualizado');}
+    else notify('Error: '+d.error,'error');
+  }catch(e){notify('Error de red','error');}
+}
+
+async function deleteUgcSolicitud(id,nombre){
+  if(!confirm(`¿Eliminar la solicitud de "${nombre}"? No se puede deshacer.`))return;
+  try{
+    const r=await fetch('/api/admin/ugc/solicitudes/'+id,{method:'DELETE'});
+    const d=await r.json();
+    if(d.ok){loadUgcSolicitudes();loadUgcStats();notify('Solicitud eliminada');}
+    else notify('Error: '+d.error,'error');
+  }catch(e){notify('Error de red','error');}
+}
+
+async function deleteUgcCreadora(id,nombre){
+  if(!confirm(`¿Eliminar a "${nombre}"? Se borrarán también todas sus solicitudes. No se puede deshacer.`))return;
+  try{
+    const r=await fetch('/api/admin/ugc/creadoras/'+id,{method:'DELETE'});
+    const d=await r.json();
+    if(d.ok){loadUgcCreadoras();loadUgcStats();notify('Creadora eliminada');}
     else notify('Error: '+d.error,'error');
   }catch(e){notify('Error de red','error');}
 }

@@ -6538,6 +6538,27 @@ app.patch('/api/ugc/solicitudes/:id/checklist', _requireCreadora, async (req, re
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
+// ── ADMIN: eliminar solicitud ────────────────────────────────
+app.delete('/api/admin/ugc/solicitudes/:id', async (req, res) => {
+  const { id } = req.params
+  try {
+    const r = await _supa('DELETE', `ugc_solicitudes?id=eq.${id}`, { prefer: 'return=minimal' })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0, 200) })
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── ADMIN: eliminar creadora ─────────────────────────────────
+app.delete('/api/admin/ugc/creadoras/:id', async (req, res) => {
+  const { id } = req.params
+  try {
+    await _supa('DELETE', `ugc_solicitudes?creadora_id=eq.${id}`, { prefer: 'return=minimal' })
+    const r = await _supa('DELETE', `ugc_creadoras?id=eq.${id}`, { prefer: 'return=minimal' })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0, 200) })
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
 // ── ADMIN: listar creadoras ──────────────────────────────────
 app.get('/api/admin/ugc/creadoras', async (req, res) => {
   try {
