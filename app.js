@@ -5893,7 +5893,13 @@ app.post('/api/store/payway-link', async (req, res) => {
   if (!wsId || !cart?.length || !cliente || total == null)
     return res.status(400).json({ error: 'Faltan datos (wsId, cart, cliente, total)' })
   try {
-    const result = await getTienda(wsId)
+    // Retry getTienda ante fallos transitorios de cold-start (Supabase tarda en responder)
+    let result = null
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try { result = await getTienda(wsId) } catch(e) { /* transient */ }
+      if (result) break
+      if (attempt < 2) await new Promise(r => setTimeout(r, 700 * (attempt + 1)))
+    }
     if (!result) {
       console.error(`[payway-link] getTienda null para wsId=${wsId}`)
       return res.status(404).json({ error: 'Tienda no encontrada', wsId })
@@ -5966,11 +5972,19 @@ app.post('/api/store/payway-link', async (req, res) => {
     }
 
     console.log(`[payway-link] Llamando PayWay para ws=${wsId} siteId=${pw.siteId} total=${total} template=${payload.template_id}`)
-    const r = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'apikey': pw.privateKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
+    const _pwAbort = new AbortController()
+    const _pwTimeout = setTimeout(() => _pwAbort.abort(), 15000)
+    let r
+    try {
+      r = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'apikey': pw.privateKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: _pwAbort.signal
+      })
+    } finally {
+      clearTimeout(_pwTimeout)
+    }
     const rawText = await r.text()
     let data; try { data = JSON.parse(rawText) } catch(e) { data = { rawText } }
     if (!r.ok) {

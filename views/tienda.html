@@ -6028,15 +6028,20 @@ async function submitCheckout() {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: _pwPayload
       })
       let r = await _pwFetch()
-      // Retry una vez si cold-start 404/502/503
-      if ((r.status === 404 || r.status === 502 || r.status === 503) && WS) {
+      // Reintentos en cold-start (404/500/502/503) — hasta 2 intentos extra con espera creciente
+      const _pwRetriable = s => s === 404 || s === 500 || s === 502 || s === 503
+      if (_pwRetriable(r.status) && WS) {
         btn.textContent = 'Conectando...'
-        await new Promise(res => setTimeout(res, 2000))
+        await new Promise(res => setTimeout(res, 1500))
         r = await _pwFetch()
+        if (_pwRetriable(r.status)) {
+          await new Promise(res => setTimeout(res, 2500))
+          r = await _pwFetch()
+        }
         btn.textContent = 'Redirigiendo a PayWay...'
       }
       const data = await r.json()
-      if (!data.ok || !data.checkoutUrl) throw new Error(data.error || 'Error generando link de pago')
+      if (!data.ok || !data.checkoutUrl) throw new Error(data.error || 'Error al conectar con PayWay. Intentá de nuevo.')
       window.location.href = data.checkoutUrl
     } catch(e) {
       btn.disabled = false; btn.textContent = 'Confirmar pedido →'
