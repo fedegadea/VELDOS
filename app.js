@@ -5928,24 +5928,14 @@ app.post('/api/store/payway-link', async (req, res) => {
     const proto   = req.headers['x-forwarded-proto'] || 'https'
     const baseUrl = `${proto}://${host}`
 
-    const customerEmail = cliente.email && cliente.email.includes('@') ? cliente.email : undefined
     const payload = {
       site_transaction_id: orderId,
+      site: String(pw.siteId),
       currency: 'ARS',
       amount: parseFloat(total),
-      site: String(pw.siteId),
-      ...(pw.templateId ? { template_id: parseInt(pw.templateId) } : {}),
       redirect_url:      `${baseUrl}/api/store/payway-return?wsId=${wsId}&orderId=${orderId}`,
       cancel_url:        `${baseUrl}/tienda?ws=${wsId}&payway=cancelado`,
       notifications_url: `${baseUrl}/api/store/payway-notify?wsId=${wsId}&orderId=${orderId}`,
-      installments: [1, 3, 6, 12],
-      ...(pw.publicKey ? { public_apikey: pw.publicKey } : {}),
-      payment_description: `Pedido #${numero}`,
-      customer: {
-        id: String(cliente.tel || cliente.email || orderId).slice(0, 40),
-        name: `${cliente.nombre || ''} ${cliente.apellido || ''}`.trim() || 'Cliente',
-        ...(customerEmail ? { email: customerEmail } : {})
-      }
     }
 
     // Llamar a PayWay PRIMERO — el pending order save puede colgar si el workspace es grande
