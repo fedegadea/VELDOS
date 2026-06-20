@@ -6309,11 +6309,12 @@ app.get('/api/ugc/solicitudes/:id/cupon', _requireCreadora, async (req, res) => 
 
 // ── PORTAL: actualizar perfil ─────────────────────────────────
 app.patch('/api/ugc/mi-perfil', _requireCreadora, async (req, res) => {
-  const { instagram_url, nombre } = req.body
+  const { instagram_url, nombre, drive_link } = req.body
   // Don't overwrite existing data with empty strings
   const patch = {}
   if (nombre !== undefined && nombre !== '') patch.nombre = nombre
   if (instagram_url !== undefined && instagram_url !== '') patch.instagram_url = instagram_url
+  if (drive_link !== undefined) patch.drive_link = drive_link || null
   if (!Object.keys(patch).length) return res.json({ ok: true })
   try {
     const r = await _supa('PATCH', `ugc_creadoras?id=eq.${req.creadoraId}`, {
@@ -6328,6 +6329,34 @@ app.patch('/api/ugc/mi-perfil', _requireCreadora, async (req, res) => {
     }
     res.json({ ok: true, creadora })
   } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── PORTAL: acuerdo vigente de la creadora ───────────────────
+app.get('/api/ugc/mi-acuerdo', _requireCreadora, async (req, res) => {
+  try {
+    const r = await _supa('GET', 'ugc_acuerdos', {
+      filter: `creadora_id=eq.${req.creadoraId}&activo=eq.true&order=created_at.desc&limit=1`
+    })
+    res.json(r.data?.[0] || null)
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── PORTAL: seguimiento mensual de la creadora ───────────────
+app.get('/api/ugc/mi-seguimiento', _requireCreadora, async (req, res) => {
+  const { wsId } = req.query
+  try {
+    const now = new Date()
+    const desde = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    const hasta = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString()
+    const r = await _supa('GET', 'ugc_solicitudes', {
+      filter: `creadora_id=eq.${req.creadoraId}&estado=eq.realizada&fecha_resolucion=gte.${desde}&fecha_resolucion=lt.${hasta}`,
+      select: 'id,fecha_resolucion,ugc_canjes(ws_id)'
+    })
+    const sols = (r.data || []).filter(s => !wsId || s.ugc_canjes?.ws_id === wsId)
+    const semanas = [0,0,0,0,0]
+    sols.forEach(s => { const d=new Date(s.fecha_resolucion).getDate(); semanas[Math.min(Math.ceil(d/7),5)-1]++ })
+    res.json({ total: sols.length, semanas })
+  } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
 // ── ADMIN: canjes CRUD ────────────────────────────────────────
@@ -6588,12 +6617,76 @@ app.delete('/api/admin/ugc/creadoras/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
-// ── ADMIN: listar creadoras ──────────────────────────────────
+// ── ADMIN: listar creadoras (con acuerdo activo) ─────────────
 app.get('/api/admin/ugc/creadoras', async (req, res) => {
   try {
-    const r = await _supa('GET', 'ugc_creadoras', { filter: 'order=created_at.desc' })
-    res.json(r.data || [])
+    const [cR, aR] = await Promise.all([
+      _supa('GET', 'ugc_creadoras', { filter: 'order=created_at.desc' }),
+      _supa('GET', 'ugc_acuerdos', { filter: 'activo=eq.true' })
+    ])
+    const acuerdoMap = {}
+    for (const a of aR.data || []) acuerdoMap[a.creadora_id] = a
+    const creadoras = (cR.data || []).map(c => ({ ...c, acuerdo: acuerdoMap[c.id] || null }))
+    res.json(creadoras)
   } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── ADMIN: actualizar creadora (drive_link) ──────────────────
+app.patch('/api/admin/ugc/creadoras/:id', async (req, res) => {
+  const { id } = req.params
+  const { drive_link } = req.body
+  if (drive_link === undefined) return res.status(400).json({ error: 'Nada que actualizar' })
+  try {
+    const r = await _supa('PATCH', `ugc_creadoras?id=eq.${id}`, {
+      prefer: 'return=minimal', body: { drive_link: drive_link || null }
+    })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── ADMIN: guardar acuerdo (crea nuevo, desactiva anterior) ──
+app.post('/api/admin/ugc/creadoras/:id/acuerdo', async (req, res) => {
+  const { id } = req.params
+  const { tipo, monto_fijo_mensual, acciones_comprometidas_mes, notas } = req.body
+  if (!tipo) return res.status(400).json({ error: 'Falta tipo' })
+  try {
+    await _supa('PATCH', `ugc_acuerdos?creadora_id=eq.${id}&activo=eq.true`,
+      { prefer: 'return=minimal', body: { activo: false } })
+    const r = await _supa('POST', 'ugc_acuerdos', {
+      prefer: 'return=representation',
+      body: {
+        creadora_id: id, tipo, activo: true,
+        monto_fijo_mensual: monto_fijo_mensual != null && monto_fijo_mensual !== '' ? parseFloat(monto_fijo_mensual) : null,
+        acciones_comprometidas_mes: acciones_comprometidas_mes != null && acciones_comprometidas_mes !== '' ? parseInt(acciones_comprometidas_mes) : null,
+        notas: notas || null
+      }
+    })
+    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
+    res.json({ ok: true, acuerdo: r.data?.[0] })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── ADMIN: seguimiento mensual de todas las creadoras ────────
+app.get('/api/admin/ugc/seguimiento', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const now = new Date()
+    const desde = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    const hasta = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString()
+    const r = await _supa('GET', 'ugc_solicitudes', {
+      filter: `estado=eq.realizada&fecha_resolucion=gte.${desde}&fecha_resolucion=lt.${hasta}`,
+      select: 'creadora_id,fecha_resolucion,ugc_canjes(ws_id)'
+    })
+    const map = {}
+    for (const s of (r.data || []).filter(s => s.ugc_canjes?.ws_id === wsId)) {
+      if (!map[s.creadora_id]) map[s.creadora_id] = [0,0,0,0,0]
+      const d = new Date(s.fecha_resolucion).getDate()
+      map[s.creadora_id][Math.min(Math.ceil(d/7),5)-1]++
+    }
+    res.json(map)
+  } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
 // ── ADMIN: stats ─────────────────────────────────────────────

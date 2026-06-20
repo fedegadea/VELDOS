@@ -4302,6 +4302,58 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <div id="ugc-creadoras-list"></div>
   </div>
 
+  <!-- Modal: acuerdo con creadora -->
+  <div id="acuerdo-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:901;align-items:center;justify-content:center;padding:16px">
+    <div style="background:var(--s1);border:1px solid var(--border2);border-radius:14px;padding:26px;width:100%;max-width:440px;position:relative">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <div style="font-size:15px;font-weight:700;color:var(--text)" id="acuerdo-modal-title">Acuerdo</div>
+        <button onclick="closeAcuerdoModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:2px 6px">×</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div>
+          <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">Tipo de acuerdo</label>
+          <select id="acuerdo-tipo" onchange="_onAcuerdoTipoChange()" style="width:100%;padding:9px 12px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px">
+            <option value="canje">Canje</option>
+            <option value="fijo_mensual">Fijo mensual</option>
+            <option value="fijo_comision">Fijo + comisión</option>
+          </select>
+        </div>
+        <div id="acuerdo-monto-row">
+          <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">Monto fijo mensual ($)</label>
+          <input id="acuerdo-monto" type="number" min="0" placeholder="Ej: 50000" style="width:100%;padding:9px 12px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">Acciones comprometidas por mes</label>
+          <input id="acuerdo-acciones" type="number" min="0" placeholder="Ej: 4" style="width:100%;padding:9px 12px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;box-sizing:border-box">
+          <div style="font-size:10px;color:var(--muted);margin-top:4px">Dejar vacío si no hay compromiso de cantidad</div>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">Notas internas</label>
+          <textarea id="acuerdo-notas" rows="3" placeholder="Condiciones, vigencia, detalles del acuerdo..." style="width:100%;padding:9px 12px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
+        </div>
+        <div id="acuerdo-err" style="color:var(--coral);font-size:12px;min-height:16px"></div>
+        <button id="acuerdo-save-btn" onclick="saveAcuerdo()" class="btn btn-primary" style="width:100%">Guardar acuerdo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: drive link -->
+  <div id="drive-link-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:901;align-items:center;justify-content:center;padding:16px">
+    <div style="background:var(--s1);border:1px solid var(--border2);border-radius:14px;padding:26px;width:100%;max-width:400px;position:relative">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <div style="font-size:15px;font-weight:700;color:var(--text)">📁 Link de Drive</div>
+        <button onclick="closeDriveLinkModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:2px 6px">×</button>
+      </div>
+      <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">URL de la carpeta de Drive</label>
+      <input id="drive-link-input" type="url" placeholder="https://drive.google.com/drive/folders/..." style="width:100%;padding:9px 12px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;box-sizing:border-box;margin-bottom:12px">
+      <div id="drive-link-err" style="color:var(--coral);font-size:12px;min-height:16px;margin-bottom:8px"></div>
+      <div style="display:flex;gap:8px">
+        <button onclick="closeDriveLinkModal()" class="btn" style="flex:1">Cancelar</button>
+        <button id="drive-link-save-btn" onclick="saveDriveLink()" class="btn btn-primary" style="flex:1">Guardar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal: crear/editar canje -->
   <div id="ugc-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:900;display:none;align-items:center;justify-content:center;padding:16px">
     <div style="background:var(--s1);border:1px solid var(--border2);border-radius:14px;padding:28px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;position:relative">
@@ -24278,30 +24330,151 @@ function renderUgcSolicitudes(){
   }).join('')+'</div>';
 }
 
+// ── Seguimiento: meses en español ────────────────────────────
+const _MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+const _TIPO_ACUERDO_LABEL={'canje':'Canje','fijo_mensual':'Fijo mensual','fijo_comision':'Fijo + comisión'}
+
+function _renderSeguimiento(semanas, comprometidas, mesLabel){
+  const total = semanas.reduce((a,b)=>a+b,0)
+  const pct = comprometidas ? Math.min(100, Math.round(total/comprometidas*100)) : null
+  const barColor = pct==null?'var(--accent)':pct>=100?'var(--green)':pct>=60?'var(--accent)':'var(--coral)'
+  return `<div style="margin-top:12px;padding:12px 14px;background:var(--s2);border-radius:10px;border:1px solid var(--border)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Cumplimiento ${mesLabel}</span>
+      <span style="font-size:12px;font-weight:700;color:${barColor}">${total}${comprometidas?` / ${comprometidas} acciones`:' entregadas'}</span>
+    </div>
+    ${comprometidas?`<div style="height:6px;background:var(--border2);border-radius:4px;overflow:hidden;margin-bottom:8px">
+      <div style="height:100%;width:${pct}%;background:${barColor};border-radius:4px;transition:width .4s"></div>
+    </div>`:''}
+    <div style="display:flex;gap:6px">
+      ${semanas.map((n,i)=>`<div style="flex:1;text-align:center;background:var(--s1);border-radius:6px;padding:5px 2px;border:1px solid var(--border)">
+        <div style="font-size:9px;color:var(--muted);margin-bottom:2px">S${i+1}</div>
+        <div style="font-size:13px;font-weight:700;color:${n>0?barColor:'var(--muted)'}">${n}</div>
+      </div>`).join('')}
+    </div>
+  </div>`
+}
+
+let _ugcSeguimientoMap = {}
+let _ugcCreadoras = []
+
 async function loadUgcCreadoras(){
   const el=document.getElementById('ugc-creadoras-list'); if(!el)return;
   el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:16px 0">Cargando...</div>';
   try{
-    const r=await fetch('/api/admin/ugc/creadoras');
-    const list=await r.json();
+    const wsId=_activeWsId
+    const [cRes, sRes] = await Promise.all([
+      fetch('/api/admin/ugc/creadoras').then(r=>r.json()),
+      wsId ? fetch(`/api/admin/ugc/seguimiento?wsId=${wsId}`).then(r=>r.json()).catch(()=>({})) : Promise.resolve({})
+    ])
+    const list = Array.isArray(cRes) ? cRes : []
+    _ugcSeguimientoMap = sRes || {}
     if(!list.length){
       el.innerHTML='<div style="color:var(--muted);font-size:13px;padding:24px;text-align:center;background:var(--s1);border-radius:10px;border:1px dashed var(--border2)">Ninguna creadora registrada aún</div>';
       return;
     }
-    el.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead><tr style="border-bottom:1px solid var(--border2)">
-        <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Creadora</th>
-        <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Instagram</th>
-        <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Registrada</th>
-        <th style="padding:8px 10px"></th>
-      </tr></thead>
-      <tbody>`+list.map(c=>`<tr style="border-bottom:1px solid var(--border)">
-        <td style="padding:10px;"><div style="font-weight:600">${c.nombre||'—'}</div><div style="color:var(--muted);font-size:11px">📱 ${c.telefono}</div></td>
-        <td style="padding:10px;">${c.instagram_url?`<a href="${c.instagram_url}" target="_blank" style="color:var(--accent);text-decoration:none;font-size:11px">📷 Ver perfil</a>`:'<span style="color:var(--muted)">—</span>'}</td>
-        <td style="padding:10px;color:var(--muted)">${_fmtDate(c.created_at)}</td>
-        <td style="padding:10px;text-align:right"><button class="btn btn-xs" onclick="deleteUgcCreadora('${c.id}','${(c.nombre||c.telefono||'').replace(/'/g,'')}')" style="color:var(--coral);opacity:.55" title="Eliminar creadora">🗑</button></td>
-      </tr>`).join('')+'</tbody></table>';
-  }catch(e){el.innerHTML='<div style="color:var(--coral);font-size:12px">Error al cargar</div>';}
+    _ugcCreadoras = list
+    const now=new Date(); const mesLabel=_MESES[now.getMonth()]+' '+now.getFullYear()
+    el.innerHTML=list.map((c,i)=>{
+      const a=c.acuerdo
+      const semanas=_ugcSeguimientoMap[c.id]||[0,0,0,0,0]
+      const comprometidas=a?.acciones_comprometidas_mes||null
+      return `<div style="background:var(--s1);border:1px solid var(--border2);border-radius:12px;padding:16px 18px;margin-bottom:12px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:700;color:var(--text)">${c.nombre||'Sin nombre'}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">📱 ${c.telefono}</div>
+            <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
+              ${c.instagram_url?`<a href="${c.instagram_url}" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">📷 Instagram</a>`:''}
+              ${c.drive_link?`<a href="${c.drive_link}" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">📁 Drive</a>`:''}
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+            <button class="btn btn-xs" onclick="openAcuerdoModal('${c.id}')" title="Editar acuerdo">📝 Acuerdo</button>
+            <button class="btn btn-xs" onclick="openDriveLinkModal('${c.id}')" title="Link de Drive">📁 Drive</button>
+            <button class="btn btn-xs" onclick="deleteUgcCreadora('${c.id}',_ugcCreadoras.find(x=>x.id==='${c.id}')?.nombre||'')" style="color:var(--coral);opacity:.6" title="Eliminar">🗑</button>
+          </div>
+        </div>
+        ${a ? `<div style="margin-top:12px;padding:10px 12px;background:var(--s2);border-radius:8px;border:1px solid var(--border);font-size:12px">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <span style="font-weight:700;color:var(--text)">${_TIPO_ACUERDO_LABEL[a.tipo]||a.tipo}</span>
+            ${a.monto_fijo_mensual!=null?`<span style="color:var(--muted)">$${Number(a.monto_fijo_mensual).toLocaleString('es-AR')}/mes</span>`:''}
+            ${a.acciones_comprometidas_mes!=null?`<span style="background:var(--s1);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:11px;color:var(--text)">${a.acciones_comprometidas_mes} acciones/mes</span>`:''}
+          </div>
+          ${a.notas?`<div style="margin-top:6px;color:var(--muted);font-size:11px">${a.notas}</div>`:''}
+        </div>` : `<div style="margin-top:10px;font-size:11px;color:var(--muted);font-style:italic">Sin acuerdo cargado — <button class="btn btn-xs" style="font-size:11px;padding:2px 8px" onclick="openAcuerdoModal('${c.id}')">+ Agregar</button></div>`}
+        ${(a?.acciones_comprometidas_mes||semanas.some(n=>n>0)) ? _renderSeguimiento(semanas, comprometidas, mesLabel) : ''}
+      </div>`
+    }).join('')
+  }catch(e){console.error(e);el.innerHTML='<div style="color:var(--coral);font-size:12px">Error al cargar creadoras</div>';}
+}
+
+// ── Modal: acuerdo ────────────────────────────────────────────
+let _acuerdoModalId=null
+function openAcuerdoModal(id){
+  _acuerdoModalId=id
+  const c=_ugcCreadoras.find(x=>x.id===id)||{}
+  const a=c.acuerdo||null
+  document.getElementById('acuerdo-modal-title').textContent='Acuerdo con '+(c.nombre||c.telefono||id)
+  document.getElementById('acuerdo-tipo').value=a?.tipo||'canje'
+  document.getElementById('acuerdo-monto').value=a?.monto_fijo_mensual??''
+  document.getElementById('acuerdo-acciones').value=a?.acciones_comprometidas_mes??''
+  document.getElementById('acuerdo-notas').value=a?.notas||''
+  document.getElementById('acuerdo-err').textContent=''
+  _onAcuerdoTipoChange()
+  document.getElementById('acuerdo-modal').style.display='flex'
+}
+function closeAcuerdoModal(){document.getElementById('acuerdo-modal').style.display='none';_acuerdoModalId=null}
+function _onAcuerdoTipoChange(){
+  const t=document.getElementById('acuerdo-tipo').value
+  document.getElementById('acuerdo-monto-row').style.display=(t==='fijo_mensual'||t==='fijo_comision')?'':'none'
+}
+async function saveAcuerdo(){
+  if(!_acuerdoModalId)return
+  const btn=document.getElementById('acuerdo-save-btn')
+  btn.disabled=true; btn.textContent='Guardando...'
+  const body={
+    tipo:document.getElementById('acuerdo-tipo').value,
+    monto_fijo_mensual:document.getElementById('acuerdo-monto').value||null,
+    acciones_comprometidas_mes:document.getElementById('acuerdo-acciones').value||null,
+    notas:document.getElementById('acuerdo-notas').value||null
+  }
+  try{
+    const r=await fetch(`/api/admin/ugc/creadoras/${_acuerdoModalId}/acuerdo`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    const d=await r.json()
+    if(!d.ok)throw new Error(d.error||'Error')
+    notify('Acuerdo guardado')
+    closeAcuerdoModal()
+    loadUgcCreadoras()
+  }catch(e){document.getElementById('acuerdo-err').textContent=e.message}
+  finally{btn.disabled=false;btn.textContent='Guardar acuerdo'}
+}
+
+// ── Modal: drive link ─────────────────────────────────────────
+let _driveLinkModalId=null
+function openDriveLinkModal(id){
+  _driveLinkModalId=id
+  const c=_ugcCreadoras.find(x=>x.id===id)||{}
+  document.getElementById('drive-link-input').value=c.drive_link||''
+  document.getElementById('drive-link-err').textContent=''
+  document.getElementById('drive-link-modal').style.display='flex'
+  setTimeout(()=>document.getElementById('drive-link-input').focus(),80)
+}
+function closeDriveLinkModal(){document.getElementById('drive-link-modal').style.display='none';_driveLinkModalId=null}
+async function saveDriveLink(){
+  if(!_driveLinkModalId)return
+  const btn=document.getElementById('drive-link-save-btn')
+  btn.disabled=true; btn.textContent='Guardando...'
+  const val=document.getElementById('drive-link-input').value.trim()
+  try{
+    const r=await fetch(`/api/admin/ugc/creadoras/${_driveLinkModalId}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({drive_link:val||null})})
+    const d=await r.json()
+    if(!d.ok)throw new Error(d.error||'Error')
+    notify('Drive guardado')
+    closeDriveLinkModal()
+    loadUgcCreadoras()
+  }catch(e){document.getElementById('drive-link-err').textContent=e.message}
+  finally{btn.disabled=false;btn.textContent='Guardar'}
 }
 
 let _ugcPortadaPending=null;
