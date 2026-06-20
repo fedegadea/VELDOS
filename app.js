@@ -6014,6 +6014,47 @@ app.post('/api/store/payway-link', async (req, res) => {
   }
 })
 
+// GET /api/debug/payway-test — test crudo de la API de PayWay (temporal)
+app.get('/api/debug/payway-test', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.json({ error: 'wsId required' })
+  let result; try { result = await getTienda(wsId) } catch(e) { return res.json({ error: e.message }) }
+  if (!result) return res.json({ error: 'tienda no encontrada' })
+  const _pwRaw = result.t.settings?.payway || {}
+  const pw = {
+    siteId:     _pwRaw.siteId     || process.env.PAYWAY_SITE_ID     || '',
+    templateId: _pwRaw.templateId || process.env.PAYWAY_TEMPLATE_ID || '',
+    privateKey: _pwRaw.privateKey || process.env.PAYWAY_PRIVATE_KEY || '',
+    publicKey:  _pwRaw.publicKey  || process.env.PAYWAY_PUBLIC_KEY  || '',
+    sandbox:    _pwRaw.sandbox    || false,
+  }
+  const endpoint = pw.sandbox
+    ? 'https://developers.decidir.com/api/v1/checkout-payment-button/link'
+    : 'https://ventasonline.payway.com.ar/api/v1/checkout-payment-button/link'
+  const payload = {
+    site_transaction_id: 'debug_' + Date.now(),
+    site: String(pw.siteId),
+    template_id: parseInt(pw.templateId) || 1,
+    currency: 'ARS',
+    amount: 100,
+    redirect_url: 'https://soul-ecommlab.com/tienda',
+    cancel_url: 'https://soul-ecommlab.com/tienda',
+    notifications_url: 'https://soul-ecommlab.com/api/store/payway-notify',
+  }
+  let rawText, status
+  try {
+    const r = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'apikey': pw.privateKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    status = r.status
+    rawText = await r.text()
+  } catch(e) { return res.json({ error: e.message, payload, config: { siteId: pw.siteId, templateId: pw.templateId, hasPK: !!pw.privateKey, sandbox: pw.sandbox } }) }
+  let parsed; try { parsed = JSON.parse(rawText) } catch(e) { parsed = null }
+  res.json({ status, payload, config: { siteId: pw.siteId, templateId: pw.templateId, hasPK: !!pw.privateKey, sandbox: pw.sandbox }, response: parsed || rawText })
+})
+
 // GET /api/store/payway-return — PayWay redirige aquí después del pago
 app.get('/api/store/payway-return', async (req, res) => {
   const { wsId, orderId } = req.query
