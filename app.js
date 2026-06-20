@@ -5934,7 +5934,7 @@ app.post('/api/store/payway-link', async (req, res) => {
       currency: 'ARS',
       amount: parseFloat(total),
       site: String(pw.siteId),
-      template_id: parseInt(pw.templateId) || 1,
+      ...(pw.templateId ? { template_id: parseInt(pw.templateId) } : {}),
       redirect_url:      `${baseUrl}/api/store/payway-return?wsId=${wsId}&orderId=${orderId}`,
       cancel_url:        `${baseUrl}/tienda?ws=${wsId}&payway=cancelado`,
       notifications_url: `${baseUrl}/api/store/payway-notify?wsId=${wsId}&orderId=${orderId}`,
@@ -6025,34 +6025,39 @@ app.get('/api/debug/payway-test', async (req, res) => {
     siteId:     _pwRaw.siteId     || process.env.PAYWAY_SITE_ID     || '',
     templateId: _pwRaw.templateId || process.env.PAYWAY_TEMPLATE_ID || '',
     privateKey: _pwRaw.privateKey || process.env.PAYWAY_PRIVATE_KEY || '',
-    publicKey:  _pwRaw.publicKey  || process.env.PAYWAY_PUBLIC_KEY  || '',
     sandbox:    _pwRaw.sandbox    || false,
   }
   const endpoint = pw.sandbox
     ? 'https://developers.decidir.com/api/v1/checkout-payment-button/link'
     : 'https://ventasonline.payway.com.ar/api/v1/checkout-payment-button/link'
-  const payload = {
-    site_transaction_id: 'debug_' + Date.now(),
-    site: String(pw.siteId),
-    template_id: parseInt(pw.templateId) || 1,
-    currency: 'ARS',
-    amount: 100,
-    redirect_url: 'https://soul-ecommlab.com/tienda',
-    cancel_url: 'https://soul-ecommlab.com/tienda',
-    notifications_url: 'https://soul-ecommlab.com/api/store/payway-notify',
+
+  // Probar con y sin template_id
+  const results = {}
+  for (const useTemplate of [true, false]) {
+    const payload = {
+      site_transaction_id: 'debug_' + Date.now() + (useTemplate ? '_tmpl' : '_notmpl'),
+      site: String(pw.siteId),
+      ...(useTemplate && pw.templateId ? { template_id: parseInt(pw.templateId) } : {}),
+      currency: 'ARS',
+      amount: 1000,
+      redirect_url: 'https://soul-ecommlab.com/tienda',
+      cancel_url: 'https://soul-ecommlab.com/tienda',
+      notifications_url: 'https://soul-ecommlab.com/api/store/payway-notify',
+    }
+    try {
+      const r = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'apikey': pw.privateKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      const txt = await r.text()
+      let parsed; try { parsed = JSON.parse(txt) } catch(e) { parsed = txt }
+      results[useTemplate ? 'with_template' : 'without_template'] = { status: r.status, payload, response: parsed }
+    } catch(e) {
+      results[useTemplate ? 'with_template' : 'without_template'] = { error: e.message }
+    }
   }
-  let rawText, status
-  try {
-    const r = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'apikey': pw.privateKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    status = r.status
-    rawText = await r.text()
-  } catch(e) { return res.json({ error: e.message, payload, config: { siteId: pw.siteId, templateId: pw.templateId, hasPK: !!pw.privateKey, sandbox: pw.sandbox } }) }
-  let parsed; try { parsed = JSON.parse(rawText) } catch(e) { parsed = null }
-  res.json({ status, payload, config: { siteId: pw.siteId, templateId: pw.templateId, hasPK: !!pw.privateKey, sandbox: pw.sandbox }, response: parsed || rawText })
+  res.json({ config: { siteId: pw.siteId, templateId: pw.templateId, hasPK: !!pw.privateKey, sandbox: pw.sandbox }, results })
 })
 
 // GET /api/store/payway-return — PayWay redirige aquí después del pago
