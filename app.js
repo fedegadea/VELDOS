@@ -5931,9 +5931,8 @@ app.post('/api/store/payway-link', async (req, res) => {
     const customerEmail = cliente.email && cliente.email.includes('@') ? cliente.email : undefined
     const payload = {
       site_transaction_id: orderId,
-      origin_platform: 'WEB',
       currency: 'ARS',
-      total_price: parseFloat(total),
+      amount: parseFloat(total),
       site: String(pw.siteId),
       template_id: parseInt(pw.templateId) || 1,
       redirect_url:      `${baseUrl}/api/store/payway-return?wsId=${wsId}&orderId=${orderId}`,
@@ -5967,10 +5966,8 @@ app.post('/api/store/payway-link', async (req, res) => {
     let data; try { data = JSON.parse(rawText) } catch(e) { data = { rawText } }
     if (!r.ok) {
       const errDetail = data.validation_errors?.[0]?.message || data.validation_errors?.[0]?.code
-        || data.param || data.description || data.error || rawText.slice(0, 300)
-      console.log(`[PW-ERR-A] ${r.status} site=${pw.siteId} tmpl=${payload.template_id}`)
-      console.log(`[PW-ERR-B] ${rawText.slice(0, 280)}`)
-      console.log(`[PW-ERR-C] ${rawText.slice(280, 560)}`)
+        || data.param || data.description || data.error || rawText.slice(0, 200)
+      console.error(`[PW-ERR] ${r.status} | SENT:${JSON.stringify(payload).slice(0,300)} | GOT:${rawText.slice(0,400)}`)
       return res.status(502).json({ error: `PayWay error ${r.status}: ${errDetail}`, raw: data })
     }
 
