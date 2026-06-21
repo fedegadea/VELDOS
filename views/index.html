@@ -21206,47 +21206,112 @@ function crealPublishToMeta() {
 
     <!-- Config formulario de bienvenida -->
     <div id="cm-panel-form" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-      <div class="dif-card">
-        <div class="dif-card-title">✨ Personalizar formulario</div>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Paso 1 — Nombre</div>
-          <div class="form-group" style="margin:0"><label class="form-label">Emoji decorativo</label>
-            <input class="form-input" id="cf-emoji" placeholder="✨" maxlength="4" oninput="renderCaptureFormPreview()"></div>
-          <div class="form-group" style="margin:0"><label class="form-label">Título</label>
-            <input class="form-input" id="cf-titulo" placeholder="¿Cómo te llamamos?" oninput="renderCaptureFormPreview()"></div>
-          <div class="form-group" style="margin:0"><label class="form-label">Subtítulo</label>
-            <input class="form-input" id="cf-subtitulo" placeholder="Antes de ver el producto, queremos conocerte" oninput="renderCaptureFormPreview()"></div>
-          <div class="form-group" style="margin:0"><label class="form-label">Texto del botón</label>
-            <input class="form-input" id="cf-boton" placeholder="Siguiente →" oninput="renderCaptureFormPreview()"></div>
-          <div class="form-group" style="margin:0"><label class="form-label">Color de acento</label>
-            <input type="color" id="cf-color" value="#111111" oninput="renderCaptureFormPreview()" style="width:100%;height:36px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--s2)"></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
 
-          <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:8px">Paso 2 — WhatsApp</div>
-          <div class="form-group" style="margin:0"><label class="form-label">Título</label>
-            <input class="form-input" id="cf-s2-titulo" placeholder="Tu WhatsApp"></div>
-          <div class="form-group" style="margin:0"><label class="form-label">Subtítulo</label>
-            <input class="form-input" id="cf-s2-subtitulo" placeholder="Te avisamos cuando haya novedades y descuentos"></div>
-          <div class="form-group" style="margin:0"><label class="form-label">Placeholder del campo</label>
-            <input class="form-input" id="cf-s2-placeholder" placeholder="11 1234-5678"></div>
-          <div class="form-group" style="margin:0"><label class="form-label">Texto del botón</label>
-            <input class="form-input" id="cf-s2-boton" placeholder="Siguiente →"></div>
+        <!-- Diseño visual -->
+        <div class="dif-card">
+          <div class="dif-card-title">🎨 Diseño visual</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div class="form-group" style="margin:0"><label class="form-label">Emoji / ícono</label>
+                <input class="form-input" id="cf-emoji" placeholder="✨" maxlength="4" oninput="renderCaptureFormPreview()"></div>
+              <div class="form-group" style="margin:0"><label class="form-label">Color de acento</label>
+                <input type="color" id="cf-color" value="#111111" oninput="renderCaptureFormPreview()" style="width:100%;height:36px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--s2)"></div>
+            </div>
+            <div class="form-group" style="margin:0"><label class="form-label">Título principal</label>
+              <input class="form-input" id="cf-titulo" placeholder="¿Cómo te llamamos?" oninput="renderCaptureFormPreview()"></div>
+            <div class="form-group" style="margin:0"><label class="form-label">Subtítulo</label>
+              <input class="form-input" id="cf-subtitulo" placeholder="Antes de ver el producto, queremos conocerte" oninput="renderCaptureFormPreview()"></div>
+            <div class="form-group" style="margin:0"><label class="form-label">Imagen de fondo (URL)</label>
+              <input class="form-input" id="cf-bg-image" placeholder="https://... (opcional)" oninput="renderCaptureFormPreview()"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div class="form-group" style="margin:0"><label class="form-label">Layout</label>
+                <select class="form-select" id="cf-layout" onchange="renderCaptureFormPreview()">
+                  <option value="modal">Modal centrado</option>
+                  <option value="fullscreen">Fullscreen</option>
+                  <option value="slide">Slide-in abajo</option>
+                </select></div>
+              <div class="form-group" style="margin:0"><label class="form-label">Estilo botón</label>
+                <select class="form-select" id="cf-btn-style" onchange="renderCaptureFormPreview()">
+                  <option value="filled">Relleno (filled)</option>
+                  <option value="outlined">Contorno (outlined)</option>
+                  <option value="pill">Píldora redondeada</option>
+                </select></div>
+            </div>
+          </div>
+        </div>
 
-          <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:8px">Paso 3 — Email</div>
-          <div class="form-group" style="margin:0"><label class="form-label">Título</label>
-            <input class="form-input" id="cf-s3-titulo" placeholder="Tu email"></div>
-          <div class="form-group" style="margin:0"><label class="form-label">Subtítulo</label>
-            <input class="form-input" id="cf-s3-subtitulo" placeholder="Para enviarte confirmaciones y ofertas especiales"></div>
-          <div class="form-group" style="margin:0"><label class="form-label">Placeholder del campo</label>
-            <input class="form-input" id="cf-s3-placeholder" placeholder="tu@email.com"></div>
-          <div class="form-group" style="margin:0"><label class="form-label">Texto del botón</label>
-            <input class="form-input" id="cf-s3-boton" placeholder="Ver el producto →"></div>
+        <!-- Pasos activos -->
+        <div class="dif-card">
+          <div class="dif-card-title">📋 Pasos del formulario</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Activá solo los pasos que necesitás. Mínimo 1.</div>
 
-          <button class="btn btn-primary" onclick="saveCaptureFormSettings()" style="width:100%;padding:11px;margin-top:4px">💾 Guardar configuración</button>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <!-- Paso nombre -->
+            <div style="border:1px solid var(--border);border-radius:10px;padding:12px">
+              <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:8px">
+                <input type="checkbox" id="cf-step-nombre" checked onchange="renderCaptureFormPreview()"> Paso — Nombre
+              </label>
+              <div class="form-group" style="margin:0 0 6px"><input class="form-input" id="cf-boton" placeholder="Siguiente →" oninput="renderCaptureFormPreview()" style="font-size:11px" title="Texto del botón"></div>
+            </div>
+
+            <!-- Paso WA -->
+            <div style="border:1px solid var(--border);border-radius:10px;padding:12px">
+              <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:8px">
+                <input type="checkbox" id="cf-step-wa" checked onchange="renderCaptureFormPreview()"> Paso — WhatsApp
+              </label>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <input class="form-input" id="cf-s2-titulo" placeholder="Tu WhatsApp" style="font-size:11px" title="Título">
+                <input class="form-input" id="cf-s2-subtitulo" placeholder="Te avisamos con novedades y descuentos" style="font-size:11px" title="Subtítulo">
+                <input class="form-input" id="cf-s2-boton" placeholder="Siguiente →" style="font-size:11px" title="Botón">
+              </div>
+            </div>
+
+            <!-- Paso email -->
+            <div style="border:1px solid var(--border);border-radius:10px;padding:12px">
+              <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:8px">
+                <input type="checkbox" id="cf-step-email" checked onchange="renderCaptureFormPreview()"> Paso — Email
+              </label>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <input class="form-input" id="cf-s3-titulo" placeholder="Tu email" style="font-size:11px" title="Título">
+                <input class="form-input" id="cf-s3-subtitulo" placeholder="Para confirmaciones y ofertas exclusivas" style="font-size:11px" title="Subtítulo">
+                <input class="form-input" id="cf-s3-boton" placeholder="Entrar →" style="font-size:11px" title="Botón">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Incentivo -->
+        <div class="dif-card">
+          <div class="dif-card-title">🎁 Incentivo de conversión</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Se muestra en el último paso como motivación para completar.</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="form-group" style="margin:0"><label class="form-label">Texto del incentivo</label>
+              <input class="form-input" id="cf-incentivo" placeholder="🎁 10% OFF en tu primera compra" oninput="renderCaptureFormPreview()"></div>
+            <div class="form-group" style="margin:0"><label class="form-label">Código a mostrar al final (opcional)</label>
+              <input class="form-input" id="cf-codigo" placeholder="WELCOME10" oninput="renderCaptureFormPreview()"></div>
+          </div>
+        </div>
+
+        <!-- Botones -->
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-primary" onclick="saveCaptureFormSettings()" style="width:100%;padding:11px">💾 Guardar configuración</button>
+          <button class="btn" onclick="generateCaptureFormSnippet()" style="width:100%;padding:11px;background:var(--s2);border:1px solid var(--border)">🔗 Generar snippet para cualquier tienda</button>
+          <div id="cf-snippet-wrap" style="display:none">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Pegá esto antes de <code>&lt;/body&gt;</code>:</div>
+            <textarea id="cf-snippet" rows="5" readonly onclick="this.select()" style="width:100%;background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--muted2);font-size:10px;font-family:monospace;resize:vertical;box-sizing:border-box"></textarea>
+            <button class="btn btn-xs" style="margin-top:6px" onclick="navigator.clipboard.writeText(document.getElementById('cf-snippet').value);notify('✓ Copiado!')">📋 Copiar</button>
+          </div>
         </div>
       </div>
-      <div class="dif-card" style="position:sticky;top:80px;align-self:start">
-        <div class="dif-card-title">👁 Preview</div>
-        <div id="cf-preview" style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#f5f5f5;min-height:260px;display:flex;align-items:center;justify-content:center"></div>
+
+      <!-- Preview -->
+      <div style="position:sticky;top:80px;align-self:start">
+        <div class="dif-card">
+          <div class="dif-card-title">👁 Preview</div>
+          <div id="cf-preview" style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#f5f5f5;min-height:300px;display:flex;align-items:center;justify-content:center"></div>
+          <div style="font-size:10px;color:var(--muted);margin-top:8px;text-align:center">Vista del paso 1. Los pasos siguientes se muestran en el snippet real.</div>
+        </div>
       </div>
     </div>
 
@@ -23873,25 +23938,31 @@ function loadCaptureTabSettings() {
   const cfg = t.settings?.captureSettings || {};
   const mode = t.settings?.captureMode || 'form';
 
-  // Seleccionar radio
   const radio = document.querySelector(`input[name="capture-mode"][value="${mode}"]`);
   if (radio) { radio.checked = true; _updateCapturePanels(mode); }
 
-  // Cargar valores del formulario de bienvenida
-  const f = (id, v) => { const el = document.getElementById(id); if(el && v) el.value = v; };
-  f('cf-emoji', cfg.emoji || '');
-  f('cf-titulo', cfg.titulo || '');
-  f('cf-subtitulo', cfg.subtitulo || '');
-  f('cf-boton', cfg.boton || '');
-  if (cfg.color) { const el = document.getElementById('cf-color'); if(el) el.value = cfg.color; }
-  // Paso 2
+  const f = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined && v !== '') el.value = v; };
+  const cb = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined) el.checked = v; };
+
+  f('cf-emoji', cfg.emoji);
+  f('cf-titulo', cfg.titulo);
+  f('cf-subtitulo', cfg.subtitulo);
+  f('cf-boton', cfg.boton);
+  f('cf-bg-image', cfg.bgImage);
+  f('cf-incentivo', cfg.incentivo);
+  f('cf-codigo', cfg.codigoDescuento);
+  if (cfg.color) { const el = document.getElementById('cf-color'); if (el) el.value = cfg.color; }
+  if (cfg.layout) { const el = document.getElementById('cf-layout'); if (el) el.value = cfg.layout; }
+  if (cfg.btnStyle) { const el = document.getElementById('cf-btn-style'); if (el) el.value = cfg.btnStyle; }
+  cb('cf-step-nombre', cfg.stepNombre !== false);
+  cb('cf-step-wa',     cfg.stepWa     !== false);
+  cb('cf-step-email',  cfg.stepEmail  !== false);
+
   const s2 = cfg.paso2 || {};
-  f('cf-s2-titulo', s2.titulo || ''); f('cf-s2-subtitulo', s2.subtitulo || '');
-  f('cf-s2-placeholder', s2.placeholder || ''); f('cf-s2-boton', s2.boton || '');
-  // Paso 3
+  f('cf-s2-titulo', s2.titulo); f('cf-s2-subtitulo', s2.subtitulo); f('cf-s2-boton', s2.boton);
   const s3 = cfg.paso3 || {};
-  f('cf-s3-titulo', s3.titulo || ''); f('cf-s3-subtitulo', s3.subtitulo || '');
-  f('cf-s3-placeholder', s3.placeholder || ''); f('cf-s3-boton', s3.boton || '');
+  f('cf-s3-titulo', s3.titulo); f('cf-s3-subtitulo', s3.subtitulo); f('cf-s3-boton', s3.boton);
+
   renderCaptureFormPreview();
 }
 
@@ -23916,39 +23987,151 @@ function saveCaptureMode(mode) {
   notify(mode === 'form' ? '✨ Formulario de bienvenida activado' : mode === 'popup' ? '💬 Pop-up clásico activado' : '🚫 Captura desactivada');
 }
 
+function _cfVals() {
+  const g  = id => document.getElementById(id)?.value?.trim() || '';
+  const cb = id => document.getElementById(id)?.checked ?? true;
+  return {
+    emoji:    g('cf-emoji')    || '✨',
+    titulo:   g('cf-titulo')   || '¿Cómo te llamamos?',
+    subtitulo:g('cf-subtitulo')|| 'Antes de ver el producto, queremos conocerte',
+    boton:    g('cf-boton')    || 'Siguiente →',
+    color:    document.getElementById('cf-color')?.value || '#111111',
+    bgImage:  g('cf-bg-image'),
+    layout:   document.getElementById('cf-layout')?.value    || 'modal',
+    btnStyle: document.getElementById('cf-btn-style')?.value || 'filled',
+    stepNombre: cb('cf-step-nombre'),
+    stepWa:     cb('cf-step-wa'),
+    stepEmail:  cb('cf-step-email'),
+    incentivo:  g('cf-incentivo'),
+    codigoDescuento: g('cf-codigo'),
+    paso2: { titulo: g('cf-s2-titulo'), subtitulo: g('cf-s2-subtitulo'), boton: g('cf-s2-boton') || 'Siguiente →' },
+    paso3: { titulo: g('cf-s3-titulo'), subtitulo: g('cf-s3-subtitulo'), boton: g('cf-s3-boton') || 'Entrar →' },
+  };
+}
+
 function renderCaptureFormPreview() {
   const el = document.getElementById('cf-preview');
   if (!el) return;
-  const emoji = document.getElementById('cf-emoji')?.value || '✨';
-  const titulo = document.getElementById('cf-titulo')?.value || '¿Cómo te llamamos?';
-  const subtitulo = document.getElementById('cf-subtitulo')?.value || 'Antes de ver el producto, queremos conocerte un poco';
-  const boton = document.getElementById('cf-boton')?.value || 'Siguiente →';
-  const color = document.getElementById('cf-color')?.value || '#111111';
-  el.innerHTML = `<div style="padding:28px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff">
-    <div style="font-size:28px;margin-bottom:12px;text-align:center">${emoji}</div>
-    <div style="font-size:18px;font-weight:800;color:#111;margin-bottom:8px;text-align:center;letter-spacing:-0.04em">${titulo}</div>
-    <div style="font-size:13px;color:#666;margin-bottom:20px;text-align:center;line-height:1.5">${subtitulo}</div>
-    <input placeholder="Tu nombre" style="width:100%;border:1.5px solid #ddd;border-radius:12px;padding:14px 18px;font-size:14px;margin-bottom:14px;box-sizing:border-box;outline:none">
-    <button style="width:100%;background:${color};color:#fff;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:700;cursor:pointer">${boton}</button>
-    <div style="font-size:10px;color:#aaa;margin-top:12px;text-align:center">🔒 Tu información es privada. Nunca spam.</div>
+  const v = _cfVals();
+  const br = v.btnStyle === 'pill' ? '999px' : '12px';
+  const btnCss = v.btnStyle === 'outlined'
+    ? `background:transparent;color:${v.color};border:2px solid ${v.color};border-radius:${br};padding:13px;font-size:14px;font-weight:700;cursor:pointer;width:100%`
+    : `background:${v.color};color:#fff;border:none;border-radius:${br};padding:14px;font-size:14px;font-weight:700;cursor:pointer;width:100%`;
+  const bg = v.bgImage
+    ? `background:linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.45)),url('${v.bgImage}') center/cover;color:#fff`
+    : 'background:#fff';
+  const textColor = v.bgImage ? 'color:#fff' : 'color:#111';
+  const subColor  = v.bgImage ? 'color:rgba(255,255,255,.8)' : 'color:#666';
+  const inputBg   = v.bgImage ? 'background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.4)' : 'background:#fff;color:#111;border-color:#ddd';
+  const stepLabel = v.stepNombre ? (v.layout === 'fullscreen' ? 'Nombre' : 'Tu nombre') : v.stepWa ? 'Tu WhatsApp' : 'Tu email';
+  const incentivoBadge = v.incentivo
+    ? `<div style="background:${v.bgImage?'rgba(255,255,255,.2)':'#f5f5f5'};border-radius:8px;padding:8px 12px;font-size:11px;font-weight:700;margin-bottom:14px;${v.bgImage?'color:#fff':'color:#333'}">${v.incentivo}</div>`
+    : '';
+  el.innerHTML = `<div style="padding:${v.layout==='fullscreen'?'40px 32px':'28px 24px'};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;${bg};min-height:${v.layout==='slide'?'160px':'240px'};display:flex;flex-direction:column;justify-content:center">
+    <div style="font-size:${v.layout==='fullscreen'?'36px':'28px'};margin-bottom:10px;text-align:center">${v.emoji}</div>
+    <div style="font-size:${v.layout==='fullscreen'?'22px':'17px'};font-weight:800;margin-bottom:6px;text-align:center;letter-spacing:-.03em;${textColor}">${v.titulo}</div>
+    <div style="font-size:12px;margin-bottom:16px;text-align:center;line-height:1.5;${subColor}">${v.subtitulo}</div>
+    ${incentivoBadge}
+    <input placeholder="${stepLabel}" style="width:100%;border:1.5px solid #ddd;border-radius:12px;padding:13px 16px;font-size:14px;margin-bottom:12px;box-sizing:border-box;outline:none;${inputBg}">
+    <button style="${btnCss}">${v.boton}</button>
+    <div style="font-size:10px;margin-top:10px;text-align:center;${subColor}">🔒 Tu info es privada. Nunca spam.</div>
   </div>`;
 }
 
 function saveCaptureFormSettings() {
   if (!S.tienda) S.tienda = {};
   if (!S.tienda.settings) S.tienda.settings = {};
-  const g = id => document.getElementById(id)?.value?.trim() || '';
-  S.tienda.settings.captureSettings = {
-    emoji: g('cf-emoji'),
-    titulo: g('cf-titulo'),
-    subtitulo: g('cf-subtitulo'),
-    boton: g('cf-boton'),
-    color: document.getElementById('cf-color')?.value || '#111111',
-    paso2: { titulo: g('cf-s2-titulo'), subtitulo: g('cf-s2-subtitulo'), placeholder: g('cf-s2-placeholder'), boton: g('cf-s2-boton') },
-    paso3: { titulo: g('cf-s3-titulo'), subtitulo: g('cf-s3-subtitulo'), placeholder: g('cf-s3-placeholder'), boton: g('cf-s3-boton') },
-  };
+  S.tienda.settings.captureSettings = _cfVals();
   save();
-  notify('✅ Configuración del formulario guardada');
+  notify('✅ Configuración guardada');
+}
+
+function generateCaptureFormSnippet() {
+  const wsId = _activeWsId || '';
+  if (!wsId) { notify('Seleccioná un workspace primero'); return; }
+  const v = _cfVals();
+  const api = 'https://soul-ecommlab.com';
+  // Build steps array
+  const steps = [];
+  if (v.stepNombre) steps.push({ field:'nombre', placeholder:'Tu nombre',    titulo: v.titulo,       subtitulo: v.subtitulo,        boton: v.boton });
+  if (v.stepWa)     steps.push({ field:'tel',    placeholder:'Tu WhatsApp',  titulo: v.paso2.titulo||'Tu WhatsApp', subtitulo: v.paso2.subtitulo||'', boton: v.paso2.boton });
+  if (v.stepEmail)  steps.push({ field:'email',  placeholder:'Tu email',     titulo: v.paso3.titulo||'Tu email',   subtitulo: v.paso3.subtitulo||'', boton: v.paso3.boton });
+  if (!steps.length) { notify('Activá al menos un paso'); return; }
+  const br = v.btnStyle === 'pill' ? '999px' : '12px';
+  const cfg = { wsId, api, steps, color: v.color, bgImage: v.bgImage||'', layout: v.layout, btnStyle: v.btnStyle, br, emoji: v.emoji, incentivo: v.incentivo||'', codigo: v.codigoDescuento||'' };
+  const snippet = `<script>
+(function(){
+  var C=${JSON.stringify(cfg)};
+  var SK='veld_cf_'+C.wsId;
+  if(localStorage.getItem(SK))return;
+  var data={},si=0;
+  function _btnStyle(lbl){
+    var s=C.btnStyle==='outlined'?'background:transparent;color:'+C.color+';border:2px solid '+C.color:'background:'+C.color+';color:#fff;border:none';
+    return s+';border-radius:'+C.br+';padding:13px;font-size:15px;font-weight:700;cursor:pointer;width:100%;margin-top:4px';
+  }
+  function _inputStyle(){return'width:100%;border:1.5px solid #ddd;border-radius:12px;padding:13px 16px;font-size:15px;margin-bottom:12px;box-sizing:border-box;outline:none;font-family:inherit';}
+  function buildOverlay(){
+    var ov=document.createElement('div');
+    var overlayStyle=C.layout==='slide'
+      ?'position:fixed;bottom:0;left:0;right:0;z-index:99999;display:flex;justify-content:center;padding:0'
+      :'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:'+(C.layout==='fullscreen'?'stretch':'center')+';justify-content:center;padding:16px';
+    ov.style.cssText=overlayStyle;
+    var box=document.createElement('div');
+    var bg=C.bgImage?'background:linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,.5)),url('+C.bgImage+') center/cover':'background:#fff';
+    var tc=C.bgImage?'color:#fff':'color:#111';
+    var sc=C.bgImage?'color:rgba(255,255,255,.8)':'color:#666';
+    var boxStyle=C.layout==='fullscreen'
+      ?'width:100%;max-width:460px;'+bg+';padding:60px 40px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;text-align:center;display:flex;flex-direction:column;justify-content:center;min-height:100vh;box-sizing:border-box'
+      :C.layout==='slide'
+        ?'width:100%;max-width:520px;'+bg+';border-radius:20px 20px 0 0;padding:28px 24px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;text-align:center'
+        :''+bg+';border-radius:20px;padding:36px 28px;max-width:420px;width:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;text-align:center;position:relative';
+    box.style.cssText=boxStyle;
+    ov.appendChild(box);document.body.appendChild(ov);
+    return{ov,box,tc,sc};
+  }
+  function renderStep(){
+    var {ov,box,tc,sc}=_ovRef;
+    var step=C.steps[si];
+    var progHtml='';
+    if(C.steps.length>1){var dots=C.steps.map(function(_,i){return'<span style="display:inline-block;width:'+(i===si?'20px':'8px')+';height:8px;border-radius:4px;background:'+(i===si?C.color:'#ddd')+';margin:0 3px;transition:all .2s"></span>';}).join('');progHtml='<div style="margin-bottom:20px">'+dots+'</div>';}
+    var incHtml=C.incentivo&&si===C.steps.length-1?'<div style="background:'+(C.bgImage?'rgba(255,255,255,.15)':'#f8f8f8')+';border-radius:10px;padding:10px 14px;font-size:12px;font-weight:700;margin-bottom:14px;'+tc+'">'+C.incentivo+'</div>':'';
+    var closeBtn=C.layout!=='fullscreen'?'<button onclick="this.closest(\\'[style*=fixed]\\').remove()" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;'+sc+'">×</button>':'';
+    box.innerHTML=closeBtn+progHtml
+      +'<div style="font-size:32px;margin-bottom:10px">'+C.emoji+'</div>'
+      +'<div style="font-size:20px;font-weight:800;margin-bottom:6px;letter-spacing:-.03em;'+tc+'">'+(step.titulo||'')+'</div>'
+      +'<div style="font-size:13px;margin-bottom:18px;line-height:1.5;'+sc+'">'+(step.subtitulo||'')+'</div>'
+      +incHtml
+      +'<input id="vf-field" placeholder="'+step.placeholder+'" type="'+(step.field==='email'?'email':step.field==='tel'?'tel':'text')+'" style="'+_inputStyle()+(C.bgImage?';background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.3)':'')+'">'
+      +'<button id="vf-btn" style="'+_btnStyle(step.boton)+'">'+(step.boton||'Siguiente →')+'</button>'
+      +'<div style="font-size:10px;margin-top:12px;'+sc+'">🔒 Tu info es privada. Sin spam.</div>';
+    setTimeout(function(){var inp=document.getElementById('vf-field');if(inp)inp.focus();},80);
+    document.getElementById('vf-btn').onclick=function(){
+      var val=(document.getElementById('vf-field')||{}).value||'';
+      if(!val){document.getElementById('vf-field').style.borderColor='red';return;}
+      data[step.field]=val;
+      si++;
+      if(si<C.steps.length){renderStep();}
+      else{
+        localStorage.setItem(SK,Date.now()+'');
+        fetch(C.api+'/api/tn/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({wsId:C.wsId},data))}).catch(function(){});
+        var finalHtml='<div style="padding:20px"><div style="font-size:44px;margin-bottom:12px">🎉</div><div style="font-size:20px;font-weight:800;'+tc+'">¡Gracias!</div><div style="font-size:13px;margin-top:8px;'+sc+'">Ya sos parte de nuestra comunidad.</div>';
+        if(C.codigo)finalHtml+='<div style="margin-top:16px;padding:12px 18px;background:'+(C.bgImage?'rgba(255,255,255,.2)':'#f5f5f5')+';border-radius:10px;font-size:16px;font-weight:800;letter-spacing:.1em;'+tc+'">'+C.codigo+'</div><div style="font-size:11px;margin-top:6px;'+sc+'">Tu código de descuento</div>';
+        finalHtml+='</div>';
+        box.innerHTML=finalHtml;
+        setTimeout(function(){ov.remove();},C.codigo?4000:2500);
+      }
+    };
+    document.getElementById('vf-field').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('vf-btn').click();});
+  }
+  var _ovRef=buildOverlay();
+  renderStep();
+})();
+<\/script>`;
+  const wrap = document.getElementById('cf-snippet-wrap');
+  const ta   = document.getElementById('cf-snippet');
+  if (wrap) wrap.style.display = 'block';
+  if (ta)   ta.value = snippet;
+  notify('✓ Snippet generado — copialo y pegalo antes de </body>');
 }
 
 // ══════════════════════════════════════════════════════════
