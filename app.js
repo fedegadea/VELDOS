@@ -16,6 +16,18 @@ app.use(express.static(path.join(__dirname, "/public"), {
 }))
 app.use(express.json({ limit: '10mb' }))
 
+// CORS para endpoints públicos llamados desde snippets embebidos en tiendas externas
+app.use((req, res, next) => {
+  const pub = ['/api/tn/subscribe', '/api/tn/track', '/api/popup/subscribe', '/api/identity/journey', '/api/identity/track']
+  if (pub.some(p => req.path.startsWith(p))) {
+    res.header('Access-Control-Allow-Origin', '*')
+    res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    if (req.method === 'OPTIONS') return res.sendStatus(204)
+  }
+  next()
+})
+
 // Shared constants
 const SUPA_URL = "https://vlkxtrqktdcfqmebrtwa.supabase.co"
 const SUPA_KEY = () => process.env.SUPA_SERVICE_KEY || ""
