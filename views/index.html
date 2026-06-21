@@ -21213,8 +21213,20 @@ function crealPublishToMeta() {
           <div class="dif-card-title">🎨 Diseño visual</div>
           <div style="display:flex;flex-direction:column;gap:10px">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <div class="form-group" style="margin:0"><label class="form-label">Emoji / ícono</label>
-                <input class="form-input" id="cf-emoji" placeholder="✨" maxlength="4" oninput="renderCaptureFormPreview()"></div>
+              <div class="form-group" style="margin:0">
+                <label class="form-label">Logo o emoji</label>
+                <div style="display:flex;gap:6px;align-items:center">
+                  <input class="form-input" id="cf-emoji" placeholder="✨" maxlength="4" oninput="_cfClearLogo();renderCaptureFormPreview()" style="flex:1;min-width:0">
+                  <label style="cursor:pointer;display:flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--s2);flex-shrink:0" title="Subir logo">
+                    <input type="file" id="cf-logo-file" accept="image/*" style="display:none" onchange="_cfLoadLogo(this)">
+                    <span style="font-size:16px">🖼</span>
+                  </label>
+                </div>
+                <div id="cf-logo-preview" style="display:none;margin-top:6px;position:relative;width:60px">
+                  <img id="cf-logo-img" style="width:60px;height:60px;object-fit:contain;border-radius:8px;border:1px solid var(--border)">
+                  <button onclick="_cfClearLogo()" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#ff4444;color:#fff;border:none;font-size:10px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center">×</button>
+                </div>
+              </div>
               <div class="form-group" style="margin:0"><label class="form-label">Color de acento</label>
                 <input type="color" id="cf-color" value="#111111" oninput="renderCaptureFormPreview()" style="width:100%;height:36px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--s2)"></div>
             </div>
@@ -23987,11 +23999,39 @@ function saveCaptureMode(mode) {
   notify(mode === 'form' ? '✨ Formulario de bienvenida activado' : mode === 'popup' ? '💬 Pop-up clásico activado' : '🚫 Captura desactivada');
 }
 
+let _cfLogoDataUrl = '';
+
+function _cfLoadLogo(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    _cfLogoDataUrl = e.target.result;
+    const img = document.getElementById('cf-logo-img');
+    const prev = document.getElementById('cf-logo-preview');
+    if (img) img.src = _cfLogoDataUrl;
+    if (prev) prev.style.display = 'block';
+    document.getElementById('cf-emoji').value = '';
+    renderCaptureFormPreview();
+  };
+  reader.readAsDataURL(file);
+}
+
+function _cfClearLogo() {
+  _cfLogoDataUrl = '';
+  const prev = document.getElementById('cf-logo-preview');
+  if (prev) prev.style.display = 'none';
+  const fileInput = document.getElementById('cf-logo-file');
+  if (fileInput) fileInput.value = '';
+  renderCaptureFormPreview();
+}
+
 function _cfVals() {
   const g  = id => document.getElementById(id)?.value?.trim() || '';
   const cb = id => document.getElementById(id)?.checked ?? true;
   return {
-    emoji:    g('cf-emoji')    || '✨',
+    emoji:    _cfLogoDataUrl ? '' : (g('cf-emoji') || '✨'),
+    logoUrl:  _cfLogoDataUrl || '',
     titulo:   g('cf-titulo')   || '¿Cómo te llamamos?',
     subtitulo:g('cf-subtitulo')|| 'Antes de ver el producto, queremos conocerte',
     boton:    g('cf-boton')    || 'Siguiente →',
@@ -24027,8 +24067,11 @@ function renderCaptureFormPreview() {
   const incentivoBadge = v.incentivo
     ? `<div style="background:${v.bgImage?'rgba(255,255,255,.2)':'#f5f5f5'};border-radius:8px;padding:8px 12px;font-size:11px;font-weight:700;margin-bottom:14px;${v.bgImage?'color:#fff':'color:#333'}">${v.incentivo}</div>`
     : '';
+  const logoOrEmoji = v.logoUrl
+    ? `<img src="${v.logoUrl}" style="height:56px;max-width:140px;object-fit:contain;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto">`
+    : `<div style="font-size:${v.layout==='fullscreen'?'36px':'28px'};margin-bottom:10px;text-align:center">${v.emoji}</div>`;
   el.innerHTML = `<div style="padding:${v.layout==='fullscreen'?'40px 32px':'28px 24px'};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;${bg};min-height:${v.layout==='slide'?'160px':'240px'};display:flex;flex-direction:column;justify-content:center">
-    <div style="font-size:${v.layout==='fullscreen'?'36px':'28px'};margin-bottom:10px;text-align:center">${v.emoji}</div>
+    ${logoOrEmoji}
     <div style="font-size:${v.layout==='fullscreen'?'22px':'17px'};font-weight:800;margin-bottom:6px;text-align:center;letter-spacing:-.03em;${textColor}">${v.titulo}</div>
     <div style="font-size:12px;margin-bottom:16px;text-align:center;line-height:1.5;${subColor}">${v.subtitulo}</div>
     ${incentivoBadge}
@@ -24097,7 +24140,7 @@ function generateCaptureFormSnippet() {
     var incHtml=C.incentivo&&si===C.steps.length-1?'<div style="background:'+(C.bgImage?'rgba(255,255,255,.15)':'#f8f8f8')+';border-radius:10px;padding:10px 14px;font-size:12px;font-weight:700;margin-bottom:14px;'+tc+'">'+C.incentivo+'</div>':'';
     var closeBtn=C.layout!=='fullscreen'?'<button onclick="this.closest(\\'[style*=fixed]\\').remove()" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;'+sc+'">×</button>':'';
     box.innerHTML=closeBtn+progHtml
-      +'<div style="font-size:32px;margin-bottom:10px">'+C.emoji+'</div>'
+      +(C.logoUrl?'<img src="'+C.logoUrl+'" style="height:56px;max-width:140px;object-fit:contain;margin:0 auto 10px;display:block">':'<div style="font-size:32px;margin-bottom:10px">'+C.emoji+'</div>')
       +'<div style="font-size:20px;font-weight:800;margin-bottom:6px;letter-spacing:-.03em;'+tc+'">'+(step.titulo||'')+'</div>'
       +'<div style="font-size:13px;margin-bottom:18px;line-height:1.5;'+sc+'">'+(step.subtitulo||'')+'</div>'
       +incHtml
