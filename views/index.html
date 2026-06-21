@@ -21119,10 +21119,66 @@ function crealPublishToMeta() {
   <!-- TAB: POP-UP -->
   <div class="plan-section" id="diftab-popup">
 
-    <!-- Selector de modo de captura -->
+    <!-- Builder popup siempre visible -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:15px;font-weight:800;margin-bottom:4px">🪄 Pop-up de suscripción</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Configurá tu popup y generá el código para pegarlo en cualquier tienda (VELDOS, Tienda Nube, Shopify, etc.)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="dif-card">
+            <div class="dif-card-title">🎨 Diseño</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div class="form-group" style="margin:0"><label class="form-label">Título</label>
+                <input class="form-input" id="pu-title2" placeholder="¡Sumáte a nuestra comunidad!" oninput="renderPopupPreview2()"></div>
+              <div class="form-group" style="margin:0"><label class="form-label">Subtítulo</label>
+                <input class="form-input" id="pu-subtitle2" placeholder="Recibí novedades y descuentos exclusivos" oninput="renderPopupPreview2()"></div>
+              <div class="form-group" style="margin:0"><label class="form-label">Texto del botón</label>
+                <input class="form-input" id="pu-btn-text2" placeholder="¡Quiero suscribirme!" oninput="renderPopupPreview2()"></div>
+              <div class="form-group" style="margin:0"><label class="form-label">Color</label>
+                <input type="color" id="pu-color2" value="#c9b48a" oninput="renderPopupPreview2()" style="width:100%;height:36px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--s2)"></div>
+              <div class="form-group" style="margin:0"><label class="form-label">Campos</label>
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer"><input type="checkbox" id="pu-field-nombre2" checked onchange="renderPopupPreview2()"> Nombre</label>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer"><input type="checkbox" id="pu-field-tel2" onchange="renderPopupPreview2()"> Teléfono</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="dif-card">
+            <div class="dif-card-title">⚙️ Configuración</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div class="form-group" style="margin:0"><label class="form-label">Disparador</label>
+                <select class="form-select" id="pu-trigger2">
+                  <option value="delay">Después de X segundos</option>
+                  <option value="exit">Exit intent (al salir el mouse)</option>
+                  <option value="scroll">Al hacer scroll X%</option>
+                </select></div>
+              <div class="form-group" style="margin:0"><label class="form-label">Valor (seg o %)</label>
+                <input class="form-input" type="number" id="pu-trigger-value2" value="5" min="1" max="100"></div>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="generatePopupSnippet2()" style="width:100%;padding:12px;font-size:14px">🔗 Generar código para tu tienda</button>
+          <div id="pu-snippet-wrap2" style="display:none">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Pegá esto justo antes de <code>&lt;/body&gt;</code>:</div>
+            <textarea id="pu-snippet2" rows="5" readonly onclick="this.select()" style="width:100%;background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--muted2);font-size:10px;font-family:monospace;resize:vertical;box-sizing:border-box"></textarea>
+            <button class="btn btn-xs" style="margin-top:6px" onclick="navigator.clipboard.writeText(document.getElementById('pu-snippet2').value);notify('✓ Copiado!')">📋 Copiar</button>
+          </div>
+        </div>
+        <div>
+          <div class="dif-card" style="position:sticky;top:80px">
+            <div class="dif-card-title">👁 Preview</div>
+            <div id="pu-preview2" style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#f5f5f5;min-height:200px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:0 0 20px">
+
+    <!-- Selector de modo de captura (tienda VELDOS) -->
     <div class="dif-card" style="margin-bottom:16px">
-      <div class="dif-card-title">📥 Modo de captura de leads</div>
-      <p style="font-size:12px;color:var(--muted);margin:0 0 12px">Elegí cómo quieres capturar los datos de tus visitantes antes de que vean un producto.</p>
+      <div class="dif-card-title">📥 Modo de captura — Tienda VELDOS</div>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 12px">Elegí cómo capturar los datos de visitantes en tu tienda VELDOS.</p>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <label id="cm-label-form" style="display:flex;align-items:flex-start;gap:10px;flex:1;min-width:200px;background:var(--s2);border:2px solid var(--accent,#111);border-radius:12px;padding:14px;cursor:pointer">
           <input type="radio" name="capture-mode" value="form" checked onchange="saveCaptureMode(this.value)" style="margin-top:2px;accent-color:var(--accent,#111)">
@@ -23916,6 +23972,84 @@ function renderPopupPreview() {
     <button style="width:100%;background:${color};color:#0f0f0f;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer">${btnText}</button>
     <div style="font-size:10px;color:#aaa;margin-top:10px">Sin spam. Podés darte de baja cuando quieras.</div>
   </div>`;
+}
+
+function renderPopupPreview2() {
+  const el = document.getElementById('pu-preview2');
+  if (!el) return;
+  const title   = document.getElementById('pu-title2')?.value    || '¡Sumáte a nuestra comunidad!';
+  const subtitle= document.getElementById('pu-subtitle2')?.value || 'Recibí novedades y descuentos exclusivos';
+  const btn     = document.getElementById('pu-btn-text2')?.value || '¡Quiero suscribirme!';
+  const color   = document.getElementById('pu-color2')?.value    || '#c9b48a';
+  const hasNom  = document.getElementById('pu-field-nombre2')?.checked ?? true;
+  const hasTel  = document.getElementById('pu-field-tel2')?.checked   ?? false;
+  el.innerHTML = `<div style="padding:28px 24px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;text-align:center;background:#fff">
+    <div style="font-size:18px;font-weight:700;color:#111;margin-bottom:8px">${title}</div>
+    <div style="font-size:13px;color:#666;margin-bottom:20px;line-height:1.5">${subtitle}</div>
+    ${hasNom?`<input placeholder="Tu nombre" style="width:100%;border:1px solid #ddd;border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:8px;box-sizing:border-box">`:``}
+    <input placeholder="Tu email" style="width:100%;border:1px solid #ddd;border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:8px;box-sizing:border-box">
+    ${hasTel?`<input placeholder="Tu teléfono" style="width:100%;border:1px solid #ddd;border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:8px;box-sizing:border-box">`:``}
+    <button style="width:100%;background:${color};color:#0f0f0f;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer">${btn}</button>
+    <div style="font-size:10px;color:#aaa;margin-top:10px">Sin spam. Podés darte de baja cuando quieras.</div>
+  </div>`;
+}
+
+function generatePopupSnippet2() {
+  const wsId    = _activeWsId || '';
+  if (!wsId) { notify('Seleccioná un workspace primero'); return; }
+  const title   = document.getElementById('pu-title2')?.value    || '¡Sumáte a nuestra comunidad!';
+  const subtitle= document.getElementById('pu-subtitle2')?.value || 'Recibí novedades y descuentos exclusivos';
+  const btnText = document.getElementById('pu-btn-text2')?.value || '¡Quiero suscribirme!';
+  const color   = document.getElementById('pu-color2')?.value    || '#c9b48a';
+  const trigger = document.getElementById('pu-trigger2')?.value  || 'delay';
+  const trigVal = document.getElementById('pu-trigger-value2')?.value || '5';
+  const hasNom  = document.getElementById('pu-field-nombre2')?.checked ?? true;
+  const hasTel  = document.getElementById('pu-field-tel2')?.checked   ?? false;
+  const api     = 'https://soul-ecommlab.com';
+  const snippet = `<script>
+(function(){
+  var cfg={wsId:"${wsId}",title:"${title.replace(/"/g,'\\"')}",subtitle:"${subtitle.replace(/"/g,'\\"')}",btn:"${btnText.replace(/"/g,'\\"')}",color:"${color}",trigger:"${trigger}",trigVal:${trigVal},hasNom:${hasNom},hasTel:${hasTel},api:"${api}"};
+  var SK='veld_pu_'+cfg.wsId;
+  if(localStorage.getItem(SK))return;
+  function show(){
+    if(localStorage.getItem(SK))return;
+    localStorage.setItem(SK,Date.now()+7*86400000);
+    var ov=document.createElement('div');
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+    var box=document.createElement('div');
+    box.style.cssText='background:#fff;border-radius:16px;padding:32px 28px;max-width:400px;width:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;text-align:center;position:relative';
+    var f='';
+    if(cfg.hasNom)f+='<input id="vp-nom" placeholder="Tu nombre" style="width:100%;border:1px solid #ddd;border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:8px;box-sizing:border-box"><br>';
+    f+='<input id="vp-email" type="email" placeholder="Tu email" style="width:100%;border:1px solid #ddd;border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:8px;box-sizing:border-box"><br>';
+    if(cfg.hasTel)f+='<input id="vp-tel" placeholder="Tu teléfono" style="width:100%;border:1px solid #ddd;border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:8px;box-sizing:border-box"><br>';
+    box.innerHTML='<button onclick="this.closest(\\'[style*=fixed]\\').remove()" style="position:absolute;top:10px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:#aaa">×</button>'
+      +'<div style="font-size:20px;font-weight:700;margin-bottom:8px">'+cfg.title+'</div>'
+      +'<div style="font-size:13px;color:#666;margin-bottom:20px;line-height:1.5">'+cfg.subtitle+'</div>'
+      +f
+      +'<button id="vp-btn" style="width:100%;background:'+cfg.color+';color:#0f0f0f;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer">'+cfg.btn+'</button>'
+      +'<div style="font-size:10px;color:#aaa;margin-top:10px">Sin spam. Podés darte de baja cuando quieras.</div>';
+    ov.appendChild(box);document.body.appendChild(ov);
+    document.getElementById('vp-btn').onclick=function(){
+      var email=(document.getElementById('vp-email')||{}).value||'';
+      if(!email||!email.includes('@')){alert('Ingresá tu email');return;}
+      var body={wsId:cfg.wsId,email:email};
+      if(cfg.hasNom){var n=(document.getElementById('vp-nom')||{}).value;if(n)body.nombre=n;}
+      if(cfg.hasTel){var t=(document.getElementById('vp-tel')||{}).value;if(t)body.tel=t;}
+      fetch(cfg.api+'/api/tn/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+        .then(function(){box.innerHTML='<div style="padding:20px"><div style="font-size:40px;margin-bottom:12px">🎉</div><div style="font-size:16px;font-weight:700">¡Gracias!</div><div style="font-size:13px;color:#666;margin-top:6px">Ya estás suscripto.</div></div>';setTimeout(function(){ov.remove()},2500);})
+        .catch(function(){alert('Error. Intentá de nuevo.');});
+    };
+  }
+  if(cfg.trigger==='delay'){setTimeout(show,cfg.trigVal*1000);}
+  else if(cfg.trigger==='scroll'){window.addEventListener('scroll',function h(){if((window.scrollY/(document.body.scrollHeight-window.innerHeight||1))*100>=cfg.trigVal){show();window.removeEventListener('scroll',h);}});}
+  else if(cfg.trigger==='exit'){document.addEventListener('mouseleave',function h(e){if(e.clientY<=0){show();document.removeEventListener('mouseleave',h);}});}
+})();
+<\/script>`;
+  const wrap = document.getElementById('pu-snippet-wrap2');
+  const ta   = document.getElementById('pu-snippet2');
+  if (wrap) wrap.style.display = 'block';
+  if (ta)   ta.value = snippet;
+  notify('✓ Snippet generado — copialo y pegalo antes de </body>');
 }
 
 function generatePopupSnippet() {
