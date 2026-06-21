@@ -648,7 +648,7 @@ app.get("/api/tn/debug-shipping", async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
-// Register TN webhook for a specific workspace
+// Register TN webhooks for a specific workspace
 app.post("/api/tn/activate", async (req, res) => {
   const { wsId } = req.body
   if (!wsId) return res.status(400).json({ error: "wsId required" })
@@ -657,53 +657,55 @@ app.post("/api/tn/activate", async (req, res) => {
     const tn = ws?.data?.tnIntegration
     if (!tn?.token) return res.status(400).json({ error: "Tienda Nube no conectada en este proyecto" })
 
-    const baseUrl = (process.env.BASE_URL || "https://veldos-bjvr.vercel.app").replace(/\/$/, '')
+    const baseUrl = (process.env.BASE_URL || "https://soul-ecommlab.com").replace(/\/$/, '')
     const webhookUrl = baseUrl + "/api/tn/webhook"
     const tnHeaders = {
       "Authentication": `bearer ${tn.token}`,
       "User-Agent": "Soul eCommlab (soporte@veldos.app)",
       "Content-Type": "application/json"
     }
+    const TOPICS = ["order/paid", "cart/updated", "customer/created"]
 
-    // Delete existing order/paid webhooks to avoid duplicates / fix wrong URLs
+    // Eliminar webhooks existentes de VELDOS para evitar duplicados
     const existingRes = await fetch(`https://api.tiendanube.com/v1/${tn.storeId}/webhooks`, { headers: tnHeaders })
     const existing = await existingRes.json()
     if (Array.isArray(existing)) {
       for (const wh of existing) {
-        if (wh.event === "order/paid") {
+        if (TOPICS.includes(wh.event) || wh.url.includes('/api/tn/webhook')) {
           await fetch(`https://api.tiendanube.com/v1/${tn.storeId}/webhooks/${wh.id}`, { method: "DELETE", headers: tnHeaders })
         }
       }
     }
 
-    // Register webhook with correct URL
-    await fetch(`https://api.tiendanube.com/v1/${tn.storeId}/webhooks`, {
-      method: "POST",
-      headers: tnHeaders,
-      body: JSON.stringify({ event: "order/paid", url: webhookUrl })
-    })
+    // Registrar todos los topics
+    for (const topic of TOPICS) {
+      await fetch(`https://api.tiendanube.com/v1/${tn.storeId}/webhooks`, {
+        method: "POST", headers: tnHeaders,
+        body: JSON.stringify({ event: topic, url: webhookUrl })
+      })
+    }
 
     // Save tnWebhookActive flag in workspace data
     const wsData = { ...(ws.data || {}), tnWebhookActive: true }
     await patchWorkspace(wsId, wsData)
-    res.json({ ok: true, webhookUrl })
+    res.json({ ok: true, webhookUrl, topics: TOPICS })
   } catch(e) {
     res.status(500).json({ error: e.message })
   }
 })
 
-// TN webhook — auto-import paid orders (multi-store: match by storeId)
+// TN webhook — maneja order/paid, cart/updated, customer/created
 app.post("/api/tn/webhook", async (req, res) => {
-  res.sendStatus(200) // Respond immediately to TN
-  const { event, store_id: webhookStoreId, id: orderId } = req.body
-  if (event !== "order/paid" || !orderId) return
+  res.sendStatus(200) // Responder inmediatamente a TN
+  const { event, store_id: webhookStoreId, id: entityId } = req.body
+  const HANDLED = ["order/paid", "cart/updated", "customer/created"]
+  if (!HANDLED.includes(event) || !entityId) return
   try {
     // Find workspace with matching storeId and tnWebhookActive
     const wsRes = await fetch(`${SUPA_URL}/rest/v1/workspaces?select=id,data`, {
       headers: { "apikey": SUPA_KEY(), "Authorization": "Bearer " + SUPA_KEY() }
     })
     const allWs = await wsRes.json()
-    // Match by storeId from webhook payload, fall back to any tnWebhookActive
     const target = (allWs || []).find(w =>
       w.data?.tnWebhookActive &&
       w.data?.tnIntegration &&
@@ -712,16 +714,76 @@ app.post("/api/tn/webhook", async (req, res) => {
     if (!target) return
 
     const tn = target.data.tnIntegration
+    const tnHeaders = { "Authentication": `bearer ${tn.token}`, "User-Agent": "Soul eCommlab (soporte@veldos.app)" }
+    const data = target.data
+    if (!data.crm) data.crm = []
+    const today = new Date().toISOString().slice(0, 10)
 
-    // Fetch order from TN API using workspace-specific credentials
+    // ── cart/updated → carrito abandonado ────────────────────────────────────
+    if (event === "cart/updated") {
+      const cartRes = await fetch(`https://api.tiendanube.com/v1/${tn.storeId}/carts/${entityId}`, { headers: tnHeaders })
+      if (!cartRes.ok) return
+      const cart = await cartRes.json()
+      const cust = cart.customer
+      if (!cust) return // carrito anónimo, skip
+      const email = (cust.email || '').toLowerCase()
+      const phone = cust.phone || ''
+      if (!email && !phone) return
+      const items = (cart.products || []).map(p => ({ nombre: p.name?.es || p.name || '', precio: parseFloat(p.price) || 0, qty: p.quantity || 1 }))
+      const total = parseFloat(cart.prices?.total || cart.subtotal || 0)
+      let contact = data.crm.find(c => (email && (c.email || '').toLowerCase() === email) || (phone && c.tel === phone) || c.tn_customer_id === cust.id)
+      if (contact) {
+        contact.carritoAbandonado = true
+        contact.cartDate = today
+        contact.valorAbandonado = total
+        contact.ultimoCarritoItems = items
+        if (phone && !contact.tel) contact.tel = phone
+      } else {
+        contact = {
+          id: 'c_tn_' + Date.now().toString(36) + Math.random().toString(36).slice(2,4),
+          nombre: `${cust.name || ''} ${cust.surname || ''}`.trim() || 'Cliente TN',
+          email, tel: phone, estado: 'Lead', etapa: 'lead', canal: 'Tienda Nube',
+          carritoAbandonado: true, cartDate: today, valorAbandonado: total,
+          ultimoCarritoItems: items, creado: today, tn_customer_id: cust.id
+        }
+        data.crm.push(contact)
+      }
+      await patchWorkspace(target.id, data)
+      _invalidateWsCache(target.id)
+      return
+    }
+
+    // ── customer/created → nuevo lead ────────────────────────────────────────
+    if (event === "customer/created") {
+      const custRes = await fetch(`https://api.tiendanube.com/v1/${tn.storeId}/customers/${entityId}`, { headers: tnHeaders })
+      if (!custRes.ok) return
+      const cust = await custRes.json()
+      const email = (cust.email || '').toLowerCase()
+      const phone = cust.phone || ''
+      if (!email && !phone) return
+      const existing = data.crm.find(c => (email && (c.email || '').toLowerCase() === email) || (phone && c.tel === phone))
+      if (existing) return // ya existe en CRM
+      const newContact = {
+        id: 'c_tn_' + Date.now().toString(36) + Math.random().toString(36).slice(2,4),
+        nombre: `${cust.name || ''} ${cust.surname || ''}`.trim() || 'Cliente TN',
+        email, tel: phone, estado: 'Lead', etapa: 'lead', canal: 'Tienda Nube',
+        creado: today, tn_customer_id: cust.id
+      }
+      data.crm.push(newContact)
+      await patchWorkspace(target.id, data)
+      _invalidateWsCache(target.id)
+      _processImmediateFlows(target.id, data, newContact, ['new_lead'], {}).catch(e => console.error('[flows] TN customer/created:', e.message))
+      return
+    }
+
+    // ── order/paid → importar venta ───────────────────────────────────────────
     const oRes = await fetch(
-      `https://api.tiendanube.com/v1/${tn.storeId}/orders/${orderId}`,
-      { headers: { "Authentication": `bearer ${tn.token}`, "User-Agent": "Soul eCommlab (soporte@veldos.app)" } }
+      `https://api.tiendanube.com/v1/${tn.storeId}/orders/${entityId}`,
+      { headers: tnHeaders }
     )
     if (!oRes.ok) return
     const o = await oRes.json()
 
-    const data = target.data
     if (!data.finanzas) data.finanzas = []
     // Check dedup
     if (data.finanzas.find(t => String(t.tn_id) === String(o.id))) return
@@ -767,6 +829,8 @@ app.post("/api/tn/webhook", async (req, res) => {
         existing.ultimaCompra = fecha   // ← usado por flows
         existing.etapa = existing.etapa || 'cliente'
         if (!existing.tel && o.customer.phone) existing.tel = o.customer.phone
+        existing.carritoAbandonado = false  // limpiar carrito abandonado al pagar
+        existing.cartDate = null
       } else {
         data.crm.push({
           id: 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,5),
@@ -816,6 +880,87 @@ app.post("/api/tn/webhook", async (req, res) => {
   } catch(e) {
     console.error("TN webhook error:", e)
   }
+})
+
+// ── TN: tracking de visitas desde snippet JS ─────────────────────────────────
+app.post('/api/tn/track', async (req, res) => {
+  const { wsId, email, tel, nombre, evento } = req.body
+  if (!wsId || (!email && !tel)) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const ws = await getWorkspace(wsId)
+    if (!ws) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const data = ws.data || {}
+    if (!data.crm) data.crm = []
+    const now = new Date().toISOString()
+    const today = now.slice(0, 10)
+    const emailNorm = (email || '').toLowerCase()
+    let contact = data.crm.find(c => (emailNorm && (c.email || '').toLowerCase() === emailNorm) || (tel && c.tel === tel))
+    if (contact) {
+      contact.ultimaVisita = now
+      if (evento === 'cart_abandon') {
+        contact.carritoAbandonado = true
+        contact.cartDate = today
+      }
+      await patchWorkspace(wsId, data)
+      _invalidateWsCache(wsId)
+    }
+    res.json({ ok: true, found: !!contact })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── TN: suscripción desde popup embebido en TN ────────────────────────────────
+app.post('/api/tn/subscribe', async (req, res) => {
+  const { wsId, email, nombre, tel } = req.body
+  if (!wsId || !email) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const ws = await getWorkspace(wsId)
+    if (!ws) return res.status(400).json({ error: 'Workspace no encontrado' })
+    const data = ws.data || {}
+    if (!data.crm) data.crm = []
+    const today = new Date().toISOString().slice(0, 10)
+    const emailNorm = email.toLowerCase()
+    let contact = data.crm.find(c => (c.email || '').toLowerCase() === emailNorm)
+    if (!contact) {
+      contact = {
+        id: 'c_tnpop_' + Date.now().toString(36) + Math.random().toString(36).slice(2,4),
+        nombre: nombre || '', email: emailNorm, tel: tel || '',
+        estado: 'Lead', etapa: 'lead', canal: 'Popup TN',
+        newsletter: 'si', creado: today
+      }
+      data.crm.push(contact)
+      await patchWorkspace(wsId, data)
+      _invalidateWsCache(wsId)
+      _processImmediateFlows(wsId, data, contact, ['new_lead'], {}).catch(() => {})
+    }
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── TN: snippet JS para pegar en el storefront de TN ─────────────────────────
+app.get('/api/tn/snippet', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).send('// wsId requerido')
+  const base = (process.env.BASE_URL || 'https://soul-ecommlab.com').replace(/\/$/, '')
+  const snippet = `/* VELDOS tracking — no modificar */
+(function(){
+  var W='${wsId}',B='${base}';
+  function post(path,body){fetch(B+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).catch(function(){});}
+  function getCust(){
+    if(typeof LS!=='undefined'&&LS.customer&&LS.customer.email)return LS.customer;
+    if(typeof NuvemShop!=='undefined'&&NuvemShop.theme&&NuvemShop.theme.customer&&NuvemShop.theme.customer.email)return NuvemShop.theme.customer;
+    return null;
+  }
+  var c=getCust();
+  if(c&&c.email){
+    post('/api/tn/track',{wsId:W,email:c.email,tel:c.phone||'',nombre:(c.name||'')+' '+(c.last_name||''),evento:'visita'});
+    if(location.pathname.indexOf('/cart')!==-1||location.pathname.indexOf('/carrito')!==-1){
+      window.addEventListener('beforeunload',function(){
+        navigator.sendBeacon(B+'/api/tn/track',JSON.stringify({wsId:W,email:c.email,evento:'cart_abandon'}));
+      });
+    }
+  }
+})();`
+  res.type('application/javascript').set('Cache-Control','public,max-age=300').send(snippet)
 })
 
 // ── Eliminación de datos de usuario (requerido por Meta) ─────────────────────
