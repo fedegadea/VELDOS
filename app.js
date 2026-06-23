@@ -16,6 +16,15 @@ app.use(express.static(path.join(__dirname, "/public"), {
 }))
 app.use(express.json({ limit: '10mb' }))
 
+// Canonical domain redirect — si llegan a una URL de Vercel, redirigir al dominio propio
+app.use((req, res, next) => {
+  const host = req.headers.host || ''
+  if (host.includes('.vercel.app')) {
+    return res.redirect(301, 'https://soul-ecommlab.com' + req.url)
+  }
+  next()
+})
+
 // CORS para endpoints públicos llamados desde snippets embebidos en tiendas externas
 app.use((req, res, next) => {
   const pub = ['/api/tn/subscribe', '/api/tn/track', '/api/tn/customer-panel', '/api/tn/customer-stats', '/api/tn/exchange-request', '/api/tn/manifest', '/api/tn/wa-otp-send', '/api/tn/wa-otp-verify', '/api/tn/store-analytics', '/api/tn/size-charts', '/api/tn/wishlist', '/api/tn/reviews', '/api/popup/subscribe', '/api/identity/journey', '/api/identity/track', '/api/store/me', '/api/store/capture-contact']
