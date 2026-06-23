@@ -8174,17 +8174,8 @@ function _flowLoadEmailTemplate(stepIdx, tplId) {
   if (!tplId) return;
   const tpl = (S.emailTemplates || []).find(t => t.id === tplId);
   if (!tpl || !_flowSteps[stepIdx]) return;
-  // Generar HTML del template desde sus bloques
-  const html = (tpl.blocks || []).map(b => {
-    const d = b.data || {};
-    switch(b.type) {
-      case 'text': return `<p>${d.content || ''}</p>`;
-      case 'button': return `<p><a href="${d.url||'#'}">${d.text||'Ver más'}</a></p>`;
-      case 'hero': return `<p><strong>${d.headline||''}</strong><br>${d.subheadline||''}</p>`;
-      case 'product': return `<p><strong>${d.name||''}</strong> — ${d.price||''}<br><a href="${d.url||'#'}">${d.buttonText||'Comprar'}</a></p>`;
-      default: return '';
-    }
-  }).join('\n');
+  // Usar el mismo builder que emGetHTML() — mismo HTML que llega al cliente
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Email</title></head><body style="margin:0;padding:0;background:#f0f0f5;font-family:system-ui,-apple-system,sans-serif"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:20px 0"><div style="max-width:600px;width:100%;background:#fff;border-radius:4px;overflow:hidden">${(tpl.blocks || []).map(emRenderBlock).join('')}</div></td></tr></table></body></html>`;
   _flowSteps[stepIdx].template = html;
   renderFlowSteps();
   notify(`Plantilla "${tpl.name}" cargada en el paso`);
