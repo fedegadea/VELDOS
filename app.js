@@ -18,7 +18,7 @@ app.use(express.json({ limit: '10mb' }))
 
 // CORS para endpoints públicos llamados desde snippets embebidos en tiendas externas
 app.use((req, res, next) => {
-  const pub = ['/api/tn/subscribe', '/api/tn/track', '/api/popup/subscribe', '/api/identity/journey', '/api/identity/track']
+  const pub = ['/api/tn/subscribe', '/api/tn/track', '/api/tn/customer-panel', '/api/tn/customer-stats', '/api/tn/exchange-request', '/api/tn/manifest', '/api/tn/wa-otp-send', '/api/tn/wa-otp-verify', '/api/tn/store-analytics', '/api/tn/size-charts', '/api/tn/wishlist', '/api/tn/reviews', '/api/popup/subscribe', '/api/identity/journey', '/api/identity/track', '/api/store/me', '/api/store/capture-contact']
   if (pub.some(p => req.path.startsWith(p))) {
     res.header('Access-Control-Allow-Origin', '*')
     res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
@@ -34,28 +34,43 @@ const SUPA_KEY = () => process.env.SUPA_SERVICE_KEY || ""
 
 // ── Caché de dominios propios → wsId ──────────────────────────
 const _domainCache = new Map() // domain → { wsId, expiresAt }
-const DOMAIN_CACHE_TTL = 5 * 60 * 1000 // 5 minutos
+const DOMAIN_CACHE_TTL = 60 * 60 * 1000 // 60 minutos — reducir fetches a Supabase
+let _domainFetchPromise = null // dedup concurrent fetches (evita race condition en cold starts)
 
 async function _wsIdByDomain(host) {
   const now = Date.now()
   const cached = _domainCache.get(host)
   if (cached && cached.expiresAt > now) return cached.wsId
 
-  // Buscar en todos los workspaces (solo trae id y el campo de dominio)
-  try {
-    const r = await fetch(`${SUPA_URL}/rest/v1/workspaces?select=id,data`, {
-      headers: { "apikey": SUPA_KEY(), "Authorization": "Bearer " + SUPA_KEY() }
-    })
-    const rows = await r.json()
-    if (!Array.isArray(rows)) return null
-    const match = rows.find(w => {
-      const d = w.data?.tienda?.settings?.customDomain || ''
-      return d && d.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase() === host.toLowerCase()
-    })
-    const wsId = match?.id || null
-    if (wsId) _domainCache.set(host, { wsId, expiresAt: now + DOMAIN_CACHE_TTL })
-    return wsId
-  } catch(e) { return null }
+  // Dedup: si ya hay un fetch en vuelo, esperar al mismo en vez de disparar otro
+  if (_domainFetchPromise) {
+    await _domainFetchPromise
+    const c2 = _domainCache.get(host)
+    if (c2 && c2.expiresAt > Date.now()) return c2.wsId
+    return null
+  }
+
+  // Solo traer id + customDomain (campo anidado) — evita cargar todo el blob en memoria
+  _domainFetchPromise = (async () => {
+    try {
+      const r = await fetch(
+        `${SUPA_URL}/rest/v1/workspaces?select=id,customDomain:data->tienda->settings->>customDomain`,
+        { headers: { "apikey": SUPA_KEY(), "Authorization": "Bearer " + SUPA_KEY() } }
+      )
+      const rows = await r.json()
+      if (!Array.isArray(rows)) return
+      for (const w of rows) {
+        const d = (w.customDomain || '').replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase()
+        if (d) _domainCache.set(d, { wsId: w.id, expiresAt: Date.now() + DOMAIN_CACHE_TTL })
+      }
+    } catch(e) { /* silencioso */ } finally {
+      _domainFetchPromise = null
+    }
+  })()
+  await _domainFetchPromise
+
+  const c3 = _domainCache.get(host.toLowerCase())
+  return c3?.wsId || null
 }
 
 // Middleware: detectar dominio propio y servir tienda con wsId inyectado
@@ -86,6 +101,248 @@ app.use(async (req, res, next) => {
     next()
   }
 })
+
+// ── Supabase REST helpers (tablas propias) ─────────────────────────────────────
+function _sHdrs (extra = {}) {
+  return { 'apikey': SUPA_KEY(), 'Authorization': 'Bearer ' + SUPA_KEY(), 'Content-Type': 'application/json', ...extra }
+}
+async function _sGET (table, q = '') {
+  const r = await fetch(`${SUPA_URL}/rest/v1/${table}${q ? '?' + q : ''}`, { headers: _sHdrs() })
+  if (!r.ok) { const t = await r.text(); throw new Error(`sGET ${table}: ${r.status} ${t}`) }
+  return r.json()
+}
+async function _sPOST (table, body, prefer = 'return=minimal') {
+  const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, { method: 'POST', headers: _sHdrs({ Prefer: prefer }), body: JSON.stringify(body) })
+  if (!r.ok) { const t = await r.text(); throw new Error(`sPOST ${table}: ${r.status} ${t}`) }
+  return prefer.includes('representation') ? r.json() : r.ok
+}
+async function _sPATCH (table, q, body) {
+  const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${q}`, { method: 'PATCH', headers: _sHdrs({ Prefer: 'return=minimal' }), body: JSON.stringify(body) })
+  if (!r.ok) { const t = await r.text(); throw new Error(`sPATCH ${table}: ${r.status} ${t}`) }
+  return r.ok
+}
+async function _sDEL (table, q) {
+  const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${q}`, { method: 'DELETE', headers: _sHdrs() })
+  if (!r.ok) { const t = await r.text(); throw new Error(`sDEL ${table}: ${r.status} ${t}`) }
+  return r.ok
+}
+
+// ── contacts table ─────────────────────────────────────────────────────────────
+function _contactToRow (wsId, c) {
+  const { id, nombre, email, tel, estado, etapa, canal, xp, cashback, tn_customer_id, tags, creado, ...rest } = c
+  return {
+    id: id || ('c_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)),
+    ws_id: wsId,
+    nombre: nombre || '',
+    email: email ? String(email).toLowerCase() : null,
+    tel: tel || null,
+    estado: estado || 'Lead',
+    etapa: etapa || 'lead',
+    canal: canal || null,
+    xp: Number(xp) || 0,
+    cashback: Number(cashback) || 0,
+    tn_customer_id: tn_customer_id ? String(tn_customer_id) : null,
+    tags: Array.isArray(tags) ? tags : [],
+    data: rest,
+    updated_at: new Date().toISOString()
+  }
+}
+function _rowToContact (row) {
+  if (!row) return null
+  return { id: row.id, nombre: row.nombre || '', email: row.email || '', tel: row.tel || '', estado: row.estado || 'Lead', etapa: row.etapa || 'lead', canal: row.canal || '', xp: row.xp || 0, cashback: row.cashback || 0, tn_customer_id: row.tn_customer_id || null, tags: row.tags || [], creado: (row.created_at || '').slice(0, 10), ...(row.data || {}) }
+}
+async function db_findContact (wsId, { email, tel, tnId }) {
+  let q = `ws_id=eq.${encodeURIComponent(wsId)}&limit=1`
+  if (email) q += `&email=eq.${encodeURIComponent(String(email).toLowerCase())}`
+  else if (tnId) q += `&tn_customer_id=eq.${encodeURIComponent(String(tnId))}`
+  else if (tel) q += `&tel=eq.${encodeURIComponent(tel)}`
+  else return null
+  const rows = await _sGET('contacts', q)
+  return rows?.[0] ? _rowToContact(rows[0]) : null
+}
+async function db_upsertContact (wsId, contact) {
+  const row = _contactToRow(wsId, contact)
+  return _sPOST('contacts', row, 'return=minimal,resolution=merge-duplicates')
+}
+
+// ── Atomically add a contactId to a named broadcast list in workspace ──
+async function _addContactToList (wsId, listName, listId, contactId) {
+  if (!contactId) return
+  const ws = await getWorkspace(wsId)
+  const data = ws?.data || {}
+  if (!data.difListas) data.difListas = []
+  const now = new Date().toISOString().slice(0, 10)
+  let lista = data.difListas.find(l => l.id === listId || l.nombre === listName)
+  if (!lista) {
+    lista = { id: listId, nombre: listName, tipo: 'estatica', canal: 'ambos', filtros: {}, contactIds: [], creado: now, ultimaDifusion: null }
+    data.difListas.push(lista)
+  }
+  if (!lista.contactIds) lista.contactIds = []
+  if (!lista.contactIds.includes(contactId)) {
+    lista.contactIds.push(contactId)
+    await patchWorkspace(wsId, { difListas: data.difListas })
+    _invalidateWsCache(wsId)
+  }
+}
+function _genToken () {
+  return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7) + '-' + Math.random().toString(36).slice(2, 7)
+}
+async function db_findContactByToken (wsId, token) {
+  const q = `ws_id=eq.${encodeURIComponent(wsId)}&data->>vldToken=eq.${encodeURIComponent(token)}&limit=1`
+  const rows = await _sGET('contacts', q)
+  return rows?.[0] ? _rowToContact(rows[0]) : null
+}
+async function db_updateContactFields (wsId, id, fields) {
+  const TOP_COLS = new Set(['nombre', 'email', 'tel', 'estado', 'etapa', 'canal', 'xp', 'cashback', 'tn_customer_id', 'tags'])
+  const direct = { updated_at: new Date().toISOString() }
+  const extra = {}
+  for (const [k, v] of Object.entries(fields)) {
+    if (TOP_COLS.has(k)) direct[k] = v
+    else extra[k] = v
+  }
+  if (Object.keys(extra).length) {
+    // Merge extra fields into data JSONB (read current first)
+    const rows = await _sGET('contacts', `ws_id=eq.${encodeURIComponent(wsId)}&id=eq.${encodeURIComponent(id)}&select=data`)
+    direct.data = { ...(rows?.[0]?.data || {}), ...extra }
+  }
+  return _sPATCH('contacts', `ws_id=eq.${encodeURIComponent(wsId)}&id=eq.${encodeURIComponent(id)}`, direct)
+}
+async function db_listContacts (wsId, { search, estado, limit = 500, offset = 0 } = {}) {
+  let q = `ws_id=eq.${encodeURIComponent(wsId)}&order=created_at.desc&limit=${limit}&offset=${offset}`
+  if (estado) q += `&estado=eq.${encodeURIComponent(estado)}`
+  if (search) {
+    const s = encodeURIComponent(search)
+    q += `&or=(nombre.ilike.*${s}*,email.ilike.*${s}*,tel.ilike.*${s}*)`
+  }
+  const rows = await _sGET('contacts', q)
+  return (rows || []).map(_rowToContact)
+}
+async function db_deleteContact (wsId, id) {
+  return _sDEL('contacts', `ws_id=eq.${encodeURIComponent(wsId)}&id=eq.${encodeURIComponent(id)}`)
+}
+
+// ── orders table ────────────────────────────────────────────────────────────────
+function _orderToRow (wsId, f) {
+  const { id, email, tipo, categoria, concepto, monto, fecha, medioPago, tn_id, ...rest } = f
+  return {
+    id: id || ('ord_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)),
+    ws_id: wsId,
+    email: email ? String(email).toLowerCase() : null,
+    tipo: tipo || 'ingreso',
+    categoria: categoria || '',
+    concepto: concepto || '',
+    monto: Number(monto) || 0,
+    fecha: fecha || null,
+    medio_pago: medioPago || null,
+    tn_id: tn_id ? String(tn_id) : null,
+    data: rest
+  }
+}
+function _rowToOrder (row) {
+  if (!row) return null
+  return { id: row.id, email: row.email || '', tipo: row.tipo || 'ingreso', categoria: row.categoria || '', concepto: row.concepto || '', monto: row.monto || 0, fecha: row.fecha || '', medioPago: row.medio_pago || '', tn_id: row.tn_id || null, ...(row.data || {}) }
+}
+async function db_insertOrder (wsId, order) {
+  return _sPOST('orders', _orderToRow(wsId, order), 'return=minimal')
+}
+async function db_tnOrderExists (wsId, tnId) {
+  const rows = await _sGET('orders', `ws_id=eq.${encodeURIComponent(wsId)}&tn_id=eq.${encodeURIComponent(String(tnId))}&limit=1`)
+  return (rows?.length || 0) > 0
+}
+async function db_listOrders (wsId, { from, to, tipo, email, limit = 500, offset = 0 } = {}) {
+  let q = `ws_id=eq.${encodeURIComponent(wsId)}&order=fecha.desc&limit=${limit}&offset=${offset}`
+  if (from) q += `&fecha=gte.${from}`
+  if (to) q += `&fecha=lte.${to}`
+  if (tipo) q += `&tipo=eq.${encodeURIComponent(tipo)}`
+  if (email) q += `&email=eq.${encodeURIComponent(String(email).toLowerCase())}`
+  const rows = await _sGET('orders', q)
+  return (rows || []).map(_rowToOrder)
+}
+async function db_deleteOrder (wsId, id) {
+  return _sDEL('orders', `ws_id=eq.${encodeURIComponent(wsId)}&id=eq.${encodeURIComponent(id)}`)
+}
+
+// ── reviews table ───────────────────────────────────────────────────────────────
+function _reviewToRow (wsId, r) {
+  const { id, productId, productName, email, nombre, stars, texto, foto, foto_url, estado } = r
+  return {
+    id: id || ('rv_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)),
+    ws_id: wsId,
+    product_id: productId || null,
+    product_name: productName || '',
+    email: email ? String(email).toLowerCase() : null,
+    nombre: nombre || '',
+    stars: Number(stars) || 5,
+    texto: texto || '',
+    foto_url: foto_url || null,  // solo URLs, nunca base64
+    estado: estado || 'pending',
+    updated_at: new Date().toISOString()
+  }
+}
+function _rowToReview (row) {
+  if (!row) return null
+  return { id: row.id, productId: row.product_id || '', productName: row.product_name || '', email: row.email || '', nombre: row.nombre || '', stars: row.stars || 5, texto: row.texto || '', foto: row.foto_url || '', foto_url: row.foto_url || '', estado: row.estado || 'pending', createdAt: new Date(row.created_at).getTime() }
+}
+async function db_insertReview (wsId, review) {
+  return _sPOST('reviews', _reviewToRow(wsId, review), 'return=minimal')
+}
+async function db_listReviews (wsId, { productId, estado, limit = 200, offset = 0 } = {}) {
+  let q = `ws_id=eq.${encodeURIComponent(wsId)}&order=created_at.desc&limit=${limit}&offset=${offset}`
+  if (productId) q += `&product_id=eq.${encodeURIComponent(productId)}`
+  if (estado) q += `&estado=eq.${encodeURIComponent(estado)}`
+  const rows = await _sGET('reviews', q)
+  return (rows || []).map(_rowToReview)
+}
+async function db_updateReview (wsId, id, fields) {
+  const mapped = { updated_at: new Date().toISOString() }
+  if (fields.estado !== undefined) mapped.estado = fields.estado
+  if (fields.texto !== undefined) mapped.texto = fields.texto
+  if (fields.nombre !== undefined) mapped.nombre = fields.nombre
+  if (fields.stars !== undefined) mapped.stars = Number(fields.stars)
+  if (fields.foto_url !== undefined) mapped.foto_url = fields.foto_url || null
+  if (fields.fecha != null) {
+    // fecha viene como timestamp ms desde el frontend
+    const d = new Date(Number(fields.fecha))
+    if (!isNaN(d)) mapped.created_at = d.toISOString()
+  }
+  return _sPATCH('reviews', `ws_id=eq.${encodeURIComponent(wsId)}&id=eq.${encodeURIComponent(id)}`, mapped)
+}
+async function db_deleteReview (wsId, id) {
+  return _sDEL('reviews', `ws_id=eq.${encodeURIComponent(wsId)}&id=eq.${encodeURIComponent(id)}`)
+}
+
+// ── flow_log table ──────────────────────────────────────────────────────────────
+async function db_flowKeyExists (wsId, flowKey) {
+  const rows = await _sGET('flow_log', `ws_id=eq.${encodeURIComponent(wsId)}&flow_key=eq.${encodeURIComponent(flowKey)}&limit=1`)
+  return (rows?.length || 0) > 0
+}
+async function db_insertFlowLog (wsId, entry) {
+  return _sPOST('flow_log', {
+    id: entry.id || ('fl_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)),
+    ws_id: wsId,
+    flow_id: entry.flowId || null,
+    flow_name: entry.flowName || null,
+    flow_key: entry.flowKey || null,
+    contact_id: entry.contactId || null,
+    email: entry.email || null,
+    tel: entry.tel || null,
+    channel: entry.channel || null,
+    status: entry.status || 'sent',
+    message: entry.message ? String(entry.message).slice(0, 500) : null,
+    data: entry.data || {}
+  }, 'return=minimal')
+}
+async function db_listFlowLog (wsId, { limit = 200, offset = 0 } = {}) {
+  const rows = await _sGET('flow_log', `ws_id=eq.${encodeURIComponent(wsId)}&order=created_at.desc&limit=${limit}&offset=${offset}`)
+  return rows || []
+}
+async function db_getFlowDoneKeys (wsId) {
+  // Carga todas las flow_keys completadas para un workspace (para el cron)
+  const rows = await _sGET('flow_log', `ws_id=eq.${encodeURIComponent(wsId)}&select=flow_key&flow_key=not.is.null&limit=10000`)
+  const s = new Set()
+  for (const r of (rows || [])) if (r.flow_key) s.add(r.flow_key)
+  return s
+}
 
 // Mercado Pago
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN || "TEST-PLACEHOLDER"
@@ -244,78 +501,7 @@ async function patchWorkspace(wsId, data, fullRow = null) {
       }
     }
 
-    // ── Asignar IDs a contactos que no tienen — crítico para que los flows funcionen por contacto ──
-    if (data.crm?.length) {
-      data.crm.forEach(c => {
-        if (!c.id) c.id = 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6)
-      })
-    }
-
-    // ── Merge CRM: preservar contactos del servidor que el cliente no tiene + mergear valores ──
-    if (cur.crm?.length) {
-      if (!data.crm) data.crm = []
-      const clientCrmMap = {}
-      data.crm.forEach(c => { if (c.id) clientCrmMap[c.id] = c })
-      // Preservar contactos del servidor que el cliente no conoce (e.g. creados por checkout)
-      const serverOnlyCrm = cur.crm.filter(c => c.id && !clientCrmMap[c.id])
-      if (serverOnlyCrm.length) data.crm = [...data.crm, ...serverOnlyCrm]
-      // Mergear campos de compra en contactos que ambos tienen
-      const serverCrmMap = {}
-      cur.crm.forEach(c => { if (c.id) serverCrmMap[c.id] = c })
-      data.crm = data.crm.map(c => {
-        const srv = c.id ? serverCrmMap[c.id] : null
-        if (!srv) return c
-        return {
-          ...c,
-          cantCompras: Math.max(parseInt(c.cantCompras)||0, parseInt(srv.cantCompras)||0),
-          valorTotal:  Math.max(parseFloat(c.valorTotal)||0, parseFloat(srv.valorTotal)||0),
-          ultimaCompra: !c.ultimaCompra ? srv.ultimaCompra
-                      : !srv.ultimaCompra ? c.ultimaCompra
-                      : c.ultimaCompra > srv.ultimaCompra ? c.ultimaCompra : srv.ultimaCompra
-        }
-      })
-    }
-
-    // ── Merge flowDone: preservar entradas completadas del servidor que el cliente no tiene ──
-    if (cur.flowDone && typeof cur.flowDone === 'object') {
-      if (!data.flowDone || typeof data.flowDone !== 'object') data.flowDone = {}
-      for (const [k, v] of Object.entries(cur.flowDone)) {
-        if (!(k in data.flowDone)) data.flowDone[k] = v
-      }
-    }
-
-    // ── GUARD: nunca sobreescribir CRM con array vacío si el server tiene contactos ──
-    if (cur.crm?.length && (!data.crm || data.crm.length === 0)) {
-      data.crm = cur.crm
-    }
-
-    // ── Merge finanzas: nunca perder entradas del servidor (ej: ventas web creadas por checkout) ──
-    if (cur.finanzas?.length) {
-      if (!data.finanzas) data.finanzas = []
-      // Construir set de claves del cliente usando id, tn_id, o tn_id_ref como identificador
-      const _finKey = f => f.id || (f.tn_id ? 'tn_'+f.tn_id : null) || f.tn_id_ref || null
-      const clientFinKeys = new Set(data.finanzas.map(_finKey).filter(Boolean))
-      const serverOnlyFin = cur.finanzas.filter(f => {
-        const k = _finKey(f)
-        return k && !clientFinKeys.has(k)
-      })
-      if (serverOnlyFin.length) data.finanzas = [...data.finanzas, ...serverOnlyFin]
-    }
-
-    // ── Merge flowHistory: nunca perder entradas del servidor ──
-    if (cur.flowHistory?.length) {
-      if (!data.flowHistory) data.flowHistory = []
-      const clientFhIds = new Set(data.flowHistory.map(h => h.id).filter(Boolean))
-      const serverOnlyFh = cur.flowHistory.filter(h => h.id && !clientFhIds.has(h.id))
-      if (serverOnlyFh.length) data.flowHistory = [...data.flowHistory, ...serverOnlyFh]
-    }
-    // Trim flowHistory: solo últimos 30 días, máx 500 entradas
-    if (data.flowHistory?.length) {
-      const cutoff30d = Date.now() - 30 * 864e5
-      data.flowHistory = data.flowHistory
-        .filter(h => !h.date || new Date(h.date).getTime() > cutoff30d)
-        .slice(-500)
-    }
+    // CRM, finanzas, flowDone, flowHistory → en tablas propias — no mergear en el blob
 
     // ── Guard flows: nunca sobreescribir flows si el save no los incluye ──
     if (cur.flows?.length && !data.flows?.length) {
@@ -383,38 +569,39 @@ async function patchWorkspace(wsId, data, fullRow = null) {
   } catch(e) { /* si falla el merge, continuar con el guardado normal */ }
 
   // ── Trim server-side — Supabase también tiene límites de tamaño por fila ──
-  // Aplicar antes del write para evitar que filas muy grandes fallen silenciosamente.
   const _srvByteSize = s => Buffer.byteLength(JSON.stringify(s), 'utf8')
-  const SRV_TARGET = 4_000_000 // 4 MB bytes — Supabase row limit suele ser ~1GB pero el cuerpo de respuesta del cliente ya viene trimeado
-  if (Array.isArray(data.finanzas) && data.finanzas.length > 1500)
-    data.finanzas = data.finanzas.slice(-1500)
+  const SRV_TARGET = 4_000_000 // 4 MB
+
+  // Tokens: purgar expirados (el objeto crece sin límite con sesiones viejas)
+  if (data.tokens && typeof data.tokens === 'object') {
+    const now = Date.now()
+    const cleaned = {}
+    for (const [k, v] of Object.entries(data.tokens)) {
+      if (v && v.expiresAt && v.expiresAt > now) cleaned[k] = v
+    }
+    // Si todos expirararon o no tienen expiresAt, guardar a lo sumo los 50 más recientes
+    const validEntries = Object.entries(cleaned)
+    if (validEntries.length === 0) {
+      // fallback: mantener los 50 más recientes sin importar expiración
+      const all = Object.entries(data.tokens)
+      all.sort((a,b) => (b[1]?.createdAt||0) - (a[1]?.createdAt||0))
+      data.tokens = Object.fromEntries(all.slice(0, 50))
+    } else {
+      data.tokens = cleaned
+    }
+  }
+
+  // CRM, finanzas, reviews, flowDone, flowHistory → en tablas propias — vaciar del blob
+  data.crm = []
+  data.finanzas = []
+  data.reviews = []
+  data.flowDone = {}
+  data.flowHistory = []
+
   if (data.tienda && Array.isArray(data.tienda.ordenes) && data.tienda.ordenes.length > 500)
     data.tienda.ordenes = data.tienda.ordenes.slice(-500)
   if (Array.isArray(data.waLog)  && data.waLog.length  > 200)  data.waLog  = data.waLog.slice(-200)
   if (Array.isArray(data.difLog) && data.difLog.length > 200)  data.difLog = data.difLog.slice(-200)
-  if (Array.isArray(data.flowHistory) && data.flowHistory.length > 200)
-    data.flowHistory = data.flowHistory.slice(-200)
-  if (data.flowDone && typeof data.flowDone === 'object') {
-    const fdKeys = Object.keys(data.flowDone)
-    if (fdKeys.length > 2000) {
-      const keep = {}
-      fdKeys.slice(-2000).forEach(k => { keep[k] = data.flowDone[k] })
-      data.flowDone = keep
-    }
-  }
-  // Nivel 2 server: si todavía es muy grande, recorte adicional
-  if (_srvByteSize(data) > SRV_TARGET) {
-    if (Array.isArray(data.finanzas) && data.finanzas.length > 300) data.finanzas = data.finanzas.slice(-300)
-    if (Array.isArray(data.crm)) data.crm = data.crm.map(c => c ? {...c, contactos: (c.contactos||[]).slice(-10)} : c)
-    console.warn(`[patchWorkspace] payload grande post-trim: ${(_srvByteSize(data)/1e6).toFixed(2)} MB`)
-  }
-  // CRM: cap contacts per customer
-  if (Array.isArray(data.crm)) {
-    data.crm = data.crm.map(c => {
-      if (!c || !Array.isArray(c.contactos) || c.contactos.length <= 200) return c
-      return { ...c, contactos: c.contactos.slice(-200) }
-    })
-  }
 
   // When a full row is available (e.g. new workspace creation), include all columns so the
   // INSERT succeeds. For data-only saves the row already exists so partial body is fine.
@@ -534,22 +721,18 @@ app.get("/api/tn/orders", async (req, res) => {
       if (hasta) params.set("created_at_max", new Date(hasta + "T23:59:59").toISOString())
 
       const url = `https://api.tiendanube.com/v1/${storeId}/orders?${params}`
-      console.log(`[TN orders] GET page ${page}`, url)
       const r = await fetch(url, { headers })
-      console.log(`[TN orders] page ${page} status:`, r.status)
 
       if (r.status === 404) break // no more orders
       if (r.status === 401) return res.status(401).json({ error: 'TOKEN_INVALIDO', message: 'El token de Tienda Nube es inválido o fue revocado. Desconectá y volvé a conectar la tienda desde Integraciones.' })
       if (!r.ok) {
         const txt = await r.text()
-        console.log("[TN orders] error:", txt)
         return res.status(r.status).json({ error: txt })
       }
 
       const data = await r.json()
       const batch = Array.isArray(data) ? data : []
       allOrders = allOrders.concat(batch)
-      console.log(`[TN orders] page ${page}: ${batch.length} orders (total so far: ${allOrders.length})`)
 
       if (batch.length < PER_PAGE) break // last page
       page++
@@ -562,21 +745,6 @@ app.get("/api/tn/orders", async (req, res) => {
       const fs = (o.financial_status || "").toLowerCase()
       return ps === "paid" || fs === "paid" || ps === "authorized" || fs === "authorized"
     })
-    console.log(`[TN orders] total fetched: ${allOrders.length} | paid: ${paid.length}`)
-    // Attach shipping debug info to first order so client can inspect
-    if (paid[0]) {
-      const o = paid[0]
-      paid[0]._shippingDebug = {
-        shipping_cost_owner: o.shipping_cost_owner,
-        shipping_cost_customer: o.shipping_cost_customer,
-        subtotal: o.subtotal,
-        total: o.total,
-        shipping: o.shipping,
-        shipping_option: o.shipping_option,
-        shipping_pickup_type: o.shipping_pickup_type,
-        shipping_store_branch_name: o.shipping_store_branch_name,
-      }
-    }
     res.json(paid)
   } catch (e) {
     res.status(500).json({ error: e.message })
@@ -617,7 +785,6 @@ app.get("/api/tn/products", async (req, res) => {
       page++
       if (page > 100) break // safety: hasta 20 000 productos
     }
-    // Compactar payload: solo lo necesario para el cost-mapping
     const compact = all.map(p => ({
       id: p.id,
       name: typeof p.name === "object" ? (p.name.es || p.name.pt || Object.values(p.name||{})[0] || "") : (p.name || ""),
@@ -626,13 +793,39 @@ app.get("/api/tn/products", async (req, res) => {
         sku: v.sku || "",
         cost: v.cost != null ? Number(v.cost) : null,
         price: v.price != null ? Number(v.price) : null,
-        stock: v.stock != null ? Number(v.stock) : null
+        stock: v.stock != null ? Number(v.stock) : null,
+        values: Array.isArray(v.values) ? v.values.map(val => typeof val === 'object' ? (val.es || val.pt || Object.values(val||{})[0] || '') : String(val)) : []
       }))
     }))
     res.json(compact)
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
+})
+
+// Actualizar stock y/o costo de una variante en TN
+app.patch('/api/tn/products/:productId/variants/:variantId', async (req, res) => {
+  const { wsId } = req.query
+  const { productId, variantId } = req.params
+  if (!wsId) return res.status(400).json({ error: 'wsId requerido' })
+  try {
+    const ws = await getWorkspace(wsId)
+    const tn = ws?.data?.tnIntegration
+    if (!tn?.token) return res.status(400).json({ error: 'Tienda Nube no conectada' })
+    const { storeId, token } = tn
+    const allowed = {}
+    if (req.body.stock != null) allowed.stock = Number(req.body.stock)
+    if (req.body.cost != null) allowed.cost = Number(req.body.cost)
+    if (!Object.keys(allowed).length) return res.status(400).json({ error: 'Nada para actualizar' })
+    const r = await fetch(`https://api.tiendanube.com/v1/${storeId}/products/${productId}/variants/${variantId}`, {
+      method: 'PUT',
+      headers: { 'Authentication': `bearer ${token}`, 'Content-Type': 'application/json', 'User-Agent': 'Soul eCommlab (soporte@veldos.app)' },
+      body: JSON.stringify(allowed)
+    })
+    const body = await r.json()
+    if (!r.ok) return res.status(r.status).json({ error: body })
+    res.json({ ok: true, variant: { id: body.id, stock: body.stock, cost: body.cost } })
+  } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
 // Debug: estado webhooks y envío
@@ -713,22 +906,22 @@ app.post("/api/tn/webhook", async (req, res) => {
   const HANDLED = ["order/paid", "cart/updated", "customer/created"]
   if (!HANDLED.includes(event) || !entityId) return
   try {
-    // Find workspace with matching storeId and tnWebhookActive
-    const wsRes = await fetch(`${SUPA_URL}/rest/v1/workspaces?select=id,data`, {
-      headers: { "apikey": SUPA_KEY(), "Authorization": "Bearer " + SUPA_KEY() }
-    })
+    // Cargar solo config del workspace (sin crm/finanzas) — mucho menos memoria
+    const wsRes = await fetch(
+      `${SUPA_URL}/rest/v1/workspaces?select=id,tnWebhookActive:data->>tnWebhookActive,tnIntegration:data->tnIntegration,processedTnOrders:data->processedTnOrders,flows:data->flows,waProviders:data->waProviders,waConfig:data->waConfig,store:data->store,tienda:data->tienda`,
+      { headers: { "apikey": SUPA_KEY(), "Authorization": "Bearer " + SUPA_KEY() } }
+    )
     const allWs = await wsRes.json()
     const target = (allWs || []).find(w =>
-      w.data?.tnWebhookActive &&
-      w.data?.tnIntegration &&
-      (!webhookStoreId || String(w.data.tnIntegration.storeId) === String(webhookStoreId))
-    ) || (allWs || []).find(w => w.data?.tnWebhookActive && w.data?.tnIntegration)
+      w.tnWebhookActive === 'true' && w.tnIntegration &&
+      (!webhookStoreId || String(w.tnIntegration.storeId) === String(webhookStoreId))
+    ) || (allWs || []).find(w => w.tnWebhookActive === 'true' && w.tnIntegration)
     if (!target) return
 
-    const tn = target.data.tnIntegration
+    const tn = target.tnIntegration
     const tnHeaders = { "Authentication": `bearer ${tn.token}`, "User-Agent": "Soul eCommlab (soporte@veldos.app)" }
-    const data = target.data
-    if (!data.crm) data.crm = []
+    // Fake data object con solo lo necesario para _processImmediateFlows (flows + WA config)
+    const cfgData = { flows: target.flows || [], waProviders: target.waProviders || [], waConfig: target.waConfig || {}, store: target.store || {}, tienda: target.tienda || {} }
     const today = new Date().toISOString().slice(0, 10)
 
     // ── cart/updated → carrito abandonado ────────────────────────────────────
@@ -737,31 +930,25 @@ app.post("/api/tn/webhook", async (req, res) => {
       if (!cartRes.ok) return
       const cart = await cartRes.json()
       const cust = cart.customer
-      if (!cust) return // carrito anónimo, skip
+      if (!cust) return
       const email = (cust.email || '').toLowerCase()
       const phone = cust.phone || ''
       if (!email && !phone) return
       const items = (cart.products || []).map(p => ({ nombre: p.name?.es || p.name || '', precio: parseFloat(p.price) || 0, qty: p.quantity || 1 }))
       const total = parseFloat(cart.prices?.total || cart.subtotal || 0)
-      let contact = data.crm.find(c => (email && (c.email || '').toLowerCase() === email) || (phone && c.tel === phone) || c.tn_customer_id === cust.id)
+      // Buscar en DB y actualizar o crear
+      let contact = await db_findContact(target.id, { email, tnId: cust.id })
+      if (!contact && phone) contact = await db_findContact(target.id, { tel: phone })
       if (contact) {
-        contact.carritoAbandonado = true
-        contact.cartDate = today
-        contact.valorAbandonado = total
-        contact.ultimoCarritoItems = items
-        if (phone && !contact.tel) contact.tel = phone
+        await db_updateContactFields(target.id, contact.id, { carritoAbandonado: true, cartDate: today, valorAbandonado: total, ultimoCarritoItems: items, ...(phone && !contact.tel ? { tel: phone } : {}) })
       } else {
-        contact = {
-          id: 'c_tn_' + Date.now().toString(36) + Math.random().toString(36).slice(2,4),
+        await db_upsertContact(target.id, {
+          id: 'c_tn_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 4),
           nombre: `${cust.name || ''} ${cust.surname || ''}`.trim() || 'Cliente TN',
           email, tel: phone, estado: 'Lead', etapa: 'lead', canal: 'Tienda Nube',
-          carritoAbandonado: true, cartDate: today, valorAbandonado: total,
-          ultimoCarritoItems: items, creado: today, tn_customer_id: cust.id
-        }
-        data.crm.push(contact)
+          carritoAbandonado: true, cartDate: today, valorAbandonado: total, ultimoCarritoItems: items, creado: today, tn_customer_id: cust.id
+        })
       }
-      await patchWorkspace(target.id, data)
-      _invalidateWsCache(target.id)
       return
     }
 
@@ -773,121 +960,106 @@ app.post("/api/tn/webhook", async (req, res) => {
       const email = (cust.email || '').toLowerCase()
       const phone = cust.phone || ''
       if (!email && !phone) return
-      const existing = data.crm.find(c => (email && (c.email || '').toLowerCase() === email) || (phone && c.tel === phone))
-      if (existing) return // ya existe en CRM
+      // Verificar si ya existe
+      let existing = await db_findContact(target.id, { email })
+      if (!existing && phone) existing = await db_findContact(target.id, { tel: phone })
+      if (existing) return
       const newContact = {
-        id: 'c_tn_' + Date.now().toString(36) + Math.random().toString(36).slice(2,4),
+        id: 'c_tn_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 4),
         nombre: `${cust.name || ''} ${cust.surname || ''}`.trim() || 'Cliente TN',
-        email, tel: phone, estado: 'Lead', etapa: 'lead', canal: 'Tienda Nube',
-        creado: today, tn_customer_id: cust.id
+        email, tel: phone, estado: 'Lead', etapa: 'lead', canal: 'Tienda Nube', creado: today, tn_customer_id: cust.id
       }
-      data.crm.push(newContact)
-      await patchWorkspace(target.id, data)
-      _invalidateWsCache(target.id)
-      _processImmediateFlows(target.id, data, newContact, ['new_lead'], {}).catch(e => console.error('[flows] TN customer/created:', e.message))
+      await db_upsertContact(target.id, newContact)
+      _addContactToList(target.id, 'Clientes TN', 'dl_clientes_tn', newContact.id).catch(() => {})
+      _processImmediateFlows(target.id, cfgData, newContact, ['new_lead'], {}).catch(e => console.error('[flows] TN customer/created:', e.message))
       return
     }
 
     // ── order/paid → importar venta ───────────────────────────────────────────
-    const oRes = await fetch(
-      `https://api.tiendanube.com/v1/${tn.storeId}/orders/${entityId}`,
-      { headers: tnHeaders }
-    )
+    const oRes = await fetch(`https://api.tiendanube.com/v1/${tn.storeId}/orders/${entityId}`, { headers: tnHeaders })
     if (!oRes.ok) return
     const o = await oRes.json()
 
-    if (!data.finanzas) data.finanzas = []
-    // Check dedup
-    if (data.finanzas.find(t => String(t.tn_id) === String(o.id))) return
-    // Map gateway
+    // Dedup con DB — rápido y sin race condition
+    const orderId = String(o.id)
+    const processedArr = Array.isArray(target.processedTnOrders) ? target.processedTnOrders : []
+    const alreadyInBlob = processedArr.includes(orderId)
+    const alreadyInDB = !alreadyInBlob && await db_tnOrderExists(target.id, orderId)
+    if (alreadyInBlob || alreadyInDB) return
+
+    // Marcar como procesado en el blob (array pequeño, solo para hot-path)
+    const newProcessed = [...processedArr, orderId].slice(-1000)
+    const wsForPatch = await getWorkspace(target.id)
+    if (wsForPatch?.data) {
+      wsForPatch.data.processedTnOrders = newProcessed
+      patchWorkspace(target.id, wsForPatch.data).catch(e => console.warn('[webhook] No se pudo actualizar processedTnOrders:', e.message))
+      _invalidateWsCache(target.id)
+    }
+
     const g = (o.gateway || "").toLowerCase()
     const medioPago = g.includes("mercado") ? "Mercado Pago" : g.includes("nuvem") || g.includes("nube") ? "Pago Nube" : g.includes("transfer") ? "transferencia" : g.includes("cash") || g.includes("efectivo") ? "Efectivo" : o.gateway || "Otro"
     const fecha = (o.created_at || "").slice(0, 10)
     const cliente = o.customer?.name || o.customer?.email || "Cliente TN"
     const productos = (o.products || []).map(p => p.name).join(", ") || "Venta"
     const envioMonto = parseFloat(o.shipping_cost_customer || o.shipping_cost_owner || 0)
-    const ingresoTx = {
-      tipo: "ingreso", fecha,
-      concepto: `TN #${o.number} — ${cliente}`,
-      categoria: "Ventas tienda",
-      monto: parseFloat(o.total) || 0,
+
+    // Insertar ingreso en orders table
+    await db_insertOrder(target.id, {
+      tipo: "ingreso", fecha, concepto: `TN #${o.number} — ${cliente}`,
+      categoria: "Ventas tienda", monto: parseFloat(o.total) || 0,
       medioPago, cuotas: 1,
       unidades: (o.products || []).reduce((a, p) => a + (p.quantity || 1), 0),
-      notas: productos,
-      tn_id: o.id,
-      tn_envio: envioMonto
-    }
-    data.finanzas.push(ingresoTx)
-    // Gasto separado para envío
+      notas: productos, tn_id: o.id, tn_number: o.number, tn_envio: envioMonto,
+      email: (o.customer?.email || '').toLowerCase()
+    })
     if (envioMonto > 0) {
-      data.finanzas.push({ tipo: "gasto", fecha, concepto: `Envío TN #${o.number}`, categoria: "Envíos", monto: envioMonto, medioPago, tn_id_ref: `${o.id}_envio` })
+      await db_insertOrder(target.id, { tipo: "gasto", fecha, concepto: `Envío TN #${o.number}`, categoria: "Envíos", monto: envioMonto, medioPago, tn_id: `${o.id}_envio` })
     }
-    // Gasto separado para comisión gateway
     const comisionPct = medioPago === "Mercado Pago" ? 6.29 : medioPago === "Pago Nube" ? 2.5 : 0
     const comisionMonto = comisionPct > 0 ? Math.round((parseFloat(o.total) || 0) * comisionPct / 100) : 0
     if (comisionMonto > 0) {
-      data.finanzas.push({ tipo: "gasto", fecha, concepto: `Comisión TN #${o.number}`, categoria: "Comisiones", monto: comisionMonto, medioPago, tn_id_ref: `${o.id}_com` })
+      await db_insertOrder(target.id, { tipo: "gasto", fecha, concepto: `Comisión TN #${o.number}`, categoria: "Comisiones", monto: comisionMonto, medioPago, tn_id: `${o.id}_com` })
     }
-    // CRM upsert
-    if (o.customer) {
-      if (!data.crm) data.crm = []
-      const email = o.customer.email || ""
-      const existing = email ? data.crm.find(c => c.email === email || c.tn_customer_id === o.customer.id) : null
-      if (existing) {
-        existing.valor = (parseFloat(existing.valor) || 0) + parseFloat(o.total || 0)
-        existing.valorTotal = (parseFloat(existing.valorTotal) || 0) + parseFloat(o.total || 0)
-        existing.cantCompras = (parseInt(existing.cantCompras) || 0) + 1
-        existing.compra = fecha
-        existing.ultimaCompra = fecha   // ← usado por flows
-        existing.etapa = existing.etapa || 'cliente'
-        if (!existing.tel && o.customer.phone) existing.tel = o.customer.phone
-        existing.carritoAbandonado = false  // limpiar carrito abandonado al pagar
-        existing.cartDate = null
-      } else {
-        data.crm.push({
-          id: 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,5),
-          nombre: o.customer.name || "Cliente TN", email,
-          tel: o.customer.phone || "", ig: "",
-          estado: "Cliente", etapa: "cliente", tipo: "cliente",
-          valor: parseFloat(o.total) || 0,
-          valorTotal: parseFloat(o.total) || 0,
-          ultContacto: fecha, compra: fecha, ultimaCompra: fecha, cantCompras: 1,
-          canal: "Tienda Nube",
-          ciudad: o.shipping_address?.city || "",
-          provincia: o.shipping_address?.province || "",
-          marketing: "", newsletter: "no", tags: ["tiendanube"],
-          notas: "Importado automáticamente desde Tienda Nube",
-          creado: new Date().toISOString().slice(0, 10),
-          tn_customer_id: o.customer.id
-        })
-      }
-    }
-    // Save back to Supabase
-    await patchWorkspace(target.id, data)
-    _invalidateWsCache(target.id)
 
-    // ── Disparar flows inmediatos ──────────────────────────────────────────────
-    // Buscar el contacto recién actualizado/creado para pasarlo al motor de flows
+    // CRM upsert atómico en DB — sin race condition
+    let crmContact = null
     if (o.customer) {
-      try {
-        const freshWs2 = await getWorkspace(target.id)
-        const freshD2  = freshWs2?.data || data
-        const emailCust = (o.customer.email || '').toLowerCase()
-        const crmContact = freshD2.crm?.find(c =>
-          (emailCust && c.email?.toLowerCase() === emailCust) ||
-          c.tn_customer_id === o.customer.id
-        )
-        if (crmContact) {
-          const totalOrden = parseFloat(o.total) || 0
-          const lineas = (o.products || []).map(p => ({ nombre: p.name, qty: p.quantity || 1 }))
-          _processImmediateFlows(target.id, freshD2, crmContact,
-            ['after_purchase', 'post_purchase', 'payment_confirmed'],
-            { total: totalOrden, lineas }
-          ).catch(e2 => console.error('[flows] TN webhook flows error:', e2.message))
+      const email = (o.customer.email || '').toLowerCase()
+      crmContact = await db_findContact(target.id, { email }) || await db_findContact(target.id, { tnId: o.customer.id })
+      const monto = parseFloat(o.total) || 0
+      if (crmContact) {
+        await db_updateContactFields(target.id, crmContact.id, {
+          valor: (parseFloat(crmContact.valor) || 0) + monto,
+          valorTotal: (parseFloat(crmContact.valorTotal) || 0) + monto,
+          cantCompras: (parseInt(crmContact.cantCompras) || 0) + 1,
+          ultimaCompra: fecha, ultimoPedido: o.number || '',
+          ultimoProducto: (o.products || []).map(p => p.name).join(', ').slice(0, 80) || '',
+          etapa: crmContact.etapa || 'cliente', carritoAbandonado: false, cartDate: null,
+          ...(o.customer.phone && !crmContact.tel ? { tel: o.customer.phone } : {})
+        })
+        crmContact = { ...crmContact, ultimaCompra: fecha }
+      } else {
+        crmContact = {
+          id: 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 5),
+          nombre: o.customer.name || "Cliente TN", email, tel: o.customer.phone || "",
+          estado: "Cliente", etapa: "cliente", valor: monto, valorTotal: monto,
+          ultimaCompra: fecha, cantCompras: 1, canal: "Tienda Nube",
+          ciudad: o.shipping_address?.city || "", provincia: o.shipping_address?.province || "",
+          tags: ["tiendanube"], creado: today, tn_customer_id: o.customer.id
         }
-      } catch (fe) {
-        console.error('[flows] TN webhook flows lookup error:', fe.message)
+        await db_upsertContact(target.id, crmContact)
       }
+    }
+
+    // Disparar flows inmediatos
+    if (crmContact) {
+      const lineas = (o.products || []).map(p => ({ nombre: p.name, qty: p.quantity || 1 }))
+      const total = parseFloat(o.total) || 0
+      const isFirstPurchase = (crmContact.cantCompras === 1) || (!crmContact.cantCompras && !crmContact.ultimaCompra)
+      const triggerTypes = ['after_purchase', 'post_purchase', 'payment_confirmed', 'order_placed']
+      if (isFirstPurchase) triggerTypes.push('first_purchase')
+      _processImmediateFlows(target.id, cfgData, crmContact, triggerTypes, { total, lineas })
+        .catch(e2 => console.error('[flows] TN webhook flows error:', e2.message))
     }
   } catch(e) {
     console.error("TN webhook error:", e)
@@ -896,27 +1068,327 @@ app.post("/api/tn/webhook", async (req, res) => {
 
 // ── TN: tracking de visitas desde snippet JS ─────────────────────────────────
 app.post('/api/tn/track', async (req, res) => {
-  const { wsId, email, tel, nombre, evento } = req.body
+  const { wsId, email, tel, nombre, evento, productId, productName, productUrl } = req.body
   if (!wsId || (!email && !tel)) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const emailNorm = (email || '').toLowerCase()
+    const now = new Date().toISOString()
+    const today = now.slice(0, 10)
+    let contact = await db_findContact(wsId, { email: emailNorm })
+    if (!contact && tel) contact = await db_findContact(wsId, { tel })
+    if (!contact) return res.json({ ok: true, found: false })
+
+    const updates = { ultimaVisita: now }
+
+    if (evento === 'product_view' && productId) {
+      const views = contact.productViews || []
+      const ex = views.find(p => p.id === productId)
+      if (ex) { ex.vistas = (ex.vistas || 1) + 1; ex.lastSeen = now }
+      else views.unshift({ id: productId, nombre: productName || productId, url: productUrl || '', vistas: 1, firstSeen: now, lastSeen: now })
+      updates.productViews = views.slice(0, 50)
+      updates.totalProductViews = (contact.totalProductViews || 0) + 1
+    }
+    if (evento === 'cart_add' && productId) {
+      const adds = contact.cartAdds || []
+      adds.unshift({ id: productId, nombre: productName || productId, fecha: now })
+      updates.cartAdds = adds.slice(0, 20)
+      updates.carritoAbandonado = true
+      updates.cartDate = today
+    }
+    if (evento === 'cart_abandon') { updates.carritoAbandonado = true; updates.cartDate = today }
+    if (evento === 'purchase') { updates.carritoAbandonado = false; updates.cartAdds = [] }
+
+    await db_updateContactFields(wsId, contact.id, updates)
+
+    // Disparar flows inmediatos según el evento
+    if (evento === 'product_view' && productId) {
+      const ws2 = await getWorkspace(wsId).catch(() => null)
+      if (ws2?.data) _processImmediateFlows(wsId, ws2.data, { ...contact, ...updates }, ['product_view'], { productId, productName }).catch(() => {})
+    }
+
+    res.json({ ok: true, found: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── TN: analytics agregados de la tienda ─────────────────────────────────────
+app.get('/api/tn/store-analytics', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.json({})
+  try {
+    const [allOrders, crm] = await Promise.all([
+      db_listOrders(wsId, { tipo: 'ingreso', limit: 2000 }),
+      db_listContacts(wsId, { limit: 2000 })
+    ])
+
+    const ventas = allOrders.filter(f => f.categoria === 'Ventas tienda')
+    const now = new Date()
+    const d30 = new Date(now - 30 * 86400000).toISOString().slice(0, 10)
+    const d60 = new Date(now - 60 * 86400000).toISOString().slice(0, 10)
+    const d7  = new Date(now - 7  * 86400000).toISOString().slice(0, 10)
+
+    // Revenue metrics
+    const totalRevenue = ventas.reduce((s, f) => s + (f.monto || 0), 0)
+    const rev30 = ventas.filter(f => (f.fecha || '') >= d30).reduce((s, f) => s + (f.monto || 0), 0)
+    const rev7  = ventas.filter(f => (f.fecha || '') >= d7).reduce((s, f) => s + (f.monto || 0), 0)
+    const avgTicket = ventas.length ? totalRevenue / ventas.length : 0
+
+    // Product popularity from finanzas.notas (products string) + productViews
+    const prodSales = {}
+    ventas.forEach(f => {
+      if (!f.notas) return
+      f.notas.split(',').forEach(p => {
+        const name = p.trim().split(' x')[0].trim()
+        if (!name) return
+        prodSales[name] = (prodSales[name] || 0) + 1
+      })
+    })
+    const topProductsSales = Object.entries(prodSales).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([n, c]) => ({ nombre: n, ventas: c }))
+
+    // Product views aggregated from CRM
+    const prodViews = {}
+    crm.forEach(c => {
+      (c.productViews || []).forEach(pv => {
+        if (!prodViews[pv.id]) prodViews[pv.id] = { nombre: pv.nombre, url: pv.url, vistas: 0, visitantes: 0 }
+        prodViews[pv.id].vistas += pv.vistas || 1
+        prodViews[pv.id].visitantes += 1
+      })
+    })
+    const topProductsViews = Object.values(prodViews).sort((a, b) => b.vistas - a.vistas).slice(0, 10)
+
+    // Customer segments — match by email (Supabase orders have .email directly)
+    const buyerEmails = new Set(ventas.map(f => (f.email || '').toLowerCase()).filter(Boolean))
+    const clientesConCompras = crm.filter(c => c.email && buyerEmails.has(c.email.toLowerCase()))
+    const enRiesgo = clientesConCompras.filter(c => {
+      const lastOrder = ventas.filter(f => (f.email || '').toLowerCase() === (c.email || '').toLowerCase()).sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))[0]
+      return lastOrder && lastOrder.fecha < d60
+    })
+    const activos30 = clientesConCompras.filter(c => {
+      const lastOrder = ventas.filter(f => (f.email || '').toLowerCase() === (c.email || '').toLowerCase()).sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))[0]
+      return lastOrder && lastOrder.fecha >= d30
+    })
+    const carritosAbandonados = crm.filter(c => c.carritoAbandonado && c.cartDate >= d30)
+
+    // Conversion approximation: contacts who viewed products but haven't bought
+    const visitantesNoBuyers = crm.filter(c => (c.productViews || []).length > 0 && !clientesConCompras.find(cl => cl.id === c.id))
+
+    // Monthly revenue trend (last 6 months)
+    const monthly = {}
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const key = d.toISOString().slice(0, 7)
+      monthly[key] = 0
+    }
+    ventas.forEach(f => {
+      const key = (f.fecha || '').slice(0, 7)
+      if (monthly[key] !== undefined) monthly[key] += f.monto || 0
+    })
+
+    res.json({
+      revenue: { total: totalRevenue, last30: rev30, last7: rev7, avgTicket },
+      orders: { total: ventas.length, last30: ventas.filter(f => (f.fecha || '') >= d30).length },
+      customers: {
+        total: clientesConCompras.length,
+        activos30: activos30.length,
+        enRiesgo: enRiesgo.length,
+        carritosAbandonados: carritosAbandonados.length,
+        visitantesNoBuyers: visitantesNoBuyers.length
+      },
+      topProductsSales,
+      topProductsViews,
+      monthly,
+      enRiesgoList: enRiesgo.map(c => ({ nombre: c.nombre, email: c.email, tel: c.tel })).slice(0, 20),
+      carritosAbandonadosList: carritosAbandonados.map(c => ({ nombre: c.nombre, email: c.email, tel: c.tel, cartDate: c.cartDate, cartAdds: c.cartAdds || [] })).slice(0, 20)
+    })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── TN: tablas de talles ──────────────────────────────────────────────────────
+app.get('/api/tn/size-charts', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.json([])
+  try {
+    const [ws, tiendaResult] = await Promise.all([
+      getWorkspace(wsId),
+      getTienda(wsId).catch(() => null)
+    ])
+    const legacyCharts = ws?.data?.sizeCharts || []
+    const guias = tiendaResult?.t?.guias || []
+    const productos = tiendaResult?.t?.productos || []
+
+    // Build chart list from tienda.guias, deriving productoIds from products with matching guiaTalles
+    const guiaCharts = guias.map(g => {
+      const pIds = productos
+        .filter(p => p.guiaTalles === g.id)
+        .map(p => String(p.tnId || p.id || ''))
+        .filter(Boolean)
+      return { ...g, productoIds: pIds }
+    })
+
+    // Merge: tienda.guias take priority, legacy charts fill in if not already present
+    const guiaIds = new Set(guias.map(g => g.id))
+    const merged = [...guiaCharts, ...legacyCharts.filter(c => !guiaIds.has(c.id))]
+    res.json(merged)
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.post('/api/tn/size-charts', async (req, res) => {
+  const { wsId } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
   try {
     const ws = await getWorkspace(wsId)
     if (!ws) return res.status(404).json({ error: 'Workspace no encontrado' })
     const data = ws.data || {}
-    if (!data.crm) data.crm = []
-    const now = new Date().toISOString()
-    const today = now.slice(0, 10)
-    const emailNorm = (email || '').toLowerCase()
-    let contact = data.crm.find(c => (emailNorm && (c.email || '').toLowerCase() === emailNorm) || (tel && c.tel === tel))
-    if (contact) {
-      contact.ultimaVisita = now
-      if (evento === 'cart_abandon') {
-        contact.carritoAbandonado = true
-        contact.cartDate = today
-      }
-      await patchWorkspace(wsId, data)
-      _invalidateWsCache(wsId)
+    if (!data.sizeCharts) data.sizeCharts = []
+    const chart = req.body.chart
+    if (!chart) return res.status(400).json({ error: 'Falta chart' })
+    const idx = data.sizeCharts.findIndex(c => c.id === chart.id)
+    if (idx >= 0) { data.sizeCharts[idx] = chart } else {
+      chart.id = chart.id || ('sc_' + Date.now().toString(36))
+      data.sizeCharts.push(chart)
     }
-    res.json({ ok: true, found: !!contact })
+    await patchWorkspace(wsId, data)
+    _invalidateWsCache(wsId)
+    res.json({ ok: true, id: chart.id })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.delete('/api/tn/size-charts/:id', async (req, res) => {
+  const { wsId } = req.query
+  const { id } = req.params
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const ws = await getWorkspace(wsId)
+    if (!ws) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const data = ws.data || {}
+    data.sizeCharts = (data.sizeCharts || []).filter(c => c.id !== id)
+    await patchWorkspace(wsId, data)
+    _invalidateWsCache(wsId)
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.post('/api/tn/size-charts/stock', async (req, res) => {
+  const { wsId, chartId, stockStatus } = req.body
+  if (!wsId || !chartId) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const ws = await getWorkspace(wsId)
+    if (!ws) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const data = ws.data || {}
+    const chart = (data.sizeCharts || []).find(c => c.id === chartId)
+    if (!chart) return res.status(404).json({ error: 'Chart no encontrado' })
+    chart.stockStatus = stockStatus
+    await patchWorkspace(wsId, data)
+    _invalidateWsCache(wsId)
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── TN: wishlist ─────────────────────────────────────────────────────────────
+app.get('/api/tn/wishlist', async (req, res) => {
+  const { wsId, email } = req.query
+  if (!wsId || !email) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const contact = await db_findContact(wsId, { email: email.toLowerCase() })
+    res.json({ ok: true, wishlist: contact ? (contact.wishlist || []) : [] })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.post('/api/tn/wishlist', async (req, res) => {
+  const { wsId, email, productId, productName, productUrl, productImg, action } = req.body
+  if (!wsId || !email || !productId) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const contact = await db_findContact(wsId, { email: email.toLowerCase() })
+    if (!contact) return res.status(404).json({ error: 'Contacto no encontrado' })
+    let wishlist = contact.wishlist || []
+    if (action === 'remove') {
+      wishlist = wishlist.filter(p => p.id !== productId)
+    } else {
+      if (!wishlist.find(p => p.id === productId)) {
+        wishlist.unshift({ id: productId, nombre: productName || productId, url: productUrl || '', img: productImg || '', addedAt: new Date().toISOString() })
+        if (wishlist.length > 100) wishlist = wishlist.slice(0, 100)
+      }
+    }
+    await db_updateContactFields(wsId, contact.id, { wishlist })
+    res.json({ ok: true, wishlist })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── TN: cashback ─────────────────────────────────────────────────────────────
+app.get('/api/tn/cashback', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const rows = await _sGET('contacts', `ws_id=eq.${encodeURIComponent(wsId)}&cashback=gt.0&order=cashback.desc&limit=500`)
+    const result = (rows || []).map(r => ({ email: r.email, nombre: r.nombre, cashback: r.cashback, cashbackHistory: (r.data || {}).cashbackHistory || [] }))
+    res.json(result)
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.post('/api/tn/cashback/apply', async (req, res) => {
+  const { wsId, email, amount, motivo } = req.body
+  if (!wsId || !email || amount == null) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const contact = await db_findContact(wsId, { email })
+    if (!contact) return res.status(404).json({ error: 'Contacto no encontrado' })
+    const newCashback = Math.max(0, (contact.cashback || 0) - amount)
+    const history = [...(contact.cashbackHistory || []), { tipo: 'aplicado', monto: amount, motivo: motivo || '', fecha: Date.now() }]
+    await db_updateContactFields(wsId, contact.id, { cashback: newCashback, cashbackHistory: history })
+    res.json({ ok: true, cashback: newCashback })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.post('/api/tn/cashback/adjust', async (req, res) => {
+  const { wsId, email, cashback, motivo } = req.body
+  if (!wsId || !email || cashback == null) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const contact = await db_findContact(wsId, { email })
+    if (!contact) return res.status(404).json({ error: 'Contacto no encontrado' })
+    const history = [...(contact.cashbackHistory || []), { tipo: 'ajuste', monto: cashback, motivo: motivo || '', fecha: Date.now() }]
+    await db_updateContactFields(wsId, contact.id, { cashback, cashbackHistory: history })
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── TN: reviews ───────────────────────────────────────────────────────────────
+app.post('/api/tn/reviews', async (req, res) => {
+  const { wsId, productId, productName, email, nombre, stars, texto } = req.body
+  if (!wsId || !productId || !email) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    await db_insertReview(wsId, {
+      productId, productName: productName || '', email, nombre: nombre || '',
+      stars: Number(stars) || 5, texto: texto || '', estado: 'pending',
+      foto_url: null  // base64 no se acepta — el cliente debe subir a Storage y pasar URL
+    })
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.get('/api/tn/reviews', async (req, res) => {
+  const { wsId, productId, estado } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const reviews = await db_listReviews(wsId, { productId, estado })
+    res.json(reviews)
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.patch('/api/tn/reviews/:id', async (req, res) => {
+  const { wsId, estado, texto, nombre, stars, foto_url, fecha } = req.body
+  const { id } = req.params
+  if (!wsId) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    await db_updateReview(wsId, id, { estado, texto, nombre, stars, foto_url, fecha })
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.delete('/api/tn/reviews/:id', async (req, res) => {
+  const wsId = req.body?.wsId || req.query?.wsId
+  const { id } = req.params
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    await db_deleteReview(wsId, id)
+    res.json({ ok: true })
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
@@ -925,26 +1397,176 @@ app.post('/api/tn/subscribe', async (req, res) => {
   const { wsId, email, nombre, tel } = req.body
   if (!wsId || !email) return res.status(400).json({ error: 'Faltan campos' })
   try {
+    const emailNorm = email.toLowerCase()
+    const today = new Date().toISOString().slice(0, 10)
+    const sessionToken = _genToken()
+    const tokenExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    const existing = await db_findContact(wsId, { email: emailNorm })
+    let contactId, contactNombre
+    if (!existing) {
+      const contact = {
+        id: 'c_tnpop_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 4),
+        nombre: nombre || '', email: emailNorm, tel: tel || '',
+        estado: 'Lead', etapa: 'lead', canal: 'Popup TN', newsletter: 'si', creado: today
+      }
+      await db_upsertContact(wsId, contact)
+      contactId = contact.id
+      contactNombre = contact.nombre
+      const ws = await getWorkspace(wsId)
+      if (ws?.data) _processImmediateFlows(wsId, ws.data, contact, ['new_lead'], {}).catch(() => {})
+    } else {
+      contactId = existing.id
+      contactNombre = nombre || existing.nombre || ''
+    }
+    await db_updateContactFields(wsId, contactId, { vldToken: sessionToken, vldTokenExpiry: tokenExpiry })
+    res.json({ ok: true, token: sessionToken, nombre: contactNombre, email: emailNorm })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── TN: panel de cliente para storefront de TN ───────────────────────────────
+app.get('/api/tn/customer-panel', async (req, res) => {
+  const { wsId, email, tel } = req.query
+  if (!wsId || (!email && !tel)) return res.json({})
+  try {
+    let contact = null
+    if (email) contact = await db_findContact(wsId, { email: email.toLowerCase() })
+    if (!contact && tel) contact = await db_findContact(wsId, { tel: tel.replace(/\D/g, '') })
+    if (!contact) return res.json({ nombre: null, pedidos: [], reclamos: [] })
+    const emailNorm = contact.email || ''
+    // Pedidos del cliente desde orders table
+    const orders = emailNorm ? await db_listOrders(wsId, { email: emailNorm, tipo: 'ingreso', limit: 20 }) : []
+    const pedidos = orders
+      .filter(f => f.categoria === 'Ventas tienda')
+      .map(f => ({
+        numero:    f.tn_number || (f.concepto || '').match(/#(\d+)/)?.[1] || '',
+        fecha:     f.fecha || '',
+        monto:     f.monto || 0,
+        productos: f.notas || '',
+        medioPago: f.medioPago || '',
+      }))
+    res.json({
+      nombre:            contact.nombre || '',
+      tel:               contact.tel || '',
+      etapa:             contact.etapa || contact.estado || '',
+      cantCompras:       contact.cantCompras || 0,
+      valorTotal:        contact.valorTotal || 0,
+      ultimoPedido:      contact.ultimoPedido || '',
+      ultimoProducto:    contact.ultimoProducto || '',
+      ultimaCompra:      contact.ultimaCompra || '',
+      carritoAbandonado: contact.carritoAbandonado || false,
+      valorAbandonado:   contact.valorAbandonado || 0,
+      pedidos,
+    })
+  } catch(e) { res.json({}) }
+})
+
+// ── TN: XP, cashback y nivel del cliente ─────────────────────────────────────
+app.get('/api/tn/customer-stats', async (req, res) => {
+  const { wsId, email, tel } = req.query
+  if (!wsId || (!email && !tel)) return res.json({})
+  try {
+    let contact = null
+    if (email) contact = await db_findContact(wsId, { email: email.toLowerCase() })
+    if (!contact && tel) contact = await db_findContact(wsId, { tel: tel.replace(/\D/g, '') })
+    if (!contact) return res.json({ xp: 0, cashback: 0, nivel: 'Bronze', exchanges: [] })
+    const valorTotal = parseFloat(contact.valorTotal || 0)
+    const xp = Math.floor(valorTotal / 100)
+    const nivel = xp >= 5000 ? 'Platinum' : xp >= 2000 ? 'Gold' : xp >= 500 ? 'Silver' : 'Bronze'
+    const vldCode = 'VLD-' + contact.id.replace(/\W/g, '').slice(-6).toUpperCase()
+    res.json({ xp, cashback: contact.cashback || 0, nivel, valorTotal, exchanges: [], vldCode, contactId: contact.id })
+  } catch(e) { res.json({}) }
+})
+
+// ── TN: solicitud de cambio / devolución ─────────────────────────────────────
+app.post('/api/tn/exchange-request', async (req, res) => {
+  const { wsId, email, nombre, orderNumber, producto, razon, tipo } = req.body
+  if (!wsId || !email || !orderNumber) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const result = await getTienda(wsId)
+    if (!result) return res.status(400).json({ error: 'Workspace no encontrado' })
+    const { t, d } = result
+    if (!t.solicitudes) t.solicitudes = []
+    const sol = {
+      id: 'exc_' + Date.now().toString(36),
+      tipo: tipo || 'cambio',
+      estado: 'pendiente',
+      fecha: new Date().toISOString(),
+      email: email.toLowerCase(),
+      nombre: nombre || '',
+      orderNumber: String(orderNumber),
+      producto: producto || '',
+      razon: razon || '',
+    }
+    t.solicitudes.push(sol)
+    await saveTienda(wsId, t, d)
+    res.json({ ok: true, id: sol.id })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── TN: PWA manifest ──────────────────────────────────────────────────────────
+app.get('/api/tn/manifest', (req, res) => {
+  res.setHeader('Content-Type', 'application/manifest+json')
+  res.json({
+    name: 'SOULAB',
+    short_name: 'SOULAB',
+    start_url: 'https://soulab.com.ar/',
+    display: 'standalone',
+    background_color: '#ffffff',
+    theme_color: '#111111',
+    icons: [
+      { src: 'https://soul-ecommlab.com/soulab-icon-192.png', sizes: '192x192', type: 'image/png' },
+      { src: 'https://soul-ecommlab.com/soulab-icon-512.png', sizes: '512x512', type: 'image/png' }
+    ]
+  })
+})
+
+// ── TN: WA OTP login ──────────────────────────────────────────────────────────
+const _tnOtpMap = new Map() // phone → { code, wsId, expiresAt }
+
+app.post('/api/tn/wa-otp-send', async (req, res) => {
+  const { wsId, phone } = req.body
+  if (!wsId || !phone) return res.status(400).json({ error: 'Faltan campos' })
+  try {
     const ws = await getWorkspace(wsId)
     if (!ws) return res.status(400).json({ error: 'Workspace no encontrado' })
-    const data = ws.data || {}
-    if (!data.crm) data.crm = []
-    const today = new Date().toISOString().slice(0, 10)
-    const emailNorm = email.toLowerCase()
-    let contact = data.crm.find(c => (c.email || '').toLowerCase() === emailNorm)
-    if (!contact) {
-      contact = {
-        id: 'c_tnpop_' + Date.now().toString(36) + Math.random().toString(36).slice(2,4),
-        nombre: nombre || '', email: emailNorm, tel: tel || '',
-        estado: 'Lead', etapa: 'lead', canal: 'Popup TN',
-        newsletter: 'si', creado: today
-      }
-      data.crm.push(contact)
-      await patchWorkspace(wsId, data)
-      _invalidateWsCache(wsId)
-      _processImmediateFlows(wsId, data, contact, ['new_lead'], {}).catch(() => {})
-    }
+    const code = String(Math.floor(100000 + Math.random() * 900000))
+    const phoneClean = phone.replace(/\D/g, '')
+    _tnOtpMap.set(phoneClean, { code, wsId, expiresAt: Date.now() + 10 * 60 * 1000 })
+    const text = `Tu código de verificación SOULAB es: *${code}*\n\nEste código expira en 10 minutos.`
+    await _serverSendWa(ws.data, phone, text, null)
     res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.post('/api/tn/wa-otp-verify', async (req, res) => {
+  const { wsId, phone, code } = req.body
+  if (!wsId || !phone || !code) return res.status(400).json({ error: 'Faltan campos' })
+  const phoneClean = phone.replace(/\D/g, '')
+  const entry = _tnOtpMap.get(phoneClean)
+  if (!entry || entry.code !== String(code) || entry.expiresAt < Date.now()) {
+    return res.status(401).json({ error: 'Código inválido o expirado' })
+  }
+  _tnOtpMap.delete(phoneClean)
+  try {
+    // Search Supabase contacts by phone
+    let contact = await db_findContact(wsId, { tel: phoneClean }).catch(() => null)
+    if (!contact) {
+      // Fuzzy fallback: last 8 digits match
+      const rows = await _sGET('contacts', `ws_id=eq.${encodeURIComponent(wsId)}&limit=500&select=id,nombre,email,tel,xp,cashback,etapa,estado,tn_customer_id,tags,data`).catch(() => [])
+      const found = (rows || []).find(r => {
+        const t = (r.tel || '').replace(/\D/g, '')
+        return t && (t.endsWith(phoneClean.slice(-8)) || phoneClean.endsWith(t.slice(-8)))
+      })
+      if (found) contact = _rowToContact(found)
+    }
+    if (!contact) return res.json({ ok: true, found: false })
+
+    // Generate persistent session token (30-day expiry)
+    const token = _genToken()
+    const tokenExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    await db_updateContactFields(wsId, contact.id, { vldToken: token, vldTokenExpiry: tokenExpiry })
+
+    res.json({ ok: true, found: true, nombre: contact.nombre || '', email: contact.email || '', tel: contact.tel || '', token })
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
@@ -1431,13 +2053,10 @@ async function _processImmediateFlows(wsId, d, crmContact, triggerTypes, extra =
       return
     }
 
-    if (!freshD.flowDone) freshD.flowDone = {}
     const today = new Date().toISOString().slice(0, 10)
     const ultimaCompra = crmContact.ultimaCompra || today
     const creado = crmContact.creado || today
-    // Usar teléfono o email como fallback si no hay ID — evita que contactos sin ID compartan keys
     const cid = crmContact.id || (crmContact.tel || '').replace(/\D/g,'') || (crmContact.email || '').replace(/[^a-z0-9]/gi,'') || 'anon'
-    let changed = false
 
     // Key prefix por tipo de trigger — evita duplicados entre distintos eventos
     const triggerKeyMap = {
@@ -1446,7 +2065,9 @@ async function _processImmediateFlows(wsId, d, crmContact, triggerTypes, extra =
       payment_confirmed: `pc_${ultimaCompra}`,
       order_placed:      `op_${ultimaCompra}`,
       new_lead:          `nl_${creado}`,
-      cart_abandon:      `ca_${ultimaCompra}`,
+      cart_abandon:      `ca_${crmContact.cartDate || today}`,
+      product_view:      `pv_${extra.productId || today}`,
+      first_purchase:    `fp_${ultimaCompra}`,
     }
 
     for (const f of flows) {
@@ -1461,7 +2082,7 @@ async function _processImmediateFlows(wsId, d, crmContact, triggerTypes, extra =
       const delayUnit = trig.delayUnit || 'dias'
       const delayMs   = delayUnit === 'minutos' ? delayVal * 60000 : delayUnit === 'horas' ? delayVal * 3600000 : delayVal * 86400000
       // Triggers marcados como "inmediatos" ignoran el delay configurado (el admin oculta el campo pero el valor por defecto es 1)
-      const ALWAYS_IMMEDIATE = ['new_lead', 'payment_confirmed', 'order_placed', 'birthday']
+      const ALWAYS_IMMEDIATE = ['new_lead', 'payment_confirmed', 'order_placed', 'birthday', 'product_view', 'first_purchase']
       const effectiveDelayMs = ALWAYS_IMMEDIATE.includes(trigType) ? 0 : delayMs
       // Delays de hasta 10 minutos se consideran "inmediatos" y se procesan en el momento
       const IMMEDIATE_THRESHOLD_MS = 10 * 60 * 1000 // 10 minutos
@@ -1501,6 +2122,8 @@ async function _processImmediateFlows(wsId, d, crmContact, triggerTypes, extra =
         .replace(/\{carrito\}/gi,         productosStr)
         .replace(/\{ultimoProducto\}/gi,  ultimoProducto || crmContact.ultimoProducto || '')
         .replace(/\{numeroPedido\}/gi,    numeroPedido   || crmContact.ultimoPedido   || '')
+        .replace(/\{producto\}/gi,        extra.productName || ultimoProducto || crmContact.ultimoProducto || '')
+        .replace(/\{xp\}/gi,             String(crmContact.xp || 0))
 
       for (let si = 0; si < f.steps.length; si++) {
         const step = f.steps[si]
@@ -1510,22 +2133,15 @@ async function _processImmediateFlows(wsId, d, crmContact, triggerTypes, extra =
         if (!isWA && !isEmail && !isBoth) continue
 
         const key = `${f.id}|${cid}|${triggerKey}|step${si}`
-        if (freshD.flowDone[key]) continue
+        // Verificar en flow_log table — atómico, sin race condition
+        if (await db_flowKeyExists(wsId, key)) continue
 
-        const _pushHistory = (channel, status, mensaje, error) => {
-          if (!freshD.flowHistory) freshD.flowHistory = []
-          freshD.flowHistory.push({
-            id: 'fh_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,5),
-            date: new Date().toISOString(),
-            flowId: f.id, flowName: f.name || f.id,
-            contactId: cid, contactNombre: crmContact.nombre || '',
-            contactTel: crmContact.tel || '', contactEmail: crmContact.email || '',
-            channel, status, error: error || null,
-            mensaje: (mensaje || '').slice(0, 300),
-            flowDoneKey: key, origen: 'auto', triggerType: trigType
-          })
-          changed = true
-        }
+        const _logFlow = (channel, status, mensaje, error) => db_insertFlowLog(wsId, {
+          flowId: f.id, flowName: f.name || f.id, flowKey: key,
+          contactId: cid, email: crmContact.email || '', tel: crmContact.tel || '',
+          channel, status, message: (mensaje || '').slice(0, 300),
+          data: { error: error || null, triggerType: trigType, origen: 'auto', contactNombre: crmContact.nombre || '' }
+        }).catch(e2 => console.error('[flows] logFlow error:', e2.message))
 
         if (isWA || isBoth) {
           const phone = (crmContact.tel || '').replace(/\D/g, '')
@@ -1534,11 +2150,10 @@ async function _processImmediateFlows(wsId, d, crmContact, triggerTypes, extra =
             const text = _applyVars(rawMsg)
             try {
               await _serverSendWa(freshD, phone, text, step.waProviderId)
-              freshD.flowDone[key] = Date.now()
-              _pushHistory('whatsapp', 'sent', text, null)
+              await _logFlow('whatsapp', 'sent', text, null)
               console.log(`[flows] WA sent → "${f.name||f.id}" (${trigType}) → ${crmContact.nombre||phone}`)
             } catch (e) {
-              _pushHistory('whatsapp', 'failed', text, e.message)
+              await _logFlow('whatsapp', 'failed', text, e.message)
               console.error(`[flows] WA error → "${f.name||f.id}" (${trigType}):`, e.message)
             }
           }
@@ -1549,7 +2164,7 @@ async function _processImmediateFlows(wsId, d, crmContact, triggerTypes, extra =
           const rawBody    = step.template || step.templateEmail || ''
           const rawSubject = step.subject || ''
           if (!process.env.RESEND_API_KEY) {
-            _pushHistory('email', 'failed', rawBody.slice(0,100), 'RESEND_API_KEY no configurado en Vercel')
+            await _logFlow('email', 'failed', rawBody.slice(0, 100), 'RESEND_API_KEY no configurado en Vercel')
           } else if (rawBody && email) {
             const bodyText    = _applyVars(rawBody)
             const subjectText = _applyVars(rawSubject) || 'Mensaje automático'
@@ -1564,22 +2179,17 @@ async function _processImmediateFlows(wsId, d, crmContact, triggerTypes, extra =
               console.log(`[flows] email attempt → from=${from} to=${email}`)
               const result     = await resend.emails.send({ from, to: [email], subject: subjectText, html: bodyText })
               if (result.error) throw new Error(result.error.message || JSON.stringify(result.error))
-              if (!freshD.flowDone[key]) freshD.flowDone[key] = Date.now()
-              _pushHistory('email', 'sent', subjectText, null)
+              await _logFlow('email', 'sent', subjectText, null)
               console.log(`[flows] email sent → "${f.name||f.id}" (${trigType}) → ${email}`)
             } catch (e) {
-              _pushHistory('email', 'failed', subjectText, e.message)
+              await _logFlow('email', 'failed', subjectText, e.message)
               console.error(`[flows] email error → "${f.name||f.id}" (${trigType}):`, e.message)
             }
           }
         }
       }
     }
-
-    if (changed) {
-      await patchWorkspace(wsId, freshD)
-      _invalidateWsCache(wsId)
-    }
+    // No patchWorkspace — todo va a flow_log table
   } catch (e) {
     console.error(`[flows] _processImmediateFlows(${triggerTypes}) error:`, e.message)
   }
@@ -1955,13 +2565,6 @@ app.post('/api/wa/waha-start', async (req, res) => {
   }
 })
 
-// POST /api/wa/test — probar un proveedor con un mensaje de test
-app.post('/api/wa/test', async (req, res) => {
-  req.body.text = req.body.text || '✅ Test desde VELDOS — proveedor funcionando correctamente'
-  // Reutilizar la misma lógica
-  const orig = res.json.bind(res)
-  return require('express').Router().post('/api/wa/send', async (...args) => {}); // forward
-})
 
 // WhatsApp — connect phone number
 app.post("/api/meta/wa/connect", async (req, res) => {
@@ -2021,11 +2624,187 @@ app.post("/api/meta/wa/send", async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
+// Lista todos los workspaces del usuario — sin los campos grandes (CRM, finanzas, etc.)
+app.get("/api/workspaces", async (req, res) => {
+  try {
+    const rows = await _sGET('workspaces', 'select=*&order=created_at.asc')
+    const safe = (rows || []).map(ws => {
+      const { crm, finanzas, reviews, flowDone, flowHistory, ...safeData } = ws.data || {}
+      return { ...ws, data: safeData }
+    })
+    res.json(safe)
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
 // Get a single workspace by ID (used to refresh S after OAuth callback)
+// CRM/finanzas/reviews/flowDone/flowHistory viven en tablas propias — no se mandan al browser
 app.get("/api/workspace/:wsId", async (req, res) => {
   const ws = await getWorkspace(req.params.wsId)
   if (!ws) return res.status(404).json({ error: "not found" })
-  res.json({ id: ws.id, data: ws.data })
+  const { crm, finanzas, reviews, flowDone, flowHistory, ...safeData } = ws.data || {}
+  res.json({ id: ws.id, data: safeData })
+})
+
+// ── CRM (contacts table) ──────────────────────────────────────────────────────
+app.get('/api/crm', async (req, res) => {
+  const { wsId, search, estado, limit = '500', offset = '0' } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const contacts = await db_listContacts(wsId, { search, estado, limit: parseInt(limit), offset: parseInt(offset) })
+    res.json({ contacts, total: contacts.length })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.post('/api/crm', async (req, res) => {
+  const { wsId, contact } = req.body
+  if (!wsId || !contact) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    if (!contact.id) contact.id = 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
+    await db_upsertContact(wsId, contact)
+    res.json({ ok: true, id: contact.id })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.patch('/api/crm/:id', async (req, res) => {
+  const { wsId, fields } = req.body
+  const { id } = req.params
+  if (!wsId || !fields) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    await db_updateContactFields(wsId, id, fields)
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.delete('/api/crm/:id', async (req, res) => {
+  const wsId = req.body?.wsId || req.query?.wsId
+  const { id } = req.params
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    await db_deleteContact(wsId, id)
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// Agrega una nota a un contacto (append-only)
+app.post('/api/crm/:id/note', async (req, res) => {
+  const { wsId, nota } = req.body
+  const { id } = req.params
+  if (!wsId || !nota) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const contact = await db_findContact(wsId, { email: id }).catch(() => null) ||
+      (await _sGET('contacts', `ws_id=eq.${encodeURIComponent(wsId)}&id=eq.${encodeURIComponent(id)}&limit=1`).then(r => r?.[0] ? _rowToContact(r[0]) : null))
+    if (!contact) return res.status(404).json({ error: 'Contacto no encontrado' })
+    const notas = Array.isArray(contact.notas) ? contact.notas : []
+    notas.push({ texto: nota, fecha: new Date().toISOString().slice(0, 10), ts: Date.now() })
+    await db_updateContactFields(wsId, contact.id, { notas })
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── Finanzas (orders table) ───────────────────────────────────────────────────
+app.get('/api/finanzas', async (req, res) => {
+  const { wsId, from, to, tipo, limit = '500', offset = '0' } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const orders = await db_listOrders(wsId, { from, to, tipo, limit: parseInt(limit), offset: parseInt(offset) })
+    res.json({ orders, total: orders.length })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.post('/api/finanzas', async (req, res) => {
+  const { wsId, order } = req.body
+  if (!wsId || !order) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    await db_insertOrder(wsId, order)
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.delete('/api/finanzas/:id', async (req, res) => {
+  const wsId = req.body?.wsId || req.query?.wsId
+  const { id } = req.params
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    await db_deleteOrder(wsId, id)
+    res.json({ ok: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── Flow log ──────────────────────────────────────────────────────────────────
+app.get('/api/flow-log', async (req, res) => {
+  const { wsId, limit = '200', offset = '0' } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const logs = await db_listFlowLog(wsId, { limit: parseInt(limit), offset: parseInt(offset) })
+    res.json({ logs })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── Migración: blob → tablas propias ─────────────────────────────────────────
+// Batch insert helpers (no loop — una sola llamada HTTP por tabla)
+async function _batchUpsert(table, rows, onConflict) {
+  if (!rows.length) return { ok: rows.length, fail: 0, total: 0 }
+  const CHUNK = 200
+  let ok = 0, fail = 0
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const chunk = rows.slice(i, i + CHUNK)
+    try {
+      const prefer = `return=minimal,resolution=merge-duplicates`
+      const url = `${SUPA_URL}/rest/v1/${table}${onConflict ? `?on_conflict=${onConflict}` : ''}`
+      const r = await fetch(url, { method: 'POST', headers: _sHdrs({ Prefer: prefer }), body: JSON.stringify(chunk) })
+      if (!r.ok) { const t = await r.text(); console.error(`[migrate] batch ${table} chunk ${i}:`, t); fail += chunk.length }
+      else ok += chunk.length
+    } catch(e) { console.error(`[migrate] batch ${table} chunk ${i}:`, e.message); fail += chunk.length }
+  }
+  return { ok, fail, total: rows.length }
+}
+
+app.post('/api/migrate/v1', async (req, res) => {
+  const { wsId, tables = ['contacts', 'orders', 'reviews'] } = req.body
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const ws = await getWorkspace(wsId)
+    if (!ws?.data) return res.status(404).json({ error: 'Workspace no encontrado' })
+    const d = ws.data
+    const results = {}
+
+    if (tables.includes('contacts') && Array.isArray(d.crm) && d.crm.length) {
+      const rows = d.crm.map(c => _contactToRow(wsId, c))
+      results.contacts = await _batchUpsert('contacts', rows, 'id')
+    } else {
+      results.contacts = { ok: 0, fail: 0, total: 0, skipped: 'no data in blob' }
+    }
+
+    if (tables.includes('orders') && Array.isArray(d.finanzas) && d.finanzas.length) {
+      const rows = d.finanzas.map(f => {
+        if (!f.id) f.id = 'ord_' + Math.random().toString(36).slice(2, 10)
+        return _orderToRow(wsId, f)
+      })
+      results.orders = await _batchUpsert('orders', rows, 'id')
+    } else {
+      results.orders = { ok: 0, fail: 0, total: 0, skipped: 'no data in blob' }
+    }
+
+    if (tables.includes('reviews') && Array.isArray(d.reviews) && d.reviews.length) {
+      const rows = d.reviews.map(r => ({
+        id: r.id || 'rev_' + Math.random().toString(36).slice(2, 10),
+        ws_id: wsId,
+        product_id: r.productId || r.product_id || null,
+        product_name: r.productName || r.product_name || '',
+        email: r.email || null,
+        nombre: r.nombre || '',
+        stars: r.stars || r.estrellas || 5,
+        texto: r.texto || r.text || '',
+        foto_url: null,  // no migrar base64
+        estado: r.estado || 'pending',
+      }))
+      results.reviews = await _batchUpsert('reviews', rows, 'id')
+    } else {
+      results.reviews = { ok: 0, fail: 0, total: 0, skipped: 'no data in blob' }
+    }
+
+    res.json({ ok: true, results })
+  } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
 // ── Meta OAuth 2.0 ──────────────────────────────────────────────────────────
@@ -3044,8 +3823,6 @@ app.post('/api/identity/request-otp', async (req, res) => {
   }
 
   if (!wappOk && !emailOk) {
-    // En dev: mostrar código en consola
-    console.log(`[OTP DEV] Código para ${phone}: ${code}`)
     return res.json({ ok: true, channel: 'dev', dev_code: process.env.NODE_ENV !== 'production' ? code : undefined })
   }
 
@@ -3876,14 +4653,136 @@ app.post('/api/store/capture-contact', async (req, res) => {
       lista.contactIds.push(crmContact.id)
     }
 
+    const sessionToken = _genToken()
+    const tokenExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+
     await patchWorkspace(wsId, data)
     _invalidateWsCache(wsId)
-    res.json({ ok: true, contactId: crmContact.id })
+    res.json({ ok: true, contactId: crmContact.id, token: sessionToken, nombre: crmContact.nombre, email: crmContact.email })
+
+    // ── Also persist contact to Supabase contacts table ──
+    await db_upsertContact(wsId, {
+      id: crmContact.id,
+      nombre: crmContact.nombre,
+      email: crmContact.email || '',
+      tel: crmContact.tel || '',
+      estado: crmContact.estado || 'Lead',
+      etapa: crmContact.etapa || 'lead',
+      canal: crmContact.canal || 'Popup',
+      creado: crmContact.creado || now,
+      tags: crmContact.tags || ['popup'],
+      origen: 'popup',
+    }).then(() => db_updateContactFields(wsId, crmContact.id, { vldToken: sessionToken, vldTokenExpiry: tokenExpiry }))
+      .catch(e2 => console.error('[capture-contact] db:', e2.message))
+
+    // ── Auto-add to "Pop Up web" list ──
+    await _addContactToList(wsId, 'Pop Up web', 'dl_popup_web', crmContact.id)
+      .catch(e2 => console.error('[capture-contact] addToList:', e2.message))
 
     // ── Disparar flow new_lead — para todos (nuevo o existente que llena el form)
     // flowDone con clave nl_${creado} evita que se repita para el mismo contacto
     _processImmediateFlows(wsId, data, crmContact, ['new_lead'], {})
       .catch(e2 => console.error('[flows] new_lead error:', e2.message))
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── GET /api/store/me — verify persistent session token, return profile ──
+app.get('/api/store/me', async (req, res) => {
+  const { wsId, token } = req.query
+  if (!wsId || !token) return res.status(400).json({ ok: false, error: 'Faltan campos' })
+  try {
+    const contact = await db_findContactByToken(wsId, token)
+    if (!contact) return res.json({ ok: false, error: 'Sesión no encontrada' })
+    if (contact.vldTokenExpiry && new Date(contact.vldTokenExpiry) < new Date()) {
+      return res.json({ ok: false, error: 'Sesión expirada' })
+    }
+    res.json({
+      ok: true,
+      nombre: contact.nombre || '',
+      email: contact.email || '',
+      tel: contact.tel || '',
+      xp: contact.xp || 0,
+      cashback: contact.cashback || 0,
+      cantCompras: contact.cantCompras || 0,
+      ultimaCompra: contact.ultimaCompra || null
+    })
+  } catch(e) { res.status(500).json({ ok: false, error: e.message }) }
+})
+
+// ── GET /api/dif/listas ── fetch broadcast lists from workspace
+app.get('/api/dif/listas', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'wsId requerido' })
+  try {
+    const ws = await getWorkspace(wsId)
+    res.json(ws?.data?.difListas || [])
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── POST /api/dif/listas ── create or update a broadcast list
+app.post('/api/dif/listas', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'wsId requerido' })
+  const lista = req.body
+  if (!lista?.nombre) return res.status(400).json({ error: 'nombre requerido' })
+  try {
+    const ws = await getWorkspace(wsId)
+    const data = ws?.data || {}
+    if (!data.difListas) data.difListas = []
+    const idx = lista.id ? data.difListas.findIndex(l => l.id === lista.id) : -1
+    if (idx >= 0) {
+      data.difListas[idx] = { ...data.difListas[idx], ...lista }
+    } else {
+      if (!lista.id) lista.id = 'dl_' + Date.now()
+      data.difListas.unshift(lista)
+    }
+    await patchWorkspace(wsId, { difListas: data.difListas })
+    _invalidateWsCache(wsId)
+    const saved = idx >= 0 ? data.difListas[idx] : data.difListas[0]
+    res.json({ ok: true, lista: saved })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── DELETE /api/dif/listas/:id ── delete a broadcast list
+app.delete('/api/dif/listas/:id', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'wsId requerido' })
+  try {
+    const ws = await getWorkspace(wsId)
+    const data = ws?.data || {}
+    data.difListas = (data.difListas || []).filter(l => l.id !== req.params.id)
+    await patchWorkspace(wsId, { difListas: data.difListas })
+    _invalidateWsCache(wsId)
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── POST /api/dif/listas/:id/members ── add or remove contactIds from a list
+app.post('/api/dif/listas/:id/members', async (req, res) => {
+  const { wsId } = req.query
+  const { add = [], remove = [] } = req.body
+  if (!wsId) return res.status(400).json({ error: 'wsId requerido' })
+  try {
+    const ws = await getWorkspace(wsId)
+    const data = ws?.data || {}
+    const lista = (data.difListas || []).find(l => l.id === req.params.id)
+    if (!lista) return res.status(404).json({ error: 'Lista no encontrada' })
+    if (!lista.contactIds) lista.contactIds = []
+    for (const id of add) {
+      if (!lista.contactIds.includes(id)) lista.contactIds.push(id)
+    }
+    lista.contactIds = lista.contactIds.filter(id => !remove.includes(id))
+    await patchWorkspace(wsId, { difListas: data.difListas })
+    _invalidateWsCache(wsId)
+    res.json({ ok: true, count: lista.contactIds.length })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
@@ -5080,7 +5979,6 @@ app.post('/api/store/otp/send', async (req, res) => {
     if (typeof _otpMemory !== 'undefined') {
       _otpMemory.set(phone, { code, expires: Date.now() + 10 * 60 * 1000, attempts: 0 })
     }
-    console.log('[OTP legacy] code for', phone, ':', code)
     res.json({ ok: true })
   } catch (e) {
     res.status(500).json({ error: e.message })
@@ -5696,6 +6594,12 @@ function _computeFlowTasksServer(d) {
           triggerKey = `bday_${today}`
           entryDate = today
         }
+      } else if (trigType === 'xp_milestone') {
+        const threshold = delayDays
+        if (threshold > 0 && (c.xp || 0) >= threshold) {
+          triggerKey = `xpm_${threshold}`
+          entryDate = today
+        }
       }
 
       if (!triggerKey || !entryDate) return
@@ -5724,6 +6628,16 @@ function _computeFlowTasksServer(d) {
 
   return tasks
 }
+
+// GET /api/flows/log — historial de ejecuciones de flows
+app.get('/api/flows/log', async (req, res) => {
+  const { wsId, limit = '100' } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    const rows = await _sGET('flow_log', `ws_id=eq.${encodeURIComponent(wsId)}&order=created_at.desc&limit=${Math.min(parseInt(limit) || 100, 500)}`)
+    res.json(rows || [])
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
 
 // POST /api/flows/test — dispara flows manualmente para un contacto (debug/test)
 app.post('/api/flows/test', async (req, res) => {
@@ -5871,26 +6785,40 @@ app.get('/api/flows/cron', async (req, res) => {
   const errors = []
 
   try {
-    // Si se pasa wsId directo, procesar solo ese workspace
     const targetWsId = req.query.wsId || null
     let workspaces = []
 
     if (targetWsId) {
-      const ws = await getWorkspace(targetWsId)
-      if (ws) workspaces = [{ id: targetWsId, data: ws.data }]
+      // Solo config — no data completa
+      const rWs = await _sGET('workspaces', `id=eq.${encodeURIComponent(targetWsId)}&select=id,flows:data->flows,waProviders:data->waProviders,waConfig:data->waConfig,store:data->store,tienda:data->tienda`)
+      if (rWs?.[0]) workspaces = [rWs[0]]
     } else {
-      // Traer en lotes pequeños — máximo 30 workspaces por run
       const pageSize = parseInt(req.query.limit || '30')
       const offset   = parseInt(req.query.offset || '0')
-      const rPage = await fetch(
-        `${SUPA_URL}/rest/v1/workspaces?select=id,data&limit=${pageSize}&offset=${offset}`,
-        { headers: { 'apikey': SUPA_KEY(), 'Authorization': 'Bearer ' + SUPA_KEY() } }
-      )
-      if (!rPage.ok) throw new Error('Error fetching workspaces: ' + rPage.status)
-      workspaces = await rPage.json()
+      // Cargar solo config necesaria — no crm/finanzas/reviews
+      const rPage = await _sGET('workspaces', `select=id,flows:data->flows,waProviders:data->waProviders,waConfig:data->waConfig,store:data->store,tienda:data->tienda&limit=${pageSize}&offset=${offset}`)
+      workspaces = rPage || []
     }
 
     const TIME_BUDGET_MS = 22000
+    const today = new Date().toISOString().slice(0, 10)
+
+    const _applyVarsCron = (str, c, trig) => {
+      const ultimaCompra = c.ultimaCompra || today
+      const delayVal = trig.delayValue != null ? Number(trig.delayValue) : Number(trig.days || 0)
+      const delayUnit = trig.delayUnit || 'dias'
+      const delayMs = delayUnit === 'minutos' ? delayVal * 60000 : delayUnit === 'horas' ? delayVal * 3600000 : delayVal * 86400000
+      const valorStr = c.valorTotal ? '$' + Math.round(c.valorTotal).toLocaleString('es-AR') : ''
+      return (str || '')
+        .replace(/\{nombre\}/gi, c.nombre || '')
+        .replace(/\{apellido\}/gi, c.apellido || '')
+        .replace(/\{ultimaCompra\}/gi, ultimaCompra.split('-').reverse().join('/'))
+        .replace(/\{cantCompras\}/gi, String(c.cantCompras || 1))
+        .replace(/\{valor\}/gi, valorStr)
+        .replace(/\{dias\}/gi, String(Math.round(delayMs / 86400000)))
+        .replace(/\{ultimoProducto\}/gi, c.ultimoProducto || '')
+        .replace(/\{numeroPedido\}/gi,   c.ultimoPedido   || '')
+    }
 
     for (const ws of workspaces) {
       if (Date.now() - cronStart > TIME_BUDGET_MS) {
@@ -5898,65 +6826,42 @@ app.get('/api/flows/cron', async (req, res) => {
         break
       }
 
-      if (!ws?.data) continue
-      const d = ws.data
+      const flows = (ws.flows || []).filter(f => f.enabled === true || f.enabled === 'true')
+      if (!flows.length) continue
 
-      const hasFlows = (d.flows || []).some(f => f.enabled === true || f.enabled === 'true')
-      if (!hasFlows) continue
+      // Cargar contactos de la tabla DB — paginar para workspaces con muchos contactos
+      let contacts = []
+      for (let off = 0; off < 50000; off += 2000) {
+        const page = await db_listContacts(ws.id, { limit: 2000, offset: off }).catch(() => [])
+        contacts = contacts.concat(page)
+        if (page.length < 2000) break
+      }
+      if (!contacts.length) continue
 
-      const hasCrm = (d.crm || []).length > 0
-      if (!hasCrm) continue
+      // Cargar flow_keys ya ejecutados para este workspace
+      const doneKeys = await db_getFlowDoneKeys(ws.id).catch(() => new Set())
+
+      // Fake d para _computeFlowTasksServer (solo necesita flows, crm y flowDone)
+      const d = { flows, crm: contacts, flowDone: Object.fromEntries([...doneKeys].map(k => [k, 1])), waProviders: ws.waProviders || [], waConfig: ws.waConfig || {}, store: ws.store || {}, tienda: ws.tienda || {} }
+      const tasks = _computeFlowTasksServer(d)
+      if (!tasks.length) continue
 
       wsProcessed++
+      const MAX_TASKS_PER_WS = 20
+      if (tasks.length > MAX_TASKS_PER_WS) {
+        console.log(`[cron] ws ${ws.id}: ${tasks.length} tasks, procesando primeras ${MAX_TASKS_PER_WS}`)
+        tasks.length = MAX_TASKS_PER_WS
+      }
+
+      const _logCron = (f, c, key, channel, status, mensaje, error) =>
+        db_insertFlowLog(ws.id, {
+          flowId: f.id, flowName: f.name || f.id, flowKey: key,
+          contactId: c.id || '', email: c.email || '', tel: c.tel || '',
+          channel, status, message: (mensaje || '').slice(0, 300),
+          data: { error: error || null, origen: 'cron', contactNombre: c.nombre || '' }
+        }).catch(e2 => console.error('[cron] logFlow error:', e2.message))
 
       try {
-        const tasks = _computeFlowTasksServer(d)
-        if (!tasks.length) continue
-        // Limitar tasks por workspace para no agotar el timeout de Vercel (30s)
-        const MAX_TASKS_PER_WS = 20 // paralelo: 20 WA concurrentes = ~6s total en vez de ~120s secuencial
-        if (tasks.length > MAX_TASKS_PER_WS) {
-          console.log(`[cron] ws ${ws.id}: ${tasks.length} tasks, procesando primeras ${MAX_TASKS_PER_WS}`)
-          tasks.length = MAX_TASKS_PER_WS
-        }
-
-        if (!d.flowDone) d.flowDone = {}
-        if (!d.flowHistory) d.flowHistory = []
-        let changed = false
-
-        const today = new Date().toISOString().slice(0, 10)
-
-        const _applyVarsCron = (str, c, trig) => {
-          const ultimaCompra = c.ultimaCompra || today
-          const delayVal = trig.delayValue != null ? Number(trig.delayValue) : Number(trig.days || 0)
-          const delayUnit = trig.delayUnit || 'dias'
-          const delayMs = delayUnit === 'minutos' ? delayVal * 60000 : delayUnit === 'horas' ? delayVal * 3600000 : delayVal * 86400000
-          const valorStr = c.valorTotal ? '$' + Math.round(c.valorTotal).toLocaleString('es-AR') : ''
-          return (str || '')
-            .replace(/\{nombre\}/gi, c.nombre || '')
-            .replace(/\{apellido\}/gi, c.apellido || '')
-            .replace(/\{ultimaCompra\}/gi, ultimaCompra.split('-').reverse().join('/'))
-            .replace(/\{cantCompras\}/gi, String(c.cantCompras || 1))
-            .replace(/\{valor\}/gi, valorStr)
-            .replace(/\{dias\}/gi, String(Math.round(delayMs / 86400000)))
-            .replace(/\{ultimoProducto\}/gi, c.ultimoProducto || '')
-            .replace(/\{numeroPedido\}/gi,   c.ultimoPedido   || '')
-        }
-
-        const _pushHistoryCron = (f, c, key, channel, status, mensaje, error) => {
-          d.flowHistory.push({
-            id: 'fh_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 5),
-            date: new Date().toISOString(),
-            flowId: f.id, flowName: f.name || f.id,
-            contactId: c.id || '', contactNombre: c.nombre || '',
-            contactTel: c.tel || '', contactEmail: c.email || '',
-            channel, status, error: error || null,
-            mensaje: (mensaje || '').slice(0, 300),
-            flowDoneKey: key, origen: 'cron'
-          })
-          changed = true
-        }
-
-        // Ejecutar todas las tareas en PARALELO — así 10 WA de 6s = 6s total, no 60s
         await Promise.allSettled(tasks.map(async task => {
           const { f, c, step, si, key, isWA, isEmail, isBoth } = task
           const trig = f.trigger || {}
@@ -5966,26 +6871,15 @@ app.get('/api/flows/cron', async (req, res) => {
             const rawMsg = step.template || step.templateWA || ''
             if (!rawMsg || !phone) { totalSkipped++; return }
             const text = _applyVarsCron(rawMsg, c, trig)
-            const failKey = key + '|wafail'
-            const failCount = d.flowDone[failKey] || 0
-            if (failCount >= 3) {
-              if (!d.flowDone[key]) { d.flowDone[key] = -1; changed = true }
-              totalSkipped++
-              return
-            }
             try {
               await _serverSendWa(d, phone, text, step.waProviderId)
-              d.flowDone[key] = Date.now()
-              delete d.flowDone[failKey]
-              _pushHistoryCron(f, c, key, 'whatsapp', 'sent', text, null)
+              await _logCron(f, c, key, 'whatsapp', 'sent', text, null)
               totalSent++
               console.log(`[cron] WA enviado → flow "${f.name || f.id}" → ${c.nombre || phone}`)
             } catch (e) {
-              d.flowDone[failKey] = (d.flowDone[failKey] || 0) + 1
-              changed = true
-              _pushHistoryCron(f, c, key, 'whatsapp', 'failed', text, e.message)
+              await _logCron(f, c, key, 'whatsapp', 'failed', text, e.message)
               totalFailed++
-              console.error(`[cron] WA error (intento ${(d.flowDone[failKey]||0)}/3) → flow "${f.name || f.id}" → ${c.nombre || phone}: ${e.message}`)
+              console.error(`[cron] WA error → flow "${f.name || f.id}" → ${c.nombre || phone}: ${e.message}`)
             }
           }
 
@@ -5995,7 +6889,7 @@ app.get('/api/flows/cron', async (req, res) => {
             const rawBody = step.template || step.templateEmail || ''
             const rawSubject = step.subject || ''
             if (!process.env.RESEND_API_KEY) {
-              _pushHistoryCron(f, c, key, 'email', 'failed', rawSubject, 'RESEND_API_KEY no configurado')
+              await _logCron(f, c, key, 'email', 'failed', rawSubject, 'RESEND_API_KEY no configurado')
               totalFailed++
               return
             }
@@ -6013,22 +6907,16 @@ app.get('/api/flows/cron', async (req, res) => {
               console.log(`[cron] email attempt → from=${from} to=${email} flow="${f.name||f.id}"`)
               const result = await resend.emails.send({ from, to: [email], subject: subjectText, html: bodyText })
               if (result.error) throw new Error(result.error.message || JSON.stringify(result.error))
-              if (!isWA && !isBoth) d.flowDone[key] = Date.now()
-              _pushHistoryCron(f, c, key, 'email', 'sent', subjectText, null)
+              await _logCron(f, c, key, 'email', 'sent', subjectText, null)
               totalSent++
               console.log(`[cron] email enviado → flow "${f.name || f.id}" → ${email}`)
             } catch (e) {
-              _pushHistoryCron(f, c, key, 'email', 'failed', subjectText, e.message)
+              await _logCron(f, c, key, 'email', 'failed', subjectText, e.message)
               totalFailed++
               console.error(`[cron] email error → flow "${f.name || f.id}" → ${email}: ${e.message}`)
             }
           }
         }))
-
-        if (changed) {
-          await patchWorkspace(ws.id, d)
-          _invalidateWsCache(ws.id)
-        }
       } catch (e) {
         errors.push(`ws ${ws.id}: ${e.message}`)
         console.error(`[cron] Error procesando ws ${ws.id}:`, e.message)
@@ -6161,51 +7049,6 @@ app.post('/api/store/payway-link', async (req, res) => {
   }
 })
 
-// GET /api/debug/payway-test — test crudo de la API de PayWay (temporal)
-app.get('/api/debug/payway-test', async (req, res) => {
-  const { wsId } = req.query
-  if (!wsId) return res.json({ error: 'wsId required' })
-  let result; try { result = await getTienda(wsId) } catch(e) { return res.json({ error: e.message }) }
-  if (!result) return res.json({ error: 'tienda no encontrada' })
-  const _pwRaw = result.t.settings?.payway || {}
-  const pw = {
-    siteId:     _pwRaw.siteId     || process.env.PAYWAY_SITE_ID     || '',
-    templateId: _pwRaw.templateId || process.env.PAYWAY_TEMPLATE_ID || '',
-    privateKey: _pwRaw.privateKey || process.env.PAYWAY_PRIVATE_KEY || '',
-    sandbox:    _pwRaw.sandbox    || false,
-  }
-  const endpoint = pw.sandbox
-    ? 'https://developers.decidir.com/api/v1/checkout-payment-button/link'
-    : 'https://ventasonline.payway.com.ar/api/v1/checkout-payment-button/link'
-
-  // Probar con y sin template_id
-  const results = {}
-  for (const useTemplate of [true, false]) {
-    const payload = {
-      site_transaction_id: 'debug_' + Date.now() + (useTemplate ? '_tmpl' : '_notmpl'),
-      site: String(pw.siteId),
-      ...(useTemplate && pw.templateId ? { template_id: parseInt(pw.templateId) } : {}),
-      currency: 'ARS',
-      amount: 1000,
-      redirect_url: 'https://soul-ecommlab.com/tienda',
-      cancel_url: 'https://soul-ecommlab.com/tienda',
-      notifications_url: 'https://soul-ecommlab.com/api/store/payway-notify',
-    }
-    try {
-      const r = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'apikey': pw.privateKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      const txt = await r.text()
-      let parsed; try { parsed = JSON.parse(txt) } catch(e) { parsed = txt }
-      results[useTemplate ? 'with_template' : 'without_template'] = { status: r.status, payload, response: parsed }
-    } catch(e) {
-      results[useTemplate ? 'with_template' : 'without_template'] = { error: e.message }
-    }
-  }
-  res.json({ config: { siteId: pw.siteId, templateId: pw.templateId, hasPK: !!pw.privateKey, sandbox: pw.sandbox }, results })
-})
 
 // GET /api/store/payway-return — PayWay redirige aquí después del pago
 app.get('/api/store/payway-return', async (req, res) => {

@@ -2082,6 +2082,15 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button class="nav-tab" id="ugc-tab-btn-creadoras" onclick="switchUgcTab('creadoras',this)">Creadoras</button>
   </nav>
   <nav class="nav-tabs" id="nav-soul-club" style="display:none"></nav>
+  <nav class="nav-tabs" id="nav-tiendanube" style="display:none">
+    <button class="nav-tab active" id="tnb-tab-clientes" onclick="switchTNBTab('clientes',this)">👥 Clientes TN</button>
+    <button class="nav-tab" id="tnb-tab-contactos" onclick="switchTNBTab('contactos',this)">📋 Contactos TN</button>
+    <button class="nav-tab" id="tnb-tab-analytics" onclick="switchTNBTab('analytics',this)">📊 Analytics</button>
+    <button class="nav-tab" id="tnb-tab-tablas" onclick="switchTNBTab('tablas',this)">📏 Tablas de Talle</button>
+    <button class="nav-tab" id="tnb-tab-stock" onclick="switchTNBTab('stock',this)">📦 Stock TN</button>
+    <button class="nav-tab" id="tnb-tab-cashback" onclick="switchTNBTab('cashback',this)">💰 Cashback</button>
+    <button class="nav-tab" id="tnb-tab-resenias" onclick="switchTNBTab('resenias',this)">⭐ Reseñas</button>
+  </nav>
   <nav class="nav-tabs" id="nav-tienda" style="display:none">
     <button class="nav-tab active" id="tienda-tab-productos" onclick="switchTiendaTab('productos',this)">Productos</button>
     <button class="nav-tab" id="tienda-tab-diseno" onclick="switchTiendaTab('diseno',this)">Diseño</button>
@@ -2124,10 +2133,18 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button class="sb-item" id="sbi-flows" onclick="sbNav('flows','flows',this)"><span class="sb-item-icon"><i class="ti ti-bolt"></i></span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Flows<span id="flows-nav-badge" style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Automatizaciones</span></span></button>
     <button class="sb-item" id="sbi-integraciones" onclick="sbNav('integraciones','integraciones',this)"><span class="sb-item-icon"><i class="ti ti-plug-connected"></i></span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Integraciones<span id="tn-nav-badge" style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px;display:flex;align-items:center;gap:3px"><i class="ti ti-shopping-cart" style="font-size:9px"></i><i class="ti ti-brand-whatsapp" style="font-size:9px"></i></span></span></button>
     <button class="sb-item" id="sbi-meta" onclick="sbNav('meta','meta',this)"><span class="sb-item-icon"><i class="ti ti-brand-meta"></i></span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Meta<span style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Ads · Library · WhatsApp</span></span></button>
-    <button class="sb-item" id="sbi-crealo" onclick="sbNav('crealo','crealo',this)"><span class="sb-item-icon"><i class="ti ti-sparkles"></i></span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Crealo<span style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Videos UGC con IA</span></span></button>
+    <button class="sb-item" id="sbi-crealo" onclick="sbNav('crealo','crealo',this)" style="display:none"><span class="sb-item-icon"><i class="ti ti-sparkles"></i></span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Crealo<span style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Videos UGC con IA</span></span></button>
     <button class="sb-item" id="sbi-hojas" onclick="sbNav('hojas','hojas',this)"><span class="sb-item-icon"><i class="ti ti-files"></i></span>Hojas</button>
     <button class="sb-item" id="sbi-stock" onclick="sbNav('stock','stock',this)"><span class="sb-item-icon"><i class="ti ti-package"></i></span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Stock<span style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Inventario · Alertas</span></span></button>
-    <button class="sb-item" id="sbi-tienda" onclick="sbNav('tienda','tienda',this)"><span class="sb-item-icon"><i class="ti ti-building-store"></i></span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Mi Tienda<span style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Productos · Órdenes · Analytics</span></span></button>
+    <button class="sb-item" id="sbi-tienda" onclick="sbNav('tienda','tienda',this)" style="display:none"><span class="sb-item-icon"><i class="ti ti-building-store"></i></span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Mi Tienda<span style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Productos · Órdenes · Analytics</span></span></button>
+    <button class="sb-item" id="sbi-tiendanube" onclick="navTNB('clientes',this)"><span class="sb-item-icon"><i class="ti ti-brand-shopee"></i></span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Tienda Nube<span style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Clientes · Analytics · Reseñas</span></span></button>
+    <button class="sb-item" id="sbi-tnb-clientes" style="padding-left:26px;font-size:11.5px" onclick="navTNB('clientes',this)">👥 Clientes TN</button>
+    <button class="sb-item" id="sbi-tnb-contactos" style="padding-left:26px;font-size:11.5px" onclick="navTNB('contactos',this)">📋 Contactos</button>
+    <button class="sb-item" id="sbi-tnb-analytics" style="padding-left:26px;font-size:11.5px" onclick="navTNB('analytics',this)">📊 Analytics</button>
+    <button class="sb-item" id="sbi-tnb-tablas" style="padding-left:26px;font-size:11.5px" onclick="navTNB('tablas',this)">📏 Tablas de Talle</button>
+    <button class="sb-item" id="sbi-tnb-stock" style="padding-left:26px;font-size:11.5px" onclick="navTNB('stock',this)">📦 Stock TN</button>
+    <button class="sb-item" id="sbi-tnb-cashback" style="padding-left:26px;font-size:11.5px" onclick="navTNB('cashback',this)">💰 Cashback</button>
+    <button class="sb-item" id="sbi-tnb-resenias" style="padding-left:26px;font-size:11.5px" onclick="navTNB('resenias',this)">⭐ Reseñas</button>
     <button class="sb-item" id="sbi-ugc" onclick="sbNav('ugc','ugc',this)"><span class="sb-item-icon"><i class="ti ti-heart-handshake"></i></span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Soul PR<span id="ugc-sb-badge" style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">PR & Colaboraciones</span></span></button>
     <button class="sb-item" id="sbi-soul-club" onclick="sbNav('soul-club','soul-club',this)"><span class="sb-item-icon" style="font-size:13px;font-weight:700;font-family:serif;font-style:italic">S</span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Soul Club<span style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Miembros · Drops · Eventos</span></span></button>
   </div>
@@ -2852,10 +2869,10 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
       <div class="crm-stat-value" id="crm-valor">$0</div>
       <div class="crm-stat-sub">facturado a clientes</div>
     </div>
-    <div class="crm-stat s-conv">
-      <div class="crm-stat-label">Conversión</div>
-      <div class="crm-stat-value" id="crm-conv">0%</div>
-      <div class="crm-stat-sub">leads → clientes</div>
+    <div class="crm-stat s-conv" onclick="setCRMFilter('__riesgo__',document.querySelector('.crm-filter-btn[onclick*=\"__riesgo__\"]'))" style="cursor:pointer">
+      <div class="crm-stat-label">En riesgo</div>
+      <div class="crm-stat-value" id="crm-conv">—</div>
+      <div class="crm-stat-sub">compraron, no vuelven</div>
     </div>
   </div>
 
@@ -2881,6 +2898,8 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button class="crm-filter-btn" onclick="setCRMFilter('Interesado',this)">Interesados</button>
     <button class="crm-filter-btn" onclick="setCRMFilter('Cliente',this)">Clientes</button>
     <button class="crm-filter-btn" onclick="setCRMFilter('Recurrente',this)">Recurrentes</button>
+    <button class="crm-filter-btn" onclick="setCRMFilter('__riesgo__',this)" style="color:#f97316;border-color:rgba(249,115,22,.3)">⚠️ En riesgo</button>
+    <button class="crm-filter-btn" onclick="setCRMFilter('__carrito__',this)" style="color:#dc2626;border-color:rgba(220,38,38,.3)">🛒 Carrito</button>
   </div>
 
   <!-- Bulk select bar -->
@@ -5872,12 +5891,105 @@ async function supaFetch(path,opts={}){
 function _rowToWs(r){
   return{id:r.id,name:r.name,emoji:r.emoji||'🏷️',color:r.color||'#2979ff',pin:r.pin||'',users:r.users||[],data:r.data||defaultData(),createdAt:r.created_at||'',lastAccess:r.last_access||'',owner:r.data?.__owner||''};
 }
+// ── CRM API Bridge ────────────────────────────────────────────────────────────
+// S.crm es el cache local. La fuente de verdad es la tabla contacts en Supabase.
+// Al abrir la sección CRM se carga desde la API. Los cambios se persisten vía API.
+
+let _crmApiLoaded = false;
+let _crmDirty = new Set(); // IDs de contactos modificados en memoria
+let _crmSyncTimer = null;
+
+async function _apiLoadCRM(force = false) {
+  if (_crmApiLoaded && !force) return;
+  const wsId = _activeWsId;
+  if (!wsId) return;
+  try {
+    const r = await fetch(`/api/crm?wsId=${encodeURIComponent(wsId)}&limit=2000`);
+    const d = await r.json();
+    if (Array.isArray(d.contacts) && d.contacts.length > 0) {
+      S.crm = d.contacts;
+      const ws = getActiveWs();
+      if (ws) { ws._crmCountAtLoad = d.contacts.length; ws._crmBackup = [...d.contacts]; }
+      _crmApiLoaded = true;
+    } else if (!_crmApiLoaded) {
+      // Tabla vacía — disparar migración automática desde el blob
+      if (Array.isArray(S.crm) && S.crm.length > 0) {
+        console.log('[CRM] Tabla vacía, migrando', S.crm.length, 'contactos desde el blob...');
+        _migrateToAPI().catch(e => console.warn('[CRM] migrate error:', e.message));
+      }
+      _crmApiLoaded = true;
+    }
+  } catch(e) { console.warn('[CRM] _apiLoadCRM error:', e.message); }
+}
+
+async function _apiSaveContact(contact) {
+  const wsId = _activeWsId;
+  if (!wsId || !contact?.id) return;
+  try {
+    await fetch('/api/crm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wsId, contact })
+    });
+    _crmDirty.delete(contact.id);
+  } catch(e) { console.warn('[CRM] _apiSaveContact error:', e.message); }
+}
+
+async function _apiDeleteContact(contactId) {
+  const wsId = _activeWsId;
+  if (!wsId || !contactId) return;
+  try {
+    await fetch(`/api/crm/${encodeURIComponent(contactId)}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wsId })
+    });
+    _crmDirty.delete(contactId);
+  } catch(e) { console.warn('[CRM] _apiDeleteContact error:', e.message); }
+}
+
+function _crmMarkDirty(contactId) {
+  _crmDirty.add(contactId);
+  clearTimeout(_crmSyncTimer);
+  _crmSyncTimer = setTimeout(_crmFlushDirty, 5000); // sync en 5 segundos
+}
+
+async function _crmFlushDirty() {
+  if (!_crmDirty.size || !S.crm) return;
+  const ids = [..._crmDirty];
+  for (const id of ids) {
+    const c = S.crm.find(x => x.id === id);
+    if (c) await _apiSaveContact(c);
+  }
+}
+
+async function _migrateToAPI() {
+  const wsId = _activeWsId;
+  if (!wsId) return;
+  const r = await fetch('/api/migrate/v1', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ wsId, tables: ['contacts', 'orders'] })
+  });
+  const d = await r.json();
+  console.log('[CRM] Migración completada:', d.results);
+  return d;
+}
+
 function _wsToRow(ws){
   const raw = ws.data || defaultData();
 
   // ── Trim arrays que crecen indefinidamente ────────────────────
   // Hacerlo en una copia shallow para no mutar S directamente
   const data = {...raw, __owner: ws.owner || _authUser?.email || ''};
+
+  // CRM y finanzas están en tablas propias — no persisten en el blob
+  // (el blob solo guarda config, flows, tienda, waConfig, etc.)
+  data.crm = [];
+  data.finanzas = [];
+  data.reviews = [];
+  data.flowDone = {};     // flow_log table
+  data.flowHistory = [];  // flow_log table
 
   // flowDone: guardar solo las entradas de los últimos 60 días
   if (data.flowDone && typeof data.flowDone === 'object') {
@@ -5931,14 +6043,7 @@ function _wsToRow(ws){
     });
   }
 
-  // GUARD: nunca guardar CRM vacío si al cargar el workspace había contactos — restaurar backup
-  if (Array.isArray(data.crm) && data.crm.length === 0 && (ws._crmCountAtLoad || 0) > 0) {
-    if (Array.isArray(ws._crmBackup) && ws._crmBackup.length > 0) {
-      console.warn('[VELDOS] CRM vacío detectado — restaurando backup de', ws._crmBackup.length, 'contactos');
-      data.crm = ws._crmBackup;
-    }
-    // Si no hay backup tampoco, se permite el save (no bloqueamos nunca)
-  }
+  // CRM vacío es intencional — los contactos viven en la tabla contacts, no en el blob
 
   // ── Migrar base64 de briefs → URL: no guardar blobs en el workspace ──
   // Las imágenes en base64 en S.briefs pueden ser cientos de KB cada una.
@@ -5987,8 +6092,10 @@ function _wsToRow(ws){
 }
 
 async function supaLoadAll(){
-  const rows=await supaFetch('/rest/v1/workspaces?select=*&order=created_at.asc');
-  const all=(rows||[]).map(_rowToWs);
+  // Usamos el endpoint server-side que stripea crm/finanzas/reviews antes de mandar al browser
+  const rows=await fetch('/api/workspaces').then(r=>r.json()).catch(()=>null);
+  if(!Array.isArray(rows)) return [];
+  const all=rows.map(_rowToWs);
   if(!_authUser?.email)return all;
   const e=_authUser.email;
   // Workspaces explicitly owned by or shared with this user
@@ -6183,6 +6290,7 @@ function _enterWorkspace(ws){
   localStorage.setItem('supa_active_ws',ws.id); // persist for refresh
   S=ws.data||defaultData();
   if(!S.crm)S.crm=[];
+  _crmApiLoaded=false; // reset: recargar CRM desde API en la próxima apertura
   // Guardar copia de seguridad del CRM al cargar, para detectar borrados accidentales
   ws._crmCountAtLoad = S.crm.length;
   ws._crmBackup = S.crm.length > 0 ? [...S.crm] : [];
@@ -6207,6 +6315,8 @@ function _enterWorkspace(ws){
   document.getElementById('ws-overlay')?.classList.add('hidden');
   render();
   updateTNBadge();
+  // Pre-cargar guías para que el select de productos funcione desde cualquier sección
+  setTimeout(()=>loadGuiasAdmin().catch(()=>{}), 500);
   // Auto-sync ventas TN al cargar workspace (silencioso — solo notifica si hay novedades)
   if(S.tnIntegration) setTimeout(()=>syncVentasALaFecha(true), 3000);
   // Verificar difusiones interrumpidas — mostrar banner global al cargar
@@ -6749,8 +6859,16 @@ function sbNav(area,page,el){
     document.getElementById('pin-error').textContent='';
     return;
   }
-  const paths={inicio:'inicio',checklist:'checklist',todo:'todo',drive:'planning',marca:'marca',producto:'producto',docs:'docs',crm:'crm',difusiones:'difusiones',flows:'flows',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones',finanzas:'finanzas',meta:'meta',crealo:'crealo',tienda:'tienda',ugc:'ugc','soul-club':'soul-club'};
+  const paths={inicio:'inicio',checklist:'checklist',todo:'todo',drive:'planning',marca:'marca',producto:'producto',docs:'docs',crm:'crm',difusiones:'difusiones',flows:'flows',hojas:'hojas',operaciones:'operaciones',stock:'stock',integraciones:'integraciones',finanzas:'finanzas',meta:'meta',crealo:'crealo',tienda:'tienda',tiendanube:'tiendanube',ugc:'ugc','soul-club':'soul-club'};
   navigate(paths[page]||page);
+}
+
+function navTNB(tab, el) {
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('sbi-tiendanube')?.classList.add('active');
+  if (el) el.classList.add('active');
+  _tnbLoaded = false; // force fresh load when switching to TN section
+  initTNBPage(tab);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -6766,7 +6884,7 @@ const _FIN_TABS =new Set(['movimientos','ingresos','gastos','comisiones','kpis',
 const _AREA_LABELS={inicio:'Inicio',marketing:'Marketing',finanzas:'Finanzas',crm:'CRM',flows:'Flows',hojas:'Hojas',operaciones:'Operaciones',stock:'Stock',integraciones:'Integraciones',crealo:'Crealo',landing:'Landing',ugc:'Canjes UGC','soul-club':'Soul Club'};
 
 // Lista de rutas válidas — usada también para el fallback (rutas no válidas → /checklist)
-const _VALID_TOP_SEGMENTS=new Set(['inicio','checklist','todo','planning','marca','producto','docs','finanzas','crm','difusiones','flows','hojas','operaciones','stock','integraciones','meta','crealo','webs','login','projects','landing','tienda','ugc','soul-club']);
+const _VALID_TOP_SEGMENTS=new Set(['inicio','checklist','todo','planning','marca','producto','docs','finanzas','crm','difusiones','flows','hojas','operaciones','stock','integraciones','meta','crealo','webs','login','projects','landing','tienda','tiendanube','ugc','soul-club']);
 
 function parseRoute(pathname){
   const clean=(pathname||'/').replace(/^\/+|\/+$/g,'');
@@ -6791,6 +6909,7 @@ function parseRoute(pathname){
   if(seg==='landing') return{area:'landing',page:'landing'};
   if(seg==='difusiones') return{area:'crm',page:'difusiones'};
   if(seg==='tienda') return{area:'tienda',page:'tienda',tiendaTab:s2||'productos'};
+  if(seg==='tiendanube') return{area:'tiendanube',page:'tiendanube',tnbTab:s2||'clientes'};
   if(seg==='ugc') return{area:'ugc',page:'ugc',ugcTab:s2||'canjes'};
   if(seg==='soul-club') return{area:'soul-club',page:'soul-club',scTab:s2||'eventos'};
   const direct={crm:1,flows:1,hojas:1,operaciones:1,stock:1,integraciones:1};
@@ -6886,7 +7005,7 @@ function applyRoute(){
   // Area renders
   if(S){
     if(r.area==='inicio')renderInicio();
-    if(r.area==='crm'){if(!S.crm)S.crm=[];if(r.page==='difusiones')renderDifusiones();else renderCRM();}
+    if(r.area==='crm'){if(!S.crm)S.crm=[];_apiLoadCRM().then(()=>{ if(r.page==='difusiones')renderDifusiones();else renderCRM(); });return;}
     if(r.area==='flows'){if(!S.flows)S.flows=[];renderFlowsPage();}
     if(r.area==='hojas'){if(!S.customViews)S.customViews=[];renderHojas();}
     if(r.page==='docs'){if(!S.docs)S.docs=[];renderDocs();}
@@ -6899,6 +7018,7 @@ function applyRoute(){
     }
     if(r.area==='crealo') initCrealoPage();
     if(r.area==='tienda') initTiendaPage(r.tiendaTab||'productos');
+    if(r.area==='tiendanube') initTNBPage(r.tnbTab||'clientes');
     if(r.area==='ugc')        initUgcPage(r.ugcTab||'canjes');
     if(r.area==='soul-club')  initScPage();
     if(r.area==='operaciones') { loadReclamos(); loadReturns(); }
@@ -7272,6 +7392,9 @@ function computeFlowTasks(){
           });
           if(restockedProd){triggerKey='restock_'+restockedProd.id+'_'+today;entryDate=today;}
         }
+      } else if(trig.type==='xp_milestone'){
+        const threshold=trigDays; // delayValue se usa como umbral de XP
+        if(threshold>0&&(c.xp||0)>=threshold){triggerKey=`xpm_${threshold}`;entryDate=today;}
       } else if(trig.type==='reminder_due'){
         (c.reminders||[]).forEach(r=>{
           if(r.hecho)return;
@@ -7373,6 +7496,38 @@ function switchFlowTab(tab,btn){
   document.querySelectorAll('#page-flows .plan-tab').forEach(b=>b.classList.remove('active'));
   document.getElementById('flowtab-'+tab)?.classList.add('active');
   btn?.classList.add('active');
+  if(tab==='historial') loadFlowLog();
+}
+
+async function loadFlowLog(){
+  const cont=document.getElementById('flow-history-list');
+  if(!cont)return;
+  cont.innerHTML='<div style="text-align:center;padding:30px 0;color:var(--muted)">⏳ Cargando historial...</div>';
+  try{
+    const r=await fetch(`/api/flows/log?wsId=${encodeURIComponent(_activeWsId||'')}&limit=100`);
+    if(!r.ok)throw new Error(r.status);
+    const rows=await r.json();
+    if(!rows.length){cont.innerHTML='<div style="text-align:center;padding:30px 0;color:var(--muted)">Sin ejecuciones registradas aún.</div>';return;}
+    cont.innerHTML=`<table class="tx-table" style="font-size:12px">
+      <thead><tr><th>Fecha</th><th>Flow</th><th>Contacto</th><th>Canal</th><th>Estado</th><th>Mensaje</th></tr></thead>
+      <tbody>${rows.map(r=>{
+        const fecha=r.created_at?new Date(r.created_at).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+        const ok=r.status==='sent';
+        const badge=ok
+          ?'<span style="font-size:10px;padding:2px 7px;border-radius:9px;background:rgba(22,163,74,.12);color:#16a34a;font-weight:600">✓ Enviado</span>'
+          :'<span style="font-size:10px;padding:2px 7px;border-radius:9px;background:rgba(239,68,68,.12);color:#dc2626;font-weight:600">✗ Error</span>';
+        const canal=r.channel==='whatsapp'?'💬 WA':r.channel==='email'?'✉️ Email':'📤';
+        return`<tr>
+          <td style="white-space:nowrap;color:var(--muted)">${fecha}</td>
+          <td style="font-weight:600">${r.flow_name||r.flow_id||'—'}</td>
+          <td>${r.data?.contactNombre||r.email||r.tel||'—'}</td>
+          <td>${canal}</td>
+          <td>${badge}</td>
+          <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)">${(r.message||r.data?.error||'').slice(0,80)}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  }catch(e){cont.innerHTML=`<div style="text-align:center;padding:30px 0;color:var(--muted)">Error cargando historial: ${e.message}</div>`;}
 }
 
 function toggleFlowTaskSelect(key,checked){
@@ -7514,11 +7669,17 @@ function _triggerLabel(t){
   if(t.type==='after_creation')return`${d} ${uLabel} después de crear el contacto`;
   if(t.type==='no_contact')return`${d}+ ${uLabel} sin contactar`;
   if(t.type==='reminder_due')return'Cuando vence un recordatorio';
-  if(t.type==='cart_abandon')return`Carrito abandonado (web) — ${d}+ ${uLabel}`;
-  if(t.type==='product_interest')return`Interés en producto web — ${d}+ vistas`;
+  if(t.type==='cart_abandon')return`🛒 Carrito abandonado — ${d}+ ${uLabel}`;
+  if(t.type==='product_view')return'👀 Visita un producto (inmediato)';
+  if(t.type==='first_purchase')return'🏅 Primera compra (inmediato)';
+  if(t.type==='xp_milestone')return`⭐ Alcanza ${d} puntos XP`;
+  if(t.type==='product_interest')return`Interés en producto — ${d}+ vistas`;
   if(t.type==='restock')return'📦 Restock de producto';
   if(t.type==='birthday')return'🎂 Cumpleaños del cliente';
   if(t.type==='post_purchase')return`⭐ Post-compra — ${d} ${uLabel} después`;
+  if(t.type==='payment_confirmed')return'✅ Pago confirmado (inmediato)';
+  if(t.type==='order_placed')return'📦 Pedido realizado (inmediato)';
+  if(t.type==='new_lead')return'🙋 Nuevo suscriptor/lead (inmediato)';
   return t.type;
 }
 
@@ -13972,7 +14133,8 @@ function openModal(tipo,data,idx){
     crm:data?'Editar contacto':'Nuevo contacto',
     newHoja:'Nueva hoja',
     waConnect:'📱 WhatsApp',baileysSend:'💬 Enviar por WhatsApp',waReport:'📊 Reporte diario WA',
-    newDifLista:'Nueva lista de difusión',editDifLista:'Editar lista'
+    newDifLista:'Nueva lista de difusión',editDifLista:'Editar lista',
+    detalleDifLista:'Contactos de la lista',importarContactosLista:'Importar contactos'
   };
   document.getElementById('modal-title').textContent=modal_titles[tipo]||tipo;
   if(!S){console.warn('[openModal] S not defined yet');closeModal();return;}
@@ -14389,7 +14551,10 @@ function openModal(tipo,data,idx){
               <option value="birthday">🎂 Cumpleaños del cliente</option>
             </optgroup>
             <optgroup label="Tienda online">
-              <option value="cart_abandon">Carrito abandonado — X días</option>
+              <option value="cart_abandon">🛒 Carrito abandonado — X horas/días</option>
+              <option value="product_view">👀 Visita un producto (inmediato)</option>
+              <option value="first_purchase">🏅 Primera compra (inmediato)</option>
+              <option value="xp_milestone">⭐ Alcanza X puntos XP</option>
             </optgroup>
           </select></div>
         <div class="form-group" id="fflow-days-wrap"><label class="form-label">Demora</label>
@@ -14532,6 +14697,43 @@ function openModal(tipo,data,idx){
       </div>`;
     overlay.classList.add('open');
     setTimeout(difListaPreview, 50);
+    return;
+  }
+  if(tipo==='detalleDifLista'){
+    const lista=data||{};
+    const esDinamica=lista.tipo==='dinamica';
+    document.getElementById('modal-body').innerHTML=`
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+          <span id="detalle-lista-count" style="font-size:12px;color:var(--muted)">${esDinamica?'Dinámica':'(cargando…)'}</span>
+          ${!esDinamica?`<button class="btn btn-xs btn-primary" onclick="openImportarContactos('${lista.id}')">+ Importar contactos</button>`:''}
+        </div>
+        <input class="form-input" placeholder="Buscar por nombre, email o teléfono…" oninput="renderDetalleLista(this.value)" style="font-size:12px">
+        <div id="detalle-lista-contacts" style="max-height:380px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:0 10px">
+          <div style="padding:30px;text-align:center;color:var(--muted);font-size:12px">Cargando…</div>
+        </div>
+        ${esDinamica?'<div style="font-size:10px;color:var(--muted);text-align:center">Lista dinámica — los contactos se recalculan según los filtros</div>':''}
+      </div>`;
+    overlay.classList.add('open');
+    setTimeout(()=>renderDetalleLista(''),50);
+    return;
+  }
+  if(tipo==='importarContactosLista'){
+    const lista=data||{};
+    document.getElementById('modal-body').innerHTML=`
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <p style="font-size:12px;color:var(--muted);margin:0">Buscá y seleccioná los contactos para agregar a <strong>${lista.nombre||'la lista'}</strong>.</p>
+        <input class="form-input" placeholder="Buscar contacto…" oninput="renderImportSearch(this.value)" style="font-size:12px" autofocus>
+        <div id="import-search-results" style="max-height:360px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:0 10px">
+          <div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">Escribí para buscar contactos</div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="confirmarImportarContactos()">Agregar seleccionados</button>
+        </div>
+      </div>`;
+    overlay.classList.add('open');
+    setTimeout(()=>renderImportSearch(''),50);
     return;
   }
   if(tipo==='waReport'){
@@ -15069,7 +15271,13 @@ function filterCRM(q){_crmSearch=q.toLowerCase();renderCRM();}
 
 function crmFiltered(){
   if(!S.crm)S.crm=[];
+  const d60=new Date(Date.now()-60*86400000).toISOString().slice(0,10);
   let arr=S.crm.filter(c=>{
+    if(_crmFilter==='__riesgo__'){
+      const compras=parseInt(c.cantCompras||c.cantidadCompras||0);
+      return compras>0&&c.ultimaCompra&&c.ultimaCompra<d60;
+    }
+    if(_crmFilter==='__carrito__') return !!c.carritoAbandonado;
     const matchEstado=!_crmFilter||c.estado===_crmFilter;
     const q=_crmSearch;
     const matchSearch=!q||
@@ -15203,18 +15411,19 @@ function renderCRM(){
   // Stats
   const now=new Date();
   const mesKey=`${now.getFullYear()}-${pad2(now.getMonth()+1)}`;
+  const d60=new Date(Date.now()-60*86400000).toISOString().slice(0,10);
   const total=S.crm.length;
-  const clientes=S.crm.filter(c=>c.estado==='Cliente'||c.estado==='Recurrente').length;
+  const clientes=S.crm.filter(c=>c.estado==='Cliente'||c.estado==='Recurrente'||(parseInt(c.cantCompras||0)>0)).length;
   const nuevos=S.crm.filter(c=>(c.creado||'').startsWith(mesKey)).length;
-  const valor=S.crm.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
-  const leads=S.crm.filter(c=>c.tipo==='lead'||c.tipo==='prospect').length;
-  const conv=leads>0?Math.round(clientes/total*100):0;
+  const valor=S.crm.reduce((s,c)=>s+(parseFloat(c.valorTotal||c.valor)||0),0);
+  const enRiesgo=S.crm.filter(c=>parseInt(c.cantCompras||0)>0&&c.ultimaCompra&&c.ultimaCompra<d60).length;
+  const conv=total>0?Math.round(clientes/total*100):0;
   const el=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   el('crm-total',total);
   el('crm-clientes',clientes);
   el('crm-nuevos',nuevos);
   el('crm-valor','$'+valor.toLocaleString('es-AR'));
-  el('crm-conv',conv+'%');
+  el('crm-conv',enRiesgo>0?`⚠️ ${enRiesgo}`:conv+'%');
 
   populateProvinciaFilter();
   const filtered=crmFiltered();
@@ -15453,8 +15662,63 @@ function renderContactHistory(ri){
             <span class="crm-hist-nota">${label}</span>
           </div>`;
         }).join('')}
-        ${c.productosVisitados?.length?`<div style="font-size:11px;color:var(--muted);margin-top:4px">Productos visitados: ${c.productosVisitados.length}</div>`:''}
-        ${c.carritoAbandonado?`<div style="font-size:11px;color:#e07070;margin-top:4px">⚠️ Carrito abandonado${c.ultimoAbandonoCarrito?' — '+new Date(c.ultimoAbandonoCarrito).toLocaleDateString('es-AR'):''}</div>`:''}`;
+        ${c.carritoAbandonado?`<div style="font-size:11px;color:#e07070;margin-top:4px">⚠️ Carrito abandonado${c.cartDate?' — '+c.cartDate.split('-').reverse().join('/'):''}${c.valorAbandonado?' ($'+parseFloat(c.valorAbandonado).toLocaleString('es-AR')+')':''}</div>`:''}
+        ${Array.isArray(c.productViews)&&c.productViews.length?`<div style="font-size:11px;color:var(--muted);margin-top:4px">👀 Productos vistos: ${c.productViews.length}${c.productViews[0]?' — último: "'+c.productViews[0].nombre+'"':''}</div>`:''}`;
+      })()}
+
+      ${(()=>{
+        const esTN = c.tn_customer_id || c.canal === 'Tienda Nube';
+        if(!esTN) return '';
+        const valTotal = c.valorTotal != null ? parseFloat(c.valorTotal) : null;
+        const ultimaCompraFmt = c.ultimaCompra ? new Date(c.ultimaCompra).toLocaleDateString('es-AR') : '—';
+        const items = c.ultimoCarritoItems;
+        const itemsHtml = Array.isArray(items) && items.length
+          ? items.map(it=>`<div style="font-size:11px;color:var(--muted);margin-left:8px">• ${it.name||it.nombre||JSON.stringify(it)}${it.quantity||it.cantidad?' ×'+(it.quantity||it.cantidad):''}</div>`).join('')
+          : (typeof items === 'string' && items ? `<div style="font-size:11px;color:var(--muted);margin-left:8px">${items}</div>` : '');
+        return `<details style="margin-top:14px" open>
+          <summary class="crm-hist-label" style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span>🛍 Tienda Nube</span>
+            <span style="font-size:10px;color:var(--muted);font-style:normal;text-transform:none;letter-spacing:0">${c.tn_customer_id?'ID #'+c.tn_customer_id:''}</span>
+          </summary>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px">
+            <div style="background:var(--s3);padding:8px 10px;border-radius:8px"><div style="font-size:10px;color:var(--muted)">Compras TN</div><div style="font-size:16px;font-weight:700">${c.cantCompras||c.cantidadCompras||0}</div></div>
+            <div style="background:var(--s3);padding:8px 10px;border-radius:8px"><div style="font-size:10px;color:var(--muted)">Total TN</div><div style="font-size:16px;font-weight:700;color:var(--green)">${valTotal!=null?'$'+valTotal.toLocaleString('es-AR'):'—'}</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;font-size:12px">
+            ${c.ultimaCompra?`<div><span style="color:var(--muted)">Última compra:</span> ${ultimaCompraFmt}</div>`:''}
+            ${c.ultimoPedido?`<div><span style="color:var(--muted)">Último pedido:</span> #${c.ultimoPedido}</div>`:''}
+            ${c.ultimoProducto?`<div><span style="color:var(--muted)">Último producto:</span> ${c.ultimoProducto}</div>`:''}
+          </div>
+          ${c.carritoAbandonado?`<div style="margin-top:8px;background:rgba(224,112,112,.12);border:1px solid rgba(224,112,112,.3);border-radius:8px;padding:8px 10px">
+            <div style="font-size:11px;font-weight:600;color:#e07070;margin-bottom:4px">⚠️ Carrito abandonado${c.valorAbandonado?' — $'+parseFloat(c.valorAbandonado).toLocaleString('es-AR'):''}${c.cartDate?' — '+c.cartDate.split('-').reverse().join('/'):''}</div>
+            ${itemsHtml}
+          </div>`:''}
+        </details>`;
+      })()}
+
+      ${(()=>{
+        const views = c.productViews;
+        if(!Array.isArray(views)||!views.length) return '';
+        const shown = views.slice(0,10);
+        return `<details style="margin-top:10px">
+          <summary class="crm-hist-label" style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span>👀 Productos visitados</span>
+            <span style="font-size:10px;color:var(--muted);font-style:normal;text-transform:none;letter-spacing:0">${views.length} producto${views.length===1?'':'s'}</span>
+          </summary>
+          ${shown.map(pv=>{
+            const lastDate = pv.lastSeen ? new Date(pv.lastSeen).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'}) : '';
+            return `<div class="crm-hist-entry">
+              <span style="font-size:13px;margin-right:5px">👁</span>
+              <span class="crm-hist-nota" style="flex:1">${pv.nombre||pv.id}</span>
+              <span class="crm-hist-date">${pv.vistas>1?pv.vistas+'x · ':''} ${lastDate}</span>
+              ${pv.url?`<a href="${pv.url}" target="_blank" style="font-size:10px;color:var(--accent);margin-left:6px;text-decoration:none">Ver →</a>`:''}
+            </div>`;
+          }).join('')}
+          ${c.carritoAbandonado&&Array.isArray(c.cartAdds)&&c.cartAdds.length?`
+          <div style="margin-top:6px;padding:6px 8px;background:rgba(224,112,112,.08);border-radius:6px;font-size:11px;color:#e07070;font-weight:600">
+            🛒 Último carrito: ${c.cartAdds.slice(0,3).map(i=>i.nombre).join(', ')}${c.cartAdds.length>3?' y '+(c.cartAdds.length-3)+' más':''}
+          </div>`:''}
+        </details>`;
       })()}
 
       <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
@@ -15605,6 +15869,7 @@ function saveCRM(){
     creado:prev.creado||fmtDate(new Date())
   };
   if(_editIdx!==null)S.crm[_editIdx]=obj;else S.crm.push(obj);
+  _apiSaveContact(obj);
   save();closeModal();renderCRM();notify(_editIdx!==null?'Contacto actualizado ✓':'Contacto guardado ✓');
 }
 
@@ -15628,6 +15893,8 @@ function editCRM(ri){
 
 function deleteCRM(ri){
   if(!confirm('¿Eliminar este contacto?'))return;
+  const c=S.crm[ri];
+  if(c?.id)_apiDeleteContact(c.id);
   S.crm.splice(ri,1);
   _crmSelected.delete(ri);
   save();renderCRM();notify('Contacto eliminado');
@@ -15672,7 +15939,7 @@ function deleteSelectedCRM(){
   if(!_crmSelected.size){notify('Seleccioná al menos un contacto');return;}
   if(!confirm(`¿Eliminar ${_crmSelected.size} contacto${_crmSelected.size>1?'s':''}? Esta acción no se puede deshacer.`))return;
   const indices=[..._crmSelected].sort((a,b)=>b-a);
-  indices.forEach(i=>S.crm.splice(i,1));
+  indices.forEach(i=>{ const c=S.crm[i]; if(c?.id)_apiDeleteContact(c.id); S.crm.splice(i,1); });
   _crmSelected.clear();
   _crmSelectMode=false;
   const bar=document.getElementById('crm-select-bar');
@@ -15692,8 +15959,10 @@ function crmDragStart(e,ri){
 function crmDrop(e,newEstado){
   e.preventDefault();
   if(_dragIdx===null)return;
-  S.crm[_dragIdx].estado=newEstado;
+  const c=S.crm[_dragIdx];
+  c.estado=newEstado;
   _dragIdx=null;
+  _apiSaveContact(c);
   save();renderCRM();notify('Estado actualizado ✓');
 }
 
@@ -19104,6 +19373,7 @@ function crealPublishToMeta() {
     <button class="inner-tab" onclick="switchTiendaInner('ordenes',this)">Órdenes</button>
     <button class="inner-tab" onclick="switchTiendaInner('analytics',this)">Analytics</button>
     <button class="inner-tab" onclick="switchTiendaInner('clientesweb',this)">Clientes Web</button>
+    <button class="inner-tab" onclick="switchTiendaInner('clientes',this)">👥 Clientes TN</button>
     <button class="inner-tab" onclick="switchTiendaInner('config',this)">Configuración</button>
     <button class="inner-tab" onclick="switchTiendaInner('checkout',this)">Checkout</button>
     <button class="inner-tab" onclick="switchTiendaInner('dominio',this)">🌐 Dominio</button>
@@ -19396,6 +19666,71 @@ function crealPublishToMeta() {
   </div>
 
 
+  <!-- ── CLIENTES TN ── -->
+  <div class="inner-section" id="tienda-sec-clientes">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:13px;font-weight:600">Clientes de Tienda Nube</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px" id="tn-cl-count">—</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input id="tn-cl-search" class="form-input" placeholder="Buscar cliente..." style="width:200px;font-size:12px" oninput="filterTNClientes()">
+        <button class="btn btn-sm" onclick="loadTNClientes()">↻ Actualizar</button>
+      </div>
+    </div>
+
+    <!-- Stats strip -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center">
+        <div style="font-size:22px;font-weight:800;color:var(--text)" id="tn-cl-stat-total">—</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Clientes únicos</div>
+      </div>
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center">
+        <div style="font-size:22px;font-weight:800;color:var(--green)" id="tn-cl-stat-revenue">—</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Revenue total</div>
+      </div>
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center">
+        <div style="font-size:22px;font-weight:800;color:var(--gold,#f59e0b)" id="tn-cl-stat-abandon">—</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Carritos abandon.</div>
+      </div>
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center">
+        <div style="font-size:22px;font-weight:800;color:var(--blue,#60a5fa)" id="tn-cl-stat-avg">—</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Ticket promedio</div>
+      </div>
+    </div>
+
+    <!-- Two column layout: client list + top products -->
+    <div style="display:grid;grid-template-columns:1fr 280px;gap:14px">
+      <!-- Client list -->
+      <div>
+        <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 100px;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">
+            <div>Cliente</div><div>Pedidos</div><div>Total gastado</div><div>Última compra</div><div>Estado</div>
+          </div>
+          <div id="tn-cl-list" style="max-height:620px;overflow-y:auto"></div>
+        </div>
+        <!-- Carritos abandonados -->
+        <div style="margin-top:14px;background:var(--s1);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius);overflow:hidden">
+          <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--gold,#f59e0b)">🛒 Carritos abandonados</div>
+          <div id="tn-cl-carts" style="max-height:260px;overflow-y:auto"></div>
+        </div>
+      </div>
+
+      <!-- Top products sidebar -->
+      <div>
+        <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px">🔥 Productos más vendidos</div>
+          <div id="tn-cl-top-prods"></div>
+        </div>
+        <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:18px">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px">📦 Pedidos recientes</div>
+          <div id="tn-cl-recent-orders"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
   <!-- ── CONFIGURACIÓN ── -->
   <div class="inner-section" id="tienda-sec-config">
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;max-width:1100px">
@@ -19573,6 +19908,178 @@ function crealPublishToMeta() {
       <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Creá páginas de contenido que aparecen en el footer de la tienda (ej: Políticas de cambio y devolución, Envíos, Sobre nosotros).</div>
       <div id="pages-list" style="margin-bottom:12px"></div>
       <button class="btn btn-sm" onclick="openPageEditor(null)">+ Nueva página</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TIENDA NUBE — ADMIN ══ -->
+<div class="page" id="page-tiendanube">
+  <div class="sec-head">
+    <div class="sec-title">Tienda Nube<small>Clientes · Comportamiento · Analytics</small></div>
+  </div>
+
+  <!-- ── Clientes TN ── -->
+  <div class="inner-section active" id="tnb-sec-clientes">
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap">
+      <input id="tnb-clientes-search" class="form-input" placeholder="Buscar por nombre o email..." style="max-width:300px;flex:1" oninput="renderTNBClientes()">
+      <select id="tnb-clientes-filter" class="form-input" style="width:160px" onchange="renderTNBClientes()">
+        <option value="">Todos</option>
+        <option value="activo">Activos (30d)</option>
+        <option value="riesgo">En riesgo (60d+)</option>
+        <option value="carrito">Carrito abandonado</option>
+        <option value="vip">VIP (5+ pedidos)</option>
+      </select>
+      <button class="btn btn-sm" onclick="initTNBPage('clientes')">↺ Actualizar</button>
+    </div>
+    <div id="tnb-clientes-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px"></div>
+    <div id="tnb-clientes-list"></div>
+    <!-- Detail drawer -->
+    <div id="tnb-client-drawer" style="display:none;position:fixed;top:0;right:0;width:480px;max-width:100vw;height:100vh;background:var(--s1);border-left:1px solid var(--border);z-index:9000;overflow-y:auto;padding:24px;box-sizing:border-box">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div style="font-size:16px;font-weight:700" id="tnb-drawer-nombre">—</div>
+        <button onclick="document.getElementById('tnb-client-drawer').style.display='none'" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;color:var(--muted)">✕</button>
+      </div>
+      <div id="tnb-drawer-body"></div>
+    </div>
+  </div>
+
+  <!-- ── Contactos TN ── -->
+  <div class="inner-section" id="tnb-sec-contactos">
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap">
+      <input id="tnb-contactos-search" class="form-input" placeholder="Buscar contacto..." style="max-width:300px;flex:1" oninput="renderTNBContactos()">
+      <select id="tnb-contactos-filter" class="form-input" style="width:180px" onchange="renderTNBContactos()">
+        <option value="">Todos</option>
+        <option value="visto">Vio productos</option>
+        <option value="carrito">Carrito abandonado</option>
+        <option value="nocompro">Nunca compró</option>
+        <option value="reciente">Visita reciente (7d)</option>
+      </select>
+      <button class="btn btn-sm" onclick="initTNBPage('contactos')">↺ Actualizar</button>
+    </div>
+    <div id="tnb-contactos-list"></div>
+  </div>
+
+  <!-- ── Analytics TN ── -->
+  <div class="inner-section" id="tnb-sec-analytics">
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px">
+      <button class="btn btn-sm" onclick="initTNBPage('analytics')">↺ Actualizar</button>
+    </div>
+    <div id="tnb-analytics-body"><div style="text-align:center;padding:60px 0;color:var(--muted)">⏳ Cargando analytics...</div></div>
+  </div>
+
+  <!-- ── Tablas de Talle ── -->
+  <div class="inner-section" id="tnb-sec-tablas">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:15px;font-weight:700">Tablas de Talle</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Creá tablas y vinculálas a productos. Aparecen en la tienda con el probador virtual.</div>
+      </div>
+      <button class="btn btn-primary" onclick="openSizeChartModal(null)">+ Nueva tabla</button>
+    </div>
+    <div id="tnb-tablas-list"></div>
+
+    <!-- Modal editor de tabla -->
+    <div id="sc-chart-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9100;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto">
+      <div style="background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:860px;position:relative">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <div style="font-size:16px;font-weight:700" id="sc-chart-modal-title">Nueva tabla de talle</div>
+          <button onclick="closeSizeChartModal()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 12px;cursor:pointer;color:var(--muted)">✕</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
+          <div class="form-group"><label class="form-label">Nombre de la tabla</label><input id="sc-nombre" class="form-input" placeholder="Ej: Ropa mujer, Pantalones, Calzado"></div>
+          <div class="form-group"><label class="form-label">Tipo</label>
+            <select id="sc-tipo" class="form-input">
+              <option value="ropa">Ropa (pecho / cintura / cadera)</option>
+              <option value="pantalon">Pantalón (cintura / cadera / largo)</option>
+              <option value="calzado">Calzado (cm / EU / UK / US)</option>
+              <option value="custom">Personalizado</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">
+          <label style="font-size:12px;font-weight:600;white-space:nowrap">Columnas:</label>
+          <input id="sc-cols" class="form-input" placeholder="talle, pecho, cintura, cadera, largo" style="flex:1">
+          <button class="btn btn-sm" onclick="scUpdateGrid()">Actualizar grilla</button>
+        </div>
+        <div id="sc-grid" style="overflow-x:auto;margin-bottom:18px"></div>
+        <div style="display:flex;gap:8px;margin-bottom:18px">
+          <button class="btn btn-sm" onclick="scAddRow()">+ Fila</button>
+          <button class="btn btn-sm" onclick="scRemoveRow()">− Última fila</button>
+        </div>
+        <!-- Vincular productos -->
+        <div style="margin-bottom:18px">
+          <label class="form-label">Vincular a productos (IDs separados por coma, o dejar vacío para tabla global)</label>
+          <input id="sc-products" class="form-input" placeholder="Ej: 123456, 789012">
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">Si no vinculás productos específicos, esta tabla se muestra como opción en toda la tienda.</div>
+        </div>
+        <!-- Stock por talle -->
+        <div id="sc-stock-section" style="margin-bottom:18px;display:none">
+          <label class="form-label">Stock por talle</label>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Indicá la disponibilidad de cada talle. Se muestra en la guía de talles de la tienda.</div>
+          <div id="sc-stock-grid" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="sc-default" style="accent-color:var(--accent)"> Tabla por defecto (se muestra cuando no hay tabla vinculada al producto)</label>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid var(--border)">
+          <button class="btn btn-primary" onclick="saveSizeChart()">Guardar tabla</button>
+          <button class="btn" onclick="closeSizeChartModal()">Cancelar</button>
+          <button class="btn" style="margin-left:auto;color:var(--red)" id="sc-delete-btn" onclick="deleteSizeChart()" style="display:none">Eliminar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Stock TN ── -->
+  <div class="inner-section" id="tnb-sec-stock">
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap">
+      <input id="tnb-stock-search" class="form-input" placeholder="Buscar producto..." style="max-width:300px;flex:1" oninput="renderTNBStock()">
+      <select id="tnb-stock-filter" class="form-input" style="width:160px" onchange="renderTNBStock()">
+        <option value="">Todos</option>
+        <option value="bajo">Stock bajo (≤5)</option>
+        <option value="cero">Sin stock</option>
+        <option value="ok">Con stock</option>
+      </select>
+      <button class="btn btn-sm" onclick="loadTNBStock()">↺ Actualizar</button>
+    </div>
+    <div id="tnb-stock-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:18px"></div>
+    <div id="tnb-stock-list"></div>
+  </div>
+
+  <!-- ── Cashback TN ── -->
+  <div class="inner-section" id="tnb-sec-cashback">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:15px;font-weight:700">Cashback de clientes</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Consultá y gestioná los saldos de cashback de tus clientes.</div>
+      </div>
+      <button class="btn btn-sm" onclick="renderTNBCashback()">↺ Actualizar</button>
+    </div>
+    <div id="tnb-cashback-list"></div>
+  </div>
+
+  <!-- ── Reseñas TN ── -->
+  <div class="inner-section" id="tnb-sec-resenias">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:15px;font-weight:700">Reseñas de productos</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Moderá las reseñas de tu tienda.</div>
+      </div>
+      <button class="btn btn-sm" onclick="renderTNBResenias()">↺ Actualizar</button>
+    </div>
+    <div style="margin-bottom:12px">
+      <input id="tnb-resenias-search" type="text" placeholder="Filtrar por producto..." oninput="_renderTNBReseniasFiltered()" style="width:100%;max-width:340px;padding:7px 12px;border:1px solid var(--border);border-radius:8px;background:var(--s2);color:var(--text);font-size:13px;outline:none" />
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap" id="tnb-resenias-filters">
+      <button class="btn btn-sm active" id="tnb-res-f-todas" onclick="setTNBReseniasFilter('todas',this)">Todas</button>
+      <button class="btn btn-sm" id="tnb-res-f-pendientes" onclick="setTNBReseniasFilter('pendientes',this)">Pendientes</button>
+      <button class="btn btn-sm" id="tnb-res-f-aprobadas" onclick="setTNBReseniasFilter('aprobadas',this)">Aprobadas</button>
+      <button class="btn btn-sm" id="tnb-res-f-rechazadas" onclick="setTNBReseniasFilter('rechazadas',this)">Rechazadas</button>
+    </div>
+    <div id="tnb-resenias-list"></div>
+    <!-- foto overlay -->
+    <div id="tnb-foto-overlay" onclick="this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out">
+      <img id="tnb-foto-overlay-img" src="" style="max-width:92vw;max-height:90vh;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.6)" />
     </div>
   </div>
 </div>
@@ -20336,6 +20843,12 @@ function crealPublishToMeta() {
         <button class="btn btn-xs btn-primary" onclick="addGuiaCol()">+ Col</button>
       </div>
       <div id="guia-cols-wrap" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+    </div>
+    <!-- Campos del probador -->
+    <div style="margin-bottom:16px;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">👗 Datos a pedir al cliente en el probador</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Marcá cuáles columnas se le piden al cliente como medidas para recomendar su talle.</div>
+      <div id="guia-campos-wrap" style="display:flex;flex-direction:column;gap:2px"></div>
     </div>
     <!-- Filas -->
     <div style="margin-bottom:16px">
@@ -22690,7 +23203,7 @@ function _dlUpdateCanalUi() {
   difListaPreview();
 }
 
-function saveDifLista(idx) {
+async function saveDifLista(idx) {
   const nombre = document.getElementById('dlf-nombre')?.value?.trim();
   if (!nombre) { notify('Poné un nombre a la lista'); return; }
   const tipo   = document.querySelector('input[name="dlf-tipo"]:checked')?.value || 'dinamica';
@@ -22702,23 +23215,38 @@ function saveDifLista(idx) {
   const obj = {
     id: prev ? prev.id : ('dl_' + Date.now()),
     nombre, tipo, canal, filtros,
-    contactIds: tipo === 'estatica' ? matches.map(c => c.id).filter(Boolean) : [],
+    contactIds: tipo === 'estatica' ? matches.map(c => c.id).filter(Boolean) : (prev?.contactIds || []),
     creado: prev ? prev.creado : new Date().toISOString().slice(0,10),
     ultimaDifusion: prev ? prev.ultimaDifusion : null,
   };
-  if (prev) S.difListas[idx] = obj; else S.difListas.unshift(obj);
-  _saveDelta({difListas:S.difListas});
-  closeModal();
-  notify(`Lista "${nombre}" guardada ✓ — ${matches.filter(c=>canal==='email'?c.email:c.tel).length} contactos`);
-  renderDifListas();
-  _difRefreshListaSelect();
-  _emailRefreshListaSelect();
+  try {
+    const r = await fetch(`/api/dif/listas?wsId=${_activeWsId}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(obj) });
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'Error guardando');
+    // Sync local S.difListas
+    if (prev) S.difListas[idx] = data.lista || obj; else S.difListas.unshift(data.lista || obj);
+    closeModal();
+    notify(`Lista "${nombre}" guardada ✓ — ${matches.filter(c=>canal==='email'?c.email:c.tel).length} contactos`);
+    renderDifListas();
+    _difRefreshListaSelect();
+    _emailRefreshListaSelect();
+  } catch(e) {
+    notify('Error al guardar lista: ' + e.message, 'error');
+  }
 }
 
-function renderDifListas() {
-  if (!S.difListas) S.difListas = [];
+async function renderDifListas() {
   const el = document.getElementById('dif-listas-grid');
   if (!el) return;
+  // Always load fresh from Supabase via API
+  try {
+    const r = await fetch(`/api/dif/listas?wsId=${_activeWsId}`);
+    if (r.ok) {
+      const fresh = await r.json();
+      S.difListas = Array.isArray(fresh) ? fresh : (S.difListas || []);
+    }
+  } catch(e) { /* use cached S.difListas on failure */ }
+  if (!S.difListas) S.difListas = [];
   try {
     _difRefreshListaSelect();
     _emailRefreshListaSelect();
@@ -22788,6 +23316,7 @@ function renderDifListas() {
       ].filter(Boolean);
       const filterDesc = filterParts.length ? filterParts.join(' · ') : 'Sin filtros adicionales';
       const cuentas = (eC ? '📧 ' + eC + '  ' : '') + (wC ? '📱 ' + wC : '');
+      const totalC = l.tipo === 'estatica' ? (l.contactIds?.length || 0) : allC.length;
       listCards +=
         '<div class="dif-card" style="cursor:default">' +
           '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">' +
@@ -22797,15 +23326,18 @@ function renderDifListas() {
             '</div>' +
             '<div style="display:flex;gap:4px;margin-left:8px">' +
               '<button class="btn btn-xs" onclick="editDifLista(' + i + ')" title="Editar">✎</button>' +
-              '<button class="btn btn-xs btn-danger" onclick="deleteDifLista(' + i + ')" title="Eliminar">×</button>' +
+              '<button class="btn btn-xs btn-danger" onclick="deleteDifLista(\'' + l.id + '\',\'' + (l.nombre||'').replace(/'/g,"\\'") + '\')" title="Eliminar">×</button>' +
             '</div>' +
           '</div>' +
           '<div style="font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.5">' + filterDesc + '</div>' +
           '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
-            '<span style="font-size:11px">' + cuentas + '</span>' +
+            '<span style="font-size:11px">' + totalC + ' contactos ' + (cuentas ? '(' + cuentas.trim() + ')' : '') + '</span>' +
             '<span style="font-size:10px;color:var(--muted)">Última: ' + ult + '</span>' +
           '</div>' +
-          '<button class="btn btn-primary" style="width:100%;font-size:11px;padding:7px" onclick="difUsarLista(' + i + ')">Usar en difusión →</button>' +
+          '<div style="display:flex;gap:6px">' +
+            '<button class="btn btn-primary" style="flex:1;font-size:11px;padding:6px" onclick="difUsarLista(' + i + ')">Usar →</button>' +
+            '<button class="btn" style="flex:1;font-size:11px;padding:6px;border:1px solid var(--border)" onclick="abrirDetalleLista(\'' + l.id + '\')">Ver contactos</button>' +
+          '</div>' +
         '</div>';
     }
     el.innerHTML = header + listCards;
@@ -22819,13 +23351,146 @@ function editDifLista(i) {
   openModal('editDifLista', S.difListas[i], i);
 }
 
-function deleteDifLista(i) {
-  if (!confirm(`¿Eliminar la lista "${S.difListas[i]?.nombre}"?`)) return;
-  S.difListas.splice(i, 1);
-  _saveDelta({difListas:S.difListas}); renderDifListas();
-  notify('Lista eliminada');
+async function deleteDifLista(id, nombre) {
+  if (!confirm(`¿Eliminar la lista "${nombre}"?`)) return;
+  try {
+    const r = await fetch(`/api/dif/listas/${encodeURIComponent(id)}?wsId=${_activeWsId}`, { method:'DELETE' });
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'Error');
+    S.difListas = (S.difListas || []).filter(l => l.id !== id);
+    renderDifListas();
+    notify('Lista eliminada');
+  } catch(e) {
+    notify('Error al eliminar: ' + e.message, 'error');
+  }
 }
 
+
+// ── DETALLE DE LISTA — Ver/buscar/seleccionar/importar contactos ──
+let _detalleLista = null; // { id, nombre, tipo, contactIds }
+
+function abrirDetalleLista(listaId) {
+  const l = (S.difListas || []).find(x => x.id === listaId);
+  if (!l) return;
+  _detalleLista = l;
+  openModal('detalleDifLista', l);
+}
+
+function renderDetalleLista(searchVal) {
+  const l = _detalleLista;
+  if (!l) return;
+  const q = (searchVal || '').toLowerCase().trim();
+  // Get all contacts in this list
+  const allInList = l.tipo === 'dinamica'
+    ? _evalListaFiltros(l.filtros)
+    : (S.crm || []).filter(c => l.contactIds?.includes(c.id));
+  const filtered = q
+    ? allInList.filter(c => ((c.nombre||'') + ' ' + (c.apellido||'') + ' ' + (c.email||'') + ' ' + (c.tel||'')).toLowerCase().includes(q))
+    : allInList;
+  // Update count
+  const countEl = document.getElementById('detalle-lista-count');
+  if (countEl) {
+    const total = l.tipo === 'estatica' ? (l.contactIds?.length || 0) : allInList.length;
+    const eC = allInList.filter(c=>c.email).length;
+    const wC = allInList.filter(c=>c.tel).length;
+    countEl.textContent = total + ' contactos' + (q ? ' (filtrado: ' + filtered.length + ')' : '') + (eC||wC ? '  📧 '+eC+' · 📱 '+wC : '');
+  }
+  const el = document.getElementById('detalle-lista-contacts');
+  if (!el) return;
+  if (!filtered.length) {
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">' + (q ? 'Sin resultados para "' + q + '"' : 'Lista vacía — importá contactos') + '</div>';
+    return;
+  }
+  el.innerHTML = filtered.map(c => {
+    const inList = l.contactIds?.includes(c.id);
+    const checked = l.tipo === 'dinamica' || inList;
+    return '<label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer">' +
+      '<input type="checkbox" ' + (checked ? 'checked' : '') + ' ' + (l.tipo === 'dinamica' ? 'disabled' : '') + ' onchange="toggleContactEnLista(this,\'' + l.id + '\',\'' + c.id + '\')" style="width:14px;height:14px;flex-shrink:0">' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (c.nombre || '—') + (c.apellido ? ' ' + c.apellido : '') + '</div>' +
+        '<div style="font-size:10px;color:var(--muted)">' + (c.email || '') + (c.email && c.tel ? ' · ' : '') + (c.tel || '') + '</div>' +
+      '</div>' +
+    '</label>';
+  }).join('');
+}
+
+async function toggleContactEnLista(checkbox, listaId, contactId) {
+  const l = _detalleLista;
+  if (!l || l.tipo === 'dinamica') return;
+  if (!l.contactIds) l.contactIds = [];
+  const adding = checkbox.checked;
+  try {
+    const body = adding ? { add: [contactId] } : { remove: [contactId] };
+    const r = await fetch(`/api/dif/listas/${encodeURIComponent(listaId)}/members?wsId=${_activeWsId}`, {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
+    });
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'Error');
+    if (adding) { if (!l.contactIds.includes(contactId)) l.contactIds.push(contactId); }
+    else { l.contactIds = l.contactIds.filter(id => id !== contactId); }
+    // Update count in S.difListas
+    const globalL = (S.difListas || []).find(x => x.id === listaId);
+    if (globalL) globalL.contactIds = [...l.contactIds];
+    document.getElementById('detalle-lista-count').textContent = l.contactIds.length + ' contactos';
+  } catch(e) {
+    checkbox.checked = !checkbox.checked; // revert UI
+    notify('Error: ' + e.message, 'error');
+  }
+}
+
+function openImportarContactos(listaId) {
+  const l = (S.difListas || []).find(x => x.id === listaId);
+  if (!l) return;
+  _detalleLista = l;
+  openModal('importarContactosLista', l);
+}
+
+function renderImportSearch(q) {
+  const l = _detalleLista;
+  if (!l) return;
+  const query = (q || '').toLowerCase().trim();
+  const already = new Set(l.contactIds || []);
+  const all = S.crm || [];
+  const filtered = query
+    ? all.filter(c => ((c.nombre||'') + ' ' + (c.apellido||'') + ' ' + (c.email||'') + ' ' + (c.tel||'')).toLowerCase().includes(query))
+    : all.slice(0, 50);
+  const el = document.getElementById('import-search-results');
+  if (!el) return;
+  el.innerHTML = filtered.slice(0, 80).map(c => {
+    const isIn = already.has(c.id);
+    return '<label style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);cursor:pointer">' +
+      '<input type="checkbox" ' + (isIn ? 'checked disabled' : '') + ' data-cid="' + c.id + '" style="width:14px;height:14px;flex-shrink:0">' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (c.nombre || '—') + (c.apellido ? ' ' + c.apellido : '') + (isIn ? ' <span style="color:var(--muted);font-size:9px">(ya está)</span>' : '') + '</div>' +
+        '<div style="font-size:10px;color:var(--muted)">' + (c.email || '') + (c.email && c.tel ? ' · ' : '') + (c.tel || '') + '</div>' +
+      '</div>' +
+    '</label>';
+  }).join('') + (filtered.length === 0 ? '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">Sin resultados</div>' : '');
+}
+
+async function confirmarImportarContactos() {
+  const l = _detalleLista;
+  if (!l) return;
+  const checked = [...document.querySelectorAll('#import-search-results input[type=checkbox]:checked:not(:disabled)')];
+  const ids = checked.map(cb => cb.dataset.cid).filter(Boolean);
+  if (!ids.length) { notify('Seleccioná al menos un contacto'); return; }
+  try {
+    const r = await fetch(`/api/dif/listas/${encodeURIComponent(l.id)}/members?wsId=${_activeWsId}`, {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ add: ids })
+    });
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'Error');
+    if (!l.contactIds) l.contactIds = [];
+    for (const id of ids) { if (!l.contactIds.includes(id)) l.contactIds.push(id); }
+    const globalL = (S.difListas || []).find(x => x.id === l.id);
+    if (globalL) globalL.contactIds = [...l.contactIds];
+    closeModal();
+    notify(ids.length + ' contacto(s) importados a "' + l.nombre + '"');
+    renderDifListas();
+  } catch(e) {
+    notify('Error al importar: ' + e.message, 'error');
+  }
+}
 
 function difUsarLista(i) {
   const l = S.difListas[i];
@@ -25589,7 +26254,7 @@ function switchTiendaInner(tab, btn) {
   if(tab === 'checkout') loadCheckoutConfig();
   if(tab === 'dominio') loadDominioConfig();
   if(tab === 'productos') renderProductosAdmin();
-  if(tab === 'clientes') loadClientesAdmin();
+  if(tab === 'clientes') loadTNClientes();
   if(tab === 'guias') loadGuiasAdmin();
   if(tab === 'paginaproducto') loadPaginaProductoEditor();
   if(tab === 'ctas') loadCtasAdmin();
@@ -26116,6 +26781,1164 @@ async function _deleteABTest(testId) {
   } catch(e) { alert('Error: ' + e.message) }
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// TIENDA NUBE — Clientes · Contactos · Analytics
+// ═══════════════════════════════════════════════════════════════════════
+
+let _tnbLoaded = false
+let _tnbAnalyticsData = null
+let _tnbCRMData = []
+let _tnbFinanzasData = []
+
+function switchTNBTab(tab, btn) {
+  document.querySelectorAll('#nav-tiendanube .nav-tab').forEach(b => b.classList.remove('active'))
+  if (btn) btn.classList.add('active')
+  else {
+    const tabBtn = document.querySelector(`#nav-tiendanube .nav-tab[onclick*="'${tab}'"]`)
+    if (tabBtn) tabBtn.classList.add('active')
+  }
+  document.querySelectorAll('[id^="tnb-sec-"]').forEach(s => s.classList.remove('active'))
+  document.getElementById('tnb-sec-' + tab)?.classList.add('active')
+  history.pushState({}, '', '/tiendanube/' + tab)
+  if (tab === 'clientes') renderTNBClientes()
+  else if (tab === 'contactos') renderTNBContactos()
+  else if (tab === 'analytics') renderTNBAnalytics()
+  else if (tab === 'tablas') renderTNBTablas()
+  else if (tab === 'stock') loadTNBStock()
+  else if (tab === 'cashback') renderTNBCashback()
+  else if (tab === 'resenias') renderTNBResenias()
+}
+
+async function initTNBPage(tab = 'clientes') {
+  // Activate nav tab
+  document.querySelectorAll('#nav-tiendanube .nav-tab').forEach(b => {
+    b.classList.toggle('active', b.id === 'tnb-tab-' + tab)
+  })
+  // Activate section
+  document.querySelectorAll('[id^="tnb-sec-"]').forEach(s => s.classList.remove('active'))
+  document.getElementById('tnb-sec-' + tab)?.classList.add('active')
+  // Activate sidebar sub-item
+  document.querySelectorAll('.sb-item[id^="sbi-tnb-"]').forEach(b => b.classList.remove('active'))
+  document.getElementById('sbi-tnb-' + tab)?.classList.add('active')
+
+  // Load base data from Supabase (crm/finanzas now live there, not in workspace blob)
+  if (!_tnbLoaded) {
+    const [crmRes, finRes] = await Promise.all([
+      fetch(`/api/crm?wsId=${_activeWsId}&limit=2000`).then(r => r.json()).catch(() => ({ contacts: [] })),
+      fetch(`/api/finanzas?wsId=${_activeWsId}&tipo=ingreso&limit=2000`).then(r => r.json()).catch(() => ({ orders: [] }))
+    ])
+    _tnbCRMData = crmRes.contacts || []
+    _tnbFinanzasData = (finRes.orders || []).filter(f => f.categoria === 'Ventas tienda')
+    _tnbLoaded = true
+  }
+
+  if (tab === 'clientes') renderTNBClientes()
+  else if (tab === 'contactos') renderTNBContactos()
+  else if (tab === 'analytics') { _tnbAnalyticsData = null; await loadTNBAnalytics() }
+  else if (tab === 'tablas') { await loadSizeCharts(); renderTNBTablas() }
+  else if (tab === 'stock') { await loadTNBStock() }
+  else if (tab === 'cashback') renderTNBCashback()
+  else if (tab === 'resenias') renderTNBResenias()
+}
+
+function _tnbGetCustomerOrders(email) {
+  if (!email) return []
+  const e = email.toLowerCase()
+  return _tnbFinanzasData.filter(f => (f.email || f.customerEmail || '').toLowerCase() === e)
+    .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+}
+
+function _tnbCustomerStats(email) {
+  const orders = _tnbGetCustomerOrders(email)
+  const total = orders.reduce((s, f) => s + (f.monto || 0), 0)
+  const last = orders[0]?.fecha || ''
+  const now = new Date().toISOString().slice(0, 10)
+  const d30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
+  const d60 = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10)
+  const isActive = last >= d30
+  const isRiesgo = last && last < d60
+  return { orders, count: orders.length, total, last, isActive, isRiesgo, avgTicket: orders.length ? total / orders.length : 0 }
+}
+
+function _tnbNivelBadge(xp) {
+  if (xp >= 5000) return '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:9px;background:rgba(124,58,237,.15);color:#7c3aed">💎 Platinum</span>'
+  if (xp >= 2000) return '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:9px;background:rgba(245,166,35,.15);color:#b45309">🥇 Gold</span>'
+  if (xp >= 500)  return '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:9px;background:rgba(158,158,158,.15);color:#555">🥈 Silver</span>'
+  return '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:9px;background:rgba(205,127,50,.15);color:#92400e">🥉 Bronze</span>'
+}
+
+function renderTNBClientes() {
+  const search = (document.getElementById('tnb-clientes-search')?.value || '').toLowerCase()
+  const filter = document.getElementById('tnb-clientes-filter')?.value || ''
+  const now = new Date().toISOString().slice(0, 10)
+  const d30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
+  const d60 = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10)
+
+  // Only contacts who have at least 1 order
+  let clientes = _tnbCRMData.filter(c => {
+    if (!c.email) return false
+    const stats = _tnbCustomerStats(c.email)
+    return stats.count > 0
+  }).map(c => ({ c, stats: _tnbCustomerStats(c.email) }))
+
+  // Search
+  if (search) clientes = clientes.filter(({ c }) => (c.nombre || '').toLowerCase().includes(search) || (c.email || '').toLowerCase().includes(search))
+
+  // Filter
+  if (filter === 'activo') clientes = clientes.filter(({ stats }) => stats.isActive)
+  if (filter === 'riesgo') clientes = clientes.filter(({ stats }) => stats.isRiesgo)
+  if (filter === 'carrito') clientes = clientes.filter(({ c }) => c.carritoAbandonado)
+  if (filter === 'vip') clientes = clientes.filter(({ stats }) => stats.count >= 5)
+
+  clientes.sort((a, b) => (b.stats.last || '').localeCompare(a.stats.last || ''))
+
+  // Stats strip
+  const total = clientes.length
+  const activos = clientes.filter(({ stats }) => stats.isActive).length
+  const enRiesgo = clientes.filter(({ stats }) => stats.isRiesgo).length
+  const totalRev = clientes.reduce((s, { stats }) => s + stats.total, 0)
+  document.getElementById('tnb-clientes-stats').innerHTML = [
+    ['👥', total, 'Compradores'],
+    ['✅', activos, 'Activos 30d'],
+    ['⚠️', enRiesgo, 'En riesgo'],
+    ['💰', '$' + Math.round(totalRev / 1000) + 'k', 'Revenue total'],
+  ].map(([e, v, l]) => `<div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center"><div style="font-size:20px;margin-bottom:2px">${e}</div><div style="font-size:18px;font-weight:800">${v}</div><div style="font-size:10px;color:var(--muted)">${l}</div></div>`).join('')
+
+  if (!clientes.length) {
+    document.getElementById('tnb-clientes-list').innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--muted)">Sin resultados</div>'
+    return
+  }
+
+  document.getElementById('tnb-clientes-list').innerHTML = `
+  <table class="tx-table">
+    <thead><tr>
+      <th>Cliente</th><th>Pedidos</th><th>Total</th><th>Ticket prom.</th><th>Última compra</th><th>Prod. vistos</th><th>Nivel XP</th><th>Estado</th><th></th>
+    </tr></thead>
+    <tbody>
+    ${clientes.map(({ c, stats }) => {
+      const xp = Math.floor(stats.total / 100)
+      const prodVistas = (c.productViews || []).length
+      const badges = []
+      if (c.carritoAbandonado) badges.push('<span style="font-size:10px;background:rgba(239,68,68,.1);color:#dc2626;padding:2px 7px;border-radius:9px;font-weight:700">🛒 Carrito</span>')
+      if (stats.isRiesgo) badges.push('<span style="font-size:10px;background:rgba(245,158,11,.1);color:#d97706;padding:2px 7px;border-radius:9px;font-weight:700">⚠️ Riesgo</span>')
+      if (stats.isActive) badges.push('<span style="font-size:10px;background:rgba(22,163,74,.1);color:#16a34a;padding:2px 7px;border-radius:9px;font-weight:700">✅ Activo</span>')
+      if (stats.count >= 5) badges.push('<span style="font-size:10px;background:rgba(124,58,237,.1);color:#7c3aed;padding:2px 7px;border-radius:9px;font-weight:700">⭐ VIP</span>')
+      return `<tr style="cursor:pointer" onclick="openTNBClientDrawer('${c.id||c.email}')">
+        <td><div style="font-weight:600">${c.nombre || '—'}</div><div style="font-size:11px;color:var(--muted)">${c.email || ''}</div></td>
+        <td style="font-weight:700">${stats.count}</td>
+        <td style="font-weight:700">$${stats.total.toLocaleString('es-AR',{maximumFractionDigits:0})}</td>
+        <td>$${stats.avgTicket.toLocaleString('es-AR',{maximumFractionDigits:0})}</td>
+        <td style="font-size:12px;color:var(--muted)">${stats.last || '—'}</td>
+        <td style="font-size:12px">${prodVistas > 0 ? '👁 ' + prodVistas : '—'}</td>
+        <td>${_tnbNivelBadge(xp)}</td>
+        <td style="display:flex;gap:4px;flex-wrap:wrap">${badges.join('')}</td>
+        <td><button class="btn btn-xs" onclick="event.stopPropagation();openTNBClientDrawer('${c.id||c.email}')">Ver →</button></td>
+      </tr>`
+    }).join('')}
+    </tbody>
+  </table>`
+}
+
+function openTNBClientDrawer(idOrEmail) {
+  const c = _tnbCRMData.find(x => x.id === idOrEmail || x.email === idOrEmail)
+  if (!c) return
+  const stats = _tnbCustomerStats(c.email)
+  const xp = Math.floor(stats.total / 100)
+  const cashback = Math.floor(stats.total * 0.03)
+
+  let html = `
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px">
+    ${[['📦','Pedidos',stats.count],['💰','Total','$'+stats.total.toLocaleString('es-AR',{maximumFractionDigits:0})],['🎯','Ticket prom.','$'+stats.avgTicket.toLocaleString('es-AR',{maximumFractionDigits:0})],['⚡','XP',xp+' XP'],['💵','Cashback','$'+cashback],['📅','Última compra',stats.last||'—']].map(([e,l,v])=>`
+    <div style="background:var(--s2);border-radius:10px;padding:12px;text-align:center">
+      <div style="font-size:18px">${e}</div>
+      <div style="font-size:15px;font-weight:800;margin:2px 0">${v}</div>
+      <div style="font-size:10px;color:var(--muted)">${l}</div>
+    </div>`).join('')}
+  </div>
+  ${_tnbNivelBadge(xp)} ${c.carritoAbandonado ? '<span style="font-size:10px;background:rgba(239,68,68,.1);color:#dc2626;padding:2px 7px;border-radius:9px;font-weight:700;margin-left:4px">🛒 Carrito abandonado</span>' : ''}
+
+  <div style="margin-top:18px">
+    <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Contacto</div>
+    <div style="font-size:12px;display:flex;flex-direction:column;gap:4px">
+      ${c.email ? `<div>📧 ${c.email}</div>` : ''}
+      ${c.tel ? `<div><a href="https://wa.me/${(c.tel||'').replace(/\D/g,'')}" target="_blank" style="color:var(--green)">💬 ${c.tel}</a></div>` : ''}
+    </div>
+  </div>`
+
+  // Product views
+  const views = c.productViews || []
+  if (views.length) {
+    html += `<div style="margin-top:18px">
+    <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Productos vistos (${views.length})</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+    ${views.slice(0, 10).map(pv => `
+      <div style="background:var(--s2);border-radius:8px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-size:12px;font-weight:600">${pv.nombre || pv.id}</div><div style="font-size:10px;color:var(--muted)">${pv.lastSeen ? new Date(pv.lastSeen).toLocaleDateString('es-AR') : ''}</div></div>
+        <div style="font-size:11px;font-weight:700;color:var(--muted)">${pv.vistas} vista${pv.vistas !== 1 ? 's' : ''}</div>
+      </div>`).join('')}
+    </div></div>`
+  }
+
+  // Cart adds
+  const cartAdds = c.cartAdds || []
+  if (cartAdds.length) {
+    html += `<div style="margin-top:14px">
+    <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Últimos agrega al carrito</div>
+    ${cartAdds.slice(0, 5).map(ca => `
+      <div style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--border)">${ca.nombre || ca.id} <span style="color:var(--muted);float:right">${ca.fecha ? new Date(ca.fecha).toLocaleDateString('es-AR') : ''}</span></div>`).join('')}
+    </div>`
+  }
+
+  // Order history
+  if (stats.orders.length) {
+    html += `<div style="margin-top:18px">
+    <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Historial de pedidos</div>
+    ${stats.orders.slice(0, 8).map(o => `
+      <div style="background:var(--s2);border-radius:8px;padding:10px 12px;margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between"><span style="font-weight:700">#${o.tn_number||'—'}</span><span style="font-weight:700;color:var(--green)">$${(o.monto||0).toLocaleString('es-AR',{maximumFractionDigits:0})}</span></div>
+        ${o.notas ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.notas}</div>` : ''}
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${o.fecha||''} · ${o.medioPago||''}</div>
+      </div>`).join('')}
+    </div>`
+  }
+
+  // WA action buttons
+  html += `<div style="margin-top:20px;display:flex;flex-direction:column;gap:8px">
+    ${c.tel ? `<button class="btn btn-primary" onclick="window.open('https://wa.me/${(c.tel||'').replace(/\D/g,'')}?text=Hola ${encodeURIComponent(c.nombre||'')}!','_blank')">💬 Enviar WhatsApp</button>` : ''}
+    ${c.carritoAbandonado && c.tel ? `<button class="btn" style="border-color:#f59e0b;color:#d97706" onclick="window.open('https://wa.me/${(c.tel||'').replace(/\D/g,'')}?text=${encodeURIComponent('Hola '+( c.nombre||'')+'! Vimos que tenés productos en tu carrito. ¿Querés que te ayudemos a completar tu pedido?')}','_blank')">🛒 Recuperar carrito</button>` : ''}
+    ${stats.isRiesgo && c.tel ? `<button class="btn" style="border-color:#7c3aed;color:#7c3aed" onclick="window.open('https://wa.me/${(c.tel||'').replace(/\D/g,'')}?text=${encodeURIComponent('Hola '+(c.nombre||'')+'! Te extrañamos en Soulab 💜 Tenemos novedades que te van a gustar.')}','_blank')">💜 Reactivar cliente</button>` : ''}
+  </div>`
+
+  document.getElementById('tnb-drawer-nombre').textContent = c.nombre || c.email || '—'
+  document.getElementById('tnb-drawer-body').innerHTML = html
+  document.getElementById('tnb-client-drawer').style.display = 'block'
+}
+
+function renderTNBContactos() {
+  const search = (document.getElementById('tnb-contactos-search')?.value || '').toLowerCase()
+  const filter = document.getElementById('tnb-contactos-filter')?.value || ''
+  const d7 = new Date(Date.now() - 7 * 86400000).toISOString()
+
+  let contactos = [..._tnbCRMData]
+
+  if (filter === 'visto') contactos = contactos.filter(c => (c.productViews || []).length > 0)
+  if (filter === 'carrito') contactos = contactos.filter(c => c.carritoAbandonado)
+  if (filter === 'nocompro') contactos = contactos.filter(c => {
+    if (!c.email) return true
+    return _tnbCustomerStats(c.email).count === 0
+  })
+  if (filter === 'reciente') contactos = contactos.filter(c => c.ultimaVisita && c.ultimaVisita >= d7)
+
+  if (search) contactos = contactos.filter(c => (c.nombre || '').toLowerCase().includes(search) || (c.email || '').toLowerCase().includes(search) || (c.tel || '').includes(search))
+
+  contactos.sort((a, b) => (b.ultimaVisita || b.creado || '').localeCompare(a.ultimaVisita || a.creado || ''))
+
+  if (!contactos.length) {
+    document.getElementById('tnb-contactos-list').innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--muted)">Sin contactos</div>'
+    return
+  }
+
+  document.getElementById('tnb-contactos-list').innerHTML = `
+  <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${contactos.length} contactos</div>
+  <table class="tx-table">
+    <thead><tr>
+      <th>Nombre</th><th>Email / Tel</th><th>Última visita</th><th>Prod. vistos</th><th>Carrito</th><th>Compras</th><th>Canal</th><th></th>
+    </tr></thead>
+    <tbody>
+    ${contactos.map(c => {
+      const stats = _tnbCustomerStats(c.email)
+      const views = c.productViews || []
+      const topProd = views[0]?.nombre || '—'
+      return `<tr>
+        <td style="font-weight:600">${c.nombre || '—'}</td>
+        <td><div style="font-size:11px">${c.email || ''}</div><div style="font-size:11px;color:var(--muted)">${c.tel || ''}</div></td>
+        <td style="font-size:11px;color:var(--muted)">${c.ultimaVisita ? new Date(c.ultimaVisita).toLocaleDateString('es-AR') : '—'}</td>
+        <td style="font-size:12px">${views.length > 0 ? `<span title="${views.slice(0,3).map(p=>p.nombre).join(', ')}">👁 ${views.length} (${topProd.slice(0,20)})</span>` : '—'}</td>
+        <td style="font-size:12px">${c.carritoAbandonado ? '<span style="color:#dc2626;font-weight:700">🛒 Sí</span>' : '—'}</td>
+        <td style="font-weight:700">${stats.count > 0 ? stats.count + ' ($' + stats.total.toLocaleString('es-AR',{maximumFractionDigits:0}) + ')' : '—'}</td>
+        <td style="font-size:11px;color:var(--muted)">${c.canal || c.etapa || '—'}</td>
+        <td>${c.tel ? `<a href="https://wa.me/${(c.tel||'').replace(/\D/g,'')}" target="_blank" class="btn btn-xs">💬</a>` : ''}</td>
+      </tr>`
+    }).join('')}
+    </tbody>
+  </table>`
+}
+
+async function loadTNBAnalytics() {
+  document.getElementById('tnb-analytics-body').innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--muted)">⏳ Cargando analytics...</div>'
+  try {
+    const wsId = _activeWsId || ''
+    const res = await fetch(`https://soul-ecommlab.com/api/tn/store-analytics?wsId=${wsId}`)
+    _tnbAnalyticsData = await res.json()
+    renderTNBAnalytics()
+  } catch(e) {
+    document.getElementById('tnb-analytics-body').innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--muted)">Error cargando datos</div>'
+  }
+}
+
+function renderTNBAnalytics() {
+  const d = _tnbAnalyticsData
+  if (!d) { loadTNBAnalytics(); return }
+  const rev = d.revenue || {}
+  const ord = d.orders || {}
+  const cust = d.customers || {}
+  const monthly = d.monthly || {}
+
+  const months = Object.keys(monthly).sort()
+  const maxRev = Math.max(...Object.values(monthly), 1)
+
+  let html = `
+  <!-- KPI Grid -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:24px">
+    ${[
+      ['💰','Revenue total','$'+Math.round((rev.total||0)/1000)+'k'],
+      ['📅','Últimos 30d','$'+Math.round((rev.last30||0)/1000)+'k'],
+      ['📦','Pedidos totales',ord.total||0],
+      ['🛒','Pedidos 30d',ord.last30||0],
+      ['🎯','Ticket prom.','$'+Math.round(rev.avgTicket||0).toLocaleString('es-AR')],
+      ['👥','Compradores',cust.total||0],
+      ['✅','Activos 30d',cust.activos30||0],
+      ['⚠️','En riesgo',cust.enRiesgo||0],
+      ['🛒','Carritos aband.',cust.carritosAbandonados||0],
+      ['👁','Visitantes s/compra',cust.visitantesNoBuyers||0],
+    ].map(([e,l,v]) => `<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center">
+      <div style="font-size:24px;margin-bottom:4px">${e}</div>
+      <div style="font-size:20px;font-weight:800">${v}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px">${l}</div>
+    </div>`).join('')}
+  </div>
+
+  <!-- Revenue chart -->
+  <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:16px">Revenue mensual</div>
+    <div style="display:flex;align-items:flex-end;gap:8px;height:80px">
+      ${months.map(m => {
+        const v = monthly[m] || 0
+        const h = Math.max(4, Math.round((v / maxRev) * 80))
+        const label = m.slice(5)
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div style="font-size:9px;color:var(--muted)">$${Math.round(v/1000)}k</div>
+          <div style="width:100%;height:${h}px;background:var(--accent);border-radius:4px 4px 0 0;opacity:.8"></div>
+          <div style="font-size:9px;color:var(--muted)">${label}</div>
+        </div>`
+      }).join('')}
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+    <!-- Top productos por ventas -->
+    <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:12px">🏆 Más vendidos</div>
+      ${(d.topProductsSales||[]).length === 0 ? '<div style="color:var(--muted);font-size:12px">Sin datos</div>' :
+      (d.topProductsSales||[]).slice(0,8).map((p,i) => `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+          <span style="font-size:10px;font-weight:700;color:var(--muted);width:14px">${i+1}</span>
+          <div style="flex:1;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nombre}</div>
+          <span style="font-size:11px;font-weight:700">${p.ventas} ud.</span>
+        </div>`).join('')}
+    </div>
+    <!-- Top productos por vistas -->
+    <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:12px">👁 Más visitados</div>
+      ${(d.topProductsViews||[]).length === 0 ? '<div style="color:var(--muted);font-size:12px">Los datos de visitas se irán acumulando</div>' :
+      (d.topProductsViews||[]).slice(0,8).map((p,i) => `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+          <span style="font-size:10px;font-weight:700;color:var(--muted);width:14px">${i+1}</span>
+          <div style="flex:1;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nombre}</div>
+          <span style="font-size:11px;font-weight:700;color:var(--muted)">${p.vistas} vistas · ${p.visitantes} personas</span>
+        </div>`).join('')}
+    </div>
+  </div>
+
+  <!-- En riesgo -->
+  ${(d.enRiesgoList||[]).length > 0 ? `
+  <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;margin-bottom:12px">⚠️ Clientes en riesgo — no compran hace 60+ días</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">
+    ${(d.enRiesgoList||[]).map(c => `
+      <div style="background:var(--s2);border-radius:8px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-size:12px;font-weight:600">${c.nombre||c.email}</div><div style="font-size:10px;color:var(--muted)">${c.email||''}</div></div>
+        ${c.tel ? `<a href="https://wa.me/${(c.tel||'').replace(/\D/g,'')}" target="_blank" style="font-size:14px;text-decoration:none">💬</a>` : ''}
+      </div>`).join('')}
+    </div>
+  </div>` : ''}
+
+  <!-- Carritos abandonados -->
+  ${(d.carritosAbandonadosList||[]).length > 0 ? `
+  <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px">
+    <div style="font-size:12px;font-weight:700;margin-bottom:12px">🛒 Carritos abandonados (30d)</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+    ${(d.carritosAbandonadosList||[]).map(c => `
+      <div style="background:var(--s2);border-radius:8px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:12px;font-weight:600">${c.nombre||c.email||'—'}</div>
+          ${c.cartAdds?.length ? `<div style="font-size:10px;color:var(--muted);margin-top:2px">${c.cartAdds.slice(0,2).map(a=>a.nombre).join(', ')}</div>` : ''}
+          <div style="font-size:10px;color:var(--muted)">${c.cartDate||''}</div>
+        </div>
+        ${c.tel ? `<a href="https://wa.me/${(c.tel||'').replace(/\D/g,'')}?text=${encodeURIComponent('Hola '+(c.nombre||'')+'! Vimos que dejaste productos en tu carrito 🛒 ¿Te ayudamos a completar tu pedido?')}" target="_blank" class="btn btn-xs">💬 Recuperar</a>` : ''}
+      </div>`).join('')}
+    </div>
+  </div>` : ''}
+  `
+  document.getElementById('tnb-analytics-body').innerHTML = html
+}
+
+// ─── TABLAS DE TALLE ────────────────────────────────────────────────────────
+
+let _scData = [] // all size charts
+let _scEditing = null // chart being edited
+let _scCols = []
+let _scRows = []
+
+const SC_PRESETS = {
+  ropa:     { cols: ['Talle','Pecho (cm)','Cintura (cm)','Cadera (cm)','Largo (cm)'], rows: [['XS','76-80','58-62','82-86','60'],['S','80-84','62-66','86-90','62'],['M','84-88','66-70','90-94','63'],['L','88-92','70-74','94-98','64'],['XL','92-96','74-78','98-102','65'],['XXL','96-100','78-82','102-106','66']] },
+  pantalon: { cols: ['Talle','Cintura (cm)','Cadera (cm)','Largo (cm)'], rows: [['36','68-72','90-94','98'],['38','72-76','94-98','99'],['40','76-80','98-102','100'],['42','80-84','102-106','101'],['44','84-88','106-110','102']] },
+  calzado:  { cols: ['Talle AR','Talle EU','Talle US','Largo pie (cm)'], rows: [['35','35','5','22.5'],['36','36','6','23'],['37','37','6.5','23.5'],['38','38','7','24'],['39','39','8','25'],['40','40','9','26'],['41','41','9.5','26.5'],['42','42','10','27']] },
+  custom:   { cols: ['Talle','Medida 1','Medida 2'], rows: [['S','—','—'],['M','—','—'],['L','—','—']] }
+}
+
+async function loadSizeCharts() {
+  const wsId = _activeWsId || ''
+  try {
+    const r = await fetch(`/api/tn/size-charts?wsId=${encodeURIComponent(wsId)}`)
+    if (r.ok) _scData = await r.json()
+  } catch(e) { _scData = [] }
+}
+
+function renderTNBTablas() {
+  const el = document.getElementById('tnb-tablas-list')
+  if (!el) return
+  if (!_scData.length) {
+    el.innerHTML = `<div style="text-align:center;padding:60px 0;color:var(--muted)">
+      <div style="font-size:36px;margin-bottom:12px">📏</div>
+      <div style="font-weight:600;margin-bottom:6px">Todavía no tenés tablas de talle</div>
+      <div style="font-size:12px">Creá una tabla y vinculala a tus productos para que los clientes puedan ver sus medidas y usar el probador virtual.</div>
+    </div>`
+    return
+  }
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">
+  ${_scData.map(sc => {
+    const cols = sc.columnas || []
+    const rows = sc.filas || []
+    const linked = (sc.productoIds || []).length
+    return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <div style="padding:16px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">
+        <div>
+          <span style="font-size:14px;font-weight:700">${sc.nombre}</span>
+          ${sc.isDefault ? '<span style="font-size:10px;background:rgba(22,163,74,.1);color:#16a34a;padding:2px 8px;border-radius:9px;font-weight:700;margin-left:8px">⭐ Default</span>' : ''}
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${rows.length} talles · ${linked ? linked + ' producto(s) vinculado(s)' : 'Tabla global'}</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm" onclick="openSizeChartModal('${sc.id}')">Editar</button>
+          <button class="btn btn-sm" style="color:var(--red)" onclick="deleteSizeChartById('${sc.id}')">Borrar</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;padding:12px 20px 16px">
+        <table style="border-collapse:collapse;font-size:12px;min-width:100%">
+          <thead><tr>${cols.map(c=>`<th style="padding:6px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);white-space:nowrap">${c}</th>`).join('')}</tr></thead>
+          <tbody>${rows.map((r,i)=>`<tr style="background:${i%2?'var(--s2)':''}">
+            ${(Array.isArray(r)?r:cols.map((_,ci)=>r[cols[ci]]||'')).map(v=>`<td style="padding:6px 12px;border-bottom:1px solid var(--border)">${v}</td>`).join('')}
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>`
+  }).join('')}</div>`
+}
+
+// ── Cashback ─────────────────────────────────────────────────────────────────
+let _tnbCashbackData = []
+
+async function renderTNBCashback() {
+  const el = document.getElementById('tnb-cashback-list')
+  if (!el) return
+  el.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--muted)">⏳ Cargando...</div>'
+  try {
+    const wsId = _activeWsId || ''
+    const r = await fetch(`/api/tn/cashback?wsId=${encodeURIComponent(wsId)}`)
+    if (!r.ok) { const err = await r.text(); throw new Error(`${r.status}: ${err}`) }
+    _tnbCashbackData = await r.json()
+  } catch(e) {
+    el.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--muted)">Error cargando cashbacks: ${e.message}</div>`
+    return
+  }
+  const list = Array.isArray(_tnbCashbackData) ? _tnbCashbackData.filter(c => (c.cashback || c.saldo || 0) > 0) : []
+  if (!list.length) {
+    el.innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--muted)"><div style="font-size:36px;margin-bottom:12px">💰</div><div style="font-weight:600">No hay cashbacks pendientes</div></div>'
+    return
+  }
+  el.innerHTML = `<div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="border-bottom:1px solid var(--border)">
+        <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Nombre</th>
+        <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Email</th>
+        <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Saldo</th>
+        <th style="padding:10px 12px;text-align:center;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Acciones</th>
+      </tr></thead>
+      <tbody>
+        ${list.map((c, i) => `
+        <tr style="border-bottom:1px solid var(--border);background:${i%2 ? 'var(--s2)' : ''}">
+          <td style="padding:10px 12px;font-weight:600">${c.nombre || '—'}</td>
+          <td style="padding:10px 12px;color:var(--muted)">${c.email || '—'}</td>
+          <td style="padding:10px 12px;text-align:right;font-weight:700;color:#16a34a">$${(c.cashback||c.saldo||0).toLocaleString('es-AR')}</td>
+          <td style="padding:10px 12px;text-align:center">
+            <div style="display:flex;gap:6px;justify-content:center">
+              <button class="btn btn-sm" onclick="openCashbackForm('apply','${c.email}','${(c.nombre||'').replace(/'/g,"\\'")}')">Aplicar</button>
+              <button class="btn btn-sm" onclick="openCashbackForm('adjust','${c.email}','${(c.nombre||'').replace(/'/g,"\\'")}','${c.cashback||c.saldo||0}')">Ajustar</button>
+            </div>
+            <div id="cb-form-${c.email}" style="display:none;margin-top:8px;padding:10px;background:var(--s0);border:1px solid var(--border);border-radius:8px;text-align:left"></div>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`
+}
+
+function openCashbackForm(action, email, nombre, currentSaldo) {
+  document.querySelectorAll('[id^="cb-form-"]').forEach(f => { f.style.display = 'none'; f.innerHTML = '' })
+  const safeId = email.replace(/[@.]/g, '_')
+  const el = document.getElementById('cb-form-' + email) || document.querySelector(`[id^="cb-form-"]`)
+  // find by data attr since email has dots/@ not valid in ID selectors easily
+  const allForms = document.querySelectorAll('[id^="cb-form-"]')
+  let target = null
+  allForms.forEach(f => { if (f.id === 'cb-form-' + email) target = f })
+  if (!target) return
+  const isAdjust = action === 'adjust'
+  target.style.display = 'block'
+  target.innerHTML = `
+    <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--text)">${isAdjust ? 'Ajustar saldo' : 'Aplicar cashback'} — ${nombre}</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <input id="cb-monto-inp" class="form-input" type="number" min="0" placeholder="${isAdjust ? 'Nuevo saldo' : 'Monto a aplicar'}" ${isAdjust ? `value="${currentSaldo||''}"` : ''} style="font-size:13px">
+      <input id="cb-motivo-inp" class="form-input" type="text" placeholder="Motivo (opcional)" style="font-size:13px">
+      <div style="display:flex;gap:6px;margin-top:2px">
+        <button class="btn btn-sm btn-primary" onclick="submitCashbackAction('${action}','${email}')">Confirmar</button>
+        <button class="btn btn-sm" onclick="this.closest('[id^=cb-form]').style.display='none'">Cancelar</button>
+      </div>
+    </div>`
+}
+
+async function submitCashbackAction(action, email) {
+  const monto = parseFloat(document.getElementById('cb-monto-inp')?.value || 0)
+  const motivo = document.getElementById('cb-motivo-inp')?.value || ''
+  if (isNaN(monto) || monto < 0) { notify('Ingresá un monto válido'); return }
+  const wsId = _activeWsId || ''
+  const isAdjust = action === 'adjust'
+  const endpoint = isAdjust ? '/api/tn/cashback/adjust' : '/api/tn/cashback/apply'
+  const body = isAdjust
+    ? { wsId, email, cashback: monto, motivo }
+    : { wsId, email, amount: monto, motivo }
+  try {
+    const r = await fetch('https://soul-ecommlab.com' + endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-ws-id': wsId },
+      body: JSON.stringify(body)
+    })
+    if (!r.ok) throw new Error('Error ' + r.status)
+    notify(isAdjust ? 'Saldo ajustado' : 'Cashback aplicado')
+    renderTNBCashback()
+  } catch(e) {
+    notify('Error al procesar: ' + e.message)
+  }
+}
+
+// ── Reseñas ──────────────────────────────────────────────────────────────────
+let _tnbReseniasData = []
+let _tnbReseniasFilter = 'todas'
+
+function setTNBReseniasFilter(f, btn) {
+  _tnbReseniasFilter = f
+  document.querySelectorAll('#tnb-resenias-filters .btn').forEach(b => b.classList.remove('active'))
+  if (btn) btn.classList.add('active')
+  _renderTNBReseniasFiltered()
+}
+
+async function renderTNBResenias() {
+  const el = document.getElementById('tnb-resenias-list')
+  if (!el) return
+  el.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--muted)">⏳ Cargando reseñas...</div>'
+  try {
+    const wsId = _activeWsId || ''
+    const r = await fetch(`/api/tn/reviews?wsId=${encodeURIComponent(wsId)}`)
+    if (!r.ok) { const err = await r.text(); throw new Error(`${r.status}: ${err}`) }
+    const data = await r.json()
+    _tnbReseniasData = Array.isArray(data) ? data : []
+  } catch(e) {
+    el.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--muted)">Error cargando reseñas: ${e.message}</div>`
+    return
+  }
+  _renderTNBReseniasFiltered()
+}
+
+function _fmtFecha(raw) {
+  if (!raw) return ''
+  // raw may be ISO string or timestamp
+  const d = new Date(typeof raw === 'number' ? raw : raw)
+  if (isNaN(d)) return String(raw).slice(0, 10)
+  const dd = String(d.getDate()).padStart(2,'0')
+  const mm = String(d.getMonth()+1).padStart(2,'0')
+  const yyyy = d.getFullYear()
+  return `${dd}/${mm}/${yyyy}`
+}
+
+function _fechaToInputVal(raw) {
+  if (!raw) return ''
+  const d = new Date(typeof raw === 'number' ? raw : raw)
+  if (isNaN(d)) return String(raw).slice(0,10)
+  const dd = String(d.getDate()).padStart(2,'0')
+  const mm = String(d.getMonth()+1).padStart(2,'0')
+  return `${d.getFullYear()}-${mm}-${dd}`
+}
+
+function _renderTNBReseniasFiltered() {
+  const el = document.getElementById('tnb-resenias-list')
+  if (!el) return
+  let data = Array.isArray(_tnbReseniasData) ? _tnbReseniasData : []
+
+  // Sort: pending first, then approved, then rejected
+  const order = { pending: 0, pendiente: 0, approved: 1, aprobada: 1, rejected: 2, rechazada: 2 }
+  data = [...data].sort((a, b) => (order[a.estado] ?? 1) - (order[b.estado] ?? 1))
+
+  if (_tnbReseniasFilter !== 'todas') {
+    const map = { pendientes: ['pending','pendiente'], aprobadas: ['approved','aprobada'], rechazadas: ['rejected','rechazada'] }
+    const allowed = map[_tnbReseniasFilter] || []
+    data = data.filter(r => allowed.includes(r.estado))
+  }
+
+  // Per-product text filter
+  const searchVal = (document.getElementById('tnb-resenias-search')?.value || '').trim().toLowerCase()
+  if (searchVal) {
+    data = data.filter(r => {
+      const prod = (r.producto || r.productName || '').toLowerCase()
+      return prod.includes(searchVal)
+    })
+  }
+
+  if (!data.length) {
+    el.innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--muted)"><div style="font-size:36px;margin-bottom:12px">⭐</div><div style="font-weight:600">No hay reseñas</div></div>'
+    return
+  }
+
+  const estadoBadge = (e) => {
+    if (e === 'approved' || e === 'aprobada') return '<span style="font-size:10px;background:rgba(22,163,74,.12);color:#16a34a;padding:2px 8px;border-radius:9px;font-weight:700">Aprobada</span>'
+    if (e === 'rejected' || e === 'rechazada') return '<span style="font-size:10px;background:rgba(239,68,68,.12);color:#ef4444;padding:2px 8px;border-radius:9px;font-weight:700">Rechazada</span>'
+    return '<span style="font-size:10px;background:rgba(234,179,8,.15);color:#ca8a04;padding:2px 8px;border-radius:9px;font-weight:700">Pendiente</span>'
+  }
+
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">
+    ${data.map(rev => {
+      const starsNum = Math.min(5, Math.max(0, rev.estrellas || rev.stars || rev.rating || 0))
+      const stars = '⭐'.repeat(starsNum)
+      const fechaRaw = rev.fecha || rev.createdAt || ''
+      const fechaDisplay = _fmtFecha(fechaRaw)
+      const fechaInput = _fechaToInputVal(fechaRaw)
+      const isPending = !rev.estado || rev.estado === 'pending' || rev.estado === 'pendiente'
+      const producto = rev.producto || rev.productName || ''
+      const texto = rev.texto || rev.body || rev.comment || ''
+      const fotoUrl = rev.foto || ''
+      const id = rev.id
+
+      // Escape for inline data-attr
+      const safeNombre = (rev.nombre || rev.autor || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;')
+      const safeTexto = texto.replace(/'/g, '&#39;').replace(/"/g, '&quot;')
+
+      return `<div id="rev-card-${id}" style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px 20px">
+        <!-- display mode -->
+        <div id="rev-display-${id}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span style="font-weight:700;font-size:14px">${rev.nombre || rev.autor || 'Anónimo'}</span>
+                ${estadoBadge(rev.estado)}
+                <span style="font-size:13px">${stars || '—'}</span>
+              </div>
+              <div style="font-size:11px;color:var(--muted);margin-top:3px">${producto}${fechaDisplay ? ' · ' + fechaDisplay : ''}</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap">
+              ${isPending ? `<button class="btn btn-sm" style="color:#16a34a;border-color:rgba(22,163,74,.3)" onclick="submitResenaAction('${id}','approved')">✓ Aprobar</button>
+              <button class="btn btn-sm" style="color:#ef4444;border-color:rgba(239,68,68,.3)" onclick="submitResenaAction('${id}','rejected')">✗ Rechazar</button>` : ''}
+              <button class="btn btn-sm" style="color:var(--accent)" onclick="openResenaEdit('${id}')">✎ Editar</button>
+              <button class="btn btn-sm" style="color:var(--muted)" onclick="submitResenaAction('${id}','delete')">🗑</button>
+            </div>
+          </div>
+          ${fotoUrl ? `<div style="margin-bottom:8px"><img src="${fotoUrl}" onclick="openFotoOverlay('${fotoUrl.replace(/'/g,"&#39;")}')" style="width:60px;height:60px;object-fit:cover;border-radius:8px;cursor:zoom-in;border:1px solid var(--border)" /></div>` : ''}
+          ${texto ? `<div style="font-size:13px;color:var(--text);line-height:1.5;padding:10px 12px;background:var(--s2);border-radius:8px">${texto}</div>` : ''}
+        </div>
+        <!-- edit mode (hidden) -->
+        <div id="rev-edit-${id}" style="display:none">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <div style="flex:1;min-width:160px">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Nombre</div>
+                <input id="rev-edit-nombre-${id}" type="text" value="${safeNombre}" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--s2);color:var(--text);font-size:13px" />
+              </div>
+              <div style="width:90px">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Estrellas</div>
+                <input id="rev-edit-stars-${id}" type="number" min="1" max="5" value="${starsNum || 5}" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--s2);color:var(--text);font-size:13px" />
+              </div>
+              <div style="flex:1;min-width:140px">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Fecha</div>
+                <input id="rev-edit-fecha-${id}" type="date" value="${fechaInput}" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--s2);color:var(--text);font-size:13px" />
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Texto</div>
+              <textarea id="rev-edit-texto-${id}" rows="3" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--s2);color:var(--text);font-size:13px;resize:vertical">${safeTexto}</textarea>
+            </div>
+            ${fotoUrl ? `<div style="font-size:11px;color:var(--muted)">Foto actual: <img src="${fotoUrl}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;vertical-align:middle;margin-left:4px" /> <span style="color:var(--muted)">(se conserva)</span></div>` : ''}
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-sm" style="color:#fff;background:var(--accent);border-color:var(--accent)" onclick="saveResenaEdit('${id}')">Guardar</button>
+              <button class="btn btn-sm" onclick="closeResenaEdit('${id}')">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      </div>`
+    }).join('')}
+  </div>`
+}
+
+function openFotoOverlay(url) {
+  const ov = document.getElementById('tnb-foto-overlay')
+  const img = document.getElementById('tnb-foto-overlay-img')
+  if (!ov || !img) return
+  img.src = url
+  ov.style.display = 'flex'
+}
+
+function openResenaEdit(id) {
+  document.getElementById('rev-display-' + id).style.display = 'none'
+  document.getElementById('rev-edit-' + id).style.display = ''
+}
+
+function closeResenaEdit(id) {
+  document.getElementById('rev-edit-' + id).style.display = 'none'
+  document.getElementById('rev-display-' + id).style.display = ''
+}
+
+async function saveResenaEdit(id) {
+  const wsId = _activeWsId || ''
+  const nombre = document.getElementById('rev-edit-nombre-' + id)?.value || ''
+  const stars = parseInt(document.getElementById('rev-edit-stars-' + id)?.value || '5', 10)
+  const texto = document.getElementById('rev-edit-texto-' + id)?.value || ''
+  const fechaVal = document.getElementById('rev-edit-fecha-' + id)?.value || ''
+  const fechaTs = fechaVal ? new Date(fechaVal).getTime() : undefined
+
+  // Keep existing foto from data
+  const existing = (_tnbReseniasData || []).find(r => String(r.id) === String(id))
+  const foto = existing?.foto || undefined
+
+  const body = { wsId, nombre, stars, texto }
+  if (fechaTs && !isNaN(fechaTs)) body.fecha = fechaTs
+  if (foto) body.foto = foto
+
+  try {
+    const r = await fetch(`/api/tn/reviews/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    if (!r.ok) throw new Error('Error ' + r.status)
+    notify('Reseña actualizada')
+    renderTNBResenias()
+  } catch(e) {
+    notify('Error al guardar: ' + e.message)
+  }
+}
+
+async function submitResenaAction(reviewId, action) {
+  const wsId = _activeWsId || ''
+  try {
+    if (action === 'delete') {
+      const r = await fetch(`/api/tn/reviews/${reviewId}?wsId=${encodeURIComponent(wsId)}`, { method: 'DELETE' })
+      if (!r.ok) throw new Error('Error ' + r.status)
+      notify('Reseña eliminada')
+    } else {
+      const r = await fetch(`/api/tn/reviews/${reviewId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wsId, estado: action })
+      })
+      if (!r.ok) throw new Error('Error ' + r.status)
+      notify(action === 'approved' ? 'Reseña aprobada' : 'Reseña rechazada')
+    }
+    renderTNBResenias()
+  } catch(e) {
+    notify('Error: ' + e.message)
+  }
+}
+
+function openSizeChartModal(id) {
+  _scEditing = id ? _scData.find(c => c.id === id) || null : null
+  const modal = document.getElementById('sc-chart-modal')
+  modal.style.display = 'flex'
+
+  if (_scEditing) {
+    document.getElementById('sc-chart-modal-title').textContent = 'Editar tabla'
+    document.getElementById('sc-nombre').value = _scEditing.nombre || ''
+    document.getElementById('sc-tipo').value = _scEditing.tipo || 'ropa'
+    document.getElementById('sc-cols').value = (_scEditing.columnas || []).join(', ')
+    document.getElementById('sc-products').value = (_scEditing.productoIds || []).join(', ')
+    document.getElementById('sc-default').checked = !!_scEditing.isDefault
+    document.getElementById('sc-delete-btn').style.display = ''
+    _scCols = _scEditing.columnas || []
+    _scRows = (_scEditing.filas || []).map(r => Array.isArray(r) ? r : _scCols.map(c => r[c] || ''))
+    // Stock por talle
+    const stockSec = document.getElementById('sc-stock-section')
+    const stockGrid = document.getElementById('sc-stock-grid')
+    const stockStatus = _scEditing.stockStatus || {}
+    const sizeLabels = _scRows.map(r => String(r[0] || '')).filter(Boolean)
+    if (sizeLabels.length && stockSec && stockGrid) {
+      stockSec.style.display = ''
+      stockGrid.innerHTML = sizeLabels.map(lbl => {
+        const val = stockStatus[lbl] || 'ok'
+        return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;min-width:90px">
+          <div style="font-size:13px;font-weight:700">${lbl}</div>
+          <select id="sc-stock-${lbl}" style="font-size:11px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;background:var(--s1);color:var(--text);cursor:pointer">
+            <option value="ok" ${val==='ok'?'selected':''}>✓ Disponible</option>
+            <option value="low" ${val==='low'?'selected':''}>! Últimas</option>
+            <option value="out" ${val==='out'?'selected':''}>✗ Agotado</option>
+          </select>
+        </div>`
+      }).join('')
+    } else if (stockSec) {
+      stockSec.style.display = 'none'
+    }
+  } else {
+    document.getElementById('sc-chart-modal-title').textContent = 'Nueva tabla de talle'
+    document.getElementById('sc-nombre').value = ''
+    document.getElementById('sc-tipo').value = 'ropa'
+    document.getElementById('sc-delete-btn').style.display = 'none'
+    document.getElementById('sc-products').value = ''
+    document.getElementById('sc-default').checked = false
+    const preset = SC_PRESETS.ropa
+    _scCols = [...preset.cols]
+    _scRows = preset.rows.map(r => [...r])
+    document.getElementById('sc-cols').value = _scCols.join(', ')
+    const stockSec = document.getElementById('sc-stock-section')
+    if (stockSec) stockSec.style.display = 'none'
+  }
+  scRenderGrid()
+
+  document.getElementById('sc-tipo').onchange = function() {
+    const preset = SC_PRESETS[this.value] || SC_PRESETS.ropa
+    _scCols = [...preset.cols]
+    _scRows = preset.rows.map(r => [...r])
+    document.getElementById('sc-cols').value = _scCols.join(', ')
+    scRenderGrid()
+  }
+}
+
+function closeSizeChartModal() {
+  document.getElementById('sc-chart-modal').style.display = 'none'
+}
+
+function scUpdateGrid() {
+  const raw = document.getElementById('sc-cols').value
+  const newCols = raw.split(',').map(s => s.trim()).filter(Boolean)
+  if (!newCols.length) return
+  // Preserve existing row data, pad/trim to new column count
+  _scRows = _scRows.map(r => {
+    const padded = [...r]
+    while (padded.length < newCols.length) padded.push('')
+    return padded.slice(0, newCols.length)
+  })
+  _scCols = newCols
+  scRenderGrid()
+}
+
+function scAddRow() {
+  _scRows.push(_scCols.map(() => ''))
+  scRenderGrid()
+}
+
+function scRemoveRow() {
+  if (_scRows.length > 1) { _scRows.pop(); scRenderGrid() }
+}
+
+function scReadGrid() {
+  const tbody = document.querySelector('#sc-grid tbody')
+  if (!tbody) return
+  tbody.querySelectorAll('tr').forEach((tr, ri) => {
+    tr.querySelectorAll('input').forEach((inp, ci) => {
+      if (_scRows[ri]) _scRows[ri][ci] = inp.value
+    })
+  })
+}
+
+function scRenderGrid() {
+  document.getElementById('sc-grid').innerHTML = `
+  <table style="border-collapse:collapse;font-size:12px;min-width:100%">
+    <thead><tr>
+      ${_scCols.map(c => `<th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);white-space:nowrap">${c}</th>`).join('')}
+    </tr></thead>
+    <tbody>
+      ${_scRows.map((row, ri) => `<tr>
+        ${_scCols.map((_, ci) => `<td style="padding:3px 4px"><input value="${(row[ci]||'').replace(/"/g,'&quot;')}" style="width:90px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px;font-family:var(--fb)" onchange="if(_scRows[${ri}])_scRows[${ri}][${ci}]=this.value"></td>`).join('')}
+      </tr>`).join('')}
+    </tbody>
+  </table>`
+}
+
+async function saveSizeChart() {
+  scReadGrid()
+  const wsId = _activeWsId || ''
+  const nombre = document.getElementById('sc-nombre').value.trim()
+  if (!nombre) { alert('Ingresá un nombre para la tabla'); return }
+  const productsRaw = document.getElementById('sc-products').value
+  const productoIds = productsRaw ? productsRaw.split(',').map(s => s.trim()).filter(Boolean) : []
+
+  // Read stock status per size
+  const stockStatus = {}
+  if (_scEditing) {
+    const sizeLabels = _scRows.map(r => String(r[0] || '')).filter(Boolean)
+    sizeLabels.forEach(lbl => {
+      const sel = document.getElementById('sc-stock-' + lbl)
+      if (sel) stockStatus[lbl] = sel.value
+    })
+  }
+
+  const chart = {
+    id: _scEditing?.id || ('sc_' + Date.now().toString(36)),
+    nombre,
+    tipo: document.getElementById('sc-tipo').value,
+    columnas: _scCols,
+    filas: _scRows,
+    productoIds,
+    isDefault: document.getElementById('sc-default').checked,
+    stockStatus: Object.keys(stockStatus).length ? stockStatus : (_scEditing?.stockStatus || {})
+  }
+
+  // If setting as default, unset others
+  if (chart.isDefault) _scData.forEach(c => { if (c.id !== chart.id) c.isDefault = false })
+
+  try {
+    const r = await fetch('https://soul-ecommlab.com/api/tn/size-charts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-ws-id': wsId },
+      body: JSON.stringify({ wsId, chart })
+    })
+    const d = await r.json()
+    if (!d.ok) { alert('Error: ' + (d.error || 'desconocido')); return }
+    await loadSizeCharts()
+    renderTNBTablas()
+    closeSizeChartModal()
+  } catch(e) { alert('Error al guardar: ' + e.message) }
+}
+
+async function deleteSizeChartById(id) {
+  if (!confirm('¿Eliminar esta tabla de talle?')) return
+  const wsId = _activeWsId || ''
+  await fetch(`/api/tn/size-charts/${id}?wsId=${encodeURIComponent(wsId)}`, { method: 'DELETE', headers: { 'x-ws-id': wsId } })
+  await loadSizeCharts()
+  renderTNBTablas()
+}
+
+async function deleteSizeChart() {
+  if (_scEditing) { await deleteSizeChartById(_scEditing.id); closeSizeChartModal() }
+}
+
+// ─── STOCK TN ───────────────────────────────────────────────────────────────
+
+let _tnbStockData = []
+
+async function loadTNBStock() {
+  const listEl = document.getElementById('tnb-stock-list')
+  if (listEl) listEl.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--muted)">⏳ Cargando stock desde Tienda Nube...</div>'
+  try {
+    const [rProds] = await Promise.all([
+      fetch(`/api/tn/products?wsId=${encodeURIComponent(_activeWsId || '')}`),
+      _scData.length ? Promise.resolve() : loadSizeCharts()
+    ])
+    if (!rProds.ok) throw new Error(rProds.status)
+    _tnbStockData = await rProds.json()
+  } catch(e) {
+    if (listEl) listEl.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--muted)">Error cargando stock: ${e.message}</div>`
+    return
+  }
+  renderTNBStock()
+}
+
+function _stockBadge(stockNum) {
+  if (stockNum == null) return '<span style="color:var(--muted);font-size:11px">—</span>'
+  if (stockNum === 0) return '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:9px;background:rgba(239,68,68,.12);color:#dc2626">🚫 Sin stock</span>'
+  if (stockNum <= 5) return `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:9px;background:rgba(245,158,11,.12);color:#d97706">⚠️ ${stockNum}</span>`
+  return `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:9px;background:rgba(22,163,74,.12);color:#16a34a">✅ ${stockNum}</span>`
+}
+
+function renderTNBStock() {
+  const allProds = _tnbStockData.length ? _tnbStockData : (S?.tienda?.productos || [])
+  const search = (document.getElementById('tnb-stock-search')?.value || '').toLowerCase()
+  const filter = document.getElementById('tnb-stock-filter')?.value || ''
+
+  // For stats, count all variants across all products (before search/filter)
+  let totalVar = 0, okVar = 0, bajoVar = 0, sinVar = 0
+  allProds.forEach(p => {
+    const variants = p.variants?.length ? p.variants : [{ stock: p.stock ?? null }]
+    variants.forEach(v => {
+      totalVar++
+      const s = v.stock ?? null
+      if (s === null) return
+      if (s === 0) sinVar++
+      else if (s <= 5) bajoVar++
+      else okVar++
+    })
+  })
+  document.getElementById('tnb-stock-stats').innerHTML = [
+    ['📦', totalVar, 'Variantes totales'],
+    ['✅', okVar, 'Stock suficiente'],
+    ['⚠️', bajoVar, 'Stock bajo (≤5)'],
+    ['🚫', sinVar, 'Sin stock'],
+  ].map(([e, v, l]) => `<div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center"><div style="font-size:20px;margin-bottom:2px">${e}</div><div style="font-size:18px;font-weight:800">${v}</div><div style="font-size:10px;color:var(--muted)">${l}</div></div>`).join('')
+
+  // Filter products
+  let prods = allProds.filter(p => {
+    const name = (p.name || p.nombre || '').toLowerCase()
+    const variants = p.variants || []
+    if (search && !name.includes(search) && !variants.some(v => (v.sku || '').toLowerCase().includes(search))) return false
+    if (filter) {
+      const matchesFilter = (variants.length ? variants : [{ stock: p.stock ?? null }]).some(v => {
+        const s = v.stock ?? null
+        if (filter === 'cero') return s === 0
+        if (filter === 'bajo') return s != null && s > 0 && s <= 5
+        if (filter === 'ok') return s != null && s > 5
+        return true
+      })
+      if (!matchesFilter) return false
+    }
+    return true
+  })
+
+  if (!prods.length) {
+    document.getElementById('tnb-stock-list').innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--muted)">Sin resultados.</div>'
+    return
+  }
+
+  // Build size chart options (load _scData if available)
+  const scOpts = (_scData || []).map(sc => `<option value="${sc.id}">${sc.nombre || sc.id}</option>`).join('')
+
+  document.getElementById('tnb-stock-list').innerHTML = prods.map(p => {
+    const variants = p.variants || []
+    const pId = p.id
+    const pName = p.name || p.nombre || '—'
+    // Find linked size chart
+    const linkedChart = (_scData || []).find(sc => (sc.productoIds || []).map(String).includes(String(pId)))
+    const selectedSc = linkedChart ? linkedChart.id : ''
+    // Variant summary badges
+    const vSummary = variants.map(v => _stockBadge(v.stock ?? null)).join(' ')
+    // Total stock
+    const totalStock = variants.reduce((acc, v) => acc + (v.stock ?? 0), 0)
+
+    const varRows = variants.map(v => {
+      const vId = v.id
+      const label = (v.values && v.values.length) ? v.values.join(' / ') : (v.sku || `#${vId}`)
+      const stockVal = v.stock ?? ''
+      const costVal = v.cost ?? ''
+      const priceVal = v.price ?? ''
+      return `<tr>
+        <td style="font-size:12px;padding:8px 10px;font-weight:500">${label}</td>
+        <td style="font-size:11px;color:var(--muted);font-family:monospace;padding:8px 6px">${v.sku || '—'}</td>
+        <td style="padding:6px">${_stockBadge(v.stock ?? null)}</td>
+        <td style="padding:6px"><input type="number" min="0" value="${stockVal}" data-orig="${stockVal}" style="width:70px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text)" id="stock_${pId}_${vId}" oninput="document.getElementById('savebtn_${pId}_${vId}').style.opacity='1'"></td>
+        <td style="padding:6px">$<input type="number" min="0" value="${costVal}" data-orig="${costVal}" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text)" id="cost_${pId}_${vId}" oninput="document.getElementById('savebtn_${pId}_${vId}').style.opacity='1'"></td>
+        <td style="padding:6px;font-size:12px;color:var(--muted)">$${Number(priceVal).toLocaleString('es-AR',{maximumFractionDigits:0})}</td>
+        <td style="padding:6px"><button id="savebtn_${pId}_${vId}" onclick="saveVariantStock('${pId}','${vId}')" style="opacity:0.4;font-size:11px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:var(--accent);color:#fff;cursor:pointer;transition:opacity .15s">Guardar</button></td>
+      </tr>`
+    }).join('')
+
+    return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden">
+      <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;flex-wrap:wrap" onclick="toggleProductStock('${pId}')">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${pName}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${variants.length} variante${variants.length !== 1 ? 's' : ''} · ${totalStock} uds totales</div>
+        </div>
+        <div style="display:flex;gap:5px;flex-shrink:0">${vSummary}</div>
+        <select onclick="event.stopPropagation()" onchange="linkSizeChart(this,'${pId}')" style="font-size:11px;padding:4px 8px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);max-width:170px;flex-shrink:0" title="Vincular tabla de talle">
+          <option value="">📏 Sin tabla</option>
+          ${scOpts ? `<optgroup label="Mis tablas">${(_scData||[]).map(sc => `<option value="${sc.id}"${sc.id === selectedSc ? ' selected' : ''}>${sc.nombre||sc.id}</option>`).join('')}</optgroup>` : ''}
+        </select>
+        <span id="arrow_${pId}" style="font-size:11px;color:var(--muted);flex-shrink:0">▶</span>
+      </div>
+      <div id="variants_${pId}" style="display:none;border-top:1px solid var(--border)">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--s2)">
+            <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--muted);font-weight:600">Variante</th>
+            <th style="padding:8px 6px;text-align:left;font-size:11px;color:var(--muted);font-weight:600">SKU</th>
+            <th style="padding:8px 6px;text-align:left;font-size:11px;color:var(--muted);font-weight:600">Estado</th>
+            <th style="padding:8px 6px;text-align:left;font-size:11px;color:var(--muted);font-weight:600">Cantidad</th>
+            <th style="padding:8px 6px;text-align:left;font-size:11px;color:var(--muted);font-weight:600">Costo</th>
+            <th style="padding:8px 6px;text-align:left;font-size:11px;color:var(--muted);font-weight:600">Precio</th>
+            <th style="padding:8px 6px"></th>
+          </tr></thead>
+          <tbody>${varRows}</tbody>
+        </table>
+      </div>
+    </div>`
+  }).join('')
+}
+
+function toggleProductStock(pId) {
+  const el = document.getElementById('variants_' + pId)
+  const arrow = document.getElementById('arrow_' + pId)
+  if (!el) return
+  const open = el.style.display !== 'none'
+  el.style.display = open ? 'none' : ''
+  if (arrow) arrow.textContent = open ? '▶' : '▼'
+}
+
+async function saveVariantStock(pId, vId) {
+  const stockEl = document.getElementById(`stock_${pId}_${vId}`)
+  const costEl = document.getElementById(`cost_${pId}_${vId}`)
+  const btn = document.getElementById(`savebtn_${pId}_${vId}`)
+  if (!btn) return
+  btn.textContent = '...'
+  btn.disabled = true
+  const payload = {}
+  if (stockEl && stockEl.value !== '') payload.stock = Number(stockEl.value)
+  if (costEl && costEl.value !== '') payload.cost = Number(costEl.value)
+  try {
+    const r = await fetch(`/api/tn/products/${pId}/variants/${vId}?wsId=${encodeURIComponent(_activeWsId||'')}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    })
+    const data = await r.json()
+    if (!r.ok) throw new Error(data.error || r.status)
+    // Update local cache
+    const prod = _tnbStockData.find(p => String(p.id) === String(pId))
+    if (prod) {
+      const v = (prod.variants || []).find(v => String(v.id) === String(vId))
+      if (v) { if (payload.stock != null) v.stock = payload.stock; if (payload.cost != null) v.cost = payload.cost }
+    }
+    btn.textContent = '✓'
+    btn.style.background = '#16a34a'
+    setTimeout(() => { btn.textContent = 'Guardar'; btn.style.background = ''; btn.style.opacity = '0.4'; btn.disabled = false }, 1800)
+  } catch(e) {
+    btn.textContent = 'Error'
+    btn.style.background = '#dc2626'
+    setTimeout(() => { btn.textContent = 'Guardar'; btn.style.background = ''; btn.disabled = false }, 2500)
+    console.error('saveVariantStock:', e)
+  }
+}
+
+async function linkSizeChart(select, pId) {
+  const newChartId = select.value
+  const wsId = _activeWsId || ''
+  // Remove from all charts that currently have this product
+  const toSave = []
+  for (const sc of (_scData || [])) {
+    const had = (sc.productoIds || []).map(String).includes(String(pId))
+    const isNew = sc.id === newChartId
+    if (had && !isNew) {
+      sc.productoIds = (sc.productoIds || []).filter(id => String(id) !== String(pId))
+      toSave.push(sc)
+    } else if (!had && isNew) {
+      sc.productoIds = [...(sc.productoIds || []), String(pId)]
+      toSave.push(sc)
+    }
+  }
+  for (const sc of toSave) {
+    await fetch('/api/tn/size-charts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wsId, chart: sc }) })
+  }
+  select.style.borderColor = '#16a34a'
+  setTimeout(() => { select.style.borderColor = '' }, 1500)
+}
+
 async function initTiendaPage(tab = 'productos') {
   if (!_tiendaLoaded) {
     _tiendaLoaded = true;
@@ -26138,6 +27961,7 @@ async function initTiendaPage(tab = 'productos') {
   if(tab === 'ordenes') loadOrdenesAdmin();
   if(tab === 'analytics') loadTiendaAnalytics();
   if(tab === 'clientesweb') loadClientesWeb();
+  if(tab === 'clientes') loadTNClientes();
   if(tab === 'config') loadTiendaConfig();
   if(tab === 'dominio') loadDominioConfig();
   if(tab === 'categorias') loadCategoriasAdmin();
@@ -26917,6 +28741,7 @@ function _updateGuiasSelect() {
 let _editGuiaId = null;
 let _guiaCols = []; // string[]
 let _guiaFilas = []; // string[][]
+let _guiaCampos = []; // keys of active measurement input columns
 
 async function loadGuiasAdmin() {
   try {
@@ -26959,6 +28784,7 @@ function openGuiaEditor(id) {
   document.getElementById('guia-modal-title').textContent = g ? 'Editar guía: ' + g.nombre : 'Nueva guía de talles';
   document.getElementById('guia-nombre').value = g ? g.nombre : '';
   _guiaCols = g ? [...g.columnas] : ['Talle', 'Pecho (cm)', 'Cintura (cm)', 'Largo (cm)'];
+  _guiaCampos = g ? (g.camposActivos || []) : [];
   _guiaFilas = g ? g.filas.map(r => [...r]) : [
     ['XS', '', '', ''],
     ['S', '', '', ''],
@@ -26989,6 +28815,24 @@ function _renderGuiaEditor() {
     </div>`
   ).join('');
 
+  // Checklist de campos para el probador virtual (columnas 2+)
+  const camposWrap = document.getElementById('guia-campos-wrap');
+  if (camposWrap) {
+    const measurableCols = _guiaCols.slice(1);
+    if (!measurableCols.length) {
+      camposWrap.innerHTML = '<div style="font-size:11px;color:var(--muted)">Agregá columnas para configurar los campos.</div>';
+    } else {
+      camposWrap.innerHTML = measurableCols.map(c => {
+        const key = c.toLowerCase().replace(/\s*\(.*\)/,'').trim();
+        const checked = !_guiaCampos.length || _guiaCampos.includes(key);
+        return `<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:4px 0">
+          <input type="checkbox" ${checked?'checked':''} value="${key}" onchange="_toggleGuiaCampo('${key}',this.checked)" style="accent-color:var(--accent);width:15px;height:15px">
+          <span>${c}</span>
+        </label>`;
+      }).join('');
+    }
+  }
+
   // Table header
   head.innerHTML = '<tr style="background:var(--s2)">' + _guiaCols.map(c =>
     `<th style="padding:6px 8px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap">${c}</th>`
@@ -27003,6 +28847,14 @@ function _renderGuiaEditor() {
     `<td><button onclick="_guiaFilas.splice(${ri},1);_renderGuiaEditor()" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px">✕</button></td>` +
     `</tr>`
   ).join('');
+}
+
+function _toggleGuiaCampo(key, checked) {
+  if (checked) {
+    if (!_guiaCampos.includes(key)) _guiaCampos.push(key);
+  } else {
+    _guiaCampos = _guiaCampos.filter(k => k !== key);
+  }
 }
 
 function addGuiaCol() {
@@ -27026,7 +28878,8 @@ async function saveGuia() {
     id: _editGuiaId || ('g_' + Date.now()),
     nombre,
     columnas: [..._guiaCols],
-    filas: _guiaFilas.map(r => [...r])
+    filas: _guiaFilas.map(r => [...r]),
+    camposActivos: _guiaCampos.length ? [..._guiaCampos] : []
   };
   if (_editGuiaId) {
     const idx = S.store.guias.findIndex(g => g.id === _editGuiaId);
@@ -28439,6 +30292,172 @@ async function loadTiendaAnalytics() {
     }
 
   } catch(e) { console.error(e); notify('Error cargando analytics: '+e.message); }
+}
+
+// ── Clientes TN (desde finanzas + CRM) ───────────────────────
+let _tnClAllData = []
+
+function loadTNClientes() {
+  const finanzas = (S.data?.finanzas || []).filter(f => f.tipo === 'ingreso' && f.categoria === 'Ventas tienda')
+  const crm = S.data?.crm || []
+
+  // Agrupa por email de cliente
+  const byEmail = {}
+  finanzas.forEach(f => {
+    const email = (f.customerEmail || '').toLowerCase()
+    const key = email || ('tn_' + (f.tn_number || f.tn_id || Math.random()))
+    if (!byEmail[key]) byEmail[key] = { email, nombre: '', pedidos: [], carritoAbandonado: false, valorAbandonado: 0 }
+    byEmail[key].pedidos.push(f)
+    // Try to get name from concepto "TN #N — Nombre Apellido"
+    if (!byEmail[key].nombre && f.concepto) {
+      const m = f.concepto.match(/—\s+(.+)$/)
+      if (m) byEmail[key].nombre = m[1].trim()
+    }
+  })
+
+  // Enriquece con data del CRM (nombre, carrito abandonado)
+  crm.forEach(c => {
+    const email = (c.email || '').toLowerCase()
+    if (email && byEmail[email]) {
+      if (!byEmail[email].nombre && c.nombre) byEmail[email].nombre = c.nombre
+      if (c.carritoAbandonado) {
+        byEmail[email].carritoAbandonado = true
+        byEmail[email].valorAbandonado = c.valorAbandonado || 0
+      }
+    }
+  })
+
+  // Calcular métricas por cliente
+  const clientes = Object.values(byEmail).map(cl => {
+    const totalGastado = cl.pedidos.reduce((s, f) => s + (f.monto || 0), 0)
+    const ultimaCompra = cl.pedidos.map(f => f.fecha).sort().reverse()[0] || ''
+    // Productos comprados (from notas field)
+    const prods = cl.pedidos.flatMap(f => (f.notas || '').split(',').map(p => p.trim())).filter(Boolean)
+    return { ...cl, totalGastado, ultimaCompra, cantPedidos: cl.pedidos.length, productosComprados: prods }
+  }).sort((a, b) => b.totalGastado - a.totalGastado)
+
+  _tnClAllData = clientes
+
+  // Stats
+  const totalClientes = clientes.length
+  const totalRevenue = clientes.reduce((s, c) => s + c.totalGastado, 0)
+  const totalAbandon = clientes.filter(c => c.carritoAbandonado).length
+  const avgTicket = totalClientes ? Math.round(totalRevenue / finanzas.length) : 0
+
+  document.getElementById('tn-cl-stat-total').textContent = totalClientes
+  document.getElementById('tn-cl-stat-revenue').textContent = '$' + totalRevenue.toLocaleString('es-AR')
+  document.getElementById('tn-cl-stat-abandon').textContent = totalAbandon
+  document.getElementById('tn-cl-stat-avg').textContent = '$' + avgTicket.toLocaleString('es-AR')
+  document.getElementById('tn-cl-count').textContent = totalClientes + ' cliente' + (totalClientes !== 1 ? 's' : '') + ' · ' + finanzas.length + ' pedidos'
+
+  renderTNClientes(clientes)
+  renderTNTopProds(finanzas)
+  renderTNRecentOrders(finanzas)
+  renderTNAbandonedCarts(clientes)
+}
+
+function filterTNClientes() {
+  const q = (document.getElementById('tn-cl-search')?.value || '').toLowerCase()
+  const filtered = q ? _tnClAllData.filter(c =>
+    (c.nombre || '').toLowerCase().includes(q) ||
+    (c.email || '').toLowerCase().includes(q)
+  ) : _tnClAllData
+  renderTNClientes(filtered)
+}
+
+function renderTNClientes(clientes) {
+  const el = document.getElementById('tn-cl-list')
+  if (!clientes.length) {
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:13px">Sin clientes registrados</div>'
+    return
+  }
+  const nvC = {Bronze:'#cd7f32',Silver:'#9e9e9e',Gold:'#f5a623',Platinum:'#7c3aed'}
+  el.innerHTML = clientes.map(c => {
+    const xp = Math.floor(c.totalGastado / 100)
+    const nivel = xp >= 5000 ? 'Platinum' : xp >= 2000 ? 'Gold' : xp >= 500 ? 'Silver' : 'Bronze'
+    const nc = nvC[nivel]
+    const initials = (c.nombre || c.email || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
+    const fechaStr = c.ultimaCompra ? c.ultimaCompra.slice(0,10) : '—'
+    return `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 100px;gap:8px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--border);font-size:12px" onmouseenter="this.style.background='var(--s2)'" onmouseleave="this.style.background=''">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0">
+        <div style="width:34px;height:34px;border-radius:50%;background:${nc}22;border:2px solid ${nc};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:${nc};flex-shrink:0">${initials}</div>
+        <div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.nombre || '—'}</div><div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.email || ''}</div></div>
+      </div>
+      <div style="font-weight:600">${c.cantPedidos}</div>
+      <div style="font-weight:700;color:var(--green)">$${c.totalGastado.toLocaleString('es-AR')}</div>
+      <div style="color:var(--muted)">${fechaStr}</div>
+      <div><span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:${nc}22;color:${nc}">${nivel}</span>${c.carritoAbandonado ? ' <span title="Carrito abandonado" style="font-size:13px">🛒</span>' : ''}</div>
+    </div>`
+  }).join('')
+}
+
+function renderTNTopProds(finanzas) {
+  const prodCount = {}
+  finanzas.forEach(f => {
+    (f.notas || '').split(',').forEach(p => {
+      const name = p.trim()
+      if (name) prodCount[name] = (prodCount[name] || 0) + 1
+    })
+  })
+  const top = Object.entries(prodCount).sort((a,b) => b[1]-a[1]).slice(0,10)
+  const max = top[0]?.[1] || 1
+  const el = document.getElementById('tn-cl-top-prods')
+  if (!top.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px">Sin datos</div>'; return }
+  el.innerHTML = top.map(([name, cnt]) => `
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+        <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;font-weight:500">${name}</span>
+        <span style="font-weight:700;color:var(--accent);flex-shrink:0;margin-left:6px">${cnt}</span>
+      </div>
+      <div style="height:4px;border-radius:2px;background:var(--border)"><div style="height:100%;border-radius:2px;background:var(--accent);width:${Math.round(cnt/max*100)}%"></div></div>
+    </div>`).join('')
+}
+
+function renderTNRecentOrders(finanzas) {
+  const el = document.getElementById('tn-cl-recent-orders')
+  const recent = [...finanzas].sort((a,b) => (b.fecha||'').localeCompare(a.fecha||'')).slice(0,8)
+  if (!recent.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px">Sin pedidos</div>'; return }
+  el.innerHTML = recent.map(f => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <div>
+        <div style="font-weight:600">${f.concepto ? f.concepto.replace(/^TN /,'') : '—'}</div>
+        <div style="font-size:10px;color:var(--muted)">${(f.fecha||'').slice(0,10)}</div>
+      </div>
+      <div style="font-weight:700;color:var(--green);flex-shrink:0;margin-left:8px">$${(f.monto||0).toLocaleString('es-AR')}</div>
+    </div>`).join('')
+}
+
+function renderTNAbandonedCarts(clientes) {
+  const el = document.getElementById('tn-cl-carts')
+  const abandoned = clientes.filter(c => c.carritoAbandonado)
+  if (!abandoned.length) {
+    el.innerHTML = '<div style="padding:18px;text-align:center;color:var(--muted);font-size:12px">Sin carritos abandonados identificados</div>'
+    return
+  }
+  el.innerHTML = abandoned.map(c => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px">
+      <div>
+        <div style="font-weight:600">${c.nombre || c.email || '—'}</div>
+        <div style="font-size:11px;color:var(--muted)">${c.email || ''}</div>
+      </div>
+      <div style="text-align:right">
+        ${c.valorAbandonado ? `<div style="font-weight:700;color:var(--gold,#f59e0b)">$${Number(c.valorAbandonado).toLocaleString('es-AR')}</div>` : ''}
+        <button onclick="abrirWA('${c.email}','${c.nombre||''}')" style="margin-top:4px;padding:3px 10px;border-radius:6px;border:1px solid var(--green);background:none;color:var(--green);font-size:10px;font-weight:700;cursor:pointer">💬 WA</button>
+      </div>
+    </div>`).join('')
+}
+
+function abrirWA(email, nombre) {
+  const msg = encodeURIComponent(`Hola ${nombre}! Te escribimos desde SOULAB, vimos que dejaste productos en tu carrito. ¿Necesitás ayuda para completar tu compra?`)
+  // Try to find phone from CRM
+  const crm = S.data?.crm || []
+  const contact = crm.find(c => (c.email||'').toLowerCase() === email.toLowerCase())
+  if (contact?.tel) {
+    const phone = contact.tel.replace(/\D/g,'')
+    window.open('https://wa.me/' + phone + '?text=' + msg, '_blank')
+  } else {
+    notify('No encontramos el teléfono de este cliente en el CRM')
+  }
 }
 
 // ── Clientes Web analytics ────────────────────────────────────
