@@ -912,6 +912,7 @@ app.post("/api/tn/activate", async (req, res) => {
 app.post("/api/tn/webhook", async (req, res) => {
   res.sendStatus(200) // Responder inmediatamente a TN
   const { event, store_id: webhookStoreId, id: entityId } = req.body
+  console.log(`[webhook] ${event} | store=${webhookStoreId} | id=${entityId}`)
   const HANDLED = ["order/paid", "cart/updated", "customer/created"]
   if (!HANDLED.includes(event) || !entityId) return
   try {
