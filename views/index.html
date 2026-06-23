@@ -21673,7 +21673,8 @@ function crealPublishToMeta() {
                       <code style="background:var(--s2);padding:1px 5px;border-radius:3px">{email}</code><br>
                       <code style="background:var(--s2);padding:1px 5px;border-radius:3px">{producto}</code><br>
                       <code style="background:var(--s2);padding:1px 5px;border-radius:3px">{precio}</code><br>
-                      <code style="background:var(--s2);padding:1px 5px;border-radius:3px">{carrito}</code>
+                      <code style="background:var(--s2);padding:1px 5px;border-radius:3px">{carrito}</code><br>
+                      <code style="background:var(--s2);padding:1px 5px;border-radius:3px">{cashback}</code>
                     </div>
                   </div>
                 </div>
@@ -24782,7 +24783,7 @@ async function sendEmailBroadcast() {
           subject, html: htmlTracked,
           from: fromName || undefined,
           replyTo: replyTo||undefined,
-          contacto: { nombre:c.nombre, apellido:c.apellido, email:c.email, tel:c.tel, etapa:c.etapa, cantCompras:c.cantCompras, valorTotal:c.valorTotal, ultimaCompra:c.ultimaCompra }
+          contacto: { nombre:c.nombre, apellido:c.apellido, email:c.email, tel:c.tel, etapa:c.etapa, cantCompras:c.cantCompras, valorTotal:c.valorTotal, ultimaCompra:c.ultimaCompra, cashback:c.cashback||0 }
         })
       });
       const d = await r.json();

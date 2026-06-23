@@ -6290,6 +6290,7 @@ app.post('/api/email/flow', async (req, res) => {
       .replace(/\{cantCompras\}/g, String(vars.cantCompras || 0))
       .replace(/\{valor\}/g,       String(vars.valorTotal  || 0))
       .replace(/\{etapa\}/g,       vars.etapa        || '')
+      .replace(/\{cashback\}/g,    vars.cashback != null ? '$' + Number(vars.cashback).toLocaleString('es-AR') : '$0')
     // Determine from address: workspace settings > env vars > sandbox
     let resolvedFrom = from
     if (!resolvedFrom && wsId) {
