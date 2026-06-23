@@ -27176,6 +27176,22 @@ let _tnbLoaded = false
 let _tnbAnalyticsData = null
 let _tnbCRMData = []
 let _tnbFinanzasData = []
+let _tnbOrdersByEmail = new Map() // email → sorted orders[] — built once after load
+let _tnbClientesPage = 0
+let _tnbContactosPage = 0
+const TNB_PAGE_SIZE = 100
+
+function _buildOrdersIndex() {
+  _tnbOrdersByEmail = new Map()
+  for (const f of _tnbFinanzasData) {
+    const e = (f.email || f.customerEmail || '').toLowerCase()
+    if (!e) continue
+    if (!_tnbOrdersByEmail.has(e)) _tnbOrdersByEmail.set(e, [])
+    _tnbOrdersByEmail.get(e).push(f)
+  }
+  for (const orders of _tnbOrdersByEmail.values())
+    orders.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+}
 
 function switchTNBTab(tab, btn) {
   document.querySelectorAll('#nav-tiendanube .nav-tab').forEach(b => b.classList.remove('active'))
@@ -27219,6 +27235,7 @@ async function _loadTNBCRMData() {
   ])
   _tnbCRMData = allContacts
   _tnbFinanzasData = (finRes.orders || []).filter(f => f.categoria === 'Ventas tienda')
+  _buildOrdersIndex()
   _tnbLoaded = true
 }
 
@@ -27304,9 +27321,7 @@ async function renderTNBPopup() {
 
 function _tnbGetCustomerOrders(email) {
   if (!email) return []
-  const e = email.toLowerCase()
-  return _tnbFinanzasData.filter(f => (f.email || f.customerEmail || '').toLowerCase() === e)
-    .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+  return _tnbOrdersByEmail.get(email.toLowerCase()) || []
 }
 
 function _tnbCustomerStats(email) {
@@ -27347,7 +27362,8 @@ function _tnbMergedStats(c) {
   }
 }
 
-function renderTNBClientes() {
+function renderTNBClientes(keepPage) {
+  if (!keepPage) _tnbClientesPage = 0
   const search = (document.getElementById('tnb-clientes-search')?.value || '').toLowerCase()
   const filter = document.getElementById('tnb-clientes-filter')?.value || ''
   const d30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
@@ -27388,13 +27404,17 @@ function renderTNBClientes() {
     return
   }
 
+  const totalPages = Math.ceil(clientes.length / TNB_PAGE_SIZE)
+  _tnbClientesPage = Math.min(_tnbClientesPage, Math.max(0, totalPages - 1))
+  const pageSlice = clientes.slice(_tnbClientesPage * TNB_PAGE_SIZE, (_tnbClientesPage + 1) * TNB_PAGE_SIZE)
+
   document.getElementById('tnb-clientes-list').innerHTML = `
   <table class="tx-table">
     <thead><tr>
       <th>Cliente</th><th>Pedidos</th><th>Total</th><th>Ticket prom.</th><th>Última compra</th><th>Prod. vistos</th><th>Nivel XP</th><th>Estado</th><th></th>
     </tr></thead>
     <tbody>
-    ${clientes.map(({ c, stats }) => {
+    ${pageSlice.map(({ c, stats }) => {
       const xp = Math.floor(stats.total / 100)
       const prodVistas = (c.productViews || []).length
       const badges = []
@@ -27415,7 +27435,12 @@ function renderTNBClientes() {
       </tr>`
     }).join('')}
     </tbody>
-  </table>`
+  </table>
+  ${totalPages > 1 ? `<div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 0;font-size:12px">
+    <button class="btn btn-xs" ${_tnbClientesPage===0?'disabled':''} onclick="_tnbClientesPage--;renderTNBClientes(true)">← Anterior</button>
+    <span style="color:var(--muted)">Pág ${_tnbClientesPage+1} / ${totalPages} · ${clientes.length} clientes</span>
+    <button class="btn btn-xs" ${_tnbClientesPage>=totalPages-1?'disabled':''} onclick="_tnbClientesPage++;renderTNBClientes(true)">Siguiente →</button>
+  </div>` : ''}`
 }
 
 function openTNBClientDrawer(idOrEmail) {
@@ -27517,7 +27542,8 @@ function _copyTel(num, btn) {
 }
 // ───────────────────────────────────────────────────────────────────────────
 
-function renderTNBContactos() {
+function renderTNBContactos(keepPage) {
+  if (!keepPage) _tnbContactosPage = 0
   const search = (document.getElementById('tnb-contactos-search')?.value || '').toLowerCase()
   const filter = document.getElementById('tnb-contactos-filter')?.value || ''
   const d7 = new Date(Date.now() - 7 * 86400000).toISOString()
@@ -27541,6 +27567,10 @@ function renderTNBContactos() {
     return
   }
 
+  const totalPagesC = Math.ceil(contactos.length / TNB_PAGE_SIZE)
+  _tnbContactosPage = Math.min(_tnbContactosPage, Math.max(0, totalPagesC - 1))
+  const pageSliceC = contactos.slice(_tnbContactosPage * TNB_PAGE_SIZE, (_tnbContactosPage + 1) * TNB_PAGE_SIZE)
+
   document.getElementById('tnb-contactos-list').innerHTML = `
   <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${contactos.length} contactos</div>
   <table class="tx-table">
@@ -27548,11 +27578,10 @@ function renderTNBContactos() {
       <th style="width:36px"></th><th>Nombre</th><th>Email / Tel</th><th>Última visita</th><th>Prod. vistos</th><th>Carrito</th><th>Compras</th><th>Canal</th><th></th>
     </tr></thead>
     <tbody>
-    ${contactos.map(c => {
-      const stats = _tnbCustomerStats(c.email)
+    ${pageSliceC.map(c => {
+      const mStats = _tnbMergedStats(c)
       const views = c.productViews || []
       const topProd = views[0]?.nombre || '—'
-      const mStats = _tnbMergedStats(c)
       const cid = (c.id||c.email||'').replace(/[^a-zA-Z0-9_-]/g,'_')
       const contacted = _cctIsContacted(c.id||c.email)
       return `<tr id="cct_row_${cid}" style="cursor:pointer;transition:opacity .2s;opacity:${contacted?'.4':'1'}" onclick="openContactProfile('${c.id||c.email}')">
@@ -27574,7 +27603,12 @@ function renderTNBContactos() {
       </tr>`
     }).join('')}
     </tbody>
-  </table>`
+  </table>
+  ${totalPagesC > 1 ? `<div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 0;font-size:12px">
+    <button class="btn btn-xs" ${_tnbContactosPage===0?'disabled':''} onclick="_tnbContactosPage--;renderTNBContactos(true)">← Anterior</button>
+    <span style="color:var(--muted)">Pág ${_tnbContactosPage+1} / ${totalPagesC} · ${contactos.length} contactos</span>
+    <button class="btn btn-xs" ${_tnbContactosPage>=totalPagesC-1?'disabled':''} onclick="_tnbContactosPage++;renderTNBContactos(true)">Siguiente →</button>
+  </div>` : ''}`
 }
 
 // ══════════════════════════════════════════════════════════════
