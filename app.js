@@ -27,7 +27,7 @@ app.use((req, res, next) => {
 
 // CORS para endpoints públicos llamados desde snippets embebidos en tiendas externas
 app.use((req, res, next) => {
-  const pub = ['/api/tn/subscribe', '/api/tn/track', '/api/tn/customer-panel', '/api/tn/customer-stats', '/api/tn/exchange-request', '/api/tn/manifest', '/api/tn/wa-otp-send', '/api/tn/wa-otp-verify', '/api/tn/store-analytics', '/api/tn/size-charts', '/api/tn/wishlist', '/api/tn/reviews', '/api/popup/subscribe', '/api/identity/journey', '/api/identity/track', '/api/store/me', '/api/store/capture-contact']
+  const pub = ['/api/tn/subscribe', '/api/tn/track', '/api/tn/customer-panel', '/api/tn/customer-stats', '/api/tn/exchange-request', '/api/tn/manifest', '/api/tn/wa-otp-send', '/api/tn/wa-otp-verify', '/api/tn/store-analytics', '/api/tn/size-charts', '/api/tn/wishlist', '/api/tn/reviews', '/api/popup/subscribe', '/api/identity/journey', '/api/identity/track', '/api/store/me', '/api/store/capture-contact', '/api/tn/update-profile']
   if (pub.some(p => req.path.startsWith(p))) {
     res.header('Access-Control-Allow-Origin', '*')
     res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
@@ -1121,19 +1121,24 @@ app.post('/api/tn/track', async (req, res) => {
 
 // ── TN: analytics agregados de la tienda ─────────────────────────────────────
 app.get('/api/tn/store-analytics', async (req, res) => {
-  const { wsId } = req.query
+  const { wsId, from, to } = req.query
   if (!wsId) return res.json({})
   try {
+    const orderOpts = { tipo: 'ingreso', limit: 2000 }
+    if (from) orderOpts.from = from
+    if (to) orderOpts.to = to
     const [allOrders, crm] = await Promise.all([
-      db_listOrders(wsId, { tipo: 'ingreso', limit: 2000 }),
+      db_listOrders(wsId, orderOpts),
       db_listContacts(wsId, { limit: 2000 })
     ])
 
-    const ventas = allOrders.filter(f => f.categoria === 'Ventas tienda')
+    const ventas = allOrders.filter(f => !f.categoria || f.categoria === 'Ventas tienda' || f.categoria === '')
     const now = new Date()
-    const d30 = new Date(now - 30 * 86400000).toISOString().slice(0, 10)
-    const d60 = new Date(now - 60 * 86400000).toISOString().slice(0, 10)
-    const d7  = new Date(now - 7  * 86400000).toISOString().slice(0, 10)
+    const rangeEnd = to ? new Date(to + 'T23:59:59') : now
+    const rangeStart = from ? new Date(from) : null
+    const d30 = new Date(rangeEnd - 30 * 86400000).toISOString().slice(0, 10)
+    const d60 = new Date(rangeEnd - 60 * 86400000).toISOString().slice(0, 10)
+    const d7  = new Date(rangeEnd - 7  * 86400000).toISOString().slice(0, 10)
 
     // Revenue metrics
     const totalRevenue = ventas.reduce((s, f) => s + (f.monto || 0), 0)
@@ -1428,7 +1433,46 @@ app.post('/api/tn/subscribe', async (req, res) => {
       contactNombre = nombre || existing.nombre || ''
     }
     await db_updateContactFields(wsId, contactId, { vldToken: sessionToken, vldTokenExpiry: tokenExpiry })
+    _addContactToList(wsId, 'Pop Up TN', 'dl_popup_tn', contactId).catch(() => {})
     res.json({ ok: true, token: sessionToken, nombre: contactNombre, email: emailNorm })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── TN: update profile fields from storefront ────────────────────────────────
+app.post('/api/tn/update-profile', async (req, res) => {
+  const { wsId, token, nombre, email, tel } = req.body
+  if (!wsId || !token) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const contact = await db_findContactByToken(wsId, token)
+    if (!contact) return res.status(401).json({ error: 'Sesión no válida' })
+    const updates = {}
+    if (nombre !== undefined && nombre !== contact.nombre) updates.nombre = nombre.trim()
+    if (tel !== undefined && tel !== contact.tel) updates.tel = tel.trim()
+    if (email && email.toLowerCase() !== contact.email) updates.email = email.toLowerCase().trim()
+    if (Object.keys(updates).length > 0) await db_updateContactFields(wsId, contact.id, updates)
+    res.json({ ok: true, nombre: updates.nombre ?? contact.nombre, email: updates.email ?? contact.email, tel: updates.tel ?? contact.tel })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── Admin: popup stats (subscribers via Popup TN) ────────────────────────────
+app.get('/api/admin/popup-stats', async (req, res) => {
+  const { wsId } = req.query
+  if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
+  try {
+    // Count total contacts from popup
+    const countRows = await _sGET('contacts', `ws_id=eq.${encodeURIComponent(wsId)}&canal=eq.Popup%20TN&select=id`)
+    const total = Array.isArray(countRows) ? countRows.length : 0
+    // Get last 50 subscribers with relevant fields
+    const rows = await _sGET('contacts', `ws_id=eq.${encodeURIComponent(wsId)}&canal=eq.Popup%20TN&order=created_at.desc&limit=50&select=id,nombre,email,tel,created_at,data`)
+    const subs = (rows || []).map(r => ({
+      id: r.id,
+      nombre: r.nombre || '',
+      email: r.email || '',
+      tel: r.tel || '',
+      wapp: r.tel || (r.data?.tel) || '',
+      creado: r.created_at?.slice(0,10) || ''
+    }))
+    res.json({ total, subs })
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
@@ -1481,7 +1525,7 @@ app.get('/api/tn/customer-stats', async (req, res) => {
     const valorTotal = parseFloat(contact.valorTotal || 0)
     const xp = Math.floor(valorTotal / 100)
     const nivel = xp >= 5000 ? 'Platinum' : xp >= 2000 ? 'Gold' : xp >= 500 ? 'Silver' : 'Bronze'
-    const vldCode = 'VLD-' + contact.id.replace(/\W/g, '').slice(-6).toUpperCase()
+    const vldCode = contact.codigoCashback || ('VLD-' + contact.id.replace(/\W/g, '').slice(-6).toUpperCase())
     res.json({ xp, cashback: contact.cashback || 0, nivel, valorTotal, exchanges: [], vldCode, contactId: contact.id })
   } catch(e) { res.json({}) }
 })
@@ -7383,6 +7427,26 @@ app.get('/api/ugc/mi-acuerdo', _requireCreadora, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
+// ── PORTAL: marcar/desmarcar acción del acuerdo ──────────────
+app.patch('/api/ugc/mi-acuerdo/accion', _requireCreadora, async (req, res) => {
+  const { accionId, completado, link } = req.body
+  if (!accionId) return res.status(400).json({ error: 'Falta accionId' })
+  try {
+    // Get current acuerdo
+    const r = await _supa('GET', 'ugc_acuerdos', {
+      filter: `creadora_id=eq.${req.creadoraId}&activo=eq.true&order=created_at.desc&limit=1`
+    })
+    const acuerdo = r.data?.[0]
+    if (!acuerdo) return res.status(404).json({ error: 'Sin acuerdo activo' })
+    const acciones = acuerdo.acciones || []
+    const idx = acciones.findIndex(a => a.id === accionId)
+    if (idx < 0) return res.status(404).json({ error: 'Acción no encontrada' })
+    acciones[idx] = { ...acciones[idx], completado: !!completado, fecha: completado ? new Date().toISOString().slice(0,10) : null, link: link || '' }
+    await _supa('PATCH', `ugc_acuerdos?id=eq.${acuerdo.id}`, { prefer: 'return=minimal', body: { acciones } })
+    res.json({ ok: true, acciones })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
 // ── PORTAL: seguimiento mensual de la creadora ───────────────
 app.get('/api/ugc/mi-seguimiento', _requireCreadora, async (req, res) => {
   const { wsId } = req.query
@@ -7673,16 +7737,18 @@ app.get('/api/admin/ugc/creadoras', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
-// ── ADMIN: actualizar creadora (drive_link) ──────────────────
+// ── ADMIN: actualizar creadora ───────────────────────────────
 app.patch('/api/admin/ugc/creadoras/:id', async (req, res) => {
   const { id } = req.params
-  const { drive_link } = req.body
-  if (drive_link === undefined) return res.status(400).json({ error: 'Nada que actualizar' })
+  const { drive_link, utm_link, score, resultados } = req.body
+  const patch = {}
+  if (drive_link !== undefined) patch.drive_link = drive_link || null
+  if (utm_link !== undefined) patch.utm_link = utm_link || null
+  if (score !== undefined) patch.score = score || null
+  if (resultados !== undefined) patch.resultados = resultados || null
+  if (!Object.keys(patch).length) return res.status(400).json({ error: 'Nada que actualizar' })
   try {
-    const r = await _supa('PATCH', `ugc_creadoras?id=eq.${id}`, {
-      prefer: 'return=minimal', body: { drive_link: drive_link || null }
-    })
-    if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
+    await _supa('PATCH', `ugc_creadoras?id=eq.${id}`, { prefer: 'return=minimal', body: patch })
     res.json({ ok: true })
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
@@ -7690,7 +7756,9 @@ app.patch('/api/admin/ugc/creadoras/:id', async (req, res) => {
 // ── ADMIN: guardar acuerdo (crea nuevo, desactiva anterior) ──
 app.post('/api/admin/ugc/creadoras/:id/acuerdo', async (req, res) => {
   const { id } = req.params
-  const { tipo, monto_fijo_mensual, acciones_comprometidas_mes, notas } = req.body
+  // req.body is spread directly so all fields (tipo, monto_fijo_mensual, frecuencia,
+  // fecha_fin, notas, brief, acciones, acciones_comprometidas_mes) pass through automatically
+  const { tipo, monto_fijo_mensual } = req.body
   if (!tipo) return res.status(400).json({ error: 'Falta tipo' })
   try {
     await _supa('PATCH', `ugc_acuerdos?creadora_id=eq.${id}&activo=eq.true`,
@@ -7698,14 +7766,42 @@ app.post('/api/admin/ugc/creadoras/:id/acuerdo', async (req, res) => {
     const r = await _supa('POST', 'ugc_acuerdos', {
       prefer: 'return=representation',
       body: {
-        creadora_id: id, tipo, activo: true,
+        creadora_id: id,
+        activo: true,
+        ...req.body,
         monto_fijo_mensual: monto_fijo_mensual != null && monto_fijo_mensual !== '' ? parseFloat(monto_fijo_mensual) : null,
-        acciones_comprometidas_mes: acciones_comprometidas_mes != null && acciones_comprometidas_mes !== '' ? parseInt(acciones_comprometidas_mes) : null,
-        notas: notas || null
       }
     })
     if (!r.ok) return res.status(400).json({ error: JSON.stringify(r.data).slice(0,200) })
     res.json({ ok: true, acuerdo: r.data?.[0] })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── ADMIN: enviar oferta directa a creadoras ──────────────────
+app.post('/api/admin/ugc/canjes/:id/enviar-directo', async (req, res) => {
+  const canjeId = req.params.id
+  const { creadora_ids } = req.body
+  if (!Array.isArray(creadora_ids) || !creadora_ids.length) return res.status(400).json({ error: 'Sin creadoras seleccionadas' })
+  try {
+    const results = []
+    for (const creadoraId of creadora_ids) {
+      const existing = await _supa('GET', 'ugc_solicitudes', {
+        filter: `canje_id=eq.${canjeId}&creadora_id=eq.${creadoraId}&limit=1`
+      })
+      if (existing.data?.length) { results.push({ creadoraId, ok: false, reason: 'Ya tiene solicitud' }); continue }
+      const r = await _supa('POST', 'ugc_solicitudes', {
+        prefer: 'return=representation',
+        body: {
+          canje_id: canjeId,
+          creadora_id: creadoraId,
+          estado: 'esperando_confirmacion',
+          fecha_solicitud: new Date().toISOString().slice(0, 10),
+          origen: 'oferta_directa'
+        }
+      })
+      results.push({ creadoraId, ok: !!r.data?.[0] })
+    }
+    res.json({ ok: true, results })
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 

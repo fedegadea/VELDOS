@@ -2080,6 +2080,9 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button class="nav-tab" id="ugc-tab-btn-solicitudes" onclick="switchUgcTab('solicitudes',this)">Solicitudes <span id="ugc-pending-badge" style="display:none;background:var(--accent);color:#fff;font-size:10px;padding:1px 7px;border-radius:9px;margin-left:2px">0</span></button>
     <button class="nav-tab" id="ugc-tab-btn-accesos" onclick="switchUgcTab('accesos',this)">Accesos <span id="ugc-accesos-badge" style="display:none;background:rgba(239,68,68,.8);color:#fff;font-size:10px;padding:1px 7px;border-radius:9px;margin-left:2px">0</span></button>
     <button class="nav-tab" id="ugc-tab-btn-creadoras" onclick="switchUgcTab('creadoras',this)">Creadoras</button>
+    <button class="nav-tab" id="ugc-tab-btn-briefs" onclick="switchUgcTab('briefs',this)">Briefs</button>
+    <button class="nav-tab" id="ugc-tab-btn-kanjes" onclick="switchUgcTab('kanjes',this)">Canjes</button>
+    <button class="nav-tab" id="ugc-tab-btn-collabs" onclick="switchUgcTab('collabs',this)">Collabs</button>
   </nav>
   <nav class="nav-tabs" id="nav-soul-club" style="display:none"></nav>
   <nav class="nav-tabs" id="nav-tiendanube" style="display:none">
@@ -2090,6 +2093,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button class="nav-tab" id="tnb-tab-stock" onclick="switchTNBTab('stock',this)">📦 Stock TN</button>
     <button class="nav-tab" id="tnb-tab-cashback" onclick="switchTNBTab('cashback',this)">💰 Cashback</button>
     <button class="nav-tab" id="tnb-tab-resenias" onclick="switchTNBTab('resenias',this)">⭐ Reseñas</button>
+    <button class="nav-tab" id="tnb-tab-popup" onclick="switchTNBTab('popup',this)">🪟 Pop Up</button>
   </nav>
   <nav class="nav-tabs" id="nav-tienda" style="display:none">
     <button class="nav-tab active" id="tienda-tab-productos" onclick="switchTiendaTab('productos',this)">Productos</button>
@@ -2145,6 +2149,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button class="sb-item" id="sbi-tnb-stock" style="padding-left:26px;font-size:11.5px" onclick="navTNB('stock',this)">📦 Stock TN</button>
     <button class="sb-item" id="sbi-tnb-cashback" style="padding-left:26px;font-size:11.5px" onclick="navTNB('cashback',this)">💰 Cashback</button>
     <button class="sb-item" id="sbi-tnb-resenias" style="padding-left:26px;font-size:11.5px" onclick="navTNB('resenias',this)">⭐ Reseñas</button>
+    <button class="sb-item" id="sbi-tnb-popup" style="padding-left:26px;font-size:11.5px" onclick="navTNB('popup',this)">🪟 Pop Up</button>
     <button class="sb-item" id="sbi-ugc" onclick="sbNav('ugc','ugc',this)"><span class="sb-item-icon"><i class="ti ti-heart-handshake"></i></span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Soul PR<span id="ugc-sb-badge" style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">PR & Colaboraciones</span></span></button>
     <button class="sb-item" id="sbi-soul-club" onclick="sbNav('soul-club','soul-club',this)"><span class="sb-item-icon" style="font-size:13px;font-weight:700;font-family:serif;font-style:italic">S</span><span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2">Soul Club<span style="font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.2px">Miembros · Drops · Eventos</span></span></button>
   </div>
@@ -4285,7 +4290,6 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <div id="ugc-canjes-list"></div>
   </div>
 
-  <!-- Solicitudes — siempre visible debajo -->
   <div id="ugc-tab-solicitudes" style="margin-top:36px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
       <div style="font-size:15px;font-weight:700;color:var(--text);flex:1">Solicitudes <span id="ugc-pending-badge" style="display:none;background:var(--accent);color:#fff;font-size:11px;padding:2px 9px;border-radius:9px;margin-left:4px;font-weight:600">0</span></div>
@@ -4315,15 +4319,66 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <div id="ugc-accesos-list"></div>
   </div>
 
-  <!-- Creadoras — siempre visible debajo -->
   <div id="ugc-tab-creadoras" style="margin-top:36px">
-    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px">Creadoras registradas</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:15px;font-weight:700;color:var(--text)">Creadoras</div>
+      <button class="btn btn-primary btn-xs" onclick="openAddCreadoraModal()">+ Nueva creadora</button>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px" id="ugc-creadoras-filters">
+      <button class="btn btn-xs" style="background:var(--accent);color:#fff" onclick="filterUgcCreadoras('todas',this)">Todas</button>
+      <button class="btn btn-xs" onclick="filterUgcCreadoras('con_acuerdo',this)">Con acuerdo</button>
+      <button class="btn btn-xs" onclick="filterUgcCreadoras('acciones_activas',this)">Acciones activas</button>
+      <button class="btn btn-xs" onclick="filterUgcCreadoras('sin_acuerdo',this)">Sin acuerdo</button>
+      <button class="btn btn-xs" onclick="filterUgcCreadoras('sin_actividad',this)">Sin actividad</button>
+      <button class="btn btn-xs" onclick="filterUgcCreadoras('alta_performance',this)">⭐ Alta perf.</button>
+      <button class="btn btn-xs" onclick="filterUgcCreadoras('con_campana',this)">Con campaña</button>
+    </div>
     <div id="ugc-creadoras-list"></div>
+  </div>
+
+  <!-- Briefs (moved from Planning) -->
+  <div id="ugc-tab-briefs" style="margin-top:36px;display:none">
+    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px">Briefs</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+      <select class="form-input" style="width:140px" id="ugc-brief-cat-filter" onchange="renderBriefs('ugc')">
+        <option value="">Todas las categorías</option>
+        <option value="Marca">Marca</option>
+        <option value="UGC">UGC</option>
+        <option value="Influencers">Influencers</option>
+      </select>
+      <button class="btn btn-primary btn-xs" onclick="openBriefModal()">+ Nuevo brief</button>
+    </div>
+    <div id="ugc-briefs-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px"></div>
+  </div>
+
+  <!-- Kanjes tracker (moved from Planning) -->
+  <div id="ugc-tab-kanjes" style="margin-top:36px;display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div style="font-size:15px;font-weight:700;color:var(--text);flex:1">Seguimiento de Canjes</div>
+      <div style="display:flex;gap:6px">
+        <button class="inner-tab active" id="ugc-kanje-btn-micro" onclick="switchUgcKanjeTab('micro',this)">Micro influencers</button>
+        <button class="inner-tab" id="ugc-kanje-btn-top" onclick="switchUgcKanjeTab('top',this)">Top creadora</button>
+      </div>
+    </div>
+    <div id="ugc-kanban-micro"></div>
+    <div id="ugc-kanban-top" style="display:none"></div>
+  </div>
+
+  <!-- Collabs (moved from Planning) -->
+  <div id="ugc-tab-collabs" style="margin-top:36px;display:none">
+    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px">Collabs</div>
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button class="inner-tab active" id="ugc-collab-btn-activas" onclick="switchUgcCollabTab('activas',this)">Activas</button>
+      <button class="inner-tab" id="ugc-collab-btn-potenciales" onclick="switchUgcCollabTab('potenciales',this)">Potenciales</button>
+      <button class="btn btn-primary btn-xs" onclick="addCollab()">+ Nueva collab</button>
+    </div>
+    <div id="ugc-collabs-activas-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px"></div>
+    <div id="ugc-collabs-potenciales-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;display:none"></div>
   </div>
 
   <!-- Modal: acuerdo con creadora -->
   <div id="acuerdo-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:901;align-items:center;justify-content:center;padding:16px">
-    <div style="background:var(--s1);border:1px solid var(--border2);border-radius:14px;padding:26px;width:100%;max-width:440px;position:relative">
+    <div style="background:var(--s1);border:1px solid var(--border2);border-radius:14px;padding:26px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;position:relative">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
         <div style="font-size:15px;font-weight:700;color:var(--text)" id="acuerdo-modal-title">Acuerdo</div>
         <button onclick="closeAcuerdoModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:2px 6px">×</button>
@@ -4335,16 +4390,37 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
             <option value="canje">Canje</option>
             <option value="fijo_mensual">Fijo mensual</option>
             <option value="fijo_comision">Fijo + comisión</option>
+            <option value="unico">Acuerdo único</option>
           </select>
         </div>
         <div id="acuerdo-monto-row">
           <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">Monto fijo mensual ($)</label>
           <input id="acuerdo-monto" type="number" min="0" placeholder="Ej: 50000" style="width:100%;padding:9px 12px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;box-sizing:border-box">
         </div>
+        <div id="acuerdo-frecuencia-row">
+          <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">Frecuencia</label>
+          <select id="acuerdo-frecuencia" style="width:100%;padding:9px 12px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px">
+            <option value="mensual">Mensual</option>
+            <option value="quincenal">Quincenal</option>
+            <option value="semanal">Semanal</option>
+          </select>
+        </div>
         <div>
-          <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">Acciones comprometidas por mes</label>
-          <input id="acuerdo-acciones" type="number" min="0" placeholder="Ej: 4" style="width:100%;padding:9px 12px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;box-sizing:border-box">
-          <div style="font-size:10px;color:var(--muted);margin-top:4px">Dejar vacío si no hay compromiso de cantidad</div>
+          <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">Fecha límite (opcional)</label>
+          <input id="acuerdo-fecha-fin" type="date" style="width:100%;padding:9px 12px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;box-sizing:border-box">
+          <div style="font-size:10px;color:var(--muted);margin-top:4px">Si la dejás vacía el acuerdo no tiene vencimiento</div>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">Acciones del acuerdo</label>
+          <div id="acuerdo-brief-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button type="button" onclick="_addAcuerdoBrief('Story')" class="btn btn-xs">+ Story</button>
+            <button type="button" onclick="_addAcuerdoBrief('Carrusel')" class="btn btn-xs">+ Carrusel</button>
+            <button type="button" onclick="_addAcuerdoBrief('Reel')" class="btn btn-xs">+ Reel</button>
+            <button type="button" onclick="_addAcuerdoBrief('TikTok')" class="btn btn-xs">+ TikTok</button>
+            <button type="button" onclick="_addAcuerdoBrief('Collab')" class="btn btn-xs">+ Collab</button>
+            <button type="button" onclick="_addAcuerdoBriefCustom()" class="btn btn-xs">+ Otro...</button>
+          </div>
         </div>
         <div>
           <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">Notas internas</label>
@@ -4473,10 +4549,27 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
         <div id="ugc-imagenes-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
       </div>
 
+      <div style="display:flex;gap:0;border:1px solid var(--border2);border-radius:8px;overflow:hidden;margin-bottom:14px">
+        <button type="button" id="ugc-mode-publicar" onclick="setUgcMode('publicar')"
+          style="flex:1;padding:9px;font-size:11px;font-weight:700;border:none;background:var(--accent);color:#fff;cursor:pointer;transition:background .2s">
+          📢 Publicar en portal
+        </button>
+        <button type="button" id="ugc-mode-enviar" onclick="setUgcMode('enviar')"
+          style="flex:1;padding:9px;font-size:11px;font-weight:700;border:none;background:var(--s2);color:var(--muted);cursor:pointer;transition:background .2s">
+          📩 Enviar a creadoras
+        </button>
+      </div>
+
+      <div id="ugc-creadora-selector" style="display:none;margin-bottom:14px">
+        <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">Seleccioná las creadoras</label>
+        <div id="ugc-creadora-checkboxes" style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:10px"></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Las seleccionadas recibirán la oferta directamente en su portal.</div>
+      </div>
+
       <div id="ugc-form-err" style="font-size:11px;color:var(--coral);min-height:14px;margin-bottom:6px"></div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
         <button class="btn" onclick="closeUgcModal()">Cancelar</button>
-        <button class="btn btn-primary" onclick="saveUgcCanje()" id="ugc-form-save-btn">Publicar canje</button>
+        <button class="btn btn-primary" onclick="saveUgcCanje()" id="ugc-form-save-btn">Publicar campaña</button>
       </div>
     </div>
   </div>
@@ -6864,11 +6957,7 @@ function sbNav(area,page,el){
 }
 
 function navTNB(tab, el) {
-  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
-  document.getElementById('sbi-tiendanube')?.classList.add('active');
-  if (el) el.classList.add('active');
-  _tnbLoaded = false; // force fresh load when switching to TN section
-  initTNBPage(tab);
+  navigate('tiendanube/' + (tab || 'clientes'));
 }
 
 // ═══════════════════════════════════════════════════════
@@ -7509,7 +7598,7 @@ async function loadFlowLog(){
     const rows=await r.json();
     if(!rows.length){cont.innerHTML='<div style="text-align:center;padding:30px 0;color:var(--muted)">Sin ejecuciones registradas aún.</div>';return;}
     cont.innerHTML=`<table class="tx-table" style="font-size:12px">
-      <thead><tr><th>Fecha</th><th>Flow</th><th>Contacto</th><th>Canal</th><th>Estado</th><th>Mensaje</th></tr></thead>
+      <thead><tr><th>Fecha</th><th>Flow</th><th>Contacto</th><th>Canal</th><th>Estado</th><th>Mensaje</th><th></th></tr></thead>
       <tbody>${rows.map(r=>{
         const fecha=r.created_at?new Date(r.created_at).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
         const ok=r.status==='sent';
@@ -7517,13 +7606,22 @@ async function loadFlowLog(){
           ?'<span style="font-size:10px;padding:2px 7px;border-radius:9px;background:rgba(22,163,74,.12);color:#16a34a;font-weight:600">✓ Enviado</span>'
           :'<span style="font-size:10px;padding:2px 7px;border-radius:9px;background:rgba(239,68,68,.12);color:#dc2626;font-weight:600">✗ Error</span>';
         const canal=r.channel==='whatsapp'?'💬 WA':r.channel==='email'?'✉️ Email':'📤';
+        const manualBtn = !ok ? (()=>{
+          const tel=(r.tel||r.data?.tel||'').replace(/\D/g,'');
+          const msg=encodeURIComponent(r.message||'Hola! Te contactamos de parte del equipo.');
+          const waLink=tel?`https://wa.me/${tel}?text=${msg}`:'';
+          return waLink
+            ?`<a href="${waLink}" target="_blank" style="font-size:10px;padding:3px 8px;border-radius:7px;background:rgba(37,211,102,.15);color:#128C7E;font-weight:600;text-decoration:none;white-space:nowrap">📲 Probar manualmente</a>`
+            :'<span style="font-size:10px;color:var(--muted)">Sin tel</span>';
+        })() : '';
         return`<tr>
           <td style="white-space:nowrap;color:var(--muted)">${fecha}</td>
           <td style="font-weight:600">${r.flow_name||r.flow_id||'—'}</td>
           <td>${r.data?.contactNombre||r.email||r.tel||'—'}</td>
           <td>${canal}</td>
           <td>${badge}</td>
-          <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)">${(r.message||r.data?.error||'').slice(0,80)}</td>
+          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)">${(r.message||r.data?.error||'').slice(0,80)}</td>
+          <td>${manualBtn}</td>
         </tr>`;
       }).join('')}</tbody>
     </table>`;
@@ -8829,10 +8927,10 @@ function setBriefCatFilter(cat,btn){
   renderBriefs();
 }
 
-function renderBriefs(){
+function renderBriefs(targetId){
   _pilaresSelect();
   _cuentasFilterSelect('brief-filter-cuenta');
-  const c=document.getElementById('briefs-container');
+  const c=document.getElementById(targetId||'briefs-container');
   if(!c)return;
   const pilarF=document.getElementById('brief-filter-pilar')?.value||'';
   const cuentaF=_briefFilterCuenta;
@@ -9702,12 +9800,12 @@ function closeOfertasModal(){
 // KANBAN CREADORAS
 // ══════════════════════════════════════════
 const ESTADOS=['potencial','contactada','confirmada','envio','entregado','completado'];
-const ESTADOS_LABEL={potencial:'Potencial',contactada:'Contactada',confirmada:'Confirmada',envio:'Envío coord.',entregado:'Entregado',completado:'Completado'};
+const ESTADOS_LABEL={potencial:'Potencial',contactada:'Contactada',confirmada:'Confirmada',envio:'Pendiente Envío',entregado:'Entregado',completado:'Completado'};
 function estadoColor(e){return{potencial:'var(--blue)',contactada:'var(--gold)',confirmada:'var(--purple)',envio:'var(--coral)',entregado:'var(--green)',completado:'#7ab3ff'}[e]||'var(--muted)';}
  
-function renderKanban(tipo){
+function renderKanban(tipo,prefix){
   _cuentasFilterSelect('canje-filter-cuenta');
-  const c=document.getElementById('kanban-'+tipo);
+  const c=document.getElementById((prefix||'kanban-')+tipo);
   if(!c)return;
   const list=S.creadoras.filter(cr=>cr.tipo===tipo&&(!_canjeFilterCuenta||cr.cuenta===_canjeFilterCuenta));
   c.innerHTML=ESTADOS.map(est=>{
@@ -9731,6 +9829,12 @@ function renderKanban(tipo){
             <div id="card-brief-${ri}" style="margin:4px 0">
               ${linkedBrief?`<div style="font-size:10px;color:var(--gold);background:rgba(41,121,255,.08);border:1px solid rgba(41,121,255,.2);border-radius:6px;padding:4px 8px;cursor:pointer" onclick="linkBriefToCreadora(${ri})">📄 ${linkedBrief.titulo||linkedBrief.nombre}</div>`:''}
             </div>
+            ${cr.estado === 'envio' ? `
+            <div style="margin-top:8px" onclick="event.stopPropagation()">
+              <input type="text" value="${(cr.direccion_envio||'').replace(/"/g,'&quot;')}" placeholder="Dirección del destinatario..."
+                style="width:100%;font-size:10px;padding:5px 8px;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.2);border-radius:5px;color:inherit;font-family:inherit"
+                onblur="saveKanbanDireccion(${ri},this.value)">
+            </div>` : ''}
             <div class="c-actions">
               ${ESTADOS.filter(e=>e!==est).map(e=>`<button class="c-btn" onclick="moverCreadora(${ri},'${e}')">${ESTADOS_LABEL[e]}</button>`).join('')}
               ${cr.wapp?`<a href="https://wa.me/${cr.wapp.replace(/\D/g,'')}" target="_blank"><button class="c-btn c-wapp">WA</button></a>`:''}
@@ -9745,14 +9849,19 @@ function renderKanban(tipo){
 }
 function moverCreadora(i,estado){S.creadoras[i].estado=estado;_saveDelta({creadoras:S.creadoras});render();notify(`"${ESTADOS_LABEL[estado]}" ✓`);}
 function deleteCreadora(i){S.creadoras.splice(i,1);_saveDelta({creadoras:S.creadoras});render();}
+function saveKanbanDireccion(i, direccion) {
+  if (!S.creadoras[i]) return
+  S.creadoras[i].direccion_envio = direccion
+  _saveDelta({creadoras: S.creadoras})
+}
  
 // ══════════════════════════════════════════
 // COLLABS
 // ══════════════════════════════════════════
 const COLLAB_STEPS=['DM enviado','Respondió','Sesión acordada','Fotos recibidas','Publicado'];
-function renderCollabs(){
-  const ag=document.getElementById('collabs-activas-grid');
-  const pg=document.getElementById('collabs-potenciales-grid');
+function renderCollabs(agId,pgId){
+  const ag=document.getElementById(agId||'collabs-activas-grid');
+  const pg=document.getElementById(pgId||'collabs-potenciales-grid');
   if(!ag||!pg)return;
   const act=S.collabs.filter(c=>c.estado==='activa');
   const pot=S.collabs.filter(c=>c.estado==='potencial');
@@ -19961,8 +20070,16 @@ function crealPublishToMeta() {
 
   <!-- ── Analytics TN ── -->
   <div class="inner-section" id="tnb-sec-analytics">
-    <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px">
-      <button class="btn btn-sm" onclick="initTNBPage('analytics')">↺ Actualizar</button>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:18px;flex-wrap:wrap">
+      <label style="font-size:11px;color:var(--muted);font-weight:600">Período:</label>
+      <input type="date" id="tnb-analytics-from" style="border:1px solid var(--border);border-radius:7px;padding:5px 8px;font-size:12px;background:var(--s1);color:var(--text);font-family:inherit" onchange="loadTNBAnalytics()">
+      <span style="color:var(--muted);font-size:12px">→</span>
+      <input type="date" id="tnb-analytics-to" style="border:1px solid var(--border);border-radius:7px;padding:5px 8px;font-size:12px;background:var(--s1);color:var(--text);font-family:inherit" onchange="loadTNBAnalytics()">
+      <button class="btn btn-sm" onclick="document.getElementById('tnb-analytics-from').value='';document.getElementById('tnb-analytics-to').value='';loadTNBAnalytics()">Todo</button>
+      <button class="btn btn-sm" onclick="_setAnalyticsPeriod(7)">7d</button>
+      <button class="btn btn-sm" onclick="_setAnalyticsPeriod(30)">30d</button>
+      <button class="btn btn-sm" onclick="_setAnalyticsPeriod(90)">90d</button>
+      <button class="btn btn-sm" style="margin-left:auto" onclick="loadTNBAnalytics()">↺ Actualizar</button>
     </div>
     <div id="tnb-analytics-body"><div style="text-align:center;padding:60px 0;color:var(--muted)">⏳ Cargando analytics...</div></div>
   </div>
@@ -20081,6 +20198,19 @@ function crealPublishToMeta() {
     <div id="tnb-foto-overlay" onclick="this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out">
       <img id="tnb-foto-overlay-img" src="" style="max-width:92vw;max-height:90vh;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.6)" />
     </div>
+  </div>
+
+  <!-- ── Pop Up ── -->
+  <div class="inner-section" id="tnb-sec-popup">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:15px;font-weight:700">Pop Up — Suscriptores</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Contactos captados por el popup de descuento en la tienda.</div>
+      </div>
+      <button class="btn btn-sm" onclick="renderTNBPopup()">↺ Actualizar</button>
+    </div>
+    <div id="tnb-popup-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px"></div>
+    <div id="tnb-popup-list"></div>
   </div>
 </div>
 
@@ -20825,6 +20955,24 @@ function crealPublishToMeta() {
   </div>
 </div>
 
+<!-- ══ Contact Profile Modal ══ -->
+<div id="modal-contact-profile" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.65);overflow-y:auto;padding:20px 16px" onclick="if(event.target===this)closeContactProfile()">
+  <div style="background:var(--s0);border-radius:16px;max-width:720px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,.4)">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:24px 28px 0">
+      <div>
+        <div id="cp-nombre-display" style="font-size:22px;font-weight:800;color:var(--text)">—</div>
+        <div id="cp-sub" style="font-size:12px;color:var(--muted);margin-top:4px"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="saveContactProfile()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">💾 Guardar</button>
+        <button onclick="closeContactProfile()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer;color:var(--muted);font-size:16px">✕</button>
+      </div>
+    </div>
+    <div id="cp-body" style="padding:20px 28px 28px"></div>
+  </div>
+</div>
+
 <!-- Modal editor de guía de talles -->
 <div id="modal-guia" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:16px">
   <div style="background:var(--bg);border:1px solid var(--border);border-radius:16px;width:min(780px,100%);max-height:90vh;overflow-y:auto;padding:28px">
@@ -21502,7 +21650,7 @@ function crealPublishToMeta() {
             <!-- ══ VISUAL BLOCK BUILDER ══ -->
             <div>
               <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:6px">Constructor visual de email</label>
-              <div style="display:grid;grid-template-columns:180px 1fr 240px;gap:0;height:480px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+              <div style="display:grid;grid-template-columns:170px 1fr 260px;gap:0;height:max(580px,calc(100vh - 380px));border:1px solid var(--border);border-radius:10px;overflow:hidden">
 
                 <!-- Left: Block palette -->
                 <div style="background:var(--s1);border-right:1px solid var(--border);padding:14px;overflow-y:auto">
@@ -21535,7 +21683,7 @@ function crealPublishToMeta() {
                   <div id="em-canvas" style="max-width:560px;margin:0 auto;background:#fff;border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.08);min-height:300px;overflow:hidden"></div>
                   <div style="text-align:center;margin-top:10px;display:flex;gap:6px;justify-content:center">
                     <button class="btn btn-xs" onclick="emPreview()">👁 Preview</button>
-                    <button class="btn btn-xs btn-primary" onclick="emSaveTemplate()">💾 Guardar plantilla</button>
+                    <button class="btn btn-xs btn-primary" id="em-save-tpl-btn" onclick="emSaveTemplate()">💾 Guardar plantilla</button>
                   </div>
                 </div>
 
@@ -23799,6 +23947,7 @@ function renderEmailSavedLists() {
 
 let _emBlocks = [];
 let _emSelectedBlock = null;
+let _emEditingTemplateId = null;
 
 const EM_BLOCK_DEFAULTS = {
   header:  { logo: '', brandName: 'Tu Marca', bgColor: '#ffffff', textColor: '#111111', logoWidth: 80 },
@@ -24054,16 +24203,43 @@ function emPreview() {
   modal.style.display = 'flex';
 }
 
+function _emUpdateSaveBtn() {
+  const btn = document.getElementById('em-save-tpl-btn');
+  if (!btn) return;
+  if (_emEditingTemplateId) {
+    const tpl = (S.emailTemplates||[]).find(t => t.id === _emEditingTemplateId);
+    btn.textContent = '✏️ Actualizar "' + (tpl?.name || 'plantilla') + '"';
+    btn.style.outline = '2px solid var(--accent)';
+  } else {
+    btn.textContent = '💾 Guardar plantilla';
+    btn.style.outline = '';
+  }
+}
+
 function emSaveTemplate() {
   if (!_emBlocks.length) { notify('Agregá bloques primero'); return; }
-  const name = prompt('Nombre de la plantilla:');
-  if (!name) return;
   if (!S.emailTemplates) S.emailTemplates = [];
-  const tpl = { id: 'tpl_'+Date.now(), name, blocks: JSON.parse(JSON.stringify(_emBlocks)), createdAt: new Date().toISOString() };
-  S.emailTemplates.push(tpl);
-  save();
-  emRenderTemplates();
-  notify('✅ Plantilla guardada: ' + name);
+  if (_emEditingTemplateId) {
+    const idx = S.emailTemplates.findIndex(t => t.id === _emEditingTemplateId);
+    if (idx >= 0) {
+      S.emailTemplates[idx].blocks = JSON.parse(JSON.stringify(_emBlocks));
+      S.emailTemplates[idx].updatedAt = new Date().toISOString();
+    }
+    const updName = idx >= 0 ? S.emailTemplates[idx].name : 'plantilla';
+    _emEditingTemplateId = null;
+    _emUpdateSaveBtn();
+    _saveDelta({ emailTemplates: S.emailTemplates });
+    emRenderTemplates();
+    notify('✅ Plantilla actualizada: ' + updName);
+  } else {
+    const name = prompt('Nombre de la plantilla:');
+    if (!name) return;
+    const tpl = { id: 'tpl_'+Date.now(), name, blocks: JSON.parse(JSON.stringify(_emBlocks)), createdAt: new Date().toISOString() };
+    S.emailTemplates.push(tpl);
+    _saveDelta({ emailTemplates: S.emailTemplates });
+    emRenderTemplates();
+    notify('✅ Plantilla guardada: ' + name);
+  }
 }
 
 function emLoadTemplate(id) {
@@ -24071,16 +24247,32 @@ function emLoadTemplate(id) {
   if (!tpl) return;
   _emBlocks = JSON.parse(JSON.stringify(tpl.blocks));
   _emSelectedBlock = null;
+  _emEditingTemplateId = null;
+  _emUpdateSaveBtn();
   emRenderCanvas();
   const p = document.getElementById('em-props');
   if (p) p.innerHTML = '<div style="font-size:11px;color:var(--muted);text-align:center;padding:20px">Seleccioná un bloque para editarlo</div>';
   notify('Plantilla cargada: ' + tpl.name);
 }
 
+function emEditTemplate(id) {
+  const tpl = (S.emailTemplates||[]).find(t => t.id === id);
+  if (!tpl) return;
+  _emBlocks = JSON.parse(JSON.stringify(tpl.blocks));
+  _emSelectedBlock = null;
+  _emEditingTemplateId = id;
+  _emUpdateSaveBtn();
+  emRenderCanvas();
+  const p = document.getElementById('em-props');
+  if (p) p.innerHTML = '<div style="font-size:11px;color:var(--muted);text-align:center;padding:20px">Seleccioná un bloque para editarlo</div>';
+  notify('Editando: ' + tpl.name + ' · Modificá los bloques y hacé click en "Actualizar"');
+}
+
 function emDeleteTemplate(id) {
   if (!confirm('¿Eliminar esta plantilla?')) return;
   S.emailTemplates = (S.emailTemplates||[]).filter(t => t.id !== id);
-  save();
+  if (_emEditingTemplateId === id) { _emEditingTemplateId = null; _emUpdateSaveBtn(); }
+  _saveDelta({ emailTemplates: S.emailTemplates });
   emRenderTemplates();
 }
 
@@ -24090,12 +24282,13 @@ function emRenderTemplates() {
   const templates = S.emailTemplates || [];
   if (!templates.length) { el.innerHTML = '<div style="font-size:11px;color:var(--muted)">Sin plantillas guardadas</div>'; return; }
   el.innerHTML = templates.map(t => `
-    <div style="background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px">
-      <div style="flex:1">
-        <div style="font-size:11px;font-weight:600">${t.name}</div>
+    <div style="background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:6px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name}</div>
         <div style="font-size:10px;color:var(--muted)">${t.blocks?.length||0} bloques · ${new Date(t.createdAt).toLocaleDateString('es-AR')}</div>
       </div>
-      <button class="btn btn-xs" onclick="emLoadTemplate('${t.id}')">Usar</button>
+      <button class="btn btn-xs" onclick="emEditTemplate('${t.id}')" title="Editar bloques de esta plantilla">✏️ Editar</button>
+      <button class="btn btn-xs" onclick="emLoadTemplate('${t.id}')" title="Cargar en editor sin modo edición">Usar</button>
       <button class="btn btn-xs btn-danger" onclick="emDeleteTemplate('${t.id}')">✕</button>
     </div>
   `).join('');
@@ -25137,15 +25330,58 @@ async function initUgcPage(){
   loadCanjesAccesos();
 }
 
+const _UGC_EXTRA_TABS=['briefs','kanjes','collabs']
 function switchUgcTab(tab,btn){
-  // Compatibilidad — ya no oculta secciones, solo filtra solicitudes si corresponde
-  if(tab==='solicitudes') { filterUgcSolicitudes('todas'); return; }
-  if(tab==='canjes')      { document.getElementById('ugc-tab-canjes')?.scrollIntoView({behavior:'smooth'}); return; }
-  if(tab==='creadoras')   { document.getElementById('ugc-tab-creadoras')?.scrollIntoView({behavior:'smooth'}); return; }
-  if(tab==='accesos') {
-    document.getElementById('ugc-tab-accesos')?.scrollIntoView({behavior:'smooth'});
+  // Marcar botón activo
+  document.querySelectorAll('#nav-ugc .nav-tab').forEach(b=>b.classList.remove('active'))
+  if(btn) btn.classList.add('active')
+  else { const b=document.getElementById('ugc-tab-btn-'+tab); if(b)b.classList.add('active'); }
+  // Tabs extra (briefs/kanjes/collabs): ocultar los otros dos, mostrar el activo y renderizar
+  if(_UGC_EXTRA_TABS.includes(tab)){
+    _UGC_EXTRA_TABS.forEach(t=>{const el=document.getElementById('ugc-tab-'+t);if(el)el.style.display=t===tab?'':'none';})
+    if(tab==='briefs') renderBriefs('ugc-briefs-container');
+    else if(tab==='kanjes'){ renderKanban('micro','ugc-kanban-'); renderKanban('top','ugc-kanban-'); }
+    else if(tab==='collabs') renderCollabs('ugc-collabs-activas-grid','ugc-collabs-potenciales-grid');
     return;
   }
+  // Tabs originales: ocultar extra tabs, hacer scroll a la sección
+  _UGC_EXTRA_TABS.forEach(t=>{const el=document.getElementById('ugc-tab-'+t);if(el)el.style.display='none';})
+  if(tab==='solicitudes') filterUgcSolicitudes('todas');
+  const el=document.getElementById('ugc-tab-'+tab); if(el)el.scrollIntoView({behavior:'smooth'});
+}
+
+function switchUgcKanjeTab(tipo, btn) {
+  document.querySelectorAll('[id^="ugc-kanje-btn-"]').forEach(b => b.classList.remove('active'))
+  btn?.classList.add('active')
+  document.getElementById('ugc-kanban-micro').style.display = tipo === 'micro' ? '' : 'none'
+  document.getElementById('ugc-kanban-top').style.display = tipo === 'top' ? '' : 'none'
+}
+function switchUgcCollabTab(tipo, btn) {
+  document.querySelectorAll('[id^="ugc-collab-btn-"]').forEach(b => b.classList.remove('active'))
+  btn?.classList.add('active')
+  document.getElementById('ugc-collabs-activas-grid').style.display = tipo === 'activas' ? '' : 'none'
+  document.getElementById('ugc-collabs-potenciales-grid').style.display = tipo === 'potenciales' ? '' : 'none'
+}
+function _syncUgcBriefs() {
+  const src = document.getElementById('briefs-container')
+  const dst = document.getElementById('ugc-briefs-container')
+  if (src && dst) dst.innerHTML = src.innerHTML
+}
+function _syncUgcKanban() {
+  const syncEl = (srcId, dstId) => {
+    const src = document.getElementById(srcId); const dst = document.getElementById(dstId)
+    if (src && dst) dst.innerHTML = src.innerHTML
+  }
+  syncEl('kanban-micro', 'ugc-kanban-micro')
+  syncEl('kanban-top', 'ugc-kanban-top')
+}
+function _syncUgcCollabs() {
+  const syncEl = (srcId, dstId) => {
+    const src = document.getElementById(srcId); const dst = document.getElementById(dstId)
+    if (src && dst) dst.innerHTML = src.innerHTML
+  }
+  syncEl('collabs-activas-grid', 'ugc-collabs-activas-grid')
+  syncEl('collabs-potenciales-grid', 'ugc-collabs-potenciales-grid')
 }
 
 async function loadUgcStats(){
@@ -25250,7 +25486,7 @@ function filterUgcSolicitudes(f,btn){
 }
 
 const _UGC_SOL_COL={solicitado:'var(--gold)',pendiente_envio:'#4a9eff',aceptado:'#4a9eff',enviado:'var(--green)',pendiente_publicacion:'var(--gold)',realizada:'var(--green)',entregado:'var(--green)',rechazado:'var(--coral)',vencido:'var(--coral)'};
-const _UGC_SOL_LBL={solicitado:'En revisión',pendiente_envio:'Aceptada',aceptado:'Aceptada',enviado:'Enviado',pendiente_publicacion:'Esperando publicación',realizada:'Realizada ✓',entregado:'Realizada ✓',rechazado:'Rechazada',vencido:'Vencida'};
+const _UGC_SOL_LBL={solicitado:'En revisión',pendiente_envio:'Aceptada',aceptado:'Aceptada',enviado:'Enviado',pendiente_publicacion:'Esperando publicación',realizada:'Realizada ✓',entregado:'Realizada ✓',rechazado:'Rechazada',vencido:'Vencida',esperando_confirmacion:'Esperando confirmación'};
 
 function renderUgcSolicitudes(){
   const el=document.getElementById('ugc-solicitudes-list'); if(!el)return;
@@ -25390,6 +25626,87 @@ function _renderSeguimiento(semanas, comprometidas, mesLabel){
 
 let _ugcSeguimientoMap = {}
 let _ugcCreadoras = []
+let _ugcCreadorasFiltro = 'todas'
+
+function filterUgcCreadoras(filtro, btn) {
+  _ugcCreadorasFiltro = filtro
+  document.querySelectorAll('#ugc-creadoras-filters .btn').forEach(b => {
+    b.style.background = ''; b.style.color = ''
+  })
+  if (btn) { btn.style.background = 'var(--accent)'; btn.style.color = '#fff' }
+  _renderUgcCreadoras()
+}
+
+function _renderUgcCreadoras() {
+  const el = document.getElementById('ugc-creadoras-list'); if (!el) return
+  const list = _ugcCreadoras.filter(c => {
+    if (_ugcCreadorasFiltro === 'todas') return true
+    if (_ugcCreadorasFiltro === 'con_acuerdo') return c.acuerdo != null
+    if (_ugcCreadorasFiltro === 'acciones_activas') return c.acuerdo?.acciones?.some(a => !a.completado)
+    if (_ugcCreadorasFiltro === 'sin_acuerdo') return !c.acuerdo
+    if (_ugcCreadorasFiltro === 'sin_actividad') return !c.acuerdo
+    if (_ugcCreadorasFiltro === 'alta_performance') return (c.score || 0) >= 4
+    if (_ugcCreadorasFiltro === 'con_campana') return true
+    return true
+  })
+  const now = new Date(); const mesLabel = _MESES[now.getMonth()] + ' ' + now.getFullYear()
+  if (!list.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:24px;text-align:center;background:var(--s1);border-radius:10px;border:1px dashed var(--border2)">Sin creadoras para este filtro</div>'
+    return
+  }
+  el.innerHTML = list.map((c) => {
+    const a = c.acuerdo
+    const semanas = _ugcSeguimientoMap[c.id] || [0,0,0,0,0]
+    const comprometidas = a?.acciones_comprometidas_mes || null
+    return `<div style="background:var(--s1);border:1px solid var(--border2);border-radius:12px;padding:16px 18px;margin-bottom:12px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:700;color:var(--text)">${c.nombre||'Sin nombre'}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">📱 ${c.telefono}</div>
+          <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
+            ${c.instagram_url?`<a href="${c.instagram_url}" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">📷 Instagram</a>`:''}
+            ${c.drive_link?`<a href="${c.drive_link}" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">📁 Drive</a>`:''}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+          <button class="btn btn-xs" onclick="openAcuerdoModal('${c.id}')" title="Editar acuerdo">📝 Acuerdo</button>
+          <button class="btn btn-xs" onclick="openDriveLinkModal('${c.id}')" title="Link de Drive">📁 Drive</button>
+          <button class="btn btn-xs" onclick="deleteUgcCreadora('${c.id}',_ugcCreadoras.find(x=>x.id==='${c.id}')?.nombre||'')" style="color:var(--coral);opacity:.6" title="Eliminar">🗑</button>
+        </div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <div style="display:flex;gap:2px" title="Puntuación de desempeño (interno)">
+          ${[1,2,3,4,5].map(n=>`<span onclick="setUgcCreadoraScore('${c.id}',${n})" style="cursor:pointer;font-size:16px;opacity:${(c.score||0)>=n?1:.25}">⭐</span>`).join('')}
+        </div>
+        <div style="flex:1;min-width:0">
+          <input value="${(c.utm_link||'').replace(/"/g,'&quot;')}" placeholder="Link UTM..."
+            style="width:100%;font-size:10px;padding:4px 8px;background:var(--s2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit"
+            onblur="saveUgcCreadoraMeta('${c.id}','utm_link',this.value)"
+            onclick="event.stopPropagation()">
+        </div>
+      </div>
+      <div style="margin-top:8px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+        ${['ventas','impresiones','clicks'].map(key=>`
+        <div style="background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:5px 8px">
+          <div style="font-size:9px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${key.charAt(0).toUpperCase()+key.slice(1)}</div>
+          <input type="text" value="${((c.resultados||{})[key]||'')}" placeholder="—"
+            style="width:100%;font-size:12px;font-weight:700;background:transparent;border:none;color:var(--text);font-family:inherit;padding:0"
+            onblur="saveUgcCreadoraResultado('${c.id}','${key}',this.value)"
+            onclick="event.stopPropagation()">
+        </div>`).join('')}
+      </div>
+      ${a ? `<div style="margin-top:12px;padding:10px 12px;background:var(--s2);border-radius:8px;border:1px solid var(--border);font-size:12px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <span style="font-weight:700;color:var(--text)">${_TIPO_ACUERDO_LABEL[a.tipo]||a.tipo}</span>
+          ${a.monto_fijo_mensual!=null?`<span style="color:var(--muted)">$${Number(a.monto_fijo_mensual).toLocaleString('es-AR')}/mes</span>`:''}
+          ${a.acciones_comprometidas_mes!=null?`<span style="background:var(--s1);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:11px;color:var(--text)">${a.acciones_comprometidas_mes} acciones/mes</span>`:''}
+        </div>
+        ${a.notas?`<div style="margin-top:6px;color:var(--muted);font-size:11px">${a.notas}</div>`:''}
+      </div>` : `<div style="margin-top:10px;font-size:11px;color:var(--muted);font-style:italic">Sin acuerdo cargado — <button class="btn btn-xs" style="font-size:11px;padding:2px 8px" onclick="openAcuerdoModal('${c.id}')">+ Agregar</button></div>`}
+      ${(a?.acciones_comprometidas_mes||semanas.some(n=>n>0)) ? _renderSeguimiento(semanas, comprometidas, mesLabel) : ''}
+    </div>`
+  }).join('')
+}
 
 async function loadUgcCreadoras(){
   const el=document.getElementById('ugc-creadoras-list'); if(!el)return;
@@ -25407,43 +25724,14 @@ async function loadUgcCreadoras(){
       return;
     }
     _ugcCreadoras = list
-    const now=new Date(); const mesLabel=_MESES[now.getMonth()]+' '+now.getFullYear()
-    el.innerHTML=list.map((c,i)=>{
-      const a=c.acuerdo
-      const semanas=_ugcSeguimientoMap[c.id]||[0,0,0,0,0]
-      const comprometidas=a?.acciones_comprometidas_mes||null
-      return `<div style="background:var(--s1);border:1px solid var(--border2);border-radius:12px;padding:16px 18px;margin-bottom:12px">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:700;color:var(--text)">${c.nombre||'Sin nombre'}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px">📱 ${c.telefono}</div>
-            <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
-              ${c.instagram_url?`<a href="${c.instagram_url}" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">📷 Instagram</a>`:''}
-              ${c.drive_link?`<a href="${c.drive_link}" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">📁 Drive</a>`:''}
-            </div>
-          </div>
-          <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
-            <button class="btn btn-xs" onclick="openAcuerdoModal('${c.id}')" title="Editar acuerdo">📝 Acuerdo</button>
-            <button class="btn btn-xs" onclick="openDriveLinkModal('${c.id}')" title="Link de Drive">📁 Drive</button>
-            <button class="btn btn-xs" onclick="deleteUgcCreadora('${c.id}',_ugcCreadoras.find(x=>x.id==='${c.id}')?.nombre||'')" style="color:var(--coral);opacity:.6" title="Eliminar">🗑</button>
-          </div>
-        </div>
-        ${a ? `<div style="margin-top:12px;padding:10px 12px;background:var(--s2);border-radius:8px;border:1px solid var(--border);font-size:12px">
-          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-            <span style="font-weight:700;color:var(--text)">${_TIPO_ACUERDO_LABEL[a.tipo]||a.tipo}</span>
-            ${a.monto_fijo_mensual!=null?`<span style="color:var(--muted)">$${Number(a.monto_fijo_mensual).toLocaleString('es-AR')}/mes</span>`:''}
-            ${a.acciones_comprometidas_mes!=null?`<span style="background:var(--s1);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:11px;color:var(--text)">${a.acciones_comprometidas_mes} acciones/mes</span>`:''}
-          </div>
-          ${a.notas?`<div style="margin-top:6px;color:var(--muted);font-size:11px">${a.notas}</div>`:''}
-        </div>` : `<div style="margin-top:10px;font-size:11px;color:var(--muted);font-style:italic">Sin acuerdo cargado — <button class="btn btn-xs" style="font-size:11px;padding:2px 8px" onclick="openAcuerdoModal('${c.id}')">+ Agregar</button></div>`}
-        ${(a?.acciones_comprometidas_mes||semanas.some(n=>n>0)) ? _renderSeguimiento(semanas, comprometidas, mesLabel) : ''}
-      </div>`
-    }).join('')
+    _renderUgcCreadoras()
   }catch(e){console.error(e);el.innerHTML='<div style="color:var(--coral);font-size:12px">Error al cargar creadoras</div>';}
 }
 
 // ── Modal: acuerdo ────────────────────────────────────────────
 let _acuerdoModalId=null
+let _acuerdoBrief=[] // [{tipo, cantidad}]
+
 function openAcuerdoModal(id){
   _acuerdoModalId=id
   const c=_ugcCreadoras.find(x=>x.id===id)||{}
@@ -25451,9 +25739,13 @@ function openAcuerdoModal(id){
   document.getElementById('acuerdo-modal-title').textContent='Acuerdo con '+(c.nombre||c.telefono||id)
   document.getElementById('acuerdo-tipo').value=a?.tipo||'canje'
   document.getElementById('acuerdo-monto').value=a?.monto_fijo_mensual??''
-  document.getElementById('acuerdo-acciones').value=a?.acciones_comprometidas_mes??''
+  document.getElementById('acuerdo-frecuencia').value=a?.frecuencia||'mensual'
+  document.getElementById('acuerdo-fecha-fin').value=a?.fecha_fin?a.fecha_fin.slice(0,10):''
   document.getElementById('acuerdo-notas').value=a?.notas||''
   document.getElementById('acuerdo-err').textContent=''
+  // Load existing brief
+  _acuerdoBrief=(a?.brief||[]).map(b=>({tipo:b.tipo,cantidad:parseInt(b.cantidad)||1}))
+  _renderAcuerdoBrief()
   _onAcuerdoTipoChange()
   document.getElementById('acuerdo-modal').style.display='flex'
 }
@@ -25461,16 +25753,51 @@ function closeAcuerdoModal(){document.getElementById('acuerdo-modal').style.disp
 function _onAcuerdoTipoChange(){
   const t=document.getElementById('acuerdo-tipo').value
   document.getElementById('acuerdo-monto-row').style.display=(t==='fijo_mensual'||t==='fijo_comision')?'':'none'
+  document.getElementById('acuerdo-frecuencia-row').style.display=t==='unico'?'none':''
+}
+function _renderAcuerdoBrief(){
+  const el=document.getElementById('acuerdo-brief-list')
+  if(!el)return
+  if(!_acuerdoBrief.length){el.innerHTML='<div style="font-size:11px;color:var(--muted);font-style:italic">Sin acciones definidas — usá los botones de abajo</div>';return}
+  el.innerHTML=_acuerdoBrief.map((b,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:8px 10px">
+      <span style="flex:1;font-size:13px;font-weight:600">${b.tipo}</span>
+      <input type="number" min="1" max="99" value="${b.cantidad}"
+        onchange="_acuerdoBrief[${i}].cantidad=parseInt(this.value)||1"
+        style="width:60px;padding:4px 8px;background:var(--s1);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:13px;text-align:center">
+      <button onclick="_acuerdoBrief.splice(${i},1);_renderAcuerdoBrief()" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0 4px;line-height:1">×</button>
+    </div>`).join('')
+}
+function _addAcuerdoBrief(tipo){
+  const exists=_acuerdoBrief.find(b=>b.tipo===tipo)
+  if(exists){exists.cantidad++;_renderAcuerdoBrief();return}
+  _acuerdoBrief.push({tipo,cantidad:1})
+  _renderAcuerdoBrief()
+}
+function _addAcuerdoBriefCustom(){
+  const tipo=prompt('Nombre de la acción (ej: Unboxing, YouTube Short, etc.):')
+  if(!tipo?.trim())return
+  _addAcuerdoBrief(tipo.trim())
 }
 async function saveAcuerdo(){
   if(!_acuerdoModalId)return
   const btn=document.getElementById('acuerdo-save-btn')
   btn.disabled=true; btn.textContent='Guardando...'
+  // Build acciones array: one entry per unit (brief says "3 Stories" → 3 action items)
+  const acciones=[]
+  _acuerdoBrief.forEach(b=>{
+    for(let i=0;i<b.cantidad;i++){
+      acciones.push({id:`${b.tipo}-${i+1}`,tipo:b.tipo,num:i+1,completado:false,fecha:null,link:''})
+    }
+  })
   const body={
     tipo:document.getElementById('acuerdo-tipo').value,
     monto_fijo_mensual:document.getElementById('acuerdo-monto').value||null,
-    acciones_comprometidas_mes:document.getElementById('acuerdo-acciones').value||null,
-    notas:document.getElementById('acuerdo-notas').value||null
+    frecuencia:document.getElementById('acuerdo-frecuencia').value||'mensual',
+    fecha_fin:document.getElementById('acuerdo-fecha-fin').value||null,
+    notas:document.getElementById('acuerdo-notas').value||null,
+    brief:_acuerdoBrief,
+    acciones,
   }
   try{
     const r=await fetch(`/api/admin/ugc/creadoras/${_acuerdoModalId}/acuerdo`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
@@ -25508,6 +25835,32 @@ async function saveDriveLink(){
     loadUgcCreadoras()
   }catch(e){document.getElementById('drive-link-err').textContent=e.message}
   finally{btn.disabled=false;btn.textContent='Guardar'}
+}
+
+async function setUgcCreadoraScore(id, score) {
+  const c = _ugcCreadoras.find(x => x.id === id)
+  const newScore = (c?.score || 0) === score ? 0 : score
+  await saveUgcCreadoraMeta(id, 'score', newScore)
+}
+async function saveUgcCreadoraMeta(id, field, value) {
+  try {
+    const r = await fetch(`/api/admin/ugc/creadoras/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [field]: value })
+    })
+    const d = await r.json()
+    if (!d.ok) { notify('Error al guardar'); return }
+    const c = _ugcCreadoras.find(x => x.id === id)
+    if (c) c[field] = value
+    if (field === 'score') _renderUgcCreadoras()
+  } catch(e) { notify('Error de conexión') }
+}
+async function saveUgcCreadoraResultado(id, key, value) {
+  const c = _ugcCreadoras.find(x => x.id === id)
+  if (!c) return
+  const resultados = { ...(c.resultados || {}), [key]: value }
+  c.resultados = resultados
+  await saveUgcCreadoraMeta(id, 'resultados', resultados)
 }
 
 let _ugcPortadaPending=null;
@@ -25575,8 +25928,31 @@ function openUgcCanjeModal(canje){
     entregas:Array.isArray(rawBrief)?JSON.parse(JSON.stringify(rawBrief)):_convertOldBriefToArray(rawBrief),
     imagenes:Array.isArray(canje?.imagenes)?JSON.parse(JSON.stringify(canje.imagenes)):[]
   };
+  setUgcMode('publicar')
+  const cbContainer = document.getElementById('ugc-creadora-checkboxes')
+  if (cbContainer) {
+    cbContainer.innerHTML = (_ugcCreadoras || []).map(c =>
+      `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+        <input type="checkbox" value="${c.id}" style="width:14px;height:14px">
+        <span>${c.nombre || c.telefono || c.id}</span>
+        ${c.acuerdo ? '<span style="font-size:10px;color:var(--muted)">· Con acuerdo</span>' : ''}
+      </label>`
+    ).join('') || '<div style="color:var(--muted);font-size:12px">Sin creadoras registradas</div>'
+  }
   modal.style.display='flex';
   setTimeout(()=>{_renderUgcEntregas();_renderUgcImagenes();},30);
+}
+
+let _ugcMode = 'publicar'
+function setUgcMode(mode) {
+  _ugcMode = mode
+  document.getElementById('ugc-mode-publicar').style.background = mode === 'publicar' ? 'var(--accent)' : 'var(--s2)'
+  document.getElementById('ugc-mode-publicar').style.color = mode === 'publicar' ? '#fff' : 'var(--muted)'
+  document.getElementById('ugc-mode-enviar').style.background = mode === 'enviar' ? 'var(--accent)' : 'var(--s2)'
+  document.getElementById('ugc-mode-enviar').style.color = mode === 'enviar' ? '#fff' : 'var(--muted)'
+  document.getElementById('ugc-creadora-selector').style.display = mode === 'enviar' ? '' : 'none'
+  const btn = document.getElementById('ugc-form-save-btn')
+  if (btn) btn.textContent = mode === 'publicar' ? 'Publicar campaña' : 'Enviar a seleccionadas'
 }
 
 function closeUgcModal(){
@@ -25627,6 +26003,16 @@ async function saveUgcCanje(){
     const r=await fetch(url,{method:id?'PATCH':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const d=await r.json();
     if(!d.ok){document.getElementById('ugc-form-err').textContent=d.error||'Error al guardar';btn.disabled=false;btn.textContent=id?'Guardar cambios':'Publicar campaña';return;}
+    if (_ugcMode === 'enviar' && d.id) {
+      const selected = [...document.querySelectorAll('#ugc-creadora-checkboxes input:checked')].map(cb => cb.value)
+      if (selected.length > 0) {
+        await fetch('/api/admin/ugc/canjes/' + d.id + '/enviar-directo', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ creadora_ids: selected })
+        }).catch(() => {})
+        notify(`Oferta enviada a ${selected.length} creadora${selected.length>1?'s':''}`)
+      }
+    }
     closeUgcModal();
     await loadUgcStats();
     loadUgcCanjes();
@@ -26807,6 +27193,32 @@ function switchTNBTab(tab, btn) {
   else if (tab === 'stock') loadTNBStock()
   else if (tab === 'cashback') renderTNBCashback()
   else if (tab === 'resenias') renderTNBResenias()
+  else if (tab === 'popup') renderTNBPopup()
+}
+
+// Tabs that need full CRM + finanzas data
+const _TNB_CRM_TABS = new Set(['clientes', 'contactos', 'cashback'])
+
+async function _loadTNBCRMData() {
+  if (_tnbLoaded) return
+  const fetchAll = async () => {
+    const all = []; let off = 0; const PAGE = 1000
+    while (true) {
+      const res = await fetch(`/api/crm?wsId=${encodeURIComponent(_activeWsId)}&limit=${PAGE}&offset=${off}`).then(r=>r.json()).catch(()=>({contacts:[]}))
+      const batch = res.contacts || []
+      all.push(...batch)
+      if (batch.length < PAGE) break
+      off += PAGE
+    }
+    return all
+  }
+  const [allContacts, finRes] = await Promise.all([
+    fetchAll(),
+    fetch(`/api/finanzas?wsId=${_activeWsId}&tipo=ingreso&limit=2000`).then(r=>r.json()).catch(()=>({orders:[]}))
+  ])
+  _tnbCRMData = allContacts
+  _tnbFinanzasData = (finRes.orders || []).filter(f => f.categoria === 'Ventas tienda')
+  _tnbLoaded = true
 }
 
 async function initTNBPage(tab = 'clientes') {
@@ -26821,16 +27233,8 @@ async function initTNBPage(tab = 'clientes') {
   document.querySelectorAll('.sb-item[id^="sbi-tnb-"]').forEach(b => b.classList.remove('active'))
   document.getElementById('sbi-tnb-' + tab)?.classList.add('active')
 
-  // Load base data from Supabase (crm/finanzas now live there, not in workspace blob)
-  if (!_tnbLoaded) {
-    const [crmRes, finRes] = await Promise.all([
-      fetch(`/api/crm?wsId=${_activeWsId}&limit=2000`).then(r => r.json()).catch(() => ({ contacts: [] })),
-      fetch(`/api/finanzas?wsId=${_activeWsId}&tipo=ingreso&limit=2000`).then(r => r.json()).catch(() => ({ orders: [] }))
-    ])
-    _tnbCRMData = crmRes.contacts || []
-    _tnbFinanzasData = (finRes.orders || []).filter(f => f.categoria === 'Ventas tienda')
-    _tnbLoaded = true
-  }
+  // Only load heavy CRM data when a tab that needs it is activated
+  if (_TNB_CRM_TABS.has(tab)) await _loadTNBCRMData()
 
   if (tab === 'clientes') renderTNBClientes()
   else if (tab === 'contactos') renderTNBContactos()
@@ -26839,6 +27243,62 @@ async function initTNBPage(tab = 'clientes') {
   else if (tab === 'stock') { await loadTNBStock() }
   else if (tab === 'cashback') renderTNBCashback()
   else if (tab === 'resenias') renderTNBResenias()
+  else if (tab === 'popup') renderTNBPopup()
+}
+
+async function renderTNBPopup() {
+  const statsEl = document.getElementById('tnb-popup-stats')
+  const listEl  = document.getElementById('tnb-popup-list')
+  if (!statsEl || !listEl) return
+  statsEl.innerHTML = '<div style="grid-column:1/-1;color:var(--muted);font-size:13px">Cargando…</div>'
+  listEl.innerHTML = ''
+  const wsId = _activeWsId
+  if (!wsId) return
+  try {
+    const res = await fetch(`/api/admin/popup-stats?wsId=${encodeURIComponent(wsId)}`).then(r => r.json())
+    const { total = 0, subs = [] } = res
+
+    statsEl.innerHTML = `
+      <div class="stat-card"><div class="stat-val">${total}</div><div class="stat-label">Suscriptores totales</div></div>
+      <div class="stat-card"><div class="stat-val">${subs.filter(s => s.wapp).length}</div><div class="stat-label">Con WhatsApp</div></div>
+      <div class="stat-card"><div class="stat-val">${subs.filter(s => s.creado >= new Date(Date.now()-30*86400000).toISOString().slice(0,10)).length}</div><div class="stat-label">Últimos 30 días</div></div>
+    `
+
+    if (!subs.length) {
+      listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:20px 0">Todavía no hay suscriptores del popup.</div>'
+      return
+    }
+
+    listEl.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="border-bottom:2px solid var(--border);text-align:left">
+            <th style="padding:8px 12px;color:var(--muted);font-weight:600">Nombre</th>
+            <th style="padding:8px 12px;color:var(--muted);font-weight:600">WhatsApp</th>
+            <th style="padding:8px 12px;color:var(--muted);font-weight:600">Email</th>
+            <th style="padding:8px 12px;color:var(--muted);font-weight:600">Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${subs.map(s => `
+            <tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:9px 12px;font-weight:500">${s.nombre || '<span style="color:var(--muted)">—</span>'}</td>
+              <td style="padding:9px 12px">
+                ${s.wapp
+                  ? `<a href="https://wa.me/${s.wapp.replace(/\D/g,'')}" target="_blank" style="color:var(--accent);font-family:monospace">${s.wapp}</a>`
+                  : '<span style="color:var(--muted)">—</span>'}
+              </td>
+              <td style="padding:9px 12px;color:var(--muted)">${s.email || '—'}</td>
+              <td style="padding:9px 12px;color:var(--muted)">${s.creado || '—'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `
+  } catch(e) {
+    statsEl.innerHTML = ''
+    listEl.innerHTML = `<div style="color:var(--error,#e55);font-size:13px">Error cargando datos: ${e.message}</div>`
+  }
 }
 
 function _tnbGetCustomerOrders(email) {
@@ -26867,19 +27327,37 @@ function _tnbNivelBadge(xp) {
   return '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:9px;background:rgba(205,127,50,.15);color:#92400e">🥉 Bronze</span>'
 }
 
-function renderTNBClientes() {
-  const search = (document.getElementById('tnb-clientes-search')?.value || '').toLowerCase()
-  const filter = document.getElementById('tnb-clientes-filter')?.value || ''
+// Merged stats: uses finanzas orders when available, falls back to contact fields
+function _tnbMergedStats(c) {
+  const ordersStats = _tnbCustomerStats(c.email)
+  if (ordersStats.count > 0) return ordersStats
+  // Fallback to data stored on the contact itself (set during TN order sync)
+  const count = parseInt(c.cantCompras || c.cantidadCompras || 0)
+  const total = parseFloat(c.valorTotal || c.valor || 0)
+  const last = c.ultimaCompra || ''
   const now = new Date().toISOString().slice(0, 10)
   const d30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
   const d60 = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10)
+  return {
+    orders: [], count, total, last,
+    isActive: !!last && last >= d30,
+    isRiesgo: !!last && last < d60,
+    avgTicket: count > 0 ? total / count : 0
+  }
+}
 
-  // Only contacts who have at least 1 order
+function renderTNBClientes() {
+  const search = (document.getElementById('tnb-clientes-search')?.value || '').toLowerCase()
+  const filter = document.getElementById('tnb-clientes-filter')?.value || ''
+  const d30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
+  const d60 = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10)
+
+  // Contacts with at least 1 purchase (orders in finanzas OR cantCompras field on contact)
   let clientes = _tnbCRMData.filter(c => {
-    if (!c.email) return false
-    const stats = _tnbCustomerStats(c.email)
-    return stats.count > 0
-  }).map(c => ({ c, stats: _tnbCustomerStats(c.email) }))
+    const buyerInOrders = c.email && _tnbGetCustomerOrders(c.email).length > 0
+    const buyerByField = parseInt(c.cantCompras || c.cantidadCompras || 0) > 0
+    return buyerInOrders || buyerByField
+  }).map(c => ({ c, stats: _tnbMergedStats(c) }))
 
   // Search
   if (search) clientes = clientes.filter(({ c }) => (c.nombre || '').toLowerCase().includes(search) || (c.email || '').toLowerCase().includes(search))
@@ -26923,8 +27401,8 @@ function renderTNBClientes() {
       if (stats.isRiesgo) badges.push('<span style="font-size:10px;background:rgba(245,158,11,.1);color:#d97706;padding:2px 7px;border-radius:9px;font-weight:700">⚠️ Riesgo</span>')
       if (stats.isActive) badges.push('<span style="font-size:10px;background:rgba(22,163,74,.1);color:#16a34a;padding:2px 7px;border-radius:9px;font-weight:700">✅ Activo</span>')
       if (stats.count >= 5) badges.push('<span style="font-size:10px;background:rgba(124,58,237,.1);color:#7c3aed;padding:2px 7px;border-radius:9px;font-weight:700">⭐ VIP</span>')
-      return `<tr style="cursor:pointer" onclick="openTNBClientDrawer('${c.id||c.email}')">
-        <td><div style="font-weight:600">${c.nombre || '—'}</div><div style="font-size:11px;color:var(--muted)">${c.email || ''}</div></td>
+      return `<tr style="cursor:pointer" onclick="openContactProfile('${c.id||c.email}')">
+        <td><div style="font-weight:600">${c.nombre || '—'}</div><div style="font-size:11px;color:var(--muted)">${c.email || ''}</div>${c.tel ? `<div style="font-size:11px;color:var(--muted)">${c.tel}</div>` : ''}</td>
         <td style="font-weight:700">${stats.count}</td>
         <td style="font-weight:700">$${stats.total.toLocaleString('es-AR',{maximumFractionDigits:0})}</td>
         <td>$${stats.avgTicket.toLocaleString('es-AR',{maximumFractionDigits:0})}</td>
@@ -26932,7 +27410,7 @@ function renderTNBClientes() {
         <td style="font-size:12px">${prodVistas > 0 ? '👁 ' + prodVistas : '—'}</td>
         <td>${_tnbNivelBadge(xp)}</td>
         <td style="display:flex;gap:4px;flex-wrap:wrap">${badges.join('')}</td>
-        <td><button class="btn btn-xs" onclick="event.stopPropagation();openTNBClientDrawer('${c.id||c.email}')">Ver →</button></td>
+        <td><button class="btn btn-xs" onclick="event.stopPropagation();openContactProfile('${c.id||c.email}')">Ver perfil →</button></td>
       </tr>`
     }).join('')}
     </tbody>
@@ -27049,26 +27527,246 @@ function renderTNBContactos() {
       const stats = _tnbCustomerStats(c.email)
       const views = c.productViews || []
       const topProd = views[0]?.nombre || '—'
-      return `<tr>
-        <td style="font-weight:600">${c.nombre || '—'}</td>
+      const mStats = _tnbMergedStats(c)
+      return `<tr style="cursor:pointer" onclick="openContactProfile('${c.id||c.email}')">
+        <td><div style="font-weight:600">${c.nombre || '—'}</div><div style="font-size:10px;color:var(--muted)">${c.etapa || c.canal || ''}</div></td>
         <td><div style="font-size:11px">${c.email || ''}</div><div style="font-size:11px;color:var(--muted)">${c.tel || ''}</div></td>
         <td style="font-size:11px;color:var(--muted)">${c.ultimaVisita ? new Date(c.ultimaVisita).toLocaleDateString('es-AR') : '—'}</td>
         <td style="font-size:12px">${views.length > 0 ? `<span title="${views.slice(0,3).map(p=>p.nombre).join(', ')}">👁 ${views.length} (${topProd.slice(0,20)})</span>` : '—'}</td>
         <td style="font-size:12px">${c.carritoAbandonado ? '<span style="color:#dc2626;font-weight:700">🛒 Sí</span>' : '—'}</td>
-        <td style="font-weight:700">${stats.count > 0 ? stats.count + ' ($' + stats.total.toLocaleString('es-AR',{maximumFractionDigits:0}) + ')' : '—'}</td>
+        <td style="font-weight:700">${mStats.count > 0 ? mStats.count + ' ($' + mStats.total.toLocaleString('es-AR',{maximumFractionDigits:0}) + ')' : '—'}</td>
         <td style="font-size:11px;color:var(--muted)">${c.canal || c.etapa || '—'}</td>
-        <td>${c.tel ? `<a href="https://wa.me/${(c.tel||'').replace(/\D/g,'')}" target="_blank" class="btn btn-xs">💬</a>` : ''}</td>
+        <td style="display:flex;gap:4px" onclick="event.stopPropagation()">
+          ${c.tel ? `<a href="https://wa.me/${(c.tel||'').replace(/\D/g,'')}" target="_blank" class="btn btn-xs">💬</a>` : ''}
+          <button class="btn btn-xs" onclick="openContactProfile('${c.id||c.email}')">Ver →</button>
+        </td>
       </tr>`
     }).join('')}
     </tbody>
   </table>`
 }
 
+// ══════════════════════════════════════════════════════════════
+// CONTACT PROFILE MODAL
+// ══════════════════════════════════════════════════════════════
+let _cpContact = null
+
+function openContactProfile(idOrEmail) {
+  const c = _tnbCRMData.find(x => x.id === idOrEmail || x.email === idOrEmail)
+  if (!c) return
+  _cpContact = { ...c }
+  const stats = _tnbMergedStats(c)
+  const orders = _tnbGetCustomerOrders(c.email)
+  const xp = c.xp || Math.floor(stats.total / 100)
+  const vldCode = c.id ? 'VLD-' + c.id.replace(/\W/g,'').slice(-6).toUpperCase() : ''
+  const waBase = `https://wa.me/${(c.tel||'').replace(/\D/g,'')}`
+  const etapas = ['lead','contactado','interesado','cliente','recurrente','inactivo']
+
+  document.getElementById('cp-nombre-display').textContent = c.nombre || c.email || '—'
+  document.getElementById('cp-sub').innerHTML = `
+    ${c.email ? `<span>✉ ${c.email}</span>` : ''}
+    ${c.tel ? `&nbsp;·&nbsp;<span>📱 ${c.tel}</span>` : ''}
+    ${c.canal ? `&nbsp;·&nbsp;<span>📌 ${c.canal}</span>` : ''}
+    ${vldCode ? `&nbsp;·&nbsp;<span style="font-weight:700;color:var(--accent)">${vldCode}</span>` : ''}`
+
+  const kpis = [
+    ['🛍', stats.count, 'Pedidos'],
+    ['💰', '$' + stats.total.toLocaleString('es-AR',{maximumFractionDigits:0}), 'Revenue'],
+    ['🎯', '$' + stats.avgTicket.toLocaleString('es-AR',{maximumFractionDigits:0}), 'Ticket prom.'],
+    ['⭐', xp, 'XP'],
+    ['💵', '$' + (c.cashback||0), 'Cashback'],
+    ['📅', stats.last || '—', 'Últ. compra'],
+  ]
+
+  const ordersHtml = orders.length ? `
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="border-bottom:1px solid var(--border)">
+        <th style="text-align:left;padding:4px 8px;color:var(--muted);font-weight:600">Fecha</th>
+        <th style="text-align:left;padding:4px 8px;color:var(--muted);font-weight:600">Concepto</th>
+        <th style="text-align:right;padding:4px 8px;color:var(--muted);font-weight:600">Monto</th>
+      </tr></thead>
+      <tbody>${orders.slice(0,15).map(o => `<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:5px 8px;color:var(--muted)">${o.fecha||'—'}</td>
+        <td style="padding:5px 8px">${o.concepto||o.notas||'—'}</td>
+        <td style="padding:5px 8px;text-align:right;font-weight:600">$${(o.monto||0).toLocaleString('es-AR',{maximumFractionDigits:0})}</td>
+      </tr>`).join('')}</tbody>
+    </table>` : '<div style="color:var(--muted);font-size:12px;padding:12px 0">Sin pedidos registrados</div>'
+
+  const views = c.productViews || []
+  const viewsHtml = views.length ? views.slice(0,8).map(p =>
+    `<span style="font-size:11px;background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:3px 8px">${p.nombre||p.id||'—'}</span>`
+  ).join('') : '<span style="color:var(--muted);font-size:12px">Ninguno</span>'
+
+  const cartHtml = c.carritoAbandonado ? `
+    <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:12px 14px">
+      <div style="font-size:11px;font-weight:700;color:#dc2626;margin-bottom:6px">🛒 Carrito abandonado — ${c.cartDate||''}</div>
+      ${(c.cartAdds||c.ultimoCarritoItems||[]).slice(0,4).map(i=>`<div style="font-size:12px;color:var(--text)">${i.nombre||i.name||'—'}${i.qty||i.quantity?` × ${i.qty||i.quantity}`:''}</div>`).join('')}
+      ${c.valorAbandonado ? `<div style="font-size:12px;font-weight:700;margin-top:6px">Total: $${parseFloat(c.valorAbandonado).toLocaleString('es-AR',{maximumFractionDigits:0})}</div>` : ''}
+      ${c.tel ? `<a href="${waBase}?text=${encodeURIComponent('Hola '+c.nombre+'! Te dejaste productos en el carrito de SOULAB 🛒 ¿Necesitás ayuda para completar tu compra?')}" target="_blank" style="display:inline-block;margin-top:8px;font-size:11px;background:#25d366;color:#fff;border-radius:6px;padding:5px 12px;text-decoration:none;font-weight:700">💬 Recuperar carrito</a>` : ''}
+    </div>` : ''
+
+  document.getElementById('cp-body').innerHTML = `
+    <!-- KPIs -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-bottom:20px">
+      ${kpis.map(([e,v,l])=>`<div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:18px">${e}</div>
+        <div style="font-size:15px;font-weight:800;margin:3px 0">${v}</div>
+        <div style="font-size:10px;color:var(--muted)">${l}</div>
+      </div>`).join('')}
+    </div>
+
+    <!-- Editable fields -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">NOMBRE</label>
+        <input id="cp-edit-nombre" value="${(c.nombre||'').replace(/"/g,'&quot;')}" style="width:100%;box-sizing:border-box;background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);font-family:inherit">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">TELÉFONO</label>
+        <input id="cp-edit-tel" value="${c.tel||''}" style="width:100%;box-sizing:border-box;background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);font-family:inherit">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">ETAPA</label>
+        <select id="cp-edit-etapa" style="width:100%;box-sizing:border-box;background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);font-family:inherit">
+          ${etapas.map(e=>`<option value="${e}" ${(c.etapa||'').toLowerCase()===e?'selected':''}>${e.charAt(0).toUpperCase()+e.slice(1)}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">CANAL</label>
+        <input id="cp-edit-canal" value="${c.canal||''}" placeholder="ej: Instagram, WhatsApp" style="width:100%;box-sizing:border-box;background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);font-family:inherit">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">CASHBACK ($)</label>
+        <input id="cp-edit-cashback" type="number" value="${c.cashback||0}" min="0" style="width:100%;box-sizing:border-box;background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);font-family:inherit">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">CÓDIGO CASHBACK</label>
+        <input id="cp-edit-codigoCashback" value="${c.codigoCashback||vldCode}" placeholder="Ej: VLD-MARIA23" style="width:100%;box-sizing:border-box;background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);font-family:inherit;font-weight:700;letter-spacing:.06em">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">XP</label>
+        <input id="cp-edit-xp" type="number" value="${xp}" min="0" style="width:100%;box-sizing:border-box;background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);font-family:inherit">
+      </div>
+      <div style="grid-column:1/-1">
+        <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">TAGS (separados por coma)</label>
+        <input id="cp-edit-tags" value="${Array.isArray(c.tags)?c.tags.join(', '):(c.tags||'')}" placeholder="vip, newsletter, mayorista..." style="width:100%;box-sizing:border-box;background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);font-family:inherit">
+      </div>
+      <div style="grid-column:1/-1">
+        <label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">NOTAS INTERNAS</label>
+        <textarea id="cp-edit-notas" rows="3" style="width:100%;box-sizing:border-box;background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);font-family:inherit;resize:vertical">${c.notas||''}</textarea>
+      </div>
+    </div>
+
+    <!-- Cashback card (preview de cómo lo ve el cliente) -->
+    ${(c.cashback > 0 || vldCode) ? `<div style="background:linear-gradient(135deg,#111 60%,#1a1a1a);color:#fff;border-radius:16px;padding:18px 20px;margin-bottom:20px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;opacity:.5;margin-bottom:4px">CASHBACK DEL CLIENTE · ASÍ LO VE ÉL</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <div style="font-size:10px;font-weight:700;opacity:.5;letter-spacing:.06em">SALDO DISPONIBLE</div>
+          <div style="font-size:28px;font-weight:900;margin-top:2px">$${(c.cashback||0).toLocaleString('es-AR')}</div>
+        </div>
+        <div style="font-size:32px">💰</div>
+      </div>
+      <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:10px 14px">
+        <div style="font-size:9px;font-weight:700;opacity:.5;letter-spacing:.06em;margin-bottom:4px">CÓDIGO DE CLIENTE</div>
+        <div style="font-size:18px;font-weight:900;letter-spacing:.14em">${c.codigoCashback||vldCode||'—'}</div>
+      </div>
+    </div>` : ''}
+
+    <!-- Quick WA actions -->
+    ${c.tel ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+      <a href="${waBase}?text=${encodeURIComponent('Hola '+c.nombre+'! 👋')}" target="_blank" style="font-size:12px;background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:7px 14px;text-decoration:none;color:var(--text);font-weight:600">💬 WA genérico</a>
+      <a href="${waBase}?text=${encodeURIComponent('Hola '+c.nombre+'! Tenemos novedades en SOULAB que te pueden interesar 🔥 ¿Querés que te cuente?')}" target="_blank" style="font-size:12px;background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:7px 14px;text-decoration:none;color:var(--text);font-weight:600">🔥 Re-engagement</a>
+      ${(c.cashback > 0) ? `<a href="${waBase}?text=${encodeURIComponent('Hola '+c.nombre+'! 💰 Tenés $'+c.cashback+' de cashback acumulado en SOULAB. Tu código es: '+(c.codigoCashback||vldCode)+'. Usalo en tu próxima compra o escribinos para canjearlo!')}" target="_blank" style="font-size:12px;background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.25);border-radius:8px;padding:7px 14px;text-decoration:none;color:#16a34a;font-weight:600">💰 Enviar cashback</a>` : ''}
+      ${stats.isRiesgo ? `<a href="${waBase}?text=${encodeURIComponent('Hola '+c.nombre+'! ¿Cómo estás? Hace un tiempo que no te vemos por SOULAB 💙 Tenemos un regalo para vos, escribinos y te contamos!')}" target="_blank" style="font-size:12px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:7px 14px;text-decoration:none;color:#d97706;font-weight:600">⚠️ Recuperar cliente</a>` : ''}
+      ${vldCode ? `<a href="${waBase}?text=${encodeURIComponent('Hola '+c.nombre+'! Tu código VLD es '+(c.codigoCashback||vldCode)+'. Usalo en tu próxima compra para obtener beneficios exclusivos 🎁')}" target="_blank" style="font-size:12px;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:8px;padding:7px 14px;text-decoration:none;color:var(--accent);font-weight:600">🎁 Enviar código VLD</a>` : ''}
+    </div>` : ''}
+
+    <!-- Carrito abandonado -->
+    ${cartHtml}
+    ${cartHtml ? '<div style="margin-bottom:16px"></div>' : ''}
+
+    <!-- Products viewed -->
+    ${views.length ? `<div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">PRODUCTOS VISTOS</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${viewsHtml}</div>
+    </div>` : ''}
+
+    <!-- Order history -->
+    <div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">HISTORIAL DE PEDIDOS</div>
+      ${ordersHtml}
+    </div>`
+
+  document.getElementById('modal-contact-profile').style.display = 'block'
+  document.body.style.overflow = 'hidden'
+}
+
+function closeContactProfile() {
+  document.getElementById('modal-contact-profile').style.display = 'none'
+  document.body.style.overflow = ''
+  _cpContact = null
+}
+
+async function saveContactProfile() {
+  if (!_cpContact?.id) return
+  const fields = {
+    nombre: document.getElementById('cp-edit-nombre')?.value?.trim() || _cpContact.nombre,
+    tel: document.getElementById('cp-edit-tel')?.value?.trim() || _cpContact.tel,
+    etapa: document.getElementById('cp-edit-etapa')?.value || _cpContact.etapa,
+    canal: document.getElementById('cp-edit-canal')?.value?.trim() || _cpContact.canal,
+    cashback: parseFloat(document.getElementById('cp-edit-cashback')?.value) || 0,
+    codigoCashback: document.getElementById('cp-edit-codigoCashback')?.value?.trim() || '',
+    xp: parseInt(document.getElementById('cp-edit-xp')?.value) || 0,
+    notas: document.getElementById('cp-edit-notas')?.value?.trim() || '',
+    tags: (document.getElementById('cp-edit-tags')?.value || '').split(',').map(t=>t.trim()).filter(Boolean),
+  }
+  const saveBtn = document.querySelector('#modal-contact-profile button[onclick="saveContactProfile()"]')
+  if (saveBtn) { saveBtn.textContent = '⏳ Guardando...'; saveBtn.disabled = true }
+  try {
+    const res = await fetch(`/api/crm/${encodeURIComponent(_cpContact.id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wsId: _activeWsId, fields })
+    })
+    const d = await res.json()
+    if (d.ok) {
+      // Update local cache
+      const idx = _tnbCRMData.findIndex(x => x.id === _cpContact.id)
+      if (idx >= 0) _tnbCRMData[idx] = { ..._tnbCRMData[idx], ...fields }
+      // Also update S.crm if loaded
+      const crmIdx = (S.crm||[]).findIndex(x => x.id === _cpContact.id)
+      if (crmIdx >= 0) S.crm[crmIdx] = { ...S.crm[crmIdx], ...fields }
+      notify('✅ Contacto guardado')
+      closeContactProfile()
+    } else {
+      notify('Error: ' + (d.error || 'No se pudo guardar'))
+    }
+  } catch(e) {
+    notify('Error de conexión')
+  } finally {
+    if (saveBtn) { saveBtn.textContent = '💾 Guardar'; saveBtn.disabled = false }
+  }
+}
+
+function _setAnalyticsPeriod(days) {
+  const to = new Date()
+  const from = new Date(to - days * 86400000)
+  document.getElementById('tnb-analytics-from').value = from.toISOString().slice(0,10)
+  document.getElementById('tnb-analytics-to').value = to.toISOString().slice(0,10)
+  loadTNBAnalytics()
+}
+
 async function loadTNBAnalytics() {
   document.getElementById('tnb-analytics-body').innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--muted)">⏳ Cargando analytics...</div>'
   try {
     const wsId = _activeWsId || ''
-    const res = await fetch(`https://soul-ecommlab.com/api/tn/store-analytics?wsId=${wsId}`)
+    const from = document.getElementById('tnb-analytics-from')?.value || ''
+    const to = document.getElementById('tnb-analytics-to')?.value || ''
+    let url = `/api/tn/store-analytics?wsId=${encodeURIComponent(wsId)}`
+    if (from) url += `&from=${from}`
+    if (to) url += `&to=${to}`
+    const res = await fetch(url)
     _tnbAnalyticsData = await res.json()
     renderTNBAnalytics()
   } catch(e) {
