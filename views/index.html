@@ -23187,7 +23187,7 @@ function switchDifTab(tab, btn) {
   if (tab === 'listas') renderDifListas();
   if (tab === 'historial') renderDifLog();
   if (tab === 'envio') { renderDifusiones(); }
-  if (tab === 'email') { _emLoadFromConfig(); renderEmailRecipients?.(); }
+  if (tab === 'email') { _emLoadFromConfig(); renderEmailRecipients?.(); emRenderTemplates(); renderEmailSavedLists(); }
   if (tab === 'popup') { loadCaptureTabSettings(); }
 }
 
@@ -23896,7 +23896,7 @@ function emailSaveList() {
   if (!S.emailLists) S.emailLists = [];
   const emails = [..._emailSelected].map(ri => (S.crm||[])[ri]?.email).filter(Boolean);
   S.emailLists.push({ id:'lst_'+Date.now().toString(36), nombre:name.trim(), emails, creado:new Date().toISOString() });
-  save();
+  _saveDelta({ emailLists: S.emailLists });
   renderEmailSavedLists();
   notify(`✅ Lista "${name.trim()}" guardada — ${emails.length} contactos`);
 }
@@ -23916,7 +23916,7 @@ function emailLoadList(listId) {
 function emailDeleteList(listId) {
   if (!confirm('¿Eliminar esta lista?')) return;
   S.emailLists = (S.emailLists||[]).filter(l => l.id !== listId);
-  save();
+  _saveDelta({ emailLists: S.emailLists });
   renderEmailSavedLists();
 }
 
@@ -23926,7 +23926,7 @@ function emailRenameList(listId) {
   const name = prompt('Nuevo nombre:', lst.nombre);
   if (!name?.trim() || name.trim() === lst.nombre) return;
   lst.nombre = name.trim();
-  save();
+  _saveDelta({ emailLists: S.emailLists });
   renderEmailSavedLists();
 }
 
