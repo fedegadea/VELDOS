@@ -6292,6 +6292,7 @@ app.post('/api/email/flow', async (req, res) => {
       .replace(/\{valor\}/g,       String(vars.valorTotal  || 0))
       .replace(/\{etapa\}/g,       vars.etapa        || '')
       .replace(/\{cashback\}/g,    vars.cashback != null ? '$' + Number(vars.cashback).toLocaleString('es-AR') : '$0')
+      .replace(/\{unsubscribe\}/g, vars.unsubUrl || '#')
     // Determine from address: workspace settings > env vars > sandbox
     let resolvedFrom = from
     if (!resolvedFrom && wsId) {
@@ -6319,6 +6320,57 @@ app.post('/api/email/flow', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
+})
+
+// ── Email open tracking pixel ─────────────────────────────────────────────
+app.get('/api/em/open', async (req, res) => {
+  const gif = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64')
+  res.set({ 'Content-Type': 'image/gif', 'Cache-Control': 'no-store,no-cache,must-revalidate' })
+  res.send(gif)
+  try {
+    const { cid, wsId } = req.query
+    if (!cid || !wsId) return
+    const ws = await getWorkspace(wsId)
+    if (!ws?.data) return
+    const camp = (ws.data.emailCampaigns || []).find(c => c.id === cid)
+    if (!camp) return
+    camp.openCount = (camp.openCount || 0) + 1
+    await patchWorkspace(wsId, ws.data)
+  } catch(e) { /* best-effort */ }
+})
+
+// ── Email click tracking redirect ──────────────────────────────────────────
+app.get('/api/em/click', async (req, res) => {
+  const { cid, wsId, url } = req.query
+  const dest = url ? decodeURIComponent(url) : '/'
+  res.redirect(302, dest)
+  try {
+    if (!cid || !wsId) return
+    const ws = await getWorkspace(wsId)
+    if (!ws?.data) return
+    const camp = (ws.data.emailCampaigns || []).find(c => c.id === cid)
+    if (!camp) return
+    camp.clickCount = (camp.clickCount || 0) + 1
+    await patchWorkspace(wsId, ws.data)
+  } catch(e) { /* best-effort */ }
+})
+
+// ── Email unsubscribe ──────────────────────────────────────────────────────
+app.get('/api/em/unsub', async (req, res) => {
+  const { email, wsId } = req.query
+  if (!email || !wsId) return res.status(400).send('<h2>Parámetros inválidos</h2>')
+  try {
+    const ws = await getWorkspace(wsId)
+    if (ws?.data) {
+      if (!ws.data.unsubList) ws.data.unsubList = []
+      if (!ws.data.unsubList.includes(email.toLowerCase())) {
+        ws.data.unsubList.push(email.toLowerCase())
+        await patchWorkspace(wsId, ws.data)
+      }
+    }
+  } catch(e) { /* best-effort */ }
+  const safe = email.replace(/[<>"]/g, '')
+  res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Desuscripción</title><style>body{font-family:system-ui,-apple-system,sans-serif;max-width:480px;margin:80px auto;text-align:center;color:#333;padding:0 20px}h2{font-size:22px;margin-bottom:8px}p{color:#666;font-size:14px;line-height:1.6}</style></head><body><h2>✅ Desuscripción exitosa</h2><p>El email <strong>${safe}</strong> fue eliminado de esta lista de envíos.<br>No recibirás más correos de esta campaña.</p></body></html>`)
 })
 
 // Tienda pública — debe estar ANTES del catch-all
