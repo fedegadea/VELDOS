@@ -2076,13 +2076,13 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button class="nav-tab" onclick="switchMetaTab('whatsapp',this)"><i class="ti ti-brand-whatsapp"></i> WhatsApp</button>
   </nav>
   <nav class="nav-tabs" id="nav-ugc" style="display:none">
-    <button class="nav-tab active" id="ugc-tab-btn-canjes" onclick="switchUgcTab('canjes',this)">Campañas</button>
-    <button class="nav-tab" id="ugc-tab-btn-solicitudes" onclick="switchUgcTab('solicitudes',this)">Solicitudes <span id="ugc-pending-badge" style="display:none;background:var(--accent);color:#fff;font-size:10px;padding:1px 7px;border-radius:9px;margin-left:2px">0</span></button>
-    <button class="nav-tab" id="ugc-tab-btn-accesos" onclick="switchUgcTab('accesos',this)">Accesos <span id="ugc-accesos-badge" style="display:none;background:rgba(239,68,68,.8);color:#fff;font-size:10px;padding:1px 7px;border-radius:9px;margin-left:2px">0</span></button>
-    <button class="nav-tab" id="ugc-tab-btn-creadoras" onclick="switchUgcTab('creadoras',this)">Creadoras</button>
-    <button class="nav-tab" id="ugc-tab-btn-briefs" onclick="switchUgcTab('briefs',this)">Briefs</button>
-    <button class="nav-tab" id="ugc-tab-btn-kanjes" onclick="switchUgcTab('kanjes',this)">Canjes</button>
-    <button class="nav-tab" id="ugc-tab-btn-collabs" onclick="switchUgcTab('collabs',this)">Collabs</button>
+    <button class="nav-tab active" id="ugc-tab-btn-resumen" onclick="switchUgcTab('resumen',this)">📊 Resumen</button>
+    <button class="nav-tab" id="ugc-tab-btn-canjes" onclick="switchUgcTab('canjes',this)">🎁 Campañas</button>
+    <button class="nav-tab" id="ugc-tab-btn-solicitudes" onclick="switchUgcTab('solicitudes',this)">📬 Solicitudes <span id="ugc-pending-badge" style="display:none;background:var(--accent);color:#fff;font-size:10px;padding:1px 7px;border-radius:9px;margin-left:2px">0</span></button>
+    <button class="nav-tab" id="ugc-tab-btn-creadoras" onclick="switchUgcTab('creadoras',this)">👤 Creadoras</button>
+    <button class="nav-tab" id="ugc-tab-btn-briefs" onclick="switchUgcTab('briefs',this)">📋 Briefs</button>
+    <button class="nav-tab" id="ugc-tab-btn-collabs" onclick="switchUgcTab('collabs',this)">🤝 Collabs</button>
+    <button class="nav-tab" id="ugc-tab-btn-accesos" onclick="switchUgcTab('accesos',this)">🔑 Accesos <span id="ugc-accesos-badge" style="display:none;background:rgba(239,68,68,.8);color:#fff;font-size:10px;padding:1px 7px;border-radius:9px;margin-left:2px">0</span></button>
   </nav>
   <nav class="nav-tabs" id="nav-soul-club" style="display:none"></nav>
   <nav class="nav-tabs" id="nav-tiendanube" style="display:none">
@@ -4281,18 +4281,24 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button onclick="copyUgcPortalLink()" class="btn btn-xs" style="white-space:nowrap;flex-shrink:0">📋 Copiar link</button>
   </div>
 
-  <!-- Canjes -->
-  <div id="ugc-tab-canjes">
+  <!-- ── Resumen (dashboard) ── -->
+  <div id="ugc-tab-resumen">
+    <div id="ugc-resumen-content"></div>
+  </div>
+
+  <!-- ── Campañas / Canjes ── -->
+  <div id="ugc-tab-canjes" style="display:none">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap">
-      <div style="font-size:15px;font-weight:700;color:var(--text)">Canjes publicados</div>
-      <button class="btn btn-primary btn-xs" onclick="openUgcCanjeModal(null)">+ Nuevo canje</button>
+      <div style="font-size:15px;font-weight:700;color:var(--text)">Campañas publicadas</div>
+      <button class="btn btn-primary btn-xs" onclick="openUgcCanjeModal(null)">+ Nueva campaña</button>
     </div>
     <div id="ugc-canjes-list"></div>
   </div>
 
-  <div id="ugc-tab-solicitudes" style="margin-top:36px">
+  <!-- ── Solicitudes ── -->
+  <div id="ugc-tab-solicitudes" style="display:none">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-      <div style="font-size:15px;font-weight:700;color:var(--text);flex:1">Solicitudes <span id="ugc-pending-badge" style="display:none;background:var(--accent);color:#fff;font-size:11px;padding:2px 9px;border-radius:9px;margin-left:4px;font-weight:600">0</span></div>
+      <div style="font-size:15px;font-weight:700;color:var(--text);flex:1">Solicitudes</div>
       <div style="display:flex;gap:4px;flex-wrap:wrap" id="ugc-sol-filters">
         <button class="btn btn-xs" style="background:var(--accent);color:#fff" onclick="filterUgcSolicitudes('todas',this)">Todas</button>
         <button class="btn btn-xs" onclick="filterUgcSolicitudes('solicitado',this)">En revisión</button>
@@ -4306,8 +4312,58 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <div id="ugc-solicitudes-list"></div>
   </div>
 
+  <!-- ── Creadoras (Lista + Seguimiento kanban) ── -->
+  <div id="ugc-tab-creadoras" style="display:none">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="inner-tab active" id="ugc-cr-btn-lista" onclick="switchUgcCrTab('lista',this)">📋 Lista</button>
+      <button class="inner-tab" id="ugc-cr-btn-seguimiento" onclick="switchUgcCrTab('seguimiento',this)">📊 Seguimiento</button>
+      <button class="btn btn-primary btn-xs" style="margin-left:auto" onclick="openAddCreadoraModal()">+ Nueva creadora</button>
+    </div>
+    <!-- Lista -->
+    <div id="ugc-crtab-lista">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px" id="ugc-creadoras-filters">
+        <button class="btn btn-xs" style="background:var(--accent);color:#fff" onclick="filterUgcCreadoras('todas',this)">Todas</button>
+        <button class="btn btn-xs" onclick="filterUgcCreadoras('con_acuerdo',this)">Con acuerdo</button>
+        <button class="btn btn-xs" onclick="filterUgcCreadoras('acciones_activas',this)">Acciones activas</button>
+        <button class="btn btn-xs" onclick="filterUgcCreadoras('sin_acuerdo',this)">Sin acuerdo</button>
+        <button class="btn btn-xs" onclick="filterUgcCreadoras('sin_actividad',this)">Sin actividad</button>
+        <button class="btn btn-xs" onclick="filterUgcCreadoras('alta_performance',this)">⭐ Alta perf.</button>
+      </div>
+      <div id="ugc-creadoras-list"></div>
+    </div>
+    <!-- Seguimiento (kanban) -->
+    <div id="ugc-crtab-seguimiento" style="display:none">
+      <div style="display:flex;gap:6px;margin-bottom:14px">
+        <button class="inner-tab active" id="ugc-kanje-btn-micro" onclick="switchUgcKanjeTab('micro',this)">Micro influencers</button>
+        <button class="inner-tab" id="ugc-kanje-btn-top" onclick="switchUgcKanjeTab('top',this)">Top creadora</button>
+      </div>
+      <div id="ugc-kanban-micro"></div>
+      <div id="ugc-kanban-top" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- Briefs -->
+  <div id="ugc-tab-briefs" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:15px;font-weight:700;color:var(--text)">Briefs</div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <select class="form-input" style="width:140px" id="ugc-brief-cat-filter" onchange="renderBriefs('ugc-briefs-container')">
+          <option value="">Todas las categorías</option>
+          <option value="Marca">Marca</option>
+          <option value="UGC">UGC</option>
+          <option value="Influencers">Influencers</option>
+        </select>
+        <button class="btn btn-primary btn-xs" onclick="openBriefModal()">+ Nuevo brief</button>
+      </div>
+    </div>
+    <div id="ugc-briefs-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px"></div>
+  </div>
+
+  <!-- (ugc-tab-kanjes se mantiene oculto — kanban movido a Creadoras > Seguimiento) -->
+  <div id="ugc-tab-kanjes" style="display:none"></div>
+
   <!-- ── Accesos Soul Canjes ── -->
-  <div id="ugc-tab-accesos" style="margin-top:36px">
+  <div id="ugc-tab-accesos" style="display:none">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap">
       <div style="font-size:15px;font-weight:700;color:var(--text)">Accesos Soul Canjes</div>
       <div style="display:flex;gap:4px">
@@ -4317,51 +4373,6 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
       </div>
     </div>
     <div id="ugc-accesos-list"></div>
-  </div>
-
-  <div id="ugc-tab-creadoras" style="margin-top:36px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-      <div style="font-size:15px;font-weight:700;color:var(--text)">Creadoras</div>
-      <button class="btn btn-primary btn-xs" onclick="openAddCreadoraModal()">+ Nueva creadora</button>
-    </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px" id="ugc-creadoras-filters">
-      <button class="btn btn-xs" style="background:var(--accent);color:#fff" onclick="filterUgcCreadoras('todas',this)">Todas</button>
-      <button class="btn btn-xs" onclick="filterUgcCreadoras('con_acuerdo',this)">Con acuerdo</button>
-      <button class="btn btn-xs" onclick="filterUgcCreadoras('acciones_activas',this)">Acciones activas</button>
-      <button class="btn btn-xs" onclick="filterUgcCreadoras('sin_acuerdo',this)">Sin acuerdo</button>
-      <button class="btn btn-xs" onclick="filterUgcCreadoras('sin_actividad',this)">Sin actividad</button>
-      <button class="btn btn-xs" onclick="filterUgcCreadoras('alta_performance',this)">⭐ Alta perf.</button>
-      <button class="btn btn-xs" onclick="filterUgcCreadoras('con_campana',this)">Con campaña</button>
-    </div>
-    <div id="ugc-creadoras-list"></div>
-  </div>
-
-  <!-- Briefs (moved from Planning) -->
-  <div id="ugc-tab-briefs" style="margin-top:36px;display:none">
-    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px">Briefs</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
-      <select class="form-input" style="width:140px" id="ugc-brief-cat-filter" onchange="renderBriefs('ugc')">
-        <option value="">Todas las categorías</option>
-        <option value="Marca">Marca</option>
-        <option value="UGC">UGC</option>
-        <option value="Influencers">Influencers</option>
-      </select>
-      <button class="btn btn-primary btn-xs" onclick="openBriefModal()">+ Nuevo brief</button>
-    </div>
-    <div id="ugc-briefs-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px"></div>
-  </div>
-
-  <!-- Kanjes tracker (moved from Planning) -->
-  <div id="ugc-tab-kanjes" style="margin-top:36px;display:none">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-      <div style="font-size:15px;font-weight:700;color:var(--text);flex:1">Seguimiento de Canjes</div>
-      <div style="display:flex;gap:6px">
-        <button class="inner-tab active" id="ugc-kanje-btn-micro" onclick="switchUgcKanjeTab('micro',this)">Micro influencers</button>
-        <button class="inner-tab" id="ugc-kanje-btn-top" onclick="switchUgcKanjeTab('top',this)">Top creadora</button>
-      </div>
-    </div>
-    <div id="ugc-kanban-micro"></div>
-    <div id="ugc-kanban-top" style="display:none"></div>
   </div>
 
   <!-- Collabs (moved from Planning) -->
@@ -25436,31 +25447,158 @@ async function initUgcPage(){
   const wsId=_activeWsId; if(!wsId)return;
   const url=location.origin+'/ugc-portal?ws='+wsId;
   const el=document.getElementById('ugc-portal-url'); if(el)el.textContent=url;
+  switchUgcTab('resumen');
   await loadUgcStats();
   loadUgcCanjes();
-  loadUgcSolicitudes();
+  await loadUgcSolicitudes();
   loadUgcCreadoras();
   loadCanjesAccesos();
+  renderUgcResumen();
 }
 
-const _UGC_EXTRA_TABS=['briefs','kanjes','collabs']
+async function resolverSolicitudConTracking(id){
+  const tracking=prompt('Número de tracking (opcional):','');
+  if(tracking===null)return; // canceló
+  const wsId=_activeWsId; if(!wsId)return;
+  const sol=_ugcSolicitudes.find(s=>s.id===id);
+  const demora=sol?(sol.ugc_canjes?.demora_max_dias||7):7;
+  const msgEl=document.getElementById('msg-'+id);
+  const mensaje_para_creadora=msgEl?.value?.trim()||undefined;
+  try{
+    const r=await fetch('/api/admin/ugc/solicitudes/'+id,{
+      method:'PATCH',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({accion:'enviar',demora_max_dias:demora,wsId,mensaje_para_creadora,tracking_nro:tracking||undefined})
+    });
+    const d=await r.json();
+    if(d.ok){
+      if(sol&&tracking)sol.tracking_nro=tracking;
+      await loadUgcStats();loadUgcSolicitudes();
+      notify('Marcada como enviada ✓'+(tracking?' — Tracking: '+tracking:''));
+    } else notify('Error: '+d.error,'error');
+  }catch(e){notify('Error de red','error');}
+}
+
+const _ALL_UGC_TABS=['resumen','canjes','solicitudes','creadoras','briefs','collabs','accesos'];
 function switchUgcTab(tab,btn){
-  // Marcar botón activo
-  document.querySelectorAll('#nav-ugc .nav-tab').forEach(b=>b.classList.remove('active'))
-  if(btn) btn.classList.add('active')
+  document.querySelectorAll('#nav-ugc .nav-tab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
   else { const b=document.getElementById('ugc-tab-btn-'+tab); if(b)b.classList.add('active'); }
-  // Tabs extra (briefs/kanjes/collabs): ocultar los otros dos, mostrar el activo y renderizar
-  if(_UGC_EXTRA_TABS.includes(tab)){
-    _UGC_EXTRA_TABS.forEach(t=>{const el=document.getElementById('ugc-tab-'+t);if(el)el.style.display=t===tab?'':'none';})
-    if(tab==='briefs') renderBriefs('ugc-briefs-container');
-    else if(tab==='kanjes'){ renderKanban('micro','ugc-kanban-'); renderKanban('top','ugc-kanban-'); }
-    else if(tab==='collabs') renderCollabs('ugc-collabs-activas-grid','ugc-collabs-potenciales-grid');
-    return;
+  _ALL_UGC_TABS.forEach(t=>{ const el=document.getElementById('ugc-tab-'+t); if(el)el.style.display=t===tab?'':'none'; });
+  if(tab==='resumen') renderUgcResumen();
+  else if(tab==='briefs') renderBriefs('ugc-briefs-container');
+  else if(tab==='creadoras'){ _renderUgcCreadoras(); }
+  else if(tab==='collabs') renderCollabs('ugc-collabs-activas-grid','ugc-collabs-potenciales-grid');
+  else if(tab==='solicitudes') filterUgcSolicitudes('todas');
+}
+
+function switchUgcCrTab(tab, btn){
+  document.querySelectorAll('[id^="ugc-cr-btn-"]').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  document.getElementById('ugc-crtab-lista').style.display = tab==='lista'?'':'none';
+  document.getElementById('ugc-crtab-seguimiento').style.display = tab==='seguimiento'?'':'none';
+  if(tab==='seguimiento'){ renderKanban('micro','ugc-kanban-'); renderKanban('top','ugc-kanban-'); }
+}
+
+function renderUgcResumen(){
+  const el=document.getElementById('ugc-resumen-content'); if(!el)return;
+  const sols=_ugcSolicitudes||[];
+  const now=new Date();
+
+  // Pills de resumen por estado
+  const estadoGroups=[
+    {key:'solicitado',compat:[]},
+    {key:'pendiente_envio',compat:['aceptado']},
+    {key:'enviado',compat:[]},
+    {key:'pendiente_publicacion',compat:[]},
+    {key:'realizada',compat:['entregado']},
+    {key:'rechazado',compat:['vencido']},
+  ];
+  const summaryPills=estadoGroups.map(g=>{
+    const n=sols.filter(s=>s.estado===g.key||g.compat.includes(s.estado)).length;
+    if(!n)return'';
+    const col=_UGC_SOL_COL[g.key]||'var(--muted)';
+    return`<span style="font-size:10px;font-weight:700;color:${col};background:${col}18;border:1px solid ${col}30;padding:3px 11px;border-radius:20px;white-space:nowrap;cursor:pointer" onclick="switchUgcTab('solicitudes');filterUgcSolicitudes('${g.key}')">${_UGC_SOL_LBL[g.key]||g.key}: ${n}</span>`;
+  }).join('');
+
+  if(!sols.length){
+    el.innerHTML=`<div style="text-align:center;padding:48px 24px;color:var(--muted);font-size:13px">
+      <div style="font-size:28px;margin-bottom:10px">📬</div>
+      <div>Todavía no hay solicitudes.<br>Publicá una campaña para empezar.</div>
+      <button class="btn btn-primary btn-xs" style="margin-top:16px" onclick="switchUgcTab('canjes')">🎁 Ver campañas</button>
+    </div>`;return;
   }
-  // Tabs originales: ocultar extra tabs, hacer scroll a la sección
-  _UGC_EXTRA_TABS.forEach(t=>{const el=document.getElementById('ugc-tab-'+t);if(el)el.style.display='none';})
-  if(tab==='solicitudes') filterUgcSolicitudes('todas');
-  const el=document.getElementById('ugc-tab-'+tab); if(el)el.scrollIntoView({behavior:'smooth'});
+
+  // Ordenar: primero las que requieren acción, luego por fecha
+  const ORDEN=['solicitado','pendiente_envio','aceptado','enviado','pendiente_publicacion','realizada','entregado','rechazado','vencido'];
+  const sorted=[...sols].sort((a,b)=>(ORDEN.indexOf(a.estado)||99)-(ORDEN.indexOf(b.estado)||99));
+
+  const rows=sorted.map(s=>{
+    const cr=s.ugc_creadoras||{};
+    const cj=s.ugc_canjes||{};
+    const col=_UGC_SOL_COL[s.estado]||'var(--muted)';
+    const lbl=_UGC_SOL_LBL[s.estado]||s.estado;
+    const limite=s.fecha_limite_entrega?new Date(s.fecha_limite_entrega):null;
+    const vencida=limite&&limite<now;
+    const dias=limite?Math.max(0,Math.round((limite-now)/86400000)):null;
+    const waNum=(cr.telefono||'').replace(/\D/g,'');
+    const igHandle=cr.instagram_url?(cr.instagram_url.replace(/\/$/,'').split('/').pop()):'';
+
+    let accionBtn='';
+    if(s.estado==='solicitado')
+      accionBtn=`<button class="btn btn-primary btn-xs" onclick="resolverSolicitud('${s.id}','aceptar')">✓ Aceptar</button>`;
+    else if(s.estado==='pendiente_envio'||s.estado==='aceptado')
+      accionBtn=`<button class="btn btn-primary btn-xs" onclick="resolverSolicitudConTracking('${s.id}')">📦 Enviar</button>`;
+    else if(s.estado==='enviado')
+      accionBtn=`<button class="btn btn-xs" onclick="resolverSolicitud('${s.id}','confirmar_entrega')" style="color:var(--green);border-color:var(--green)40">✓ Recibió</button>`;
+    else if(s.estado==='pendiente_publicacion')
+      accionBtn=`<button class="btn btn-xs" onclick="resolverSolicitud('${s.id}','marcar_realizada')" style="color:var(--green);border-color:var(--green)40">✓ Publicó</button>`;
+
+    const trackingHtml=s.tracking_nro
+      ?`<span style="font-size:10px;background:var(--s2);border:1px solid var(--border);border-radius:5px;padding:2px 7px;font-family:monospace">${s.tracking_nro}</span>`
+      :(s.estado==='pendiente_envio'||s.estado==='aceptado'?`<span style="font-size:10px;color:var(--muted)">—</span>`:'<span style="font-size:10px;color:var(--muted)">—</span>');
+
+    const limiteHtml=limite
+      ?`<span style="font-size:10px;color:${vencida?'var(--coral)':dias<=3?'var(--gold)':'var(--muted)'}">${_fmtDate(s.fecha_limite_entrega)}${vencida?' ⚠':''}</span>`
+      :'<span style="font-size:10px;color:var(--muted)">—</span>';
+
+    return`<tr style="border-top:1px solid var(--border)">
+      <td style="padding:10px 12px">
+        <div style="font-weight:600;font-size:12px;white-space:nowrap">${cr.nombre||'—'}</div>
+        ${igHandle?`<div style="font-size:10px;color:var(--muted)">@${igHandle}</div>`:''}
+      </td>
+      <td style="padding:10px 12px;font-size:11px;max-width:140px"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cj.producto||'—'}</div></td>
+      <td style="padding:10px 12px"><span style="font-size:9px;font-weight:700;color:${col};background:${col}18;border:1px solid ${col}40;padding:3px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap">${lbl}</span></td>
+      <td style="padding:10px 12px">${trackingHtml}</td>
+      <td style="padding:10px 12px">${limiteHtml}</td>
+      <td style="padding:10px 12px">
+        <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
+          ${waNum?`<a href="https://wa.me/${waNum}" target="_blank" class="btn btn-xs" style="background:#25D366;color:#fff;text-decoration:none;padding:3px 8px">📱</a>`:''}
+          ${accionBtn}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+      <div style="font-size:15px;font-weight:700;color:var(--text)">Resumen · ${sols.length} solicitudes</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${summaryPills}</div>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;min-width:560px">
+        <thead>
+          <tr style="background:var(--s2)">
+            <th style="padding:8px 12px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;text-align:left">Creadora</th>
+            <th style="padding:8px 12px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;text-align:left">Campaña</th>
+            <th style="padding:8px 12px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;text-align:left">Estado</th>
+            <th style="padding:8px 12px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;text-align:left">Tracking</th>
+            <th style="padding:8px 12px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;text-align:left">Límite pub.</th>
+            <th style="padding:8px 12px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;text-align:left">Acción rápida</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
 }
 
 function switchUgcKanjeTab(tipo, btn) {
@@ -25630,7 +25768,7 @@ function renderUgcSolicitudes(){
       accionBtns=`<button class="btn btn-primary btn-xs" onclick="resolverSolicitud('${s.id}','aceptar')">✓ Aceptar</button>
         <button class="btn btn-xs" onclick="resolverSolicitud('${s.id}','rechazar')" style="color:var(--coral)">✗ Rechazar</button>`;
     }else if(s.estado==='pendiente_envio'||s.estado==='aceptado'){
-      accionBtns=`<button class="btn btn-primary btn-xs" onclick="resolverSolicitud('${s.id}','enviar')">📦 Marcar enviado</button>`;
+      accionBtns=`<button class="btn btn-primary btn-xs" onclick="resolverSolicitudConTracking('${s.id}')">📦 Marcar enviado</button>`;
     }else if(s.estado==='enviado'){
       accionBtns=`<button class="btn btn-xs" onclick="resolverSolicitud('${s.id}','confirmar_entrega')" style="background:rgba(52,199,123,.15);color:var(--green);border-color:rgba(52,199,123,.3)">✓ Creadora recibió</button>`;
     }else if(s.estado==='pendiente_publicacion'){
@@ -25657,6 +25795,7 @@ function renderUgcSolicitudes(){
             <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:5px">
               <span style="font-size:10px;color:var(--muted2)">Solicitó: ${_fmtDate(s.fecha_solicitud)}</span>
               ${limite?`<span style="font-size:10px;color:${limitePasado?'var(--coral)':diasRestantes<=3?'var(--gold)':'var(--muted2)'}">Límite: ${_fmtDate(s.fecha_limite_entrega)}${diasRestantes!==null&&!limitePasado?' ('+diasRestantes+'d)':limitePasado?' ⚠ vencido':''}</span>`:''}
+              ${s.tracking_nro?`<span style="font-size:10px;color:var(--muted)">📦 <span style="font-family:monospace;color:var(--text)">${s.tracking_nro}</span></span>`:''}
               ${s.link_publicacion?`<a href="${s.link_publicacion}" target="_blank" style="font-size:10px;color:var(--accent)">🔗 Ver publicación</a>`:''}
             </div>
           </div>
