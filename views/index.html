@@ -4281,24 +4281,24 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button onclick="copyUgcPortalLink()" class="btn btn-xs" style="white-space:nowrap;flex-shrink:0">📋 Copiar link</button>
   </div>
 
-  <!-- ── Resumen (dashboard) ── -->
-  <div id="ugc-tab-resumen">
+  <!-- ── Resumen (dashboard) — siempre visible arriba ── -->
+  <div id="ugc-tab-resumen" style="margin-bottom:28px">
     <div id="ugc-resumen-content"></div>
   </div>
 
   <!-- ── Campañas / Canjes ── -->
-  <div id="ugc-tab-canjes" style="display:none">
+  <div id="ugc-tab-canjes" style="margin-bottom:32px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap">
-      <div style="font-size:15px;font-weight:700;color:var(--text)">Campañas publicadas</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text)">🎁 Campañas</div>
       <button class="btn btn-primary btn-xs" onclick="openUgcCanjeModal(null)">+ Nueva campaña</button>
     </div>
     <div id="ugc-canjes-list"></div>
   </div>
 
   <!-- ── Solicitudes ── -->
-  <div id="ugc-tab-solicitudes" style="display:none">
+  <div id="ugc-tab-solicitudes" style="margin-bottom:32px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-      <div style="font-size:15px;font-weight:700;color:var(--text);flex:1">Solicitudes</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text);flex:1">📬 Solicitudes</div>
       <div style="display:flex;gap:4px;flex-wrap:wrap" id="ugc-sol-filters">
         <button class="btn btn-xs" style="background:var(--accent);color:#fff" onclick="filterUgcSolicitudes('todas',this)">Todas</button>
         <button class="btn btn-xs" onclick="filterUgcSolicitudes('solicitado',this)">En revisión</button>
@@ -4312,12 +4312,13 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <div id="ugc-solicitudes-list"></div>
   </div>
 
-  <!-- ── Creadoras (Lista + Seguimiento kanban) ── -->
-  <div id="ugc-tab-creadoras" style="display:none">
+  <!-- ── Creadoras con acuerdos (Lista + Seguimiento kanban) ── -->
+  <div id="ugc-tab-creadoras" style="margin-bottom:32px">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-      <button class="inner-tab active" id="ugc-cr-btn-lista" onclick="switchUgcCrTab('lista',this)">📋 Lista</button>
-      <button class="inner-tab" id="ugc-cr-btn-seguimiento" onclick="switchUgcCrTab('seguimiento',this)">📊 Seguimiento</button>
-      <button class="btn btn-primary btn-xs" style="margin-left:auto" onclick="openAddCreadoraModal()">+ Nueva creadora</button>
+      <div style="font-size:15px;font-weight:700;color:var(--text);flex:1">👤 Creadoras</div>
+      <button class="inner-tab active" id="ugc-cr-btn-lista" onclick="switchUgcCrTab('lista',this)">Lista</button>
+      <button class="inner-tab" id="ugc-cr-btn-seguimiento" onclick="switchUgcCrTab('seguimiento',this)">Seguimiento</button>
+      <button class="btn btn-primary btn-xs" onclick="openAddCreadoraModal()">+ Nueva creadora</button>
     </div>
     <!-- Lista -->
     <div id="ugc-crtab-lista">
@@ -4342,10 +4343,23 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     </div>
   </div>
 
-  <!-- Briefs -->
-  <div id="ugc-tab-briefs" style="display:none">
+  <!-- ── Accesos Soul Canjes ── -->
+  <div id="ugc-tab-accesos" style="margin-bottom:32px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap">
+      <div style="font-size:15px;font-weight:700;color:var(--text)">🔑 Accesos Soul Canjes</div>
+      <div style="display:flex;gap:4px">
+        <button class="btn btn-xs" style="background:var(--accent);color:#fff" onclick="filterCanjesAccesos('pendiente',this)">Pendientes</button>
+        <button class="btn btn-xs" onclick="filterCanjesAccesos('todas',this)">Todas</button>
+        <button class="btn btn-xs" onclick="filterCanjesAccesos('aceptado',this)">Aceptadas</button>
+      </div>
+    </div>
+    <div id="ugc-accesos-list"></div>
+  </div>
+
+  <!-- Briefs (tab extra — se muestra/oculta con nav) -->
+  <div id="ugc-tab-briefs" style="display:none;margin-bottom:32px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-      <div style="font-size:15px;font-weight:700;color:var(--text)">Briefs</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text)">📋 Briefs</div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <select class="form-input" style="width:140px" id="ugc-brief-cat-filter" onchange="renderBriefs('ugc-briefs-container')">
           <option value="">Todas las categorías</option>
@@ -4359,21 +4373,8 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <div id="ugc-briefs-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px"></div>
   </div>
 
-  <!-- (ugc-tab-kanjes se mantiene oculto — kanban movido a Creadoras > Seguimiento) -->
+  <!-- ugc-tab-kanjes oculto permanente (kanban dentro de Creadoras > Seguimiento) -->
   <div id="ugc-tab-kanjes" style="display:none"></div>
-
-  <!-- ── Accesos Soul Canjes ── -->
-  <div id="ugc-tab-accesos" style="display:none">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap">
-      <div style="font-size:15px;font-weight:700;color:var(--text)">Accesos Soul Canjes</div>
-      <div style="display:flex;gap:4px">
-        <button class="btn btn-xs" style="background:var(--accent);color:#fff" onclick="filterCanjesAccesos('pendiente',this)">Pendientes</button>
-        <button class="btn btn-xs" onclick="filterCanjesAccesos('todas',this)">Todas</button>
-        <button class="btn btn-xs" onclick="filterCanjesAccesos('aceptado',this)">Aceptadas</button>
-      </div>
-    </div>
-    <div id="ugc-accesos-list"></div>
-  </div>
 
   <!-- Collabs (moved from Planning) -->
   <div id="ugc-tab-collabs" style="margin-top:36px;display:none">
@@ -25447,7 +25448,9 @@ async function initUgcPage(){
   const wsId=_activeWsId; if(!wsId)return;
   const url=location.origin+'/ugc-portal?ws='+wsId;
   const el=document.getElementById('ugc-portal-url'); if(el)el.textContent=url;
-  switchUgcTab('resumen');
+  // Marcar tab activo en nav sin ocultar nada
+  document.querySelectorAll('#nav-ugc .nav-tab').forEach(b=>b.classList.remove('active'));
+  const btnRes=document.getElementById('ugc-tab-btn-resumen'); if(btnRes)btnRes.classList.add('active');
   await loadUgcStats();
   loadUgcCanjes();
   await loadUgcSolicitudes();
@@ -25478,17 +25481,29 @@ async function resolverSolicitudConTracking(id){
   }catch(e){notify('Error de red','error');}
 }
 
-const _ALL_UGC_TABS=['resumen','canjes','solicitudes','creadoras','briefs','collabs','accesos'];
+// Tabs que se muestran/ocultan (las demás son siempre visibles y se scrollea a ellas)
+const _UGC_TOGGLE_TABS=['briefs','collabs'];
 function switchUgcTab(tab,btn){
   document.querySelectorAll('#nav-ugc .nav-tab').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
   else { const b=document.getElementById('ugc-tab-btn-'+tab); if(b)b.classList.add('active'); }
-  _ALL_UGC_TABS.forEach(t=>{ const el=document.getElementById('ugc-tab-'+t); if(el)el.style.display=t===tab?'':'none'; });
-  if(tab==='resumen') renderUgcResumen();
-  else if(tab==='briefs') renderBriefs('ugc-briefs-container');
-  else if(tab==='creadoras'){ _renderUgcCreadoras(); }
-  else if(tab==='collabs') renderCollabs('ugc-collabs-activas-grid','ugc-collabs-potenciales-grid');
-  else if(tab==='solicitudes') filterUgcSolicitudes('todas');
+  if(_UGC_TOGGLE_TABS.includes(tab)){
+    // Ocultar secciones siempre-visibles, mostrar solo el tab seleccionado
+    ['resumen','canjes','solicitudes','creadoras','accesos'].forEach(t=>{
+      const el=document.getElementById('ugc-tab-'+t); if(el)el.style.display='none';
+    });
+    _UGC_TOGGLE_TABS.forEach(t=>{ const el=document.getElementById('ugc-tab-'+t); if(el)el.style.display=t===tab?'':'none'; });
+    if(tab==='briefs') renderBriefs('ugc-briefs-container');
+    else if(tab==='collabs') renderCollabs('ugc-collabs-activas-grid','ugc-collabs-potenciales-grid');
+  } else {
+    // Restaurar todas las secciones siempre-visibles
+    ['resumen','canjes','solicitudes','creadoras','accesos'].forEach(t=>{
+      const el=document.getElementById('ugc-tab-'+t); if(el)el.style.display='';
+    });
+    _UGC_TOGGLE_TABS.forEach(t=>{ const el=document.getElementById('ugc-tab-'+t); if(el)el.style.display='none'; });
+    if(tab==='solicitudes') filterUgcSolicitudes('todas');
+    const el=document.getElementById('ugc-tab-'+tab); if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+  }
 }
 
 function switchUgcCrTab(tab, btn){
