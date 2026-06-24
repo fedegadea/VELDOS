@@ -23586,11 +23586,14 @@ async function toggleContactEnLista(checkbox, listaId, contactId) {
   }
 }
 
-function openImportarContactos(listaId) {
+async function openImportarContactos(listaId) {
   const l = (S.difListas || []).find(x => x.id === listaId);
   if (!l) { notify('Lista no encontrada — recargá la página', 'error'); return; }
-  if (!(S.crm || []).length) { notify('Cargá los contactos primero (CRM)', 'error'); return; }
   _detalleLista = l;
+  if (!(S.crm || []).length) {
+    notify('Cargando contactos…');
+    await _apiLoadCRM();
+  }
   openModal('importarContactosLista', l);
 }
 
