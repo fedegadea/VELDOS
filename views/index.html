@@ -4338,8 +4338,8 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
         <button class="inner-tab active" id="ugc-kanje-btn-micro" onclick="switchUgcKanjeTab('micro',this)">Micro influencers</button>
         <button class="inner-tab" id="ugc-kanje-btn-top" onclick="switchUgcKanjeTab('top',this)">Top creadora</button>
       </div>
-      <div id="ugc-kanban-micro"></div>
-      <div id="ugc-kanban-top" style="display:none"></div>
+      <div class="kanban" id="ugc-kanban-micro" style="overflow-x:auto"></div>
+      <div class="kanban" id="ugc-kanban-top" style="display:none;overflow-x:auto"></div>
     </div>
   </div>
 
@@ -4361,7 +4361,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
       <div style="font-size:15px;font-weight:700;color:var(--text)">📋 Briefs</div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <select class="form-input" style="width:140px" id="ugc-brief-cat-filter" onchange="renderBriefs('ugc-briefs-container')">
+        <select class="form-input" style="width:140px" id="ugc-brief-cat-filter" onchange="_briefFilterCat=this.value;renderBriefs('ugc-briefs-container')">
           <option value="">Todas las categorías</option>
           <option value="Marca">Marca</option>
           <option value="UGC">UGC</option>
@@ -9806,6 +9806,13 @@ const ESTADOS=['potencial','contactada','confirmada','envio','entregado','comple
 const ESTADOS_LABEL={potencial:'Potencial',contactada:'Contactada',confirmada:'Confirmada',envio:'Pendiente Envío',entregado:'Entregado',completado:'Completado'};
 function estadoColor(e){return{potencial:'var(--blue)',contactada:'var(--gold)',confirmada:'var(--purple)',envio:'var(--coral)',entregado:'var(--green)',completado:'#7ab3ff'}[e]||'var(--muted)';}
  
+let _kanbanDragRi=null;
+function kanbanDragStart(e,ri){_kanbanDragRi=ri;e.dataTransfer.effectAllowed='move';e.currentTarget.style.opacity='.4';}
+function kanbanDragEnd(e){e.currentTarget.style.opacity='';}
+function kanbanDragOver(e,est){e.preventDefault();e.currentTarget.style.background='rgba(255,255,255,.06)';}
+function kanbanDragLeave(e){e.currentTarget.style.background='';}
+function kanbanDrop(e,est){e.preventDefault();e.currentTarget.style.background='';if(_kanbanDragRi===null)return;moverCreadora(_kanbanDragRi,est);_kanbanDragRi=null;}
+
 function renderKanban(tipo,prefix){
   _cuentasFilterSelect('canje-filter-cuenta');
   const c=document.getElementById((prefix||'kanban-')+tipo);
@@ -9813,35 +9820,33 @@ function renderKanban(tipo,prefix){
   const list=S.creadoras.filter(cr=>cr.tipo===tipo&&(!_canjeFilterCuenta||cr.cuenta===_canjeFilterCuenta));
   c.innerHTML=ESTADOS.map(est=>{
     const items=list.filter(cr=>cr.estado===est);
-    return`<div class="kol">
+    const col=estadoColor(est);
+    return`<div class="kol" style="border-top:2px solid ${col}">
       <div class="kol-head">
-        <div class="kol-title" style="color:${estadoColor(est)}">${ESTADOS_LABEL[est]}</div>
+        <div class="kol-title" style="color:${col}">${ESTADOS_LABEL[est]}</div>
         <div class="kol-count">${items.length}</div>
       </div>
-      <div class="kol-body">
+      <div class="kol-body" ondragover="kanbanDragOver(event,'${est}')" ondragleave="kanbanDragLeave(event)" ondrop="kanbanDrop(event,'${est}')">
         ${items.map(cr=>{
           const ri=S.creadoras.indexOf(cr);
           const linkedBrief=cr.briefId?(S.briefs||[]).find(b=>(b.id||b.titulo)===cr.briefId):null;
-          return`<div class="creadora-card">
+          const nextEstado=ESTADOS[ESTADOS.indexOf(est)+1];
+          return`<div class="creadora-card" draggable="true" ondragstart="kanbanDragStart(event,${ri})" ondragend="kanbanDragEnd(event)">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px">
               <div><div class="c-name">${cr.nombre}</div><div class="c-handle">${cr.handle}${cr.cuenta?`<span style="font-size:9px;color:var(--purple);margin-left:6px">🏢 ${cr.cuenta}</span>`:''}</div></div>
-              <span class="estado-pill ep-${cr.estado}">${ESTADOS_LABEL[cr.estado]}</span>
+              ${nextEstado?`<button class="c-btn" style="font-size:9px;padding:2px 7px;background:${col}22;border-color:${col}55;color:${col}" onclick="moverCreadora(${ri},'${nextEstado}')">→ ${ESTADOS_LABEL[nextEstado]}</button>`:'<span style="font-size:9px;color:var(--green)">✓</span>'}
             </div>
+            ${linkedBrief?`<div style="font-size:10px;color:var(--gold);background:rgba(201,180,138,.08);border:1px solid rgba(201,180,138,.2);border-radius:6px;padding:4px 8px;margin:4px 0;display:flex;align-items:center;gap:5px"><span>📄</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${linkedBrief.titulo||linkedBrief.nombre||'Brief'}</span></div>`:''}
             ${cr.oferta?`<div class="c-brief">${cr.oferta}</div>`:''}
             ${cr.notas?`<div class="c-brief" style="border-color:rgba(201,180,138,.3)">${cr.notas}</div>`:''}
-            <div id="card-brief-${ri}" style="margin:4px 0">
-              ${linkedBrief?`<div style="font-size:10px;color:var(--gold);background:rgba(41,121,255,.08);border:1px solid rgba(41,121,255,.2);border-radius:6px;padding:4px 8px;cursor:pointer" onclick="linkBriefToCreadora(${ri})">📄 ${linkedBrief.titulo||linkedBrief.nombre}</div>`:''}
-            </div>
-            ${cr.estado === 'envio' ? `
-            <div style="margin-top:8px" onclick="event.stopPropagation()">
-              <input type="text" value="${(cr.direccion_envio||'').replace(/"/g,'&quot;')}" placeholder="Dirección del destinatario..."
-                style="width:100%;font-size:10px;padding:5px 8px;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.2);border-radius:5px;color:inherit;font-family:inherit"
+            ${cr.estado==='envio'?`<div style="margin-top:6px" onclick="event.stopPropagation()">
+              <input type="text" value="${(cr.direccion_envio||'').replace(/"/g,'&quot;')}" placeholder="Dirección de envío..."
+                style="width:100%;font-size:10px;padding:5px 8px;background:rgba(255,255,255,.06);border:1px dashed rgba(255,255,255,.2);border-radius:5px;color:inherit;font-family:inherit"
                 onblur="saveKanbanDireccion(${ri},this.value)">
-            </div>` : ''}
-            <div class="c-actions">
-              ${ESTADOS.filter(e=>e!==est).map(e=>`<button class="c-btn" onclick="moverCreadora(${ri},'${e}')">${ESTADOS_LABEL[e]}</button>`).join('')}
+            </div>`:''}
+            <div class="c-actions" style="margin-top:6px">
               ${cr.wapp?`<a href="https://wa.me/${cr.wapp.replace(/\D/g,'')}" target="_blank"><button class="c-btn c-wapp">WA</button></a>`:''}
-              <button class="c-btn" onclick="linkBriefToCreadora(${ri})" title="Vincular brief">📄</button>
+              <button class="c-btn" onclick="linkBriefToCreadora(${ri})" title="Vincular brief">📄 Brief</button>
               <button class="c-btn" style="color:var(--red);opacity:.6" onclick="deleteCreadora(${ri})">×</button>
             </div>
           </div>`;
@@ -9850,7 +9855,14 @@ function renderKanban(tipo,prefix){
     </div>`;
   }).join('');
 }
-function moverCreadora(i,estado){S.creadoras[i].estado=estado;_saveDelta({creadoras:S.creadoras});render();notify(`"${ESTADOS_LABEL[estado]}" ✓`);}
+function moverCreadora(i,estado){
+  S.creadoras[i].estado=estado;
+  _saveDelta({creadoras:S.creadoras});
+  const tipo=S.creadoras[i].tipo;
+  if(document.getElementById('kanban-'+tipo)) renderKanban(tipo);
+  if(document.getElementById('ugc-kanban-'+tipo)) renderKanban(tipo,'ugc-kanban-');
+  notify(`→ ${ESTADOS_LABEL[estado]} ✓`);
+}
 function deleteCreadora(i){S.creadoras.splice(i,1);_saveDelta({creadoras:S.creadoras});render();}
 function saveKanbanDireccion(i, direccion) {
   if (!S.creadoras[i]) return
