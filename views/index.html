@@ -8508,6 +8508,14 @@ function saveFlow(){
   if(_flowEditId){
     const f=S.flows.find(x=>x.id===_flowEditId);
     if(f)Object.assign(f,flowData);
+    // Cancelar pendientes viejos de este flow — el mensaje puede haber cambiado
+    let qChanged=false;
+    _waQueue.forEach(item=>{
+      if(item.status==='pending'&&item.flowKey&&item.flowKey.startsWith(_flowEditId+'|')){
+        item.status='cancelled';qChanged=true;
+      }
+    });
+    if(qChanged)_waqPersist();
   } else {
     S.flows.push({id:'f_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),...flowData});
   }
@@ -8522,6 +8530,15 @@ function deleteFlow(flowId){
   // Marcar como eliminado explícitamente para que el merge del servidor no lo restaure
   if(!S.deletedFlowIds)S.deletedFlowIds=[];
   if(!S.deletedFlowIds.includes(flowId))S.deletedFlowIds.push(flowId);
+  // Cancelar todos los mensajes pendientes en la cola WA de este flow
+  let queueChanged=false;
+  _waQueue.forEach(item=>{
+    if(item.status==='pending'&&item.flowKey&&item.flowKey.startsWith(flowId+'|')){
+      item.status='cancelled';
+      queueChanged=true;
+    }
+  });
+  if(queueChanged)_waqPersist();
   save();renderFlowsPage();
   notify('Flow eliminado');
 }
