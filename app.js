@@ -512,9 +512,24 @@ async function patchWorkspace(wsId, data, fullRow = null) {
 
     // CRM, finanzas, flowDone, flowHistory → en tablas propias — no mergear en el blob
 
-    // ── Guard flows: nunca sobreescribir flows si el save no los incluye ──
-    if (cur.flows?.length && !data.flows?.length) {
-      data.flows = cur.flows
+    // ── Guard flows: merge por ID — preservar flows del servidor que el cliente no tiene,
+    //    excepto los que el cliente marcó como eliminados explícitamente ──
+    if (cur.flows?.length) {
+      const deletedIds = new Set(data.deletedFlowIds || [])
+      const clientFlowIds = new Set((data.flows || []).map(f => f.id).filter(Boolean))
+      const serverOnlyFlows = cur.flows.filter(f => f.id && !clientFlowIds.has(f.id) && !deletedIds.has(f.id))
+      if (serverOnlyFlows.length) {
+        data.flows = [...(data.flows || []), ...serverOnlyFlows]
+      }
+    }
+
+    // ── Guard emailTemplates: merge por id, nunca perder plantillas ──
+    if (cur.emailTemplates?.length) {
+      const clientTplIds = new Set((data.emailTemplates || []).map(t => t.id).filter(Boolean))
+      const serverOnlyTpls = cur.emailTemplates.filter(t => t.id && !clientTplIds.has(t.id))
+      if (serverOnlyTpls.length) {
+        data.emailTemplates = [...(data.emailTemplates || []), ...serverOnlyTpls]
+      }
     }
 
     // ── Guard difListas: nunca perder listas de difusión guardadas ──
@@ -2699,6 +2714,23 @@ app.get("/api/workspace/:wsId", async (req, res) => {
   res.json({ id: ws.id, data: safeData })
 })
 
+// ── Brief público para creadoras ──────────────────────────────────────────────
+app.get('/brief-view', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'brief.html'))
+})
+
+app.get('/api/brief-public', async (req, res) => {
+  const { ws, id } = req.query
+  if (!ws || !id) return res.status(400).json({ error: 'Faltan parámetros' })
+  try {
+    const workspace = await getWorkspace(ws)
+    const briefs = workspace?.data?.briefs || []
+    const brief = briefs.find(b => b.id === id)
+    if (!brief) return res.status(404).json({ error: 'Brief no encontrado' })
+    res.json({ brief })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
 // ── CRM (contacts table) ──────────────────────────────────────────────────────
 app.get('/api/crm', async (req, res) => {
   const { wsId, search, estado, limit = '500', offset = '0' } = req.query
@@ -2716,6 +2748,19 @@ app.post('/api/crm', async (req, res) => {
     if (!contact.id) contact.id = 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
     await db_upsertContact(wsId, contact)
     res.json({ ok: true, id: contact.id })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+app.post('/api/crm/batch', async (req, res) => {
+  const { wsId, contacts } = req.body
+  if (!wsId || !Array.isArray(contacts) || !contacts.length) return res.status(400).json({ error: 'Faltan campos' })
+  try {
+    const rows = contacts.map(c => {
+      if (!c.id) c.id = 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
+      return _contactToRow(wsId, c)
+    })
+    await _sPOST('contacts', rows, 'return=minimal,resolution=merge-duplicates')
+    res.json({ ok: true, count: rows.length })
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
@@ -4194,6 +4239,8 @@ app.get('/api/identity/analytics', async (req, res) => {
       ultimaVisita: u.ultimaVisita, totalVisitas: u.totalVisitas,
       cantCompras: u.cantCompras, valorTotalCompras: u.valorTotalCompras,
       carritoAbandonado: u.carritoAbandonado, ultimoAbandonoCarrito: u.ultimoAbandonoCarrito,
+      ultimoCarrito: u.ultimoCarrito || null,
+      ultimoCarritoItems: u.ultimoCarritoItems || null,
       productosVisitados: (u.productosVisitados||[]).slice(-10),
       tiempoTotalMin: Math.round((u.tiempoTotalSeg||0)/60),
       dispositivo: u.dispositivo, etapa: u.etapa,
@@ -7794,17 +7841,46 @@ app.get('/api/admin/ugc/creadoras', async (req, res) => {
 // ── ADMIN: actualizar creadora ───────────────────────────────
 app.patch('/api/admin/ugc/creadoras/:id', async (req, res) => {
   const { id } = req.params
-  const { drive_link, utm_link, score, resultados } = req.body
+  const { drive_link, utm_link, score, resultados, nombre, estado_lista } = req.body
   const patch = {}
+  if (nombre !== undefined) patch.nombre = nombre || null
   if (drive_link !== undefined) patch.drive_link = drive_link || null
   if (utm_link !== undefined) patch.utm_link = utm_link || null
   if (score !== undefined) patch.score = score || null
   if (resultados !== undefined) patch.resultados = resultados || null
+  if (estado_lista !== undefined) patch.estado_lista = estado_lista || null
   if (!Object.keys(patch).length) return res.status(400).json({ error: 'Nada que actualizar' })
   try {
-    await _supa('PATCH', `ugc_creadoras?id=eq.${id}`, { prefer: 'return=minimal', body: patch })
+    const r = await _supa('PATCH', `ugc_creadoras?id=eq.${id}`, { prefer: 'return=minimal', body: patch })
+    if (!r.ok) {
+      console.error('[PATCH ugc_creadoras] supa error:', JSON.stringify(r.data))
+      return res.status(400).json({ error: JSON.stringify(r.data).slice(0, 300) })
+    }
     res.json({ ok: true })
   } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── ADMIN: crear nueva creadora manualmente ──────────────────
+app.post('/api/admin/ugc/creadoras', async (req, res) => {
+  const { nombre, telefono } = req.body
+  if (!nombre?.trim()) return res.status(400).json({ error: 'Falta nombre' })
+  const cleanTel = telefono?.replace(/\D/g,'') || null
+  // telefono es NOT NULL en la tabla — si no viene, generamos un ID interno único
+  const body = { nombre: nombre.trim(), telefono: cleanTel || ('admin_' + Date.now()) }
+  try {
+    // Buscar si ya existe una creadora con ese teléfono (evitar duplicados)
+    if (cleanTel) {
+      const existing = await _supa('GET', 'ugc_creadoras', { filter: `telefono=eq.${cleanTel}` })
+      if (existing.data?.[0]) return res.json({ ok: true, creadora: existing.data[0] })
+    }
+    const r = await _supa('POST', 'ugc_creadoras', { prefer: 'return=representation', body })
+    if (!r.ok) {
+      console.error('[POST ugc_creadoras] supa error:', JSON.stringify(r.data))
+      return res.status(500).json({ error: JSON.stringify(r.data).slice(0,200) })
+    }
+    if (!r.data?.[0]) return res.status(500).json({ error: 'Registro creado pero sin datos de retorno' })
+    res.json({ ok: true, creadora: r.data[0] })
+  } catch(e) { console.error('[POST ugc_creadoras] catch:', e.message); res.status(500).json({ error: e.message }) }
 })
 
 // ── ADMIN: guardar acuerdo (crea nuevo, desactiva anterior) ──

@@ -1307,6 +1307,10 @@ tr:hover .tx-del{color:var(--muted)}
 .bf-cat[data-cat="ugc"].on{background:#34c77b;border-color:#34c77b}
 .bf-cat[data-cat="influencers"].on{background:#7c4dff;border-color:#7c4dff}
 .bf-cat[data-cat="pr"].on{background:#ff6450;border-color:#ff6450}
+.bf-angulo,.bf-formato{background:var(--s3);border:1px solid var(--border2);color:var(--muted2);font-family:var(--fb);font-size:11px;font-weight:500;padding:5px 14px;border-radius:16px;cursor:pointer;transition:all .15s}
+.bf-angulo.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.bf-formato.on{background:var(--gold);border-color:var(--gold);color:#000}
+.bf-section-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:12px}
 
 /* ── BRIEF — FILTROS Y MODO IMPRESIÓN ── */
 .brief-fbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
@@ -2848,6 +2852,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
       <button class="crm-import-btn" onclick="document.getElementById('crm-import-file').click()">↑ Importar CSV</button>
       <button class="btn" onclick="exportCRM()">↓ Exportar CSV</button>
       <button class="btn" id="crm-select-btn" onclick="toggleCRMSelectMode()">☑ Seleccionar</button>
+      <button class="btn" id="crm-refresh-btn" onclick="refreshCRM()" title="Actualizar lista desde Supabase">↻ Actualizar</button>
       <button class="btn btn-primary" onclick="openModal('crm')">+ Contacto</button>
     </div>
   </div>
@@ -4322,12 +4327,18 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     </div>
     <!-- Lista -->
     <div id="ugc-crtab-lista">
+      <div style="margin-bottom:10px;position:relative">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none">🔍</span>
+        <input id="ugc-creadoras-search" placeholder="Buscar por nombre..." type="text"
+          style="width:100%;padding:8px 12px 8px 32px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;box-sizing:border-box"
+          oninput="_ugcCreadorasSearch=this.value;_renderUgcCreadoras()">
+      </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px" id="ugc-creadoras-filters">
         <button class="btn btn-xs" style="background:var(--accent);color:#fff" onclick="filterUgcCreadoras('todas',this)">Todas</button>
+        <button class="btn btn-xs" onclick="filterUgcCreadoras('accion_activa',this)">🟡 Acciones activas</button>
+        <button class="btn btn-xs" onclick="filterUgcCreadoras('completada',this)">✅ Completadas</button>
         <button class="btn btn-xs" onclick="filterUgcCreadoras('con_acuerdo',this)">Con acuerdo</button>
-        <button class="btn btn-xs" onclick="filterUgcCreadoras('acciones_activas',this)">Acciones activas</button>
         <button class="btn btn-xs" onclick="filterUgcCreadoras('sin_acuerdo',this)">Sin acuerdo</button>
-        <button class="btn btn-xs" onclick="filterUgcCreadoras('sin_actividad',this)">Sin actividad</button>
         <button class="btn btn-xs" onclick="filterUgcCreadoras('alta_performance',this)">⭐ Alta perf.</button>
       </div>
       <div id="ugc-creadoras-list"></div>
@@ -6004,6 +6015,15 @@ let _crmApiLoaded = false;
 let _crmDirty = new Set(); // IDs de contactos modificados en memoria
 let _crmSyncTimer = null;
 
+async function refreshCRM() {
+  const btn = document.getElementById('crm-refresh-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '↻ Cargando...'; }
+  _crmApiLoaded = false;
+  await _apiLoadCRM(true);
+  renderCRM();
+  if (btn) { btn.disabled = false; btn.textContent = '↻ Actualizar'; }
+}
+
 async function _apiLoadCRM(force = false) {
   if (_crmApiLoaded && !force) return;
   const wsId = _activeWsId;
@@ -6426,6 +6446,23 @@ function _enterWorkspace(ws){
   if(S.tnIntegration) setTimeout(()=>syncVentasALaFecha(true), 3000);
   // Verificar difusiones interrumpidas — mostrar banner global al cargar
   setTimeout(_difCheckResumableGlobal, 1500);
+  // ── Flows + WA queue: arrancar timers en background (independiente de qué página está abierta) ──
+  setTimeout(()=>{
+    // Cola WA: cargar proveedores + queue + arrancar timer
+    loadWaProviders().then(()=>{
+      loadWaQueue().then(()=>_waqStartTimer());
+    });
+    // Web users para triggers de carrito/productos (refresca cada 10 min)
+    _loadWebUsuarios();
+    if(window._flowsBgTimer) clearInterval(window._flowsBgTimer);
+    // Auto-process flows cada 2 minutos en background
+    window._flowsBgTimer=setInterval(()=>{
+      _loadWebUsuarios(); // datos frescos para triggers web
+      _autoProcessFlows();
+    }, 2*60*1000);
+    // Correr una vez al inicio para procesar tareas que ya estaban pendientes
+    setTimeout(_autoProcessFlows, 5000);
+  }, 4000); // 4s para que S y CRM estén cargados
   // Si la URL es una ruta "no-sección" (/, /projects, /login), navegar al default
   // (/inicio) ahora que ya estamos dentro del workspace.
   if(typeof navigate==='function'&&(location.pathname==='/'||location.pathname==='/projects'||location.pathname==='/login')){
@@ -7106,7 +7143,7 @@ function applyRoute(){
   // Area renders
   if(S){
     if(r.area==='inicio')renderInicio();
-    if(r.area==='crm'){if(!S.crm)S.crm=[];_apiLoadCRM().then(()=>{ if(r.page==='difusiones')renderDifusiones();else renderCRM(); });return;}
+    if(r.area==='crm'){if(!S.crm)S.crm=[];_apiLoadCRM(true).then(()=>{ if(r.page==='difusiones')renderDifusiones();else renderCRM(); });return;}
     if(r.area==='flows'){if(!S.flows)S.flows=[];renderFlowsPage();}
     if(r.area==='hojas'){if(!S.customViews)S.customViews=[];renderHojas();}
     if(r.page==='docs'){if(!S.docs)S.docs=[];renderDocs();}
@@ -7224,6 +7261,10 @@ async function loadWaQueue() {
     if (d.config?.minIntervalMin) _waQueueConfig.minIntervalMin = d.config.minIntervalMin;
     const el = document.getElementById('waq-min-interval');
     if (el) el.value = _waQueueConfig.minIntervalMin;
+    // Restaurar lastSent desde el item más reciente enviado para respetar
+    // el intervalo mínimo aunque se haya recargado la página
+    const lastSentItem=(_waQueue).filter(i=>i.status==='sent'&&i.sentAt).sort((a,b)=>new Date(b.sentAt)-new Date(a.sentAt))[0];
+    if(lastSentItem)_waQueueLastSent=new Date(lastSentItem.sentAt).getTime();
   } catch(e) {}
 }
 
@@ -7419,6 +7460,25 @@ function _addDays(dateStr, n) {
 }
 
 // Devuelve array de tareas pendientes (hoy + vencidas sin completar)
+// Devuelve true si la tarea está bloqueada (completada o en snooze vigente).
+function _isFlowDone(k){
+  const v=S.flowDone&&S.flowDone[k];
+  if(!v)return false;
+  if(typeof v==='string'&&v.startsWith('snooze:')){
+    if(Date.now()<parseInt(v.slice(7)))return true; // aún en snooze
+    delete S.flowDone[k]; // snooze expiró, volver a mostrar
+    return false;
+  }
+  return true;
+}
+// Devuelve true SOLO si la tarea fue enviada/completada (no snooze).
+function _isFlowCompleted(k){
+  const v=S.flowDone&&S.flowDone[k];
+  if(!v)return false;
+  if(typeof v==='string'&&v.startsWith('snooze:'))return false;
+  return true;
+}
+
 function computeFlowTasks(){
   _flowsInit();
   const today=fmtDate(new Date());
@@ -7462,6 +7522,15 @@ function computeFlowTasks(){
           const diff=_daysBetween(webUser.ultimoAbandonoCarrito.slice(0,10),today);
           if(diff!==null&&diff>=trigDays){triggerKey='ca_'+webUser.ultimoAbandonoCarrito.slice(0,10);entryDate=_addDays(webUser.ultimoAbandonoCarrito.slice(0,10),trigDays);}
         }
+      } else if(trig.type==='cart_create'){
+        // Dispara cuando el contacto agrega algo al carrito (ultimoCarrito)
+        const cPhone=(c.tel||'').replace(/\D/g,'');
+        const webUser=cPhone?_webUsuarios.find(u=>(u.telefono||'').replace(/\D/g,'')===cPhone):null;
+        if(webUser&&webUser.ultimoCarrito){
+          const cartDate=webUser.ultimoCarrito.slice(0,10);
+          const diff=_daysBetween(cartDate,today);
+          if(diff!==null&&diff>=trigDays){triggerKey='cc_'+cartDate;entryDate=_addDays(cartDate,trigDays);}
+        }
       } else if(trig.type==='product_interest'){
         // Fire when user has viewed products >= trigDays (used as minViews)
         const minViews=trigDays||2;
@@ -7502,7 +7571,7 @@ function computeFlowTasks(){
           if(r.fecha&&r.fecha<=today){
             const cid=c.id||'';
             const k=f.id+'|'+cid+'|reminder_'+(r.id||r.fecha);
-            if(!S.flowDone[k]){
+            if(!_isFlowDone(k)){
               out.push({flow:f,contact:c,key:k,triggerType:'reminder_due',triggerDate:r.fecha,dueDate:today,message:r.nota||'',reminderId:r.id||r.fecha,stepIdx:0,stepTotal:1});
             }
           }
@@ -7515,27 +7584,32 @@ function computeFlowTasks(){
 
       // ─── Multi-step (nuevo) ───
       if(f.steps&&f.steps.length){
-        const msgSteps=f.steps.filter(s=>s.type==='message').length;
+        const msgSteps=f.steps.filter(s=>['message','email','both'].includes(s.type)).length;
         f.steps.forEach((step,si)=>{
-          if(step.type!=='message')return;
+          if(!['message','email','both'].includes(step.type))return;
+          // Bloquear paso si algún paso de mensaje anterior no fue completado
+          const prevBlocked=f.steps.some((s,j)=>j<si&&['message','email','both'].includes(s.type)&&!_isFlowCompleted(f.id+'|'+cid+'|'+triggerKey+'|step'+j));
+          if(prevBlocked)return;
           const offsetMs=_flowStepOffset(f.steps,si);
           const [_ey,_em,_ed]=(entryDate.slice(0,10)).split('-').map(Number);
           const dueTs=new Date(_ey,_em-1,_ed).getTime()+offsetMs;
           if(Date.now()<dueTs)return; // aún no es la hora
           const k=f.id+'|'+cid+'|'+triggerKey+'|step'+si;
-          if(S.flowDone[k])return;
+          if(_isFlowDone(k))return;
           const daysOverdue=Math.max(0,Math.floor((Date.now()-dueTs)/86400000));
           const dueDate=fmtDate(new Date(dueTs));
-          const stepNum=f.steps.slice(0,si+1).filter(s=>s.type==='message').length;
+          const stepNum=f.steps.slice(0,si+1).filter(s=>['message','email','both'].includes(s.type)).length;
+          const isBothStep=step.type==='both';
           out.push({
             flow:f, contact:c, key:k,
             triggerType:trig.type, triggerDate:entryDate, dueDate,
             daysOverdue, stepIdx:si, stepNum, stepTotal:msgSteps,
-            message:_applyTemplate(step.template||step.templateWA||'',c,{dias:trigDays}),
+            message:_applyTemplate(isBothStep?(step.templateWA||''):(step.template||step.templateWA||''),c,{dias:trigDays}),
             action:step.action||'whatsapp',
             stepType:step.type||'message',
-            autoSend:step.type==='email'?(step.autoSend!==false):(step.action==='whatsapp'),
-            emailSubject:step.type==='email'?_applyTemplate(step.subject||'',c,{dias:trigDays}):'',
+            autoSend:step.type==='email'?(step.autoSend!==false):isBothStep?(step.autoSend!==false):(step.action==='whatsapp'),
+            emailSubject:(step.type==='email'||isBothStep)?_applyTemplate(step.subject||'',c,{dias:trigDays}):'',
+            emailMessage:isBothStep?_applyTemplate(step.templateEmail||'',c,{dias:trigDays}):'',
             stepDelayMin:step.delayMin||0,
             trigDays
           });
@@ -7543,7 +7617,7 @@ function computeFlowTasks(){
       } else {
         // ─── Single-action (backward compat) ───
         const k=f.id+'|'+cid+'|'+triggerKey;
-        if(S.flowDone[k])return;
+        if(_isFlowDone(k))return;
         const daysOverdue=_daysBetween(entryDate,today)||0;
         out.push({
           flow:f, contact:c, key:k,
@@ -7715,8 +7789,9 @@ function renderFlowsToday(){
     const isSelected=_flowSelectedKeys.has(t.key);
     const overdueBadge=t.daysOverdue>0?`<span style="font-size:9px;background:rgba(255,107,107,.15);color:var(--coral);border:1px solid rgba(255,107,107,.3);padding:2px 8px;border-radius:10px;font-weight:600">${t.daysOverdue===1?'hace 1 día':'hace '+t.daysOverdue+' días'}</span>`:'<span style="font-size:9px;background:rgba(52,199,123,.12);color:var(--green);border:1px solid rgba(52,199,123,.25);padding:2px 8px;border-radius:10px;font-weight:600">Hoy</span>';
     const stepBadge=t.stepTotal>1?`<span style="font-size:9px;background:rgba(41,121,255,.12);color:var(--blue);border:1px solid rgba(41,121,255,.25);padding:2px 8px;border-radius:10px;font-weight:600">Paso ${t.stepNum} de ${t.stepTotal}</span>`:'';
-    const isWapp=t.action==='whatsapp'||t.action==='task'; // task shows WA link too if contact has tel
+    const isWapp=t.action==='whatsapp'||t.action==='task'||t.stepType==='both';
     const isEmail=t.stepType==='email';
+    const isBoth=t.stepType==='both';
     const ri=S.crm.indexOf(t.contact);
     return`<div class="flow-task-item" style="background:var(--s3);padding:10px 12px;border-radius:8px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap${t.daysOverdue>0?';border-left:3px solid var(--coral)':''}${isSelected?';outline:2px solid var(--accent)':''}">
       <input type="checkbox" class="flow-task-cb" data-key="${keyEsc}" ${isSelected?'checked':''} onchange="toggleFlowTaskSelect('${keyEsc}',this.checked)" style="margin-top:3px;accent-color:var(--accent);cursor:pointer;flex-shrink:0">
@@ -7727,15 +7802,16 @@ function renderFlowsToday(){
           ${overdueBadge}
           ${stepBadge}
           ${isEmail?'<span style="font-size:9px;background:rgba(37,99,235,.12);color:var(--accent);border:1px solid rgba(37,99,235,.25);padding:2px 8px;border-radius:10px;font-weight:600">✉ Email</span>':''}
+          ${isBoth?'<span style="font-size:9px;background:rgba(124,58,237,.12);color:var(--purple);border:1px solid rgba(124,58,237,.25);padding:2px 8px;border-radius:10px;font-weight:600">📣 WA+Email</span>':''}
         </div>
         ${t.message?`<div style="font-size:11px;color:var(--muted2);margin-top:5px;background:var(--s1);padding:8px 10px;border-radius:6px;line-height:1.4">${t.message}</div>`:''}
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start">
-        ${!isEmail&&wappLink?`<a class="btn btn-sm" href="${wappLink}" target="_blank" onclick="markFlowDone('${keyEsc}',${ri},'${msgEsc}')" style="background:#25d366;color:#fff;border-color:#25d366">💬 WhatsApp</a>`:''}
-        ${!isEmail&&(_wa?.connected||_waProviders?.some(p=>p.enabled))?`<button class="btn btn-sm" style="background:rgba(37,211,102,.15);color:var(--green);border-color:rgba(37,211,102,.3)" onclick="flowSendWA('${keyEsc}',${ri},'${msgEsc}')">⚡ Enviar directo</button>`:''}
-        ${isEmail&&t.contact.email?`<button class="btn btn-sm" style="background:rgba(37,99,235,.12);color:var(--accent);border-color:rgba(37,99,235,.25)" onclick="flowSendEmailManual('${keyEsc}',${ri})">✉ Enviar email</button>`:''}
+        ${(isWapp||isBoth)&&wappLink?`<a class="btn btn-sm" href="${wappLink}" target="_blank" onclick="${isBoth?'':''}" style="background:#25d366;color:#fff;border-color:#25d366">💬 WhatsApp</a>`:''}
+        ${(isWapp||isBoth)&&!isBoth&&t.action!=='task'&&(_wa?.connected||_waProviders?.some(p=>p.enabled))?`<button class="btn btn-sm" style="background:rgba(37,211,102,.15);color:var(--green);border-color:rgba(37,211,102,.3)" onclick="flowSendWA('${keyEsc}',${ri},'${msgEsc}')">⚡ Enviar directo</button>`:''}
+        ${(isEmail||isBoth)&&t.contact.email?`<button class="btn btn-sm" style="background:rgba(37,99,235,.12);color:var(--accent);border-color:rgba(37,99,235,.25)" onclick="flowSendEmailManual('${keyEsc}',${ri})">✉ Enviar email</button>`:''}
         <button class="btn btn-sm" onclick="markFlowDone('${keyEsc}',${ri},'${msgEsc}')">✓ Hecho</button>
-        <button class="btn btn-sm" onclick="snoozeFlow('${keyEsc}')" title="Posponer">⏰</button>
+        <button class="btn btn-sm" onclick="snoozeFlow('${keyEsc}')" title="Posponer 24h">⏰</button>
       </div>
     </div>`;
   };
@@ -7779,7 +7855,8 @@ function _triggerLabel(t){
   if(t.type==='after_creation')return`${d} ${uLabel} después de crear el contacto`;
   if(t.type==='no_contact')return`${d}+ ${uLabel} sin contactar`;
   if(t.type==='reminder_due')return'Cuando vence un recordatorio';
-  if(t.type==='cart_abandon')return`🛒 Carrito abandonado — ${d}+ ${uLabel}`;
+  if(t.type==='cart_create')return`🛒 Carrito creado — ${d}+ ${uLabel}`;
+  if(t.type==='cart_abandon')return`⚠️ Carrito abandonado — ${d}+ ${uLabel}`;
   if(t.type==='product_view')return'👀 Visita un producto (inmediato)';
   if(t.type==='first_purchase')return'🏅 Primera compra (inmediato)';
   if(t.type==='xp_milestone')return`⭐ Alcanza ${d} puntos XP`;
@@ -7814,11 +7891,17 @@ function renderFlowsList(){
     // Generar resumen visual de pasos
     const steps=f.steps||[{type:'message',action:f.action?.type||'whatsapp',template:f.action?.template||''}];
     const stepsHtml=steps.map(s=>{
-      if(s.type==='message')return`<span style="font-size:10px;background:rgba(77,184,122,.12);color:var(--green);padding:2px 7px;border-radius:8px;font-weight:500">💬 Msg</span>`;
+      if(s.type==='message')return s.action==='task'
+        ?`<span style="font-size:10px;background:rgba(201,180,138,.12);color:var(--gold);padding:2px 7px;border-radius:8px;font-weight:500">📋 Tarea WA</span>`
+        :`<span style="font-size:10px;background:rgba(77,184,122,.12);color:var(--green);padding:2px 7px;border-radius:8px;font-weight:500">💬 Msg</span>`;
+      if(s.type==='email')return s.autoSend===false
+        ?`<span style="font-size:10px;background:rgba(201,180,138,.12);color:var(--gold);padding:2px 7px;border-radius:8px;font-weight:500">📋 Tarea Email</span>`
+        :`<span style="font-size:10px;background:rgba(37,99,235,.12);color:var(--accent);padding:2px 7px;border-radius:8px;font-weight:500">✉️ Email</span>`;
+      if(s.type==='both')return`<span style="font-size:10px;background:rgba(124,58,237,.12);color:var(--purple);padding:2px 7px;border-radius:8px;font-weight:500">📣 WA+Email</span>`;
       if(s.type==='wait'){const wv=s.value??s.days??1;const wu=s.unit||'days';const wl=wu==='minutes'?'min':wu==='hours'?'hs':'d';return`<span style="font-size:10px;color:var(--gold)">⏳${wv}${wl}</span>`;}
       return'';
     }).join('<span style="color:var(--muted);font-size:10px;margin:0 2px">→</span>');
-    const msgCount=steps.filter(s=>s.type==='message').length;
+    const msgCount=steps.filter(s=>['message','email','both'].includes(s.type)).length;
     return`<div style="background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
       <label style="display:inline-flex;align-items:center;cursor:pointer;margin-top:2px" title="${f.enabled?'Activado':'Desactivado'}">
         <input type="checkbox" ${f.enabled?'checked':''} onchange="toggleFlow('${f.id}',this.checked)" style="width:18px;height:18px;cursor:pointer">
@@ -7945,7 +8028,7 @@ async function _autoProcessFlows() {
     let changed = false;
 
     for (const t of autoTasks) {
-      if (S.flowDone[t.key]) continue; // safety — no duplicar
+      if (_isFlowDone(t.key)) continue; // safety — no duplicar
       const c = t.contact;
 
       if (t.stepType === 'email') {
@@ -8004,6 +8087,29 @@ async function _autoProcessFlows() {
           console.warn('[flows] email error:', e.message);
         }
 
+      } else if (t.stepType === 'both') {
+        // Auto-enviar email + WA
+        let sent = false;
+        if (c.email) {
+          const cfg = S.store?.settings || S.tienda?.settings || {};
+          const fromUser = cfg.emailFromUser || 'onboarding';
+          const fromDomain = cfg.emailFromDomain || 'resend.dev';
+          const fromName = cfg.emailFromName || '';
+          const from = fromName ? `${fromName} <${fromUser}@${fromDomain}>` : `${fromUser}@${fromDomain}`;
+          try {
+            await fetch('/api/email/flow', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ wsId: _activeWsId, to: c.email, subject: t.emailSubject || t.flow?.name || 'Mensaje automático', html: t.emailMessage || t.message || '', from, contacto: c })
+            });
+            sent = true;
+          } catch(e) { console.warn('[flows] both email error:', e.message); }
+        }
+        const tel = (c.tel || '').replace(/\D/g, '');
+        if (tel && hasWA) { waqEnqueue(c.id || t.key, tel, t.message, t.stepDelayMin || 0, t.key, _provId); sent = true; }
+        if (sent) { _markFlowDoneQuiet(t.key, c); changed = true; }
+        continue;
+
       } else if (t.action === 'whatsapp' && hasWA) {
         // Auto-enviar WA
         const tel = (c.tel || '').replace(/\D/g, '');
@@ -8033,8 +8139,9 @@ async function _autoProcessFlows() {
     }
 
     if (changed) {
-      // Actualizar badge sin llamar save() — evita race condition con writes del servidor.
-      // flowDone queda en memoria y se persiste en el próximo save() del usuario.
+      // Persistir flowDone y flowHistory inmediatamente para que el tiempo de espera
+      // del paso siguiente funcione aunque se recargue la página antes del próximo save().
+      _saveDelta({ flowDone: S.flowDone, flowHistory: S.flowHistory });
       try {
         const remaining = computeFlowTasks().filter(t => !t.autoSend);
         const _nb = document.getElementById('flows-nav-badge');
@@ -8077,10 +8184,10 @@ function markFlowDone(key,ri,msgRendered){
 
 function snoozeFlow(key){
   _flowsInit();
-  S.flowDone[key+'|snooze'+Date.now()]=Date.now();
-  S.flowDone[key]=Date.now();
+  // Posponer 24h — _isFlowDone() lo descarta hasta que expire el timestamp
+  S.flowDone[key]='snooze:'+(Date.now()+24*60*60*1000);
   save();renderFlowsPage();
-  notify('⏰ Pospuesto');
+  notify('⏰ Pospuesto para mañana');
 }
 
 // Enviar email manual desde tarea pendiente de flow
@@ -8369,7 +8476,8 @@ function onFlowTriggerChange(){
   if(w)w.style.display=immediate.includes(t)?'none':'block';
   const daysLabel=document.querySelector('#fflow-days-wrap .form-label');
   if(daysLabel){
-    if(t==='cart_abandon') daysLabel.textContent='Días desde abandono';
+    if(t==='cart_create') daysLabel.textContent='Horas/días después de agregar al carrito';
+    else if(t==='cart_abandon') daysLabel.textContent='Días desde abandono';
     else if(t==='post_purchase') daysLabel.textContent='Días después de la compra';
     else if(t==='no_contact') daysLabel.textContent='Días sin contacto';
     else daysLabel.textContent='Demora';
@@ -8380,8 +8488,8 @@ function saveFlow(){
   _flowsInit();
   const name=document.getElementById('fflow-name')?.value?.trim();
   if(!name){notify('Poné un nombre');return;}
-  const msgSteps=_flowSteps.filter(s=>s.type==='message');
-  if(!msgSteps.length){notify('Agregá al menos un mensaje al flow');return;}
+  const msgSteps=_flowSteps.filter(s=>['message','email','both'].includes(s.type));
+  if(!msgSteps.length){notify('Agregá al menos un paso de mensaje o email al flow');return;}
   const _ffTrigType=document.getElementById('fflow-trigger').value;
   const _ffImmediate=['payment_confirmed','order_placed','new_lead','birthday'];
   const _fflowVal=_ffImmediate.includes(_ffTrigType)?0:(parseInt(document.getElementById('fflow-days').value)||0);
@@ -8411,6 +8519,9 @@ function saveFlow(){
 function deleteFlow(flowId){
   if(!confirm('¿Eliminar este flow?'))return;
   S.flows=(S.flows||[]).filter(f=>f.id!==flowId);
+  // Marcar como eliminado explícitamente para que el merge del servidor no lo restaure
+  if(!S.deletedFlowIds)S.deletedFlowIds=[];
+  if(!S.deletedFlowIds.includes(flowId))S.deletedFlowIds.push(flowId);
   save();renderFlowsPage();
   notify('Flow eliminado');
 }
@@ -8947,40 +9058,41 @@ function renderBriefs(targetId){
     if(_briefFilterCat&&b.categoria!==_briefFilterCat)return'';
     if(pilarF&&b.pilar!==pilarF)return'';
     if(cuentaF&&b.cuenta!==cuentaF)return'';
-    const emos=(b.emociones||[]).map(e=>`<span class="tag" style="background:rgba(41,121,255,.08);color:var(--gold);border:1px solid rgba(41,121,255,.18);font-size:9px">${e}</span>`).join('');
     const asignado=(S.creadoras||[]).some(cr=>cr.briefId===(b.id||b.titulo));
     const catBadge=b.categoria?`<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:${CAT_COLOR[b.categoria]};color:${CAT_TEXT[b.categoria]};margin-left:6px">${CAT_LABEL[b.categoria]||b.categoria}</span>`:'';
-    const pilarBadge=b.pilar?`<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:var(--s3);color:var(--muted2);margin-left:4px">${b.pilar}</span>`:'';
-    const cuentaBadge=b.cuenta?`<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:rgba(124,77,255,.12);color:var(--purple);margin-left:4px">🏢 ${b.cuenta}</span>`:'';
-    const selClass=_briefPrintMode?'bf-sel-mode':''
+    const selClass=_briefPrintMode?'bf-sel-mode':'';
     const selCls=_briefSelected.has(i)?'bf-selected':'';
     const selCheck=_briefPrintMode?`<div class="brief-sel-check">${_briefSelected.has(i)?'✓':''}</div>`:'';
     const clickSel=_briefPrintMode?`onclick="toggleBriefSel(${i},this)"`:''
-    const entregasHtml=(b.entregas||[]).map(e=>`<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:rgba(255,200,0,.07);color:var(--gold);border:1px solid rgba(255,200,0,.18)">${e.cantidad} ${e.tipo}</span>`).join('');
     const firstImg=(b.imagenes||[]).find(img=>img?.data)||null;
     const imgSrc=firstImg?.data||(typeof b.imagen==='string'&&b.imagen?b.imagen:null);
+    const ANGULO_LABEL={'fit':'Fit / cómo queda puesto','antes_despues':'Antes/después','styling':'Styling / 3 formas','detalle':'El detalle que lo vende','comparacion':'Comparación'};
+    const anguloLabel=b.angulo?(ANGULO_LABEL[b.angulo]||b.angulo):'';
     return`<div class="brief-card ${selClass} ${selCls}" data-brief-idx="${i}" ${clickSel} style="position:relative">
       ${selCheck}
       <div class="brief-card-head">
         <div class="brief-num">${String(i+1).padStart(2,'0')}</div>
         <div class="brief-meta">
-          <div class="brief-title">${b.titulo}${catBadge}${pilarBadge}${cuentaBadge}</div>
-          ${entregasHtml?`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px">${entregasHtml}</div>`:''}
+          <div class="brief-title">${b.titulo}${catBadge}</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px">
+            ${b.formato?`<span style="font-size:9px;padding:2px 7px;border-radius:10px;background:rgba(255,200,0,.1);color:var(--gold);border:1px solid rgba(255,200,0,.25)">${b.formato}</span>`:''}
+            ${b.creadora?`<span style="font-size:9px;padding:2px 7px;border-radius:10px;background:rgba(41,121,255,.08);color:var(--blue)">@${(b.creadora||'').replace(/^@/,'')}</span>`:''}
+            ${b.fecha_entrega?`<span style="font-size:9px;padding:2px 7px;border-radius:10px;background:var(--s3);color:var(--muted2)">📅 ${b.fecha_entrega}</span>`:''}
+            ${b.campana_mes?`<span style="font-size:9px;padding:2px 7px;border-radius:10px;background:var(--s3);color:var(--muted2)">${b.campana_mes}</span>`:''}
+          </div>
         </div>
         ${!_briefPrintMode?`<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deleteBrief(${i})" style="flex-shrink:0">×</button>`:''}
       </div>
       <div class="brief-card-body">
-        ${b.objetivo?`<div style="font-size:11px;color:var(--muted2);margin-bottom:6px;font-weight:300;line-height:1.4"><span style="color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em">Objetivo · </span>${b.objetivo}</div>`:''}
-        ${b.hook?`<div style="font-size:11px;color:var(--muted2);margin-bottom:6px;font-weight:300;line-height:1.4"><span style="color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em">Hook · </span>${b.hook}</div>`:''}
-        ${b.mensaje?`<div style="font-size:11px;color:var(--text);margin-bottom:8px;font-weight:400;line-height:1.4;padding:6px 10px;background:var(--s2);border-radius:6px;border-left:2px solid var(--gold)">${b.mensaje}</div>`:''}
-        ${emos?`<div class="brief-tags" style="margin-bottom:8px">${emos}</div>`:''}
-        ${b.cta?`<div style="font-size:10px;color:var(--muted2);margin-bottom:8px"><span style="color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em">CTA · </span>${b.cta}</div>`:''}
-        ${b.producto?`<div class="brief-tags" style="margin-bottom:10px"><span class="tag tag-d" style="font-size:9px">${b.producto}</span></div>`:''}
+        ${b.contexto?`<div style="font-size:11px;color:var(--text);margin-bottom:8px;line-height:1.5;padding:7px 10px;background:var(--s2);border-radius:6px;border-left:2px solid var(--gold)">${b.contexto}</div>`:''}
+        ${anguloLabel?`<div style="font-size:11px;color:var(--muted2);margin-bottom:6px;line-height:1.4"><span style="color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em">Ángulo · </span>${anguloLabel}</div>`:''}
+        ${b.hook?`<div style="font-size:11px;color:var(--muted2);margin-bottom:6px;line-height:1.4"><span style="color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em">Hook · </span>${b.hook.split('\n')[0].slice(0,140)}</div>`:''}
         ${imgSrc?`<img src="${imgSrc}" alt="" style="width:100%;max-height:160px;object-fit:cover;border-radius:4px;margin-bottom:8px" onerror="this.style.display='none'">`:''}
         ${!_briefPrintMode?`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:10px;margin-top:4px">
           <button class="btn btn-xs" onclick="event.stopPropagation();openBriefModal(${i})">✏ Editar</button>
           <button class="btn btn-xs" onclick="copyBriefText(${i})">📋 Copiar</button>
           <button class="btn btn-xs" onclick="downloadBriefPDF(${i})">⬇ PDF</button>
+          <button class="btn btn-xs" onclick="shareBriefLink(${i})" title="Copiar link para la creadora">🔗 Link</button>
           <button class="btn btn-xs" onclick="event.stopPropagation();publishBriefToSoulPR(${i})">${b.publicadoEnSoulPR?'✓ Soul PR':'📤 Soul PR'}</button>
           ${asignado?`<span style="font-size:10px;color:var(--green)">✓ Asignado</span>`:''}
         </div>`:''}
@@ -9063,6 +9175,22 @@ function toggleBriefCat(btn){
   const wasOn=btn.classList.contains('on');
   document.querySelectorAll('.bf-cat').forEach(b=>b.classList.remove('on'));
   if(!wasOn)btn.classList.add('on');
+}
+function toggleBriefFormato(btn){
+  const wasOn=btn.classList.contains('on');
+  document.querySelectorAll('.bf-formato').forEach(b=>b.classList.remove('on'));
+  if(!wasOn)btn.classList.add('on');
+}
+function toggleBriefAngulo(btn){
+  const wasOn=btn.classList.contains('on');
+  document.querySelectorAll('.bf-angulo').forEach(b=>b.classList.remove('on'));
+  const ci=document.getElementById('f-angulo-custom');
+  if(!wasOn){
+    btn.classList.add('on');
+    if(ci)ci.style.display=btn.dataset.angulo==='otro'?'block':'none';
+  } else {
+    if(ci)ci.style.display='none';
+  }
 }
 
 // ── Modo impresión ──
@@ -9298,11 +9426,21 @@ function downloadBriefPDF(i){
   }else{_renderBriefPDF(b);}
 }
 
+function shareBriefLink(i){
+  const b=S.briefs[i];if(!b)return;
+  if(!b.id){notify('Guardá el brief primero para generar un link','error');return;}
+  const url=`${location.origin}/brief-view?ws=${encodeURIComponent(_activeWsId)}&id=${encodeURIComponent(b.id)}`;
+  navigator.clipboard.writeText(url)
+    .then(()=>notify('🔗 Link copiado — compartilo con la creadora ✓'))
+    .catch(()=>{prompt('Copiá este link para la creadora:',url);});
+}
+
 async function _renderBriefPDF(b){
   const jsPDF=window.jspdf?.jsPDF||window.jsPDF;
   if(!jsPDF){notify('No se pudo cargar jsPDF');return;}
   const bb=S.brandBrief||{};
-  // Pre-fetch all images
+  const ANGULO_LABEL_PDF={'fit':'Fit / cómo queda puesto','antes_despues':'Antes/después','styling':'Styling / 3 formas','detalle':'El detalle que lo vende','comparacion':'Comparación'};
+  // Pre-fetch images
   const imgSet=await Promise.all((b.imagenes||[]).map(async img=>{
     if(!img)return null;
     if(img.tipo==='base64')return{b64:img.data,caption:img.caption||''};
@@ -9313,6 +9451,7 @@ async function _renderBriefPDF(b){
   const doc=new jsPDF({unit:'mm',format:'a4'});
   const W=210,PL=18,PR=18,CW=W-PL-PR;
   let y=0;
+
   // Header bar
   doc.setFillColor(10,10,20);doc.rect(0,0,W,28,'F');
   doc.setFont('helvetica','bold');doc.setFontSize(15);doc.setTextColor(255,255,255);
@@ -9324,97 +9463,115 @@ async function _renderBriefPDF(b){
   y=36;
   doc.setDrawColor(41,121,255);doc.setLineWidth(0.5);doc.line(PL,y-4,W-PR,y-4);
 
-  // Brand brief header block
+  // Brand block
   if(bb.nombre){
     doc.setFillColor(20,20,40);doc.roundedRect(PL,y,CW,bb.esencia?28:18,2,2,'F');
     doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(100,140,255);
     doc.text('IDENTIDAD DE MARCA',PL+4,y+7);
     doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(255,255,255);
     doc.text(bb.nombre,PL+4,y+14);
-    if(bb.esencia){
-      doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(180,180,210);
-      const ls=doc.splitTextToSize(bb.esencia,CW-8);
-      ls.slice(0,2).forEach((l,i)=>doc.text(l,PL+4,y+21+(i*4.5)));
-    }
-    if(bb.donot){
-      doc.setFont('helvetica','italic');doc.setFontSize(7.5);doc.setTextColor(180,100,100);
-      const ls=doc.splitTextToSize('NO: '+bb.donot,CW-8);
-      doc.text(ls[0]||'',PL+4,y+(bb.esencia?30:20));
-    }
+    if(bb.esencia){doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(180,180,210);doc.splitTextToSize(bb.esencia,CW-8).slice(0,2).forEach((l,i)=>doc.text(l,PL+4,y+21+(i*4.5)));}
+    if(bb.donot){doc.setFont('helvetica','italic');doc.setFontSize(7.5);doc.setTextColor(180,100,100);doc.text((doc.splitTextToSize('NO: '+bb.donot,CW-8)[0]||''),PL+4,y+(bb.esencia?30:20));}
     y+=(bb.esencia?36:26);
   }
 
-  const addRow=(label,value)=>{
-    if(!value)return;
-    if(y>270){doc.addPage();y=20;}
-    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(120,120,150);
-    doc.text(label.toUpperCase(),PL,y);y+=4.5;
-    doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(20,20,35);
-    const ls=doc.splitTextToSize(value,CW);
-    ls.forEach(l=>{if(y>272){doc.addPage();y=20;}doc.text(l,PL,y);y+=5.5;});
-    doc.setDrawColor(230,230,240);doc.setLineWidth(0.25);doc.line(PL,y+1,W-PR,y+1);y+=7;
+  const _newPage=()=>{doc.addPage();y=20;};
+  const _checkY=(h=14)=>{if(y+h>278)_newPage();};
+
+  const addSection=(title)=>{
+    _checkY(12);
+    doc.setFillColor(240,242,255);doc.rect(PL,y,CW,8,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(41,121,255);
+    doc.text(title,PL+3,y+5.5);
+    y+=12;
   };
 
+  const addRow=(label,value,small=false)=>{
+    if(!value)return;
+    _checkY(10);
+    doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(120,120,150);
+    doc.text(label.toUpperCase(),PL,y);y+=4.5;
+    doc.setFont('helvetica','normal');doc.setFontSize(small?9:10.5);doc.setTextColor(20,20,35);
+    const ls=doc.splitTextToSize(value,CW);
+    ls.forEach(l=>{_checkY(6);doc.text(l,PL,y);y+=5.2;});
+    doc.setDrawColor(230,230,240);doc.setLineWidth(0.2);doc.line(PL,y+1,W-PR,y+1);y+=6;
+  };
+
+  // ── Encabezado ──
+  addSection('1 · ENCABEZADO');
+  // Fila de chips
+  const chips=[];
+  if(b.marca)chips.push({label:'Marca',val:b.marca});
+  if(b.formato)chips.push({label:'Formato',val:b.formato});
+  if(b.creadora)chips.push({label:'Creadora',val:'@'+(b.creadora||'').replace(/^@/,'')});
+  if(b.fecha_entrega)chips.push({label:'Entrega',val:b.fecha_entrega});
+  if(b.donde_sube)chips.push({label:'Sube en',val:b.donde_sube});
+  if(b.campana_mes)chips.push({label:'Campaña',val:b.campana_mes});
+  if(chips.length){
+    _checkY(chips.length*10+4);
+    chips.forEach(({label,val})=>{
+      doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(120,120,150);
+      doc.text(label.toUpperCase(),PL,y);
+      doc.setFont('helvetica','normal');doc.setFontSize(10.5);doc.setTextColor(20,20,35);
+      doc.text(val,PL+32,y);
+      y+=7;
+    });
+    doc.setDrawColor(230,230,240);doc.setLineWidth(0.2);doc.line(PL,y+1,W-PR,y+1);y+=6;
+  }
   addRow('Título',b.titulo);
   if(b.categoria)addRow('Tipo de contenido',CAT_LABEL[b.categoria]||b.categoria);
-  addRow('Pilar de contenido',b.pilar);
-  addRow('Audiencia',b.audiencia);
-  addRow('Objetivo',b.objetivo);
-  addRow('Mensaje central',b.mensaje);
-  addRow('Hook — primeros 2 segundos',b.hook);
-  addRow('Tono',b.tono);
-  if(b.emociones&&b.emociones.length)addRow('Emoción buscada',b.emociones.join(' · '));
-  addRow('CTA',b.cta);
 
-  // Entregas section
-  if(b.entregas&&b.entregas.length){
-    if(y>262){doc.addPage();y=20;}
-    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(120,120,150);
-    doc.text('ENTREGAS',PL,y);y+=5;
-    b.entregas.forEach(e=>{
-      if(y>272){doc.addPage();y=20;}
-      doc.setFillColor(240,242,255);doc.roundedRect(PL,y-3.5,CW,e.specs?14:10,1.5,1.5,'F');
-      doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(20,20,35);
-      doc.text(`${e.cantidad}×  ${e.tipo}`,PL+3,y+2);
-      if(e.descripcion){
-        doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(60,60,80);
-        const ls=doc.splitTextToSize(e.descripcion,CW-30);
-        doc.text(ls[0]||'',PL+30,y+2);
-      }
-      if(e.specs){
-        doc.setFont('helvetica','italic');doc.setFontSize(7.5);doc.setTextColor(120,120,150);
-        doc.text(doc.splitTextToSize(e.specs,CW-6)[0]||'',PL+3,y+8);
-        y+=14;
-      }else y+=12;
-    });
-    doc.setDrawColor(230,230,240);doc.setLineWidth(0.25);doc.line(PL,y+1,W-PR,y+1);y+=7;
-  }
+  // ── Contexto ──
+  addSection('2 · CONTEXTO');
+  addRow('Producto y audiencia',b.contexto);
 
-  addRow('Producto destacado',b.producto);
-  addRow('Planos / locación / notas técnicas',b.notas);
-  addRow('Referencias adicionales',b.referencias);
+  // ── Ángulo ──
+  addSection('3 · ÁNGULO');
+  const anguloVal=b.angulo?(ANGULO_LABEL_PDF[b.angulo]||b.angulo):'';
+  addRow('Ángulo creativo',anguloVal);
 
-  // Images grid
+  // ── Hook ──
+  addSection('4 · EL HOOK');
+  addRow('Primeros 2 segundos',b.hook);
+
+  // ── Guion ──
+  addSection('5 · GUION / BEATS');
+  addRow('Momentos clave',b.guion);
+
+  // ── Must-haves ──
+  addSection('6 · MUST-HAVES');
+  addRow('Obligatorio mostrar',b.must_haves,true);
+
+  // ── Tono y estética ──
+  addSection('7 · TONO Y ESTÉTICA');
+  addRow('Tono / vibe',b.tono);
+  addRow('Referencias visuales (links)',b.referencias_visuales,true);
+  addRow('Qué evitar',b.que_evitar);
+
+  // ── Specs técnicas ──
+  addSection('8 · SPECS TÉCNICAS');
+  addRow('Especificaciones',b.specs,true);
+
+  // ── Imágenes de referencia ──
   if(validImgs.length){
-    if(y>230){doc.addPage();y=20;}
-    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(120,120,150);
-    doc.text('REFERENCIAS VISUALES',PL,y);y+=5;
+    _checkY(40);
+    doc.setFillColor(240,242,255);doc.rect(PL,y,CW,8,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(41,121,255);
+    doc.text('IMÁGENES DE REFERENCIA',PL+3,y+5.5);y+=12;
     const cols=Math.min(validImgs.length,3);
-    const colW=(CW-(cols-1)*3)/cols;const imgH=Math.min(colW*0.75,60);
-    validImgs.slice(0,6).forEach((img,ii)=>{
-      const col=ii%cols;const row=Math.floor(ii/cols);
-      const xi=PL+col*(colW+3);const yi=y+row*(imgH+3);
-      if(yi+imgH>280){return;}
-      try{doc.addImage(img.b64,'JPEG',xi,yi,colW,imgH);}catch(e){}
-      if(img.caption){
-        doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(100,100,120);
-        doc.text(img.caption.slice(0,28),xi,yi+imgH+2.5);
-      }
+    const colW=(CW-(cols-1)*4)/cols;const imgH=Math.min(colW*0.75,55);
+    let rowStartY=y;
+    validImgs.forEach((img,ii)=>{
+      const col=ii%cols;
+      if(col===0&&ii>0){y=rowStartY+imgH+8;rowStartY=y;_checkY(imgH+8);}
+      const xi=PL+col*(colW+4);
+      try{doc.addImage(img.b64,'JPEG',xi,y,colW,imgH);}catch(e){}
+      if(img.caption){doc.setFont('helvetica','normal');doc.setFontSize(6);doc.setTextColor(100,100,120);doc.text(img.caption.slice(0,30),xi,y+imgH+2.5);}
     });
-    const rows=Math.ceil(Math.min(validImgs.length,6)/cols);
-    y+=rows*(imgH+3)+4;
+    y=rowStartY+imgH+10;
   }
 
+  // Footer en todas las páginas
   const total=doc.getNumberOfPages();
   for(let p=1;p<=total;p++){
     doc.setPage(p);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(160,160,180);
@@ -9452,12 +9609,19 @@ function openBriefModal(editIdx){
   document.getElementById('modal-body').innerHTML=_buildBriefModalHtml(b);
   document.getElementById('modal-overlay').classList.add('open');
   setTimeout(()=>{
-    _pilaresSelect();_cuentasSelect('f-cuenta');
     if(b){
-      if(b.cuenta)document.getElementById('f-cuenta').value=b.cuenta;
-      if(b.pilar)document.getElementById('f-pilar').value=b.pilar;
       if(b.categoria)document.querySelectorAll('.bf-cat').forEach(btn=>{if(btn.dataset.cat===b.categoria)btn.classList.add('on');});
-      (b.emociones||[]).forEach(emo=>document.querySelectorAll('.bf-emo').forEach(btn=>{if(btn.dataset.emo===emo)btn.classList.add('on');}));
+      if(b.formato)document.querySelectorAll('.bf-formato').forEach(btn=>{if(btn.dataset.formato===b.formato)btn.classList.add('on');});
+      if(b.angulo){
+        const predef=document.querySelector(`.bf-angulo[data-angulo="${b.angulo}"]`);
+        if(predef){predef.classList.add('on');}
+        else{
+          const otroBtn=document.querySelector('.bf-angulo[data-angulo="otro"]');
+          if(otroBtn)otroBtn.classList.add('on');
+          const ci=document.getElementById('f-angulo-custom');
+          if(ci){ci.value=b.angulo;ci.style.display='block';}
+        }
+      }
     }
     _renderBriefEntregas();_renderBriefImagenes();
   },30);
@@ -9465,65 +9629,89 @@ function openBriefModal(editIdx){
 
 function _buildBriefModalHtml(b){
   const h=v=>v?String(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'):'';
-  const bb=S.brandBrief||{};
-  const bbHtml=bb.nombre?`<div style="background:rgba(41,121,255,.05);border:1px solid rgba(41,121,255,.15);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
-    <div style="flex:1"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:rgba(41,121,255,.7);margin-bottom:2px">Identidad de marca activa</div>
-    <div style="font-size:12px;color:var(--text);font-weight:500">${h(bb.nombre)}</div>
-    ${bb.esencia?`<div style="font-size:10px;color:var(--muted2);margin-top:2px">${h(bb.esencia).slice(0,80)}…</div>`:''}
-    </div><button type="button" class="btn btn-xs" onclick="openBrandBriefModal()">Editar</button></div>`:'';
+  const isNew=!b;
+  const DEFAULT_MUST='- Mostrar el jean puesto y en movimiento (caminar, sentarse, girar)\n- Buena luz\n- Que se vea el calce real de cuerpo entero\n- Mencionar el modelo/nombre del jean\n- Este contenido puede ir a pauta, así que cuidar la calidad';
+  const DEFAULT_SPECS='- Vertical 9:16\n- Mínimo 30 segundos\n- Audio limpio\n- Sin texto tapando el centro (va para subtítulos en edición)\n- Entregar el crudo además del editado';
+  const ANGULOS=[
+    {val:'fit',label:'Fit / cómo queda puesto'},
+    {val:'antes_despues',label:'Antes/después de probártelo'},
+    {val:'styling',label:'Styling / 3 formas de usarlo'},
+    {val:'detalle',label:'El detalle que lo vende'},
+    {val:'comparacion',label:'Comparación'},
+    {val:'otro',label:'Otro ✏'},
+  ];
+  const anguloEsPredefinido=b?.angulo&&ANGULOS.slice(0,-1).some(a=>a.val===b.angulo);
+  const anguloCustomVal=(!anguloEsPredefinido&&b?.angulo)?h(b.angulo):'';
+  const showCustom=!!anguloCustomVal;
   return `
-    ${bbHtml}
-    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:12px">Identificación</div>
+    <div class="bf-section-label">Identificación</div>
     <div class="form-group"><label class="form-label">Título del brief</label>
-      <input class="form-input" id="f-titulo" value="${h(b?.titulo)}" placeholder="Ej: Campaña verano — jeans de algodón"></div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Cuenta / Marca</label>
-        <div style="display:flex;gap:6px"><select class="form-select" id="f-cuenta" style="flex:1"></select>
-        <button type="button" class="btn btn-sm" onclick="openCuentasModal()">🏢</button></div></div>
-      <div class="form-group"><label class="form-label">Pilar</label>
-        <div style="display:flex;gap:6px"><select class="form-select" id="f-pilar" style="flex:1"></select>
-        <button type="button" class="btn btn-sm" onclick="openPilaresModal()">⚙</button></div></div>
-    </div>
+      <input class="form-input" id="f-titulo" value="${h(b?.titulo)}" placeholder="Ej: Jean wide leg — campaña junio"></div>
     <div class="form-group"><label class="form-label">Categoría</label>
       <div class="bf-cat-wrap">
-        <button type="button" class="bf-cat" data-cat="marca" onclick="toggleBriefCat(this)">🏷 Marca</button>
         <button type="button" class="bf-cat" data-cat="ugc" onclick="toggleBriefCat(this)">📱 UGC</button>
         <button type="button" class="bf-cat" data-cat="influencers" onclick="toggleBriefCat(this)">🤝 Influencers</button>
+        <button type="button" class="bf-cat" data-cat="marca" onclick="toggleBriefCat(this)">🏷 Marca</button>
         <button type="button" class="bf-cat" data-cat="pr" onclick="toggleBriefCat(this)">📣 PR</button>
       </div></div>
 
-    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);padding-bottom:8px;border-bottom:1px solid var(--border);margin:18px 0 12px">Campaña</div>
+    <div class="bf-section-label" style="margin-top:20px">1 · Encabezado</div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Objetivo</label>
-        <input class="form-input" id="f-objetivo" value="${h(b?.objetivo)}" placeholder="¿Qué querés lograr?"></div>
-      <div class="form-group"><label class="form-label">Audiencia</label>
-        <input class="form-input" id="f-audiencia" value="${h(b?.audiencia)}" placeholder="¿A quién va dirigido?"></div>
+      <div class="form-group"><label class="form-label">Marca</label>
+        <input class="form-input" id="f-marca" value="${h(b?.marca||'Soulab')}" placeholder="Soulab"></div>
+      <div class="form-group"><label class="form-label">Campaña / mes</label>
+        <input class="form-input" id="f-campana_mes" value="${h(b?.campana_mes)}" placeholder="Jeans invierno — junio 2025"></div>
     </div>
-    <div class="form-group"><label class="form-label">Mensaje central — la única idea que tiene que quedarse</label>
-      <textarea class="form-textarea" id="f-mensaje" rows="2" placeholder="La marca X hace que te sientas…">${h(b?.mensaje)}</textarea></div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Hook — primeros 2 segundos</label>
-        <input class="form-input" id="f-hook" value="${h(b?.hook)}" placeholder="¿Qué dice o se ve al inicio?"></div>
-      <div class="form-group"><label class="form-label">Tono</label>
-        <input class="form-input" id="f-tono" value="${h(b?.tono)}" placeholder="cercano, aspiracional, divertido…"></div>
+      <div class="form-group"><label class="form-label">Creadora (handle)</label>
+        <input class="form-input" id="f-creadora" value="${h(b?.creadora)}" placeholder="@handle"></div>
+      <div class="form-group"><label class="form-label">Fecha de entrega</label>
+        <input class="form-input" type="date" id="f-fecha_entrega" value="${h(b?.fecha_entrega)}"></div>
     </div>
-    <div class="form-group"><label class="form-label">¿Qué tiene que sentir quien lo ve?</label>
-      <div class="bf-emo-wrap">
-        ${['Identificación','Deseo','Sorpresa','Urgencia','Confianza','Humor','FOMO','Nostalgia','Aspiración'].map(e=>`<button type="button" class="bf-emo" data-emo="${e}" onclick="toggleBriefEmo(this)">${e}</button>`).join('')}
+    <div class="form-group"><label class="form-label">Formato</label>
+      <div class="bf-cat-wrap">
+        ${['Reel','Story','TikTok','Carrusel','UGC'].map(f=>`<button type="button" class="bf-formato" data-formato="${f}" onclick="toggleBriefFormato(this)">${f}</button>`).join('')}
       </div></div>
-    <div class="form-group"><label class="form-label">CTA — ¿qué hace después?</label>
-      <input class="form-input" id="f-cta" value="${h(b?.cta)}" placeholder="visitar perfil, guardar, ir a la web, comprar…"></div>
+    <div class="form-group"><label class="form-label">Dónde sube</label>
+      <input class="form-input" id="f-donde_sube" value="${h(b?.donde_sube)}" placeholder="Su cuenta de IG / Drive / Ambos"></div>
 
-    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--border);margin:18px 0 10px">
-      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--muted)">Entregas</div>
-      <div style="display:flex;gap:4px;flex-wrap:wrap">
-        ${['Reel','Story','TikTok','Carrusel','Post','UGC'].map(t=>`<button type="button" class="btn btn-xs" onclick="addEntregaBrief('${t}')">+ ${t}</button>`).join('')}
+    <div class="bf-section-label" style="margin-top:20px">2 · Contexto en una línea</div>
+    <div class="form-group"><label class="form-label">Qué es el producto y para quién</label>
+      <textarea class="form-textarea" id="f-contexto" rows="2" placeholder="Ej: Jean wide leg tiro alto, para la mujer que busca que le quede bien sin sacrificar comodidad.">${h(b?.contexto)}</textarea></div>
+
+    <div class="bf-section-label" style="margin-top:20px">3 · El ángulo <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;color:var(--muted)">— uno solo por pieza</span></div>
+    <div class="form-group">
+      <div class="bf-cat-wrap">
+        ${ANGULOS.map(a=>`<button type="button" class="bf-angulo" data-angulo="${a.val}" onclick="toggleBriefAngulo(this)">${a.label}</button>`).join('')}
       </div>
+      <textarea class="form-textarea" id="f-angulo-custom" rows="2" placeholder="Describí el ángulo…"
+        style="margin-top:8px;display:${showCustom?'block':'none'}">${anguloCustomVal}</textarea>
     </div>
-    <div id="brief-entregas-list"></div>
 
-    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--border);margin:18px 0 10px">
-      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--muted)">Referencias visuales</div>
+    <div class="bf-section-label" style="margin-top:20px">4 · El hook <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;color:var(--muted)">— primeros 3 segundos</span></div>
+    <div class="form-group"><label class="form-label">1-2 opciones de apertura concretas (no "que enganche")</label>
+      <textarea class="form-textarea" id="f-hook" rows="3" placeholder="Ej: Arrancá mostrando el jean puesto de espaldas y decí: 'este es el único jean que no me marca'.">${h(b?.hook)}</textarea></div>
+
+    <div class="bf-section-label" style="margin-top:20px">5 · Guion / beats</div>
+    <div class="form-group"><label class="form-label">3-5 momentos clave — no un libreto, dejarle margen para su voz</label>
+      <textarea class="form-textarea" id="f-guion" rows="4" placeholder="1. Hook puesto&#10;2. Plano del detalle&#10;3. Probártelo / movimiento&#10;4. Cierre con CTA">${h(b?.guion)}</textarea></div>
+
+    <div class="bf-section-label" style="margin-top:20px">6 · Must-haves <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;color:var(--muted)">— lo no negociable</span></div>
+    <div class="form-group">
+      <textarea class="form-textarea" id="f-must_haves" rows="5" placeholder="- Mostrar el producto en movimiento...">${h(b?.must_haves||(isNew?DEFAULT_MUST:''))}</textarea></div>
+
+    <div class="bf-section-label" style="margin-top:20px">7 · Tono y estética</div>
+    <div class="form-group"><label class="form-label">Cómo tiene que sentirse</label>
+      <textarea class="form-textarea" id="f-tono" rows="2" placeholder="Natural, cercano, voseo, sin parecer publicidad.">${h(b?.tono)}</textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Referencias visuales (1-2 links)</label>
+        <input class="form-input" id="f-referencias_visuales" value="${h(b?.referencias_visuales)}" placeholder="https://..."></div>
+      <div class="form-group"><label class="form-label">Qué evitar</label>
+        <input class="form-input" id="f-que_evitar" value="${h(b?.que_evitar)}" placeholder="Ej: musiquita genérica, nada muy producido"></div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--border);margin:20px 0 10px">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--muted)">Imágenes de referencia</div>
       <div style="display:flex;gap:6px;align-items:center">
         <button type="button" class="btn btn-xs" onclick="addBriefImageFromUrl()">+ URL</button>
         <label class="btn btn-xs" style="cursor:pointer;margin:0;padding:4px 10px">+ Archivo<input type="file" accept="image/*" multiple style="display:none" onchange="addBriefImagesFromFiles(this)"></label>
@@ -9531,16 +9719,23 @@ function _buildBriefModalHtml(b){
     </div>
     <div id="brief-imagenes-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:4px"></div>
 
-    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);padding-bottom:8px;border-bottom:1px solid var(--border);margin:18px 0 12px">Producción</div>
-    <div class="form-group"><label class="form-label">Producto destacado</label>
-      <input class="form-input" id="f-producto" value="${h(b?.producto)}" placeholder="Ej: Jean negro tiro alto modelo Luna"></div>
-    <div class="form-group"><label class="form-label">Planos / locación / notas técnicas</label>
-      <textarea class="form-textarea" id="f-notas" rows="3" placeholder="Planos sugeridos, locación, encuadres, música de referencia, mood…">${h(b?.notas)}</textarea></div>
-    <div class="form-group"><label class="form-label">Referencias adicionales (texto)</label>
-      <input class="form-input" id="f-referencias" value="${h(b?.referencias)}" placeholder="Links, nombres de referencia, inspiraciones"></div>
+    <div class="bf-section-label" style="margin-top:20px">8 · Specs técnicas</div>
+    <div class="form-group">
+      <textarea class="form-textarea" id="f-specs" rows="5" placeholder="- Vertical 9:16&#10;- Mínimo 30 segundos...">${h(b?.specs||(isNew?DEFAULT_SPECS:''))}</textarea></div>
+
+    ${isNew?`
+    <div style="margin-top:24px;padding:14px 16px;background:rgba(41,121,255,.04);border:1px solid rgba(41,121,255,.18);border-radius:10px">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--accent);margin-bottom:6px">Piezas a generar</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Definí cuántos briefs crear con este template. Ej: 4 Reels + 3 Stories → se generan 7 briefs numerados.<br>Si no especificás nada, se guarda un solo brief con el formato elegido arriba.</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        ${['Reel','Story','TikTok','Carrusel','UGC'].map(f=>`<button type="button" class="btn btn-xs" onclick="addEntregaBrief('${f}')">+ ${f}</button>`).join('')}
+      </div>
+      <div id="brief-entregas-list"></div>
+    </div>`:''}
+
     <div class="modal-footer">
       <button class="btn" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveBrief()">Guardar brief</button>
+      <button class="btn btn-primary" onclick="saveBrief()">${isNew?'Generar brief(s)':'Guardar brief'}</button>
     </div>`;
 }
 
@@ -9554,25 +9749,20 @@ function removeEntregaBrief(idx){
 function _renderBriefEntregas(){
   const el=document.getElementById('brief-entregas-list');if(!el)return;
   if(!_briefDraft.entregas.length){
-    el.innerHTML=`<div style="font-size:11px;color:var(--muted);padding:6px 0 10px">Usá los botones para agregar las entregas que pedís.</div>`;return;
+    el.innerHTML=`<div style="font-size:11px;color:var(--muted);padding:4px 0 6px;opacity:.7">Sin piezas — se guardará un brief con el formato elegido arriba.</div>`;return;
   }
+  const total=_briefDraft.entregas.reduce((s,e)=>s+(parseInt(e.cantidad)||1),0);
   el.innerHTML=_briefDraft.entregas.map((e,i)=>`
-    <div style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px">
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-        <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);background:rgba(255,200,0,.08);border:1px solid rgba(255,200,0,.2);padding:3px 10px;border-radius:4px;flex-shrink:0">${e.tipo}</span>
-        <label style="font-size:10px;color:var(--muted);flex-shrink:0">Cantidad</label>
-        <input type="number" min="1" max="99" value="${e.cantidad}"
-          style="width:50px;background:var(--s3);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:12px;padding:3px 6px;text-align:center"
-          onchange="_briefDraft.entregas[${i}].cantidad=Math.max(1,parseInt(this.value)||1)">
-        <button onclick="removeEntregaBrief(${i})" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:0 2px">×</button>
-      </div>
-      <input class="form-input" style="font-size:11px;padding:6px 10px;margin-bottom:6px" placeholder="Descripción — qué tiene que mostrar o comunicar"
-        value="${(e.descripcion||'').replace(/"/g,'&quot;')}" onchange="_briefDraft.entregas[${i}].descripcion=this.value">
-      <input class="form-input" style="font-size:11px;padding:6px 10px;margin-bottom:6px" placeholder="Specs técnicas (ej: 9:16 · 30-45 seg · sin texto en pantalla)"
-        value="${(e.specs||'').replace(/"/g,'&quot;')}" onchange="_briefDraft.entregas[${i}].specs=this.value">
-      <input class="form-input" style="font-size:11px;padding:6px 10px" placeholder="Caption sugerida (opcional)"
-        value="${(e.caption||'').replace(/"/g,'&quot;')}" onchange="_briefDraft.entregas[${i}].caption=this.value">
-    </div>`).join('');
+    <div style="display:flex;align-items:center;gap:10px;background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:6px">
+      <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--gold);background:rgba(255,200,0,.1);border:1px solid rgba(255,200,0,.25);padding:3px 10px;border-radius:4px;flex-shrink:0">${e.tipo}</span>
+      <span style="font-size:12px;color:var(--muted);flex-shrink:0">×</span>
+      <input type="number" min="1" max="20" value="${parseInt(e.cantidad)||1}"
+        style="width:55px;background:var(--s2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:13px;font-weight:600;padding:4px 6px;text-align:center"
+        oninput="_briefDraft.entregas[${i}].cantidad=Math.max(1,parseInt(this.value)||1);_renderBriefEntregas()">
+      <span style="font-size:11px;color:var(--muted)">brief${(parseInt(e.cantidad)||1)>1?'s':''}</span>
+      <button type="button" onclick="removeEntregaBrief(${i})" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:0">×</button>
+    </div>`).join('')+
+    `<div style="font-size:11px;color:var(--accent);font-weight:600;padding:4px 2px">→ Se generarán ${total} brief${total>1?'s':''}</div>`;
 }
 
 async function addBriefImageFromUrl(){
@@ -9844,6 +10034,7 @@ function renderKanban(tipo,prefix){
                 style="width:100%;font-size:10px;padding:5px 8px;background:rgba(255,255,255,.06);border:1px dashed rgba(255,255,255,.2);border-radius:5px;color:inherit;font-family:inherit"
                 onblur="saveKanbanDireccion(${ri},this.value)">
             </div>`:''}
+            <div id="card-brief-${ri}" style="margin-top:4px"></div>
             <div class="c-actions" style="margin-top:6px">
               ${cr.wapp?`<a href="https://wa.me/${cr.wapp.replace(/\D/g,'')}" target="_blank"><button class="c-btn c-wapp">WA</button></a>`:''}
               <button class="c-btn" onclick="linkBriefToCreadora(${ri})" title="Vincular brief">📄 Brief</button>
@@ -9861,7 +10052,87 @@ function moverCreadora(i,estado){
   const tipo=S.creadoras[i].tipo;
   if(document.getElementById('kanban-'+tipo)) renderKanban(tipo);
   if(document.getElementById('ugc-kanban-'+tipo)) renderKanban(tipo,'ugc-kanban-');
+  const ugcId=S.creadoras[i].ugcId;
+  const nombre=(S.creadoras[i].nombre||'').toLowerCase().trim();
+  const ugcC=ugcId?_ugcCreadoras.find(c=>c.id===ugcId):_ugcCreadoras.find(c=>(c.nombre||'').toLowerCase().trim()===nombre);
+  if(ugcC){
+    if(estado==='entregado'&&ugcC.estado_lista!=='accion_activa') saveUgcEstadoLista(ugcC.id,'accion_activa');
+    else if(estado==='completado'&&ugcC.estado_lista!=='completada') saveUgcEstadoLista(ugcC.id,'completada');
+    else if(document.getElementById('ugc-creadoras-list')) _renderUgcCreadoras();
+  } else if(document.getElementById('ugc-creadoras-list')) _renderUgcCreadoras();
   notify(`→ ${ESTADOS_LABEL[estado]} ✓`);
+}
+function completarKanbanCreadora(i){
+  moverCreadora(i,'completado');
+}
+
+function ugcSetEstado(ugcId, nombre, estado) {
+  const idx = (S.creadoras||[]).findIndex(k =>
+    k.ugcId === ugcId || (!k.ugcId && k.nombre?.toLowerCase().trim() === (nombre||'').toLowerCase().trim())
+  )
+  if (idx < 0) { notify('Iniciá el seguimiento primero'); return }
+  moverCreadora(idx, estado)
+}
+
+function ugcIniciarSeguimiento(ugcId, nombre, tipo) {
+  if (!S.creadoras) S.creadoras = []
+  const existe = S.creadoras.findIndex(k => k.ugcId === ugcId || k.nombre?.toLowerCase().trim() === (nombre||'').toLowerCase().trim())
+  if (existe >= 0) {
+    if (!S.creadoras[existe].ugcId && ugcId) { S.creadoras[existe].ugcId = ugcId; _saveDelta({creadoras:S.creadoras}); }
+    notify('Ya tiene seguimiento'); _renderUgcCreadoras(); return
+  }
+  const ugcCr = _ugcCreadoras.find(c => c.id === ugcId)
+  S.creadoras.push({ nombre: ugcCr?.nombre||nombre, handle:'', tipo:tipo||'micro', estado:'potencial', cuenta:'', oferta:'', wapp:ugcCr?.telefono||'', notas:'', ugcId })
+  _saveDelta({ creadoras: S.creadoras })
+  _renderUgcCreadoras()
+  renderKanban(tipo||'micro')
+  if (document.getElementById('ugc-kanban-'+(tipo||'micro'))) renderKanban(tipo||'micro','ugc-kanban-')
+  notify(`${nombre} en seguimiento ✓`)
+}
+
+function ugcVincularBriefPicker(ugcId) {
+  const el = document.getElementById('ugc-brief-picker-'+ugcId)
+  if (!el) return
+  const briefs = S.briefs||[]
+  if (!briefs.length) { notify('No hay briefs creados todavía'); return }
+  const vinculados = (S.ugcBriefVinculos||{})[ugcId]||[]
+  const disponibles = briefs.filter(b => !vinculados.includes(b.id))
+  if (!disponibles.length) { notify('Todos los briefs ya están vinculados'); return }
+  const opts = disponibles.map(b=>`<option value="${b.id}">${b.titulo||'Brief'}</option>`).join('')
+  el.innerHTML = `<div style="display:flex;gap:6px;margin-bottom:6px">
+    <select id="ugc-brief-sel-${ugcId}" style="flex:1;font-size:11px;padding:4px 8px;background:var(--s1);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:inherit">
+      <option value="">Seleccionar brief…</option>${opts}
+    </select>
+    <button class="btn btn-xs" onclick="ugcConfirmarVincularBrief('${ugcId}')">Vincular</button>
+    <button class="btn btn-xs" onclick="document.getElementById('ugc-brief-picker-${ugcId}').innerHTML=''">✕</button>
+  </div>`
+}
+
+function ugcConfirmarVincularBrief(ugcId) {
+  const sel = document.getElementById('ugc-brief-sel-'+ugcId)
+  if (!sel||!sel.value) { notify('Seleccioná un brief'); return }
+  if (!S.ugcBriefVinculos) S.ugcBriefVinculos = {}
+  if (!S.ugcBriefVinculos[ugcId]) S.ugcBriefVinculos[ugcId] = []
+  if (!S.ugcBriefVinculos[ugcId].includes(sel.value)) {
+    S.ugcBriefVinculos[ugcId].push(sel.value)
+    _saveDelta({ ugcBriefVinculos: S.ugcBriefVinculos })
+  }
+  _renderUgcCreadoras()
+  notify('Brief vinculado ✓')
+}
+
+function ugcDesvincularBrief(ugcId, briefId) {
+  if (!S.ugcBriefVinculos?.[ugcId]) return
+  S.ugcBriefVinculos[ugcId] = S.ugcBriefVinculos[ugcId].filter(id=>id!==briefId)
+  _saveDelta({ ugcBriefVinculos: S.ugcBriefVinculos })
+  _renderUgcCreadoras()
+  notify('Brief desvinculado')
+}
+
+let _pendingBriefUgcId = null
+function ugcCrearBrief(ugcId) {
+  _pendingBriefUgcId = ugcId
+  openModal('brief')
 }
 function deleteCreadora(i){S.creadoras.splice(i,1);_saveDelta({creadoras:S.creadoras});render();}
 function saveKanbanDireccion(i, direccion) {
@@ -14247,7 +14518,7 @@ function openModal(tipo,data,idx){
   _editIdx=(idx!==undefined)?idx:null;
   const overlay=document.getElementById('modal-overlay');
   const modal_titles={
-    todo:data?'Editar tarea':'Nueva tarea',brief:'Nueva idea de brief',creadora:'Agregar creadora',
+    todo:data?'Editar tarea':'Nueva tarea',brief:'Nueva idea de brief',creadora:'Agregar creadora',ugcCreadora:'Nueva creadora UGC',
     collab:'Agregar marca',contenido:'Agregar pieza',transaccion:'Cargar movimiento',
     medioPago:'Agregar medio de pago',costoFijo:'Agregar costo fijo',
     presupuesto:'Editar presupuesto',opscheck:'Nueva tarea operativa',
@@ -14373,6 +14644,10 @@ function openModal(tipo,data,idx){
       <div class="form-group"><label class="form-label">WhatsApp</label><input class="form-input" id="f-wapp" placeholder="+549 ..."></div>
       <div class="form-group"><label class="form-label">Notas</label><textarea class="form-textarea" id="f-notas" placeholder="Seguidores, nicho, por qué es buen fit..."></textarea></div>
       <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveCreadora()">Guardar</button></div>`,
+    ugcCreadora:`
+      <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="f-ugcnombre" placeholder="Lucía García" autofocus></div>
+      <div class="form-group"><label class="form-label">Teléfono (opcional)</label><input class="form-input" id="f-ugctel" placeholder="+549..."></div>
+      <div class="modal-footer"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="saveUgcNuevaCreadora()">Crear</button></div>`,
     collab:`
       <div class="form-row">
         <div class="form-group"><label class="form-label">Marca</label><input class="form-input" id="f-marca" placeholder="Nombre de la marca"></div>
@@ -14675,7 +14950,8 @@ function openModal(tipo,data,idx){
               <option value="birthday">🎂 Cumpleaños del cliente</option>
             </optgroup>
             <optgroup label="Tienda online">
-              <option value="cart_abandon">🛒 Carrito abandonado — X horas/días</option>
+              <option value="cart_create">🛒 Carrito creado — X horas/días después</option>
+              <option value="cart_abandon">⚠️ Carrito abandonado — X horas/días</option>
               <option value="product_view">👀 Visita un producto (inmediato)</option>
               <option value="first_purchase">🏅 Primera compra (inmediato)</option>
               <option value="xp_milestone">⭐ Alcanza X puntos XP</option>
@@ -14933,36 +15209,94 @@ function saveTodo(){
 function saveBrief(){
   const t=document.getElementById('f-titulo')?.value?.trim();
   if(!t){notify('Escribí un título');return;}
-  const emociones=[...document.querySelectorAll('.bf-emo.on')].map(b=>b.dataset.emo);
   const categoriaBtn=document.querySelector('.bf-cat.on');
   const categoria=categoriaBtn?.dataset?.cat||'';
-  const obj={
-    id:(_editIdx!==null&&S.briefs[_editIdx]?.id)||'b_'+Date.now(),
-    titulo:t,categoria,
-    cuenta:document.getElementById('f-cuenta')?.value||'',
-    pilar:document.getElementById('f-pilar')?.value||'',
-    objetivo:document.getElementById('f-objetivo')?.value?.trim()||'',
-    audiencia:document.getElementById('f-audiencia')?.value?.trim()||'',
-    mensaje:document.getElementById('f-mensaje')?.value?.trim()||'',
-    tono:document.getElementById('f-tono')?.value?.trim()||'',
+  const anguloBtn=document.querySelector('.bf-angulo.on');
+  const anguloVal=anguloBtn?.dataset?.angulo||'';
+  const angulo=anguloVal==='otro'?(document.getElementById('f-angulo-custom')?.value?.trim()||''):anguloVal;
+  const base={
+    categoria,
+    marca:document.getElementById('f-marca')?.value?.trim()||'Soulab',
+    campana_mes:document.getElementById('f-campana_mes')?.value?.trim()||'',
+    creadora:document.getElementById('f-creadora')?.value?.trim()||'',
+    fecha_entrega:document.getElementById('f-fecha_entrega')?.value||'',
+    donde_sube:document.getElementById('f-donde_sube')?.value?.trim()||'',
+    contexto:document.getElementById('f-contexto')?.value?.trim()||'',
+    angulo,
     hook:document.getElementById('f-hook')?.value?.trim()||'',
-    emociones,
-    cta:document.getElementById('f-cta')?.value?.trim()||'',
-    notas:document.getElementById('f-notas')?.value?.trim()||'',
-    producto:document.getElementById('f-producto')?.value?.trim()||'',
-    referencias:document.getElementById('f-referencias')?.value?.trim()||'',
-    entregas:(_briefDraft?.entregas||[]),
+    guion:document.getElementById('f-guion')?.value?.trim()||'',
+    must_haves:document.getElementById('f-must_haves')?.value?.trim()||'',
+    tono:document.getElementById('f-tono')?.value?.trim()||'',
+    referencias_visuales:document.getElementById('f-referencias_visuales')?.value?.trim()||'',
+    que_evitar:document.getElementById('f-que_evitar')?.value?.trim()||'',
+    specs:document.getElementById('f-specs')?.value?.trim()||'',
     imagenes:(_briefDraft?.imagenes||[]),
-    publicadoEnSoulPR:(_editIdx!==null&&S.briefs[_editIdx]?.publicadoEnSoulPR)||false,
   };
-  if(_editIdx!==null)S.briefs[_editIdx]=obj;else S.briefs.push(obj);
-  _saveDelta({briefs:S.briefs});closeModal();renderBriefs();notify(_editIdx!==null?'Brief actualizado ✓':'Brief guardado ✓');
+  // ── Editar: siempre un solo brief ──
+  if(_editIdx!==null){
+    const prev=S.briefs[_editIdx]||{};
+    const obj={id:prev.id||'b_'+Date.now(),titulo:t,formato:document.querySelector('.bf-formato.on')?.dataset?.formato||prev.formato||'',...base,entregas:prev.entregas||[],publicadoEnSoulPR:prev.publicadoEnSoulPR||false};
+    S.briefs[_editIdx]=obj;
+    _saveDelta({briefs:S.briefs});
+    closeModal();renderBriefs();if(document.getElementById('ugc-creadoras-list'))_renderUgcCreadoras();
+    notify('Brief actualizado ✓');return;
+  }
+  // ── Nuevo: con piezas → generar N briefs ──
+  const piezas=(_briefDraft?.entregas||[]).filter(e=>e.tipo);
+  if(piezas.length){
+    let total=0;
+    const ugcVin=_pendingBriefUgcId;
+    piezas.forEach(e=>{
+      const cant=Math.max(1,parseInt(e.cantidad)||1);
+      for(let j=1;j<=cant;j++){
+        const titulo=cant>1?`${t} — ${e.tipo} ${j}/${cant}`:`${t} — ${e.tipo}`;
+        const obj={id:'b_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),titulo,formato:e.tipo,...base,entregas:[],publicadoEnSoulPR:false};
+        S.briefs.push(obj);
+        if(ugcVin){if(!S.ugcBriefVinculos)S.ugcBriefVinculos={};if(!S.ugcBriefVinculos[ugcVin])S.ugcBriefVinculos[ugcVin]=[];S.ugcBriefVinculos[ugcVin].push(obj.id);}
+        total++;
+      }
+    });
+    if(ugcVin){_saveDelta({ugcBriefVinculos:S.ugcBriefVinculos});_pendingBriefUgcId=null;}
+    _saveDelta({briefs:S.briefs});
+    closeModal();renderBriefs();if(document.getElementById('ugc-creadoras-list'))_renderUgcCreadoras();
+    notify(`${total} brief${total>1?'s':''} generados ✓`);
+  } else {
+    // ── Nuevo: sin piezas → un solo brief ──
+    const obj={id:'b_'+Date.now(),titulo:t,formato:document.querySelector('.bf-formato.on')?.dataset?.formato||'',...base,entregas:[],publicadoEnSoulPR:false};
+    S.briefs.push(obj);
+    _saveDelta({briefs:S.briefs});
+    if(_pendingBriefUgcId){
+      if(!S.ugcBriefVinculos)S.ugcBriefVinculos={};
+      if(!S.ugcBriefVinculos[_pendingBriefUgcId])S.ugcBriefVinculos[_pendingBriefUgcId]=[];
+      S.ugcBriefVinculos[_pendingBriefUgcId].push(obj.id);
+      _saveDelta({ugcBriefVinculos:S.ugcBriefVinculos});
+      _pendingBriefUgcId=null;
+    }
+    closeModal();renderBriefs();if(document.getElementById('ugc-creadoras-list'))_renderUgcCreadoras();
+    notify('Brief guardado ✓');
+  }
 }
-function saveCreadora(){
+async function saveCreadora(){
   const n=document.getElementById('f-nombre')?.value?.trim();
   if(!n){notify('Escribí un nombre');return;}
-  S.creadoras.push({nombre:n,handle:document.getElementById('f-handle').value,tipo:document.getElementById('f-ctipo').value,estado:document.getElementById('f-estado').value,cuenta:document.getElementById('f-cuenta')?.value||'',oferta:document.getElementById('f-oferta').value,wapp:document.getElementById('f-wapp').value,notas:document.getElementById('f-notas').value,briefId:document.getElementById('f-brief-id')?.value||''});
-  _saveDelta({creadoras:S.creadoras});closeModal();render();notify('Creadora guardada ✓');
+  const wapp=document.getElementById('f-wapp').value;
+  const tipo=document.getElementById('f-ctipo').value;
+  const kanbanObj={nombre:n,handle:document.getElementById('f-handle').value,tipo,estado:document.getElementById('f-estado').value,cuenta:document.getElementById('f-cuenta')?.value||'',oferta:document.getElementById('f-oferta').value,wapp,notas:document.getElementById('f-notas').value,briefId:document.getElementById('f-brief-id')?.value||''};
+  const nombreLow=n.toLowerCase().trim();
+  let ugcCr=_ugcCreadoras.find(c=>(c.nombre||'').toLowerCase().trim()===nombreLow);
+  if(!ugcCr){
+    try{
+      const r=await fetch('/api/admin/ugc/creadoras',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre:n,telefono:wapp.replace(/\D/g,'')||null})});
+      const d=await r.json();
+      if(d.ok&&d.creadora?.id){ugcCr=d.creadora;_ugcCreadoras.unshift(d.creadora);}
+    }catch(e){}
+  }
+  if(ugcCr?.id)kanbanObj.ugcId=ugcCr.id;
+  S.creadoras.push(kanbanObj);
+  _saveDelta({creadoras:S.creadoras});
+  closeModal();render();
+  if(document.getElementById('ugc-creadoras-list'))_renderUgcCreadoras();
+  notify('Creadora guardada ✓');
 }
 function populateBriefSelect(selectId){
   const sel=document.getElementById(selectId);
@@ -16174,6 +16508,7 @@ function importCSV(input){
         return row[idx].trim().replace(/^[""]|[""]$/g,'');
       };
       let imported=0,skipped=0,dupes=0;
+      const toSave=[];
       if(!S.crm)S.crm=[];
       for(let i=1;i<lines.length;i++){
         const row=parseCSVRow(lines[i],sep);
@@ -16238,9 +16573,10 @@ function importCSV(input){
           if(!existing.notas&&getCol(row,COL.notas)) existing.notas=getCol(row,COL.notas);
           if(!existing.nombre&&nombre) existing.nombre=nombre;
           if(!existing.apellido&&apellido) existing.apellido=apellido;
+          toSave.push(existing);
           dupes++;
         } else {
-          S.crm.push({
+          const c={
             id:'c_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,5),
             nombre,apellido,email,
             tel:tel||'',
@@ -16260,12 +16596,22 @@ function importCSV(input){
             canal:getCol(row,COL.canal)||'CSV Import',
             tags,
             notas:getCol(row,COL.notas),
-          });
+          };
+          S.crm.push(c);
+          toSave.push(c);
           imported++;
         }
       }
-      save();renderCRM();
-      notify(`${imported} nuevos${dupes?`, ${dupes} actualizados`:''}${skipped?`, ${skipped} omitidos`:''} ✓`);
+      renderCRM();
+      notify(`Guardando ${toSave.length} contactos...`);
+      const wsId=_activeWsId;
+      fetch('/api/crm/batch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wsId,contacts:toSave})})
+        .then(r=>r.json())
+        .then(d=>{
+          if(d.ok)notify(`${imported} nuevos${dupes?`, ${dupes} actualizados`:''}${skipped?`, ${skipped} omitidos`:''} ✓`);
+          else notify('Error al guardar: '+(d.error||'desconocido'),'error');
+        })
+        .catch(e=>notify('Error al guardar: '+e.message,'error'));
     }catch(err){
       notify('Error al leer el CSV: '+err.message);
     }
@@ -24014,7 +24360,7 @@ let _emEditingTemplateId = null;
 const EM_BLOCK_DEFAULTS = {
   header:  { logo: '', brandName: 'Tu Marca', bgColor: '#ffffff', textColor: '#111111', logoWidth: 80 },
   hero:    { image: '', headline: 'Título principal', subheadline: 'Subtítulo del mensaje', bgColor: '#f8f8f8', imageWidth: 100 },
-  text:    { content: '<p>Escribí tu mensaje aquí. Podés usar <strong>negrita</strong>, <em>itálica</em> y <a href="#">links</a>.</p>', align: 'left' },
+  text:    { content: 'Escribí tu mensaje aquí.', align: 'left' },
   button:  { text: 'Ver productos', url: '', bgColor: '#111111', textColor: '#ffffff', align: 'center' },
   product: { image: '', name: 'Nombre del producto', price: '$0', url: '', buttonText: 'Comprar ahora', imageWidth: 80 },
   image:   { src: '', link: '', align: 'center', imageWidth: 100 },
@@ -24174,7 +24520,19 @@ function emRenderProps(block) {
     case 'hero':
       html += imgField('image','Imagen hero',d.image) + imgSize('imageWidth','Ancho de imagen',d.imageWidth||100,20,100,'%') + inp('headline','Título','Título principal',d.headline) + inp('subheadline','Subtítulo','Subtítulo',d.subheadline) + col('bgColor','Fondo',d.bgColor); break;
     case 'text':
-      html += ta('content','Contenido (HTML)',d.content);
+      html += `<div style="margin-bottom:10px">
+        <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:5px">Texto</label>
+        <div style="display:flex;gap:4px;margin-bottom:4px">
+          <button type="button" onclick="document.getElementById('em-ce-${block.id}').focus();document.execCommand('bold')" style="background:var(--s3);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:12px;font-weight:700;color:var(--text);cursor:pointer">B</button>
+          <button type="button" onclick="document.getElementById('em-ce-${block.id}').focus();document.execCommand('italic')" style="background:var(--s3);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:12px;font-style:italic;color:var(--text);cursor:pointer">I</button>
+          <button type="button" onclick="_emInsertLink('${block.id}')" style="background:var(--s3);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:11px;color:var(--accent);cursor:pointer">🔗 Link</button>
+        </div>
+        <div id="em-ce-${block.id}" contenteditable="true"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();document.execCommand('insertLineBreak');}"
+          oninput="emUpdateProp('${block.id}','content',this.innerHTML)"
+          style="min-height:90px;background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;color:var(--text);line-height:1.7;outline:none;white-space:pre-wrap;word-break:break-word"
+        >${d.content||''}</div>
+      </div>`;
       html += `<div style="margin-bottom:8px"><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">Alineación</label><select class="form-select" style="font-size:11px" onchange="emUpdateProp('${block.id}','align',this.value)"><option ${d.align==='left'?'selected':''}>left</option><option ${d.align==='center'?'selected':''}>center</option><option ${d.align==='right'?'selected':''}>right</option></select></div>`; break;
     case 'button':
       html += inp('text','Texto del botón','Ver productos',d.text);
@@ -24230,6 +24588,17 @@ function emUpdateProp(blockId, field, value) {
     const controlsHtml = controls ? controls.outerHTML : '';
     item.innerHTML = controlsHtml + emRenderBlock(block);
   }
+}
+
+function _emInsertLink(blockId) {
+  const url = prompt('URL del link (ej: https://mitienda.com):');
+  if (!url) return;
+  const text = prompt('Texto del link:', url);
+  if (text === null) return;
+  const el = document.getElementById('em-ce-' + blockId);
+  if (el) { el.focus(); document.execCommand('insertHTML', false, `<a href="${url}" style="color:#2563eb">${text||url}</a>`); }
+  const block = _emBlocks.find(b => b.id === blockId);
+  if (block && el) block.data.content = el.innerHTML;
 }
 
 async function emUploadImg(event, blockId, field) {
@@ -25906,6 +26275,7 @@ function _renderSeguimiento(semanas, comprometidas, mesLabel){
 let _ugcSeguimientoMap = {}
 let _ugcCreadoras = []
 let _ugcCreadorasFiltro = 'todas'
+let _ugcCreadorasSearch = ''
 
 function filterUgcCreadoras(filtro, btn) {
   _ugcCreadorasFiltro = filtro
@@ -25918,14 +26288,15 @@ function filterUgcCreadoras(filtro, btn) {
 
 function _renderUgcCreadoras() {
   const el = document.getElementById('ugc-creadoras-list'); if (!el) return
+  const q = _ugcCreadorasSearch.trim().toLowerCase()
   const list = _ugcCreadoras.filter(c => {
+    if (q && !(c.nombre||'').toLowerCase().includes(q)) return false
     if (_ugcCreadorasFiltro === 'todas') return true
+    if (_ugcCreadorasFiltro === 'accion_activa') return c.estado_lista === 'accion_activa'
+    if (_ugcCreadorasFiltro === 'completada') return c.estado_lista === 'completada'
     if (_ugcCreadorasFiltro === 'con_acuerdo') return c.acuerdo != null
-    if (_ugcCreadorasFiltro === 'acciones_activas') return c.acuerdo?.acciones?.some(a => !a.completado)
     if (_ugcCreadorasFiltro === 'sin_acuerdo') return !c.acuerdo
-    if (_ugcCreadorasFiltro === 'sin_actividad') return !c.acuerdo
     if (_ugcCreadorasFiltro === 'alta_performance') return (c.score || 0) >= 4
-    if (_ugcCreadorasFiltro === 'con_campana') return true
     return true
   })
   const now = new Date(); const mesLabel = _MESES[now.getMonth()] + ' ' + now.getFullYear()
@@ -25937,31 +26308,73 @@ function _renderUgcCreadoras() {
     const a = c.acuerdo
     const semanas = _ugcSeguimientoMap[c.id] || [0,0,0,0,0]
     const comprometidas = a?.acciones_comprometidas_mes || null
-    return `<div style="background:var(--s1);border:1px solid var(--border2);border-radius:12px;padding:16px 18px;margin-bottom:12px">
+    const nombreLow = (c.nombre||'').toLowerCase().trim()
+    const kanbanIdx = (S.creadoras||[]).findIndex(k => k.ugcId === c.id || (!k.ugcId && k.nombre?.toLowerCase().trim()===nombreLow))
+    const kanbanCr = kanbanIdx >= 0 ? S.creadoras[kanbanIdx] : null
+    const estadoActual = kanbanCr?.estado || null
+    const bVinculos = (S.ugcBriefVinculos||{})[c.id] || []
+    const linkedBriefs = bVinculos.map(bid=>(S.briefs||[]).find(b=>b.id===bid)).filter(Boolean)
+    const safeNombre = (c.nombre||'').replace(/'/g,"\\'").replace(/"/g,'&quot;')
+    const estadoPills = estadoActual !== null
+      ? ESTADOS.map(est=>{
+          const col=estadoColor(est); const active=est===estadoActual
+          return `<button onclick="ugcSetEstado('${c.id}','${safeNombre}','${est}')" style="padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid ${active?col:'var(--border)'};background:${active?col+'22':'transparent'};color:${active?col:'var(--muted)'}">${ESTADOS_LABEL[est]}</button>`
+        }).join('')
+      : `<button onclick="ugcIniciarSeguimiento('${c.id}','${safeNombre}','micro')" class="btn btn-xs" style="font-size:10px">▶ Micro</button>
+         <button onclick="ugcIniciarSeguimiento('${c.id}','${safeNombre}','top')" class="btn btn-xs" style="font-size:10px">▶ Top</button>`
+    return `<div style="background:var(--s1);border:1px solid ${estadoActual==='entregado'?'var(--gold)':'var(--border2)'};border-radius:12px;padding:16px 18px;margin-bottom:12px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
         <div style="flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:700;color:var(--text)">${c.nombre||'Sin nombre'}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">📱 ${c.telefono}</div>
+          <input value="${(c.nombre||'').replace(/"/g,'&quot;')}" placeholder="Sin nombre"
+            style="font-size:14px;font-weight:700;color:var(--text);background:transparent;border:none;border-bottom:1px dashed transparent;border-radius:0;padding:0;width:100%;font-family:inherit;cursor:text"
+            onfocus="this.style.borderBottomColor='var(--border2)'"
+            onblur="this.style.borderBottomColor='transparent';saveUgcCreadoraNombre('${c.id}',this.value)"
+            onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter')this.blur()">
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">📱 ${c.telefono||'Sin teléfono'}</div>
           <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
             ${c.instagram_url?`<a href="${c.instagram_url}" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">📷 Instagram</a>`:''}
             ${c.drive_link?`<a href="${c.drive_link}" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">📁 Drive</a>`:''}
           </div>
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
-          <button class="btn btn-xs" onclick="openAcuerdoModal('${c.id}')" title="Editar acuerdo">📝 Acuerdo</button>
-          <button class="btn btn-xs" onclick="openDriveLinkModal('${c.id}')" title="Link de Drive">📁 Drive</button>
-          <button class="btn btn-xs" onclick="deleteUgcCreadora('${c.id}',_ugcCreadoras.find(x=>x.id==='${c.id}')?.nombre||'')" style="color:var(--coral);opacity:.6" title="Eliminar">🗑</button>
+          <button class="btn btn-xs" onclick="openAcuerdoModal('${c.id}')" title="Acuerdo">📝</button>
+          <button class="btn btn-xs" onclick="openDriveLinkModal('${c.id}')" title="Drive">📁</button>
+          <button class="btn btn-xs" onclick="deleteUgcCreadora('${c.id}','${safeNombre}')" style="color:var(--coral);opacity:.6">🗑</button>
         </div>
       </div>
       <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-        <div style="display:flex;gap:2px" title="Puntuación de desempeño (interno)">
+        <span style="font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.07em;flex-shrink:0">Estado:</span>
+        ${[['','Sin estado','var(--border)','var(--muted)'],['accion_activa','Acción activa','#d4a017','#d4a017'],['completada','Completada','var(--green)','var(--green)']].map(([val,label,border,color])=>{
+          const active=(c.estado_lista||'')===(val)
+          return `<button onclick="saveUgcEstadoLista('${c.id}','${val}')" style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid ${active?border:'var(--border)'};background:${active?border+'22':'transparent'};color:${active?color:'var(--muted)'};transition:all .15s">${label}</button>`
+        }).join('')}
+      </div>
+      <div style="margin-top:8px;padding:8px 10px;background:var(--s2);border-radius:8px">
+        <div style="font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">📊 Seguimiento${estadoActual===null?' — sin seguimiento':''}</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">${estadoPills}</div>
+      </div>
+      <div style="margin-top:8px;padding:8px 10px;background:var(--s2);border-radius:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div style="font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.07em">📄 Briefs</div>
+          <div style="display:flex;gap:4px">
+            <button class="btn btn-xs" style="font-size:10px;padding:2px 8px" onclick="ugcVincularBriefPicker('${c.id}')">+ Existente</button>
+            <button class="btn btn-xs" style="font-size:10px;padding:2px 8px" onclick="ugcCrearBrief('${c.id}')">+ Nuevo brief</button>
+          </div>
+        </div>
+        <div id="ugc-brief-picker-${c.id}"></div>
+        ${linkedBriefs.length?linkedBriefs.map(b=>`<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;background:rgba(201,180,138,.08);border:1px solid rgba(201,180,138,.2);border-radius:6px;margin-bottom:4px">
+            <span style="font-size:11px;flex:1;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📄 ${b.titulo||'Brief'}</span>
+            <button onclick="ugcDesvincularBrief('${c.id}','${b.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0">✕</button>
+          </div>`).join(''):'<div style="font-size:10px;color:var(--muted);font-style:italic">Sin briefs vinculados</div>'}
+      </div>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <div style="display:flex;gap:2px">
           ${[1,2,3,4,5].map(n=>`<span onclick="setUgcCreadoraScore('${c.id}',${n})" style="cursor:pointer;font-size:16px;opacity:${(c.score||0)>=n?1:.25}">⭐</span>`).join('')}
         </div>
         <div style="flex:1;min-width:0">
           <input value="${(c.utm_link||'').replace(/"/g,'&quot;')}" placeholder="Link UTM..."
-            style="width:100%;font-size:10px;padding:4px 8px;background:var(--s2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit"
-            onblur="saveUgcCreadoraMeta('${c.id}','utm_link',this.value)"
-            onclick="event.stopPropagation()">
+            style="width:100%;font-size:10px;padding:4px 8px;background:var(--s1);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit"
+            onblur="saveUgcCreadoraMeta('${c.id}','utm_link',this.value)" onclick="event.stopPropagation()">
         </div>
       </div>
       <div style="margin-top:8px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
@@ -25970,19 +26383,18 @@ function _renderUgcCreadoras() {
           <div style="font-size:9px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${key.charAt(0).toUpperCase()+key.slice(1)}</div>
           <input type="text" value="${((c.resultados||{})[key]||'')}" placeholder="—"
             style="width:100%;font-size:12px;font-weight:700;background:transparent;border:none;color:var(--text);font-family:inherit;padding:0"
-            onblur="saveUgcCreadoraResultado('${c.id}','${key}',this.value)"
-            onclick="event.stopPropagation()">
+            onblur="saveUgcCreadoraResultado('${c.id}','${key}',this.value)" onclick="event.stopPropagation()">
         </div>`).join('')}
       </div>
-      ${a ? `<div style="margin-top:12px;padding:10px 12px;background:var(--s2);border-radius:8px;border:1px solid var(--border);font-size:12px">
+      ${a?`<div style="margin-top:10px;padding:10px 12px;background:var(--s2);border-radius:8px;border:1px solid var(--border);font-size:12px">
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
           <span style="font-weight:700;color:var(--text)">${_TIPO_ACUERDO_LABEL[a.tipo]||a.tipo}</span>
           ${a.monto_fijo_mensual!=null?`<span style="color:var(--muted)">$${Number(a.monto_fijo_mensual).toLocaleString('es-AR')}/mes</span>`:''}
-          ${a.acciones_comprometidas_mes!=null?`<span style="background:var(--s1);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:11px;color:var(--text)">${a.acciones_comprometidas_mes} acciones/mes</span>`:''}
+          ${a.acciones_comprometidas_mes!=null?`<span style="background:var(--s1);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:11px;color:var(--text)">${a.acciones_comprometidas_mes} acc/mes</span>`:''}
         </div>
         ${a.notas?`<div style="margin-top:6px;color:var(--muted);font-size:11px">${a.notas}</div>`:''}
-      </div>` : `<div style="margin-top:10px;font-size:11px;color:var(--muted);font-style:italic">Sin acuerdo cargado — <button class="btn btn-xs" style="font-size:11px;padding:2px 8px" onclick="openAcuerdoModal('${c.id}')">+ Agregar</button></div>`}
-      ${(a?.acciones_comprometidas_mes||semanas.some(n=>n>0)) ? _renderSeguimiento(semanas, comprometidas, mesLabel) : ''}
+      </div>`:`<div style="margin-top:10px;font-size:11px;color:var(--muted);font-style:italic">Sin acuerdo — <button class="btn btn-xs" style="font-size:11px;padding:2px 8px" onclick="openAcuerdoModal('${c.id}')">+ Agregar</button></div>`}
+      ${(a?.acciones_comprometidas_mes||semanas.some(n=>n>0))?_renderSeguimiento(semanas,comprometidas,mesLabel):''}
     </div>`
   }).join('')
 }
@@ -26133,6 +26545,45 @@ async function saveUgcCreadoraMeta(id, field, value) {
     if (c) c[field] = value
     if (field === 'score') _renderUgcCreadoras()
   } catch(e) { notify('Error de conexión') }
+}
+function openAddCreadoraModal() { openModal('ugcCreadora') }
+async function saveUgcNuevaCreadora() {
+  const nombre = document.getElementById('f-ugcnombre')?.value?.trim()
+  if (!nombre) { notify('Escribí el nombre', 'error'); return }
+  const telefono = document.getElementById('f-ugctel')?.value?.trim() || ''
+  try {
+    const r = await fetch('/api/admin/ugc/creadoras', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, telefono })
+    })
+    const d = await r.json()
+    if (!d.ok) { notify(d.error || 'Error al crear', 'error'); return }
+    _ugcCreadoras.unshift(d.creadora)
+    closeModal()
+    _renderUgcCreadoras()
+    notify(`${nombre} agregada ✓`)
+  } catch(e) { notify('Error de conexión', 'error') }
+}
+async function saveUgcEstadoLista(id, estado) {
+  const c = _ugcCreadoras.find(x => x.id === id)
+  if (!c) return
+  const nuevo = estado || null
+  if (c.estado_lista === nuevo) return
+  c.estado_lista = nuevo
+  try {
+    const r = await fetch(`/api/admin/ugc/creadoras/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado_lista: nuevo })
+    })
+    const d = await r.json()
+    if (!d.ok) { notify('Error al guardar estado', 'error'); c.estado_lista = null; return }
+    _renderUgcCreadoras()
+  } catch(e) { notify('Error de conexión', 'error') }
+}
+async function saveUgcCreadoraNombre(id, value) {
+  const nombre = value.trim()
+  if (!nombre) return
+  await saveUgcCreadoraMeta(id, 'nombre', nombre)
 }
 async function saveUgcCreadoraResultado(id, key, value) {
   const c = _ugcCreadoras.find(x => x.id === id)

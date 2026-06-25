@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Brief de Contenido · Soul Studio</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f7;color:#1a1a2e;min-height:100vh}
+  .top-bar{background:#0a0a14;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+  .top-bar .logo{color:#fff;font-size:15px;font-weight:700;letter-spacing:.04em}
+  .top-bar .logo span{color:#2979ff}
+  .btn-dl{background:#2979ff;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px}
+  .btn-dl:hover{background:#1a5fd4}
+  .btn-print{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer}
+  .btn-print:hover{background:rgba(255,255,255,.18)}
+  .page{max-width:780px;margin:32px auto;padding:0 16px 60px}
+  .card{background:#fff;border-radius:16px;box-shadow:0 2px 16px rgba(0,0,0,.08);overflow:hidden;margin-bottom:20px}
+  .card-header{background:#0a0a14;padding:24px 28px 20px}
+  .brief-titulo{font-size:22px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:8px}
+  .badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600}
+  .badge-formato{background:rgba(255,200,0,.15);color:#f5c400;border:1px solid rgba(255,200,0,.3)}
+  .badge-cat{background:rgba(41,121,255,.2);color:#6fa3ff;border:1px solid rgba(41,121,255,.3)}
+  .badge-fecha{background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.15)}
+  .chips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;padding:20px 28px;border-bottom:1px solid #f0f0f5}
+  .chip{background:#f5f5f8;border-radius:10px;padding:10px 14px}
+  .chip-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#9090a8;margin-bottom:3px}
+  .chip-val{font-size:13px;font-weight:600;color:#1a1a2e}
+  .sections{padding:0}
+  .section{border-bottom:1px solid #f0f0f5;padding:20px 28px}
+  .section:last-child{border-bottom:none}
+  .section-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:#2979ff;margin-bottom:12px}
+  .section-body{font-size:13.5px;line-height:1.65;color:#2a2a40;white-space:pre-wrap;word-break:break-word}
+  .angulo-pill{display:inline-block;background:#eef4ff;color:#2979ff;border:1px solid #c8dcff;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600}
+  .img-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
+  .img-grid img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid #eee}
+  .loading{text-align:center;padding:80px 20px;color:#9090a8}
+  .loading .spin{width:36px;height:36px;border:3px solid #e0e0e8;border-top-color:#2979ff;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .error-box{text-align:center;padding:60px 20px;color:#d04040}
+  .footer-note{text-align:center;font-size:11px;color:#b0b0c0;margin-top:32px}
+  @media(max-width:600px){
+    .chips-grid{grid-template-columns:1fr 1fr}
+    .section{padding:16px 18px}
+    .card-header{padding:18px 18px 16px}
+    .img-grid{grid-template-columns:1fr 1fr}
+  }
+  @media print{
+    body{background:#fff}
+    .top-bar{display:none}
+    .page{margin:0;padding:0}
+    .card{box-shadow:none;border:1px solid #ddd;margin-bottom:12px}
+    .section{page-break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="logo">Soul <span>Studio</span></div>
+  <div style="display:flex;gap:10px">
+    <button class="btn-print" onclick="window.print()">🖨 Imprimir</button>
+    <button class="btn-dl" id="btn-pdf" onclick="descargarPDF()">⬇ Descargar PDF</button>
+  </div>
+</div>
+
+<div class="page" id="page">
+  <div class="loading" id="loading">
+    <div class="spin"></div>
+    <div>Cargando brief…</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const ws = params.get('ws');
+const id = params.get('id');
+let _brief = null;
+
+const ANGULO_LABEL = {
+  fit:'Fit / cómo queda puesto',
+  antes_despues:'Antes/después',
+  styling:'Styling / 3 formas',
+  detalle:'El detalle que lo vende',
+  comparacion:'Comparación'
+};
+
+async function init() {
+  if (!ws || !id) {
+    document.getElementById('page').innerHTML = '<div class="error-box">❌ Link inválido. Pedile a Soul Studio que te reenvíe el link correcto.</div>';
+    return;
+  }
+  try {
+    const r = await fetch(`/api/brief-public?ws=${encodeURIComponent(ws)}&id=${encodeURIComponent(id)}`);
+    if (!r.ok) throw new Error('Brief no encontrado');
+    const data = await r.json();
+    _brief = data.brief;
+    render(_brief);
+  } catch(e) {
+    document.getElementById('page').innerHTML = `<div class="error-box">❌ ${e.message}<br><small>Verificá que el link esté completo.</small></div>`;
+  }
+}
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function section(title, content) {
+  if (!content) return '';
+  return `<div class="section">
+    <div class="section-title">${esc(title)}</div>
+    <div class="section-body">${esc(content)}</div>
+  </div>`;
+}
+
+function render(b) {
+  const chips = [
+    b.marca      && {l:'Marca',       v: b.marca},
+    b.creadora   && {l:'Creadora',    v: '@'+(b.creadora||'').replace(/^@/,'')},
+    b.campana_mes&& {l:'Campaña',     v: b.campana_mes},
+    b.fecha_entrega&&{l:'Entrega',    v: b.fecha_entrega},
+    b.donde_sube && {l:'Sube en',     v: b.donde_sube},
+  ].filter(Boolean);
+
+  const anguloVal = b.angulo ? (ANGULO_LABEL[b.angulo] || b.angulo) : '';
+
+  const imgs = (b.imagenes||[]).filter(img=>img&&img.data);
+
+  const html = `
+  <div class="card">
+    <div class="card-header">
+      <div class="brief-titulo">${esc(b.titulo||'Sin título')}</div>
+      <div class="badge-row">
+        ${b.formato ? `<span class="badge badge-formato">${esc(b.formato)}</span>` : ''}
+        ${b.categoria ? `<span class="badge badge-cat">${esc(b.categoria)}</span>` : ''}
+        ${b.fecha_entrega ? `<span class="badge badge-fecha">📅 ${esc(b.fecha_entrega)}</span>` : ''}
+      </div>
+    </div>
+
+    ${chips.length ? `<div class="chips-grid">${chips.map(c=>`
+      <div class="chip">
+        <div class="chip-label">${esc(c.l)}</div>
+        <div class="chip-val">${esc(c.v)}</div>
+      </div>`).join('')}</div>` : ''}
+
+    <div class="sections">
+      ${section('2 · Contexto', b.contexto)}
+
+      ${anguloVal ? `<div class="section">
+        <div class="section-title">3 · Ángulo</div>
+        <div class="angulo-pill">${esc(anguloVal)}</div>
+      </div>` : ''}
+
+      ${section('4 · El Hook — primeros 2 segundos', b.hook)}
+      ${section('5 · Guion / Beats', b.guion)}
+      ${section('6 · Must-haves', b.must_haves)}
+      ${section('7 · Tono y estética', b.tono)}
+      ${b.referencias_visuales ? section('Referencias visuales', b.referencias_visuales) : ''}
+      ${b.que_evitar ? section('Qué evitar', b.que_evitar) : ''}
+      ${section('8 · Specs técnicas', b.specs)}
+
+      ${imgs.length ? `<div class="section">
+        <div class="section-title">Imágenes de referencia</div>
+        <div class="img-grid">
+          ${imgs.slice(0,6).map(img=>`<img src="${img.data}" alt="${esc(img.caption||'')}" onerror="this.style.display='none'">`).join('')}
+        </div>
+      </div>` : ''}
+    </div>
+  </div>
+  <div class="footer-note">Brief generado por Soul Studio · No compartir fuera del equipo</div>`;
+
+  document.getElementById('page').innerHTML = html;
+}
+
+async function descargarPDF() {
+  if (!_brief) return;
+  const btn = document.getElementById('btn-pdf');
+  btn.textContent = '⏳ Generando…'; btn.disabled = true;
+  try {
+    const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
+    if (!jsPDF) throw new Error('jsPDF no cargó');
+    const b = _brief;
+    const doc = new jsPDF({unit:'mm',format:'a4'});
+    const W=210,PL=18,PR=18,CW=W-PL-PR;
+    let y=0;
+    const ANGULO_LABEL_PDF={'fit':'Fit / cómo queda puesto','antes_despues':'Antes/después','styling':'Styling / 3 formas','detalle':'El detalle que lo vende','comparacion':'Comparación'};
+
+    // Header
+    doc.setFillColor(10,10,20);doc.rect(0,0,W,28,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(15);doc.setTextColor(255,255,255);
+    doc.text('BRIEF DE CONTENIDO',PL,13);
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(140,140,170);
+    doc.text('Soul Studio · Brief Creator',PL,20);
+    doc.text(new Date().toLocaleDateString('es-AR'),W-PR,20,{align:'right'});
+    y=36;
+    doc.setDrawColor(41,121,255);doc.setLineWidth(0.5);doc.line(PL,y-4,W-PR,y-4);
+
+    const _checkY=(h=14)=>{if(y+h>278){doc.addPage();y=20;}};
+    const addSection=(title)=>{
+      _checkY(12);
+      doc.setFillColor(240,242,255);doc.rect(PL,y,CW,8,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(41,121,255);
+      doc.text(title,PL+3,y+5.5);y+=12;
+    };
+    const addRow=(label,value,small=false)=>{
+      if(!value)return;
+      _checkY(10);
+      doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(120,120,150);
+      doc.text(label.toUpperCase(),PL,y);y+=4.5;
+      doc.setFont('helvetica','normal');doc.setFontSize(small?9:10.5);doc.setTextColor(20,20,35);
+      const ls=doc.splitTextToSize(value,CW);
+      ls.forEach(l=>{_checkY(6);doc.text(l,PL,y);y+=5.2;});
+      doc.setDrawColor(230,230,240);doc.setLineWidth(0.2);doc.line(PL,y+1,W-PR,y+1);y+=6;
+    };
+
+    addRow('Título',b.titulo);
+    const chips=[['Marca',b.marca],['Formato',b.formato],['Creadora',b.creadora?'@'+b.creadora.replace(/^@/,''):''],['Campaña',b.campana_mes],['Entrega',b.fecha_entrega],['Sube en',b.donde_sube]].filter(c=>c[1]);
+    if(chips.length){
+      _checkY(chips.length*7+4);
+      chips.forEach(([l,v])=>{
+        doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(120,120,150);doc.text(l.toUpperCase(),PL,y);
+        doc.setFont('helvetica','normal');doc.setFontSize(10.5);doc.setTextColor(20,20,35);doc.text(String(v),PL+32,y);y+=7;
+      });
+      doc.setDrawColor(230,230,240);doc.setLineWidth(0.2);doc.line(PL,y+1,W-PR,y+1);y+=6;
+    }
+    addSection('2 · CONTEXTO');addRow('Producto y audiencia',b.contexto);
+    addSection('3 · ÁNGULO');addRow('Ángulo creativo',b.angulo?(ANGULO_LABEL_PDF[b.angulo]||b.angulo):'');
+    addSection('4 · EL HOOK');addRow('Primeros 2 segundos',b.hook);
+    addSection('5 · GUION / BEATS');addRow('Momentos clave',b.guion);
+    addSection('6 · MUST-HAVES');addRow('Obligatorio mostrar',b.must_haves,true);
+    addSection('7 · TONO Y ESTÉTICA');addRow('Tono',b.tono);addRow('Referencias',b.referencias_visuales,true);addRow('Qué evitar',b.que_evitar);
+    addSection('8 · SPECS TÉCNICAS');addRow('Especificaciones',b.specs,true);
+
+    // Images
+    const imgs=(b.imagenes||[]).filter(img=>img&&img.data);
+    if(imgs.length){
+      _checkY(40);
+      doc.setFillColor(240,242,255);doc.rect(PL,y,CW,8,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(41,121,255);
+      doc.text('IMÁGENES DE REFERENCIA',PL+3,y+5.5);y+=12;
+      const cols=Math.min(imgs.length,3);
+      const colW=(CW-(cols-1)*4)/cols;const imgH=Math.min(colW*0.75,50);
+      let rowY=y;
+      imgs.slice(0,6).forEach((img,ii)=>{
+        const col=ii%cols;
+        if(col===0&&ii>0){rowY+=imgH+6;_checkY(imgH+8);}
+        try{doc.addImage(img.data,img.data.includes('data:image/png')?'PNG':'JPEG',PL+col*(colW+4),rowY,colW,imgH);}catch(e){}
+      });
+      y=rowY+imgH+8;
+    }
+
+    const total=doc.getNumberOfPages();
+    for(let p=1;p<=total;p++){
+      doc.setPage(p);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(160,160,180);
+      doc.text('Soul Studio · Brief Creator',PL,292);
+      doc.text(`${p}/${total}`,W-PR,292,{align:'right'});
+    }
+    const slug=(b.titulo||'brief').toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,30);
+    doc.save(`brief_${new Date().toISOString().slice(0,10)}_${slug}.pdf`);
+  } catch(e) { alert('Error al generar PDF: '+e.message); }
+  btn.textContent='⬇ Descargar PDF'; btn.disabled=false;
+}
+
+init();
+</script>
+</body>
+</html>
