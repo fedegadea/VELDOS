@@ -2228,6 +2228,13 @@ async function _processImmediateFlows(wsId, d, crmContact, triggerTypes, extra =
         const isBoth  = step.type === 'both'
         if (!isWA && !isEmail && !isBoth) continue
 
+        // Si hay pasos 'wait' antes de este step, no enviarlo ahora — el cron lo manejará
+        const stepOffsetMs = _flowStepOffsetServer(f.steps, si)
+        if (stepOffsetMs > 0) {
+          console.log(`[flows] defer step${si} of "${f.name||f.id}": ${Math.round(stepOffsetMs/3600000*10)/10}h de espera (cron lo manejará)`)
+          continue
+        }
+
         const key = `${f.id}|${cid}|${triggerKey}|step${si}`
         // Verificar en flow_log table — atómico, sin race condition
         if (await db_flowKeyExists(wsId, key)) continue
