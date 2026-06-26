@@ -4720,13 +4720,16 @@ app.post('/api/store/capture-contact', async (req, res) => {
         nombre: nombre || '',
         email: emailLow || '',
         tel: phone,
-        etapa: 'prospecto',
-        estado: 'Nuevo',
-        tags: ['tienda'],
+        etapa: 'lead',
+        estado: 'Lead',
+        canal: 'Popup',
+        origen: 'popup',
+        tags: ['popup'],
+        newsletter: 'si',
         fechaAlta: now,
         creado: now,
         ultimoContacto: now,
-        contactos: [{ fecha: now, nota: 'Captura en tienda', tipo: 'auto' }]
+        contactos: [{ fecha: now, nota: 'Captura desde popup web', tipo: 'auto' }]
       }
       data.crm.push(crmContact)
     } else {
@@ -4734,6 +4737,12 @@ app.post('/api/store/capture-contact', async (req, res) => {
       if (emailLow && !crmContact.email) crmContact.email = emailLow
       if (phone && !crmContact.tel) crmContact.tel = phone
       crmContact.ultimoContacto = now
+      // Asegurar que origen/etapa estén correctos para leads del popup
+      if (!crmContact.origen) crmContact.origen = 'popup'
+      if (!crmContact.etapa || crmContact.etapa === 'prospecto') crmContact.etapa = 'lead'
+      const t = crmContact.tags
+      const tagsArr = Array.isArray(t) ? t : (t ? String(t).split(',').map(s=>s.trim()) : [])
+      if (!tagsArr.includes('popup')) { tagsArr.push('popup'); crmContact.tags = tagsArr }
     }
 
     // ── Upsert "Contactos de Mi Tienda" static list ──

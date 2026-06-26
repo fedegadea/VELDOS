@@ -24166,10 +24166,11 @@ async function renderDifListas() {
             '<span style="font-size:11px">' + totalC + ' contactos ' + (cuentas ? '(' + cuentas.trim() + ')' : '') + '</span>' +
             '<span style="font-size:10px;color:var(--muted)">Última: ' + ult + '</span>' +
           '</div>' +
-          '<div style="display:flex;gap:6px">' +
-            '<button class="btn btn-primary" style="flex:1;font-size:11px;padding:6px" onclick="difUsarLista(' + i + ')">Usar →</button>' +
-            '<button class="btn" style="flex:1;font-size:11px;padding:6px;border:1px solid var(--border)" onclick="abrirDetalleLista(\'' + l.id + '\')">Ver contactos</button>' +
-            '<button class="btn" style="flex:1;font-size:11px;padding:6px;border:1px solid var(--border)" onclick="openImportarContactos(\'' + l.id + '\')">+ Importar</button>' +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
+            '<button class="btn btn-primary" style="flex:1;min-width:70px;font-size:11px;padding:6px" onclick="difUsarLista(' + i + ')">Usar →</button>' +
+            '<button class="btn" style="flex:1;min-width:70px;font-size:11px;padding:6px;border:1px solid var(--border)" onclick="abrirDetalleLista(\'' + l.id + '\')">Ver</button>' +
+            '<button class="btn" style="flex:1;min-width:70px;font-size:11px;padding:6px;border:1px solid var(--border)" onclick="openImportarContactos(\'' + l.id + '\')">+ CRM</button>' +
+            '<button class="btn" style="flex:1;min-width:70px;font-size:11px;padding:6px;border:1px solid rgba(201,180,138,.4);color:var(--gold)" onclick="importCSVToLista(\'' + l.id + '\',\'' + (l.nombre||'').replace(/'/g,"\\'") + '\')">📥 CSV</button>' +
           '</div>' +
         '</div>';
     }
@@ -24269,6 +24270,76 @@ async function toggleContactEnLista(checkbox, listaId, contactId) {
     checkbox.checked = !checkbox.checked; // revert UI
     notify('Error: ' + e.message, 'error');
   }
+}
+
+function importCSVToLista(listaId, listaNombre) {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.csv,.txt';
+  inp.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    notify('⏳ Procesando CSV…');
+    const text = await file.text().catch(() => null);
+    if (!text) { notify('No se pudo leer el archivo', 'error'); return; }
+    const clean = text.replace(/^﻿/, '');
+    const lines = clean.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) { notify('CSV vacío o sin datos', 'error'); return; }
+    const sep = lines[0].split(';').length > lines[0].split(',').length ? ';' : ',';
+    const hdrs = parseCSVRow(lines[0], sep).map(h => h.toLowerCase().trim().replace(/["""]/g,''));
+    const col = (...names) => { for (const n of names) { const i = hdrs.findIndex(h => h.includes(n)); if (i >= 0) return i; } return -1; };
+    const C = {
+      nombre:  col('nombre','name','contacto','cliente','first name','firstname'),
+      apellido:col('apellido','lastname','surname'),
+      email:   col('e-mail','email','mail','correo'),
+      tel:     col('whatsapp','wapp','tel','telefono','phone','celular','movil','celular'),
+      tags:    col('tags','etiquetas'),
+      notas:   col('notas','notes','observaciones'),
+    };
+    const get = (row, idx) => idx >= 0 && idx < row.length ? row[idx].trim().replace(/^[""]|[""]$/g,'') : '';
+    if (!S.crm) S.crm = [];
+    const lista = (S.difListas || []).find(l => l.id === listaId);
+    if (!lista) { notify('Lista no encontrada', 'error'); return; }
+    if (!lista.contactIds) lista.contactIds = [];
+    const now = new Date().toISOString().slice(0,10);
+    let added = 0, dupe = 0, skip = 0;
+    const newIds = [];
+    for (let i = 1; i < lines.length; i++) {
+      const row = parseCSVRow(lines[i], sep);
+      if (!row.length || row.every(c => !c.trim())) continue;
+      const nombreRaw = get(row, C.nombre);
+      const emailRaw  = (get(row, C.email) || '').toLowerCase().trim();
+      const telRaw    = get(row, C.tel).replace(/\s/g,'').replace(/[^+\d]/g,'');
+      if (!nombreRaw && !emailRaw && !telRaw) { skip++; continue; }
+      let nombre = nombreRaw, apellido = get(row, C.apellido);
+      if (!apellido && nombre) { const sp = nombre.indexOf(' '); if (sp > 0) { apellido = nombre.slice(sp+1); nombre = nombre.slice(0, sp); } }
+      if (!nombre) nombre = emailRaw ? emailRaw.split('@')[0] : telRaw;
+      const existing = S.crm.find(c =>
+        (emailRaw && c.email && c.email.toLowerCase() === emailRaw) ||
+        (telRaw && c.tel && c.tel.replace(/\D/g,'') === telRaw.replace(/\D/g,''))
+      );
+      if (existing) {
+        if (!lista.contactIds.includes(existing.id)) { lista.contactIds.push(existing.id); newIds.push(existing.id); added++; }
+        else dupe++;
+      } else {
+        const tagsRaw = get(row, C.tags);
+        const tagsArr = tagsRaw ? tagsRaw.split(/[,;|]/).map(t=>t.trim()).filter(Boolean) : [];
+        const c = { id:'c'+Date.now()+Math.random().toString(36).slice(2,5), nombre, apellido, email:emailRaw, tel:telRaw, etapa:'lead', estado:'Lead', creado:now, ultimoContacto:now, notas:get(row,C.notas)||'', tags:tagsArr, origen:'csv_import' };
+        S.crm.push(c);
+        lista.contactIds.push(c.id); newIds.push(c.id); added++;
+      }
+    }
+    if (!added && !dupe) { notify(`Sin contactos válidos (${skip} filas vacías)`, 'error'); return; }
+    save();
+    if (newIds.length) {
+      fetch(`/api/dif/listas/${encodeURIComponent(listaId)}/members?wsId=${encodeURIComponent(_activeWsId)}`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ add: newIds })
+      }).catch(() => {});
+    }
+    notify(`✅ ${added} contactos agregados a "${listaNombre}"${dupe ? ` · ${dupe} ya estaban` : ''}${skip ? ` · ${skip} filas vacías` : ''}`);
+    renderDifListas();
+  };
+  inp.click();
 }
 
 async function openImportarContactos(listaId) {
