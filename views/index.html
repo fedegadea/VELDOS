@@ -15263,11 +15263,14 @@ function openModal(tipo,data,idx){
     document.getElementById('modal-body').innerHTML=`
       <div style="display:flex;flex-direction:column;gap:10px">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
-          <span id="detalle-lista-count" style="font-size:12px;color:var(--muted)">${esDinamica?'Dinámica':'(cargando…)'}</span>
-          ${!esDinamica?`<button class="btn btn-xs btn-primary" onclick="openImportarContactos('${lista.id}')">+ Importar contactos</button>`:''}
+          <span id="detalle-lista-count" style="font-size:12px;color:var(--muted)">${esDinamica?'Dinámica':'cargando…'}</span>
+          ${!esDinamica?`<div style="display:flex;gap:6px">
+            <button class="btn btn-xs" onclick="openImportarContactos('${lista.id}')" style="border:1px solid var(--border)">+ CRM</button>
+            <button class="btn btn-xs btn-primary" onclick="importCSVToLista('${lista.id}','${(lista.nombre||'').replace(/'/g,"\\'")}',true)">📥 CSV</button>
+          </div>`:''}
         </div>
         <input class="form-input" placeholder="Buscar por nombre, email o teléfono…" oninput="renderDetalleLista(this.value)" style="font-size:12px">
-        <div id="detalle-lista-contacts" style="max-height:380px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:0 10px">
+        <div id="detalle-lista-contacts" style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:0 10px">
           <div style="padding:30px;text-align:center;color:var(--muted);font-size:12px">Cargando…</div>
         </div>
         ${esDinamica?'<div style="font-size:10px;color:var(--muted);text-align:center">Lista dinámica — los contactos se recalculan según los filtros</div>':''}
@@ -24206,10 +24209,15 @@ async function deleteDifLista(id, nombre) {
 // ── DETALLE DE LISTA — Ver/buscar/seleccionar/importar contactos ──
 let _detalleLista = null; // { id, nombre, tipo, contactIds }
 
-function abrirDetalleLista(listaId) {
+async function abrirDetalleLista(listaId) {
   const l = (S.difListas || []).find(x => x.id === listaId);
   if (!l) return;
   _detalleLista = l;
+  // Asegurar que el CRM esté cargado antes de abrir el modal
+  if (!_crmApiLoaded) {
+    notify('Cargando contactos…');
+    await _apiLoadCRM();
+  }
   openModal('detalleDifLista', l);
 }
 
@@ -24217,38 +24225,56 @@ function renderDetalleLista(searchVal) {
   const l = _detalleLista;
   if (!l) return;
   const q = (searchVal || '').toLowerCase().trim();
-  // Get all contacts in this list
   const allInList = l.tipo === 'dinamica'
     ? _evalListaFiltros(l.filtros)
     : (S.crm || []).filter(c => l.contactIds?.includes(c.id));
   const filtered = q
     ? allInList.filter(c => ((c.nombre||'') + ' ' + (c.apellido||'') + ' ' + (c.email||'') + ' ' + (c.tel||'')).toLowerCase().includes(q))
     : allInList;
-  // Update count
   const countEl = document.getElementById('detalle-lista-count');
   if (countEl) {
     const total = l.tipo === 'estatica' ? (l.contactIds?.length || 0) : allInList.length;
     const eC = allInList.filter(c=>c.email).length;
     const wC = allInList.filter(c=>c.tel).length;
-    countEl.textContent = total + ' contactos' + (q ? ' (filtrado: ' + filtered.length + ')' : '') + (eC||wC ? '  📧 '+eC+' · 📱 '+wC : '');
+    countEl.textContent = total + ' contactos' + (q ? ' · filtrado: ' + filtered.length : '') + (eC||wC ? '  📧 '+eC+' · 📱 '+wC : '');
   }
   const el = document.getElementById('detalle-lista-contacts');
   if (!el) return;
   if (!filtered.length) {
-    el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">' + (q ? 'Sin resultados para "' + q + '"' : 'Lista vacía — importá contactos') + '</div>';
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">' + (q ? 'Sin resultados para "' + q + '"' : 'Lista vacía — importá contactos con el botón CSV') + '</div>';
     return;
   }
   el.innerHTML = filtered.map(c => {
-    const inList = l.contactIds?.includes(c.id);
-    const checked = l.tipo === 'dinamica' || inList;
-    return '<label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer">' +
-      '<input type="checkbox" ' + (checked ? 'checked' : '') + ' ' + (l.tipo === 'dinamica' ? 'disabled' : '') + ' onchange="toggleContactEnLista(this,\'' + l.id + '\',\'' + c.id + '\')" style="width:14px;height:14px;flex-shrink:0">' +
+    const isDinamica = l.tipo === 'dinamica';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">' +
       '<div style="flex:1;min-width:0">' +
         '<div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (c.nombre || '—') + (c.apellido ? ' ' + c.apellido : '') + '</div>' +
-        '<div style="font-size:10px;color:var(--muted)">' + (c.email || '') + (c.email && c.tel ? ' · ' : '') + (c.tel || '') + '</div>' +
+        '<div style="font-size:10px;color:var(--muted)">' + [c.email, c.tel].filter(Boolean).join(' · ') + '</div>' +
       '</div>' +
-    '</label>';
+      (!isDinamica ? '<button onclick="quitarDeListaModal(\'' + l.id + '\',\'' + c.id + '\',this)" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 6px;border-radius:4px;flex-shrink:0" title="Quitar de la lista">✕</button>' : '') +
+    '</div>';
   }).join('');
+}
+
+async function quitarDeListaModal(listaId, contactId, btn) {
+  const l = _detalleLista;
+  if (!l) return;
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    const r = await fetch('/api/dif/listas/' + encodeURIComponent(listaId) + '/members?wsId=' + _activeWsId, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ remove: [contactId] })
+    });
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'Error');
+    l.contactIds = (l.contactIds || []).filter(id => id !== contactId);
+    const globalL = (S.difListas || []).find(x => x.id === listaId);
+    if (globalL) globalL.contactIds = [...l.contactIds];
+    renderDetalleLista(document.querySelector('#modal-body input')?.value || '');
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = '✕'; }
+    notify('Error: ' + e.message, 'error');
+  }
 }
 
 async function toggleContactEnLista(checkbox, listaId, contactId) {
@@ -24275,30 +24301,55 @@ async function toggleContactEnLista(checkbox, listaId, contactId) {
   }
 }
 
-function importCSVToLista(listaId, listaNombre) {
+function importCSVToLista(listaId, listaNombre, fromModal) {
   const inp = document.createElement('input');
-  inp.type = 'file'; inp.accept = '.csv,.txt';
+  inp.type = 'file'; inp.accept = '.csv,.txt,.xls,.xlsx';
   inp.onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    notify('⏳ Procesando CSV…');
+    notify('⏳ Procesando archivo…');
     const text = await file.text().catch(() => null);
     if (!text) { notify('No se pudo leer el archivo', 'error'); return; }
-    const clean = text.replace(/^﻿/, '');
-    const lines = clean.split(/\r?\n/).filter(l => l.trim());
-    if (lines.length < 2) { notify('CSV vacío o sin datos', 'error'); return; }
-    const sep = lines[0].split(';').length > lines[0].split(',').length ? ';' : ',';
-    const hdrs = parseCSVRow(lines[0], sep).map(h => h.toLowerCase().trim().replace(/["""]/g,''));
-    const col = (...names) => { for (const n of names) { const i = hdrs.findIndex(h => h.includes(n)); if (i >= 0) return i; } return -1; };
-    const C = {
-      nombre:  col('nombre','name','contacto','cliente','first name','firstname'),
-      apellido:col('apellido','lastname','surname'),
-      email:   col('e-mail','email','mail','correo'),
-      tel:     col('whatsapp','wapp','tel','telefono','phone','celular','movil','celular'),
-      tags:    col('tags','etiquetas'),
-      notas:   col('notas','notes','observaciones'),
+
+    // Limpiar BOM y normalizar saltos de línea
+    const clean = text.replace(/^﻿/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const lines = clean.split('\n').filter(l => l.trim());
+    if (lines.length < 2) { notify('Archivo vacío o sin datos', 'error'); return; }
+
+    // Detectar separador inteligentemente: |, ;, \t, ,
+    const first = lines[0];
+    const sep = first.split('|').length > 3 ? '|'
+              : first.split('\t').length > 2 ? '\t'
+              : first.split(';').length > first.split(',').length ? ';' : ',';
+
+    const hdrs = parseCSVRow(lines[0], sep).map(h =>
+      h.toLowerCase().trim().replace(/["""'‘’“”]/g,'').trim()
+    );
+
+    // Detección de columnas inteligente — acepta español, inglés y variantes
+    const col = (...names) => {
+      for (const n of names) {
+        const i = hdrs.findIndex(h => h === n || h.includes(n));
+        if (i >= 0) return i;
+      }
+      return -1;
     };
-    const get = (row, idx) => idx >= 0 && idx < row.length ? row[idx].trim().replace(/^[""]|[""]$/g,'') : '';
+    const C = {
+      nombre:   col('nombre','name','first name','firstname','primer nombre','contacto','cliente','razon social','razón social','full name','nombre completo'),
+      apellido: col('apellido','last name','lastname','surname','segundo nombre'),
+      email:    col('email','e-mail','mail','correo','correo electronico','correo electrónico','e mail'),
+      tel:      col('whatsapp','wapp','tel','telefono','teléfono','phone','celular','movil','móvil','cel','numero','número','fono'),
+      tags:     col('tags','etiquetas','tag','label','labels'),
+      notas:    col('notas','notes','observaciones','obs','comentarios','comentario','nota'),
+    };
+
+    // Si no detecta columna de nombre pero hay una sola columna de texto, usarla
+    if (C.nombre < 0 && hdrs.length === 1) C.nombre = 0;
+
+    const get = (row, idx) => idx >= 0 && idx < row.length
+      ? row[idx].trim().replace(/^[""“”]|[""“”]$/g,'').trim()
+      : '';
+
     if (!S.crm) S.crm = [];
     const lista = (S.difListas || []).find(l => l.id === listaId);
     if (!lista) { notify('Lista no encontrada', 'error'); return; }
@@ -24306,41 +24357,93 @@ function importCSVToLista(listaId, listaNombre) {
     const now = new Date().toISOString().slice(0,10);
     let added = 0, dupe = 0, skip = 0;
     const newIds = [];
+    const newContactsForServer = []; // contacts to upsert in Supabase
+
     for (let i = 1; i < lines.length; i++) {
       const row = parseCSVRow(lines[i], sep);
-      if (!row.length || row.every(c => !c.trim())) continue;
+      if (!row.length || row.every(c => !c.trim())) { skip++; continue; }
+
       const nombreRaw = get(row, C.nombre);
       const emailRaw  = (get(row, C.email) || '').toLowerCase().trim();
-      const telRaw    = get(row, C.tel).replace(/\s/g,'').replace(/[^+\d]/g,'');
+      // Normalizar teléfono: quitar espacios, guiones, paréntesis — mantener + y dígitos
+      const telRaw    = get(row, C.tel).replace(/[\s\-().]/g,'').replace(/[^+\d]/g,'');
+
       if (!nombreRaw && !emailRaw && !telRaw) { skip++; continue; }
+
       let nombre = nombreRaw, apellido = get(row, C.apellido);
-      if (!apellido && nombre) { const sp = nombre.indexOf(' '); if (sp > 0) { apellido = nombre.slice(sp+1); nombre = nombre.slice(0, sp); } }
+      // Separar nombre completo si viene junto
+      if (!apellido && nombre && nombre.includes(' ')) {
+        const sp = nombre.indexOf(' ');
+        apellido = nombre.slice(sp+1).trim();
+        nombre   = nombre.slice(0, sp).trim();
+      }
       if (!nombre) nombre = emailRaw ? emailRaw.split('@')[0] : telRaw;
+
+      // Deduplicar contra S.crm en memoria
       const existing = S.crm.find(c =>
         (emailRaw && c.email && c.email.toLowerCase() === emailRaw) ||
-        (telRaw && c.tel && c.tel.replace(/\D/g,'') === telRaw.replace(/\D/g,''))
+        (telRaw && telRaw.length >= 7 && c.tel && c.tel.replace(/\D/g,'') === telRaw.replace(/\D/g,''))
       );
+
       if (existing) {
-        if (!lista.contactIds.includes(existing.id)) { lista.contactIds.push(existing.id); newIds.push(existing.id); added++; }
-        else dupe++;
+        if (!lista.contactIds.includes(existing.id)) {
+          lista.contactIds.push(existing.id);
+          newIds.push(existing.id);
+          added++;
+        } else { dupe++; }
       } else {
         const tagsRaw = get(row, C.tags);
         const tagsArr = tagsRaw ? tagsRaw.split(/[,;|]/).map(t=>t.trim()).filter(Boolean) : [];
-        const c = { id:'c'+Date.now()+Math.random().toString(36).slice(2,5), nombre, apellido, email:emailRaw, tel:telRaw, etapa:'lead', estado:'Lead', creado:now, ultimoContacto:now, notas:get(row,C.notas)||'', tags:tagsArr, origen:'csv_import' };
+        const c = {
+          id: 'c' + Date.now() + '_' + Math.random().toString(36).slice(2,5),
+          nombre, apellido: apellido || '',
+          email: emailRaw, tel: telRaw,
+          etapa: 'lead', estado: 'Lead', canal: 'CSV',
+          creado: now, ultimoContacto: now,
+          notas: get(row, C.notas) || '',
+          tags: tagsArr,
+          origen: 'csv_import'
+        };
         S.crm.push(c);
-        lista.contactIds.push(c.id); newIds.push(c.id); added++;
+        lista.contactIds.push(c.id);
+        newIds.push(c.id);
+        newContactsForServer.push(c);
+        added++;
       }
     }
-    if (!added && !dupe) { notify(`Sin contactos válidos (${skip} filas vacías)`, 'error'); return; }
+
+    if (!added && !dupe) { notify(`Sin contactos válidos (${skip} filas sin datos)`, 'error'); return; }
+
+    // Guardar lista actualizada en workspace (sin el CRM vacío)
     save();
+
+    // Persistir en Supabase: IDs en la lista + datos de contactos nuevos
     if (newIds.length) {
-      fetch(`/api/dif/listas/${encodeURIComponent(listaId)}/members?wsId=${encodeURIComponent(_activeWsId)}`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ add: newIds })
-      }).catch(() => {});
+      try {
+        const r = await fetch(`/api/dif/listas/${encodeURIComponent(listaId)}/members?wsId=${encodeURIComponent(_activeWsId)}`, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ add: newIds, contacts: newContactsForServer })
+        });
+        const res = await r.json();
+        if (!res.ok) throw new Error(res.error || 'Error al guardar');
+        // Actualizar count real del servidor
+        if (res.count != null) {
+          lista.contactIds = lista.contactIds.slice(); // trigger reactivity
+        }
+      } catch(err) {
+        notify('⚠️ Importado en memoria pero error al guardar en servidor: ' + err.message, 'error');
+      }
     }
-    notify(`✅ ${added} contactos agregados a "${listaNombre}"${dupe ? ` · ${dupe} ya estaban` : ''}${skip ? ` · ${skip} filas vacías` : ''}`);
-    renderDifListas();
+
+    const msg = `✅ ${added} contacto${added!==1?'s':''} importado${added!==1?'s':''} a "${listaNombre}"` +
+      (dupe ? ` · ${dupe} ya estaban` : '') + (skip ? ` · ${skip} filas vacías` : '');
+    notify(msg);
+
+    if (fromModal) {
+      renderDetalleLista('');
+    } else {
+      renderDifListas();
+    }
   };
   inp.click();
 }

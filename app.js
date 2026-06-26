@@ -1092,6 +1092,11 @@ app.post("/api/tn/webhook", async (req, res) => {
       }
     }
 
+    // Agregar comprador a lista estática "Compradores TN"
+    if (crmContact) {
+      _addContactToList(target.id, 'Compradores TN', 'dl_compradores_tn', crmContact.id).catch(() => {})
+    }
+
     // Disparar flows inmediatos
     if (crmContact) {
       const lineas = (o.products || []).map(p => ({ nombre: p.name, qty: p.quantity || 1 }))
@@ -4898,11 +4903,16 @@ app.delete('/api/dif/listas/:id', async (req, res) => {
 })
 
 // ── POST /api/dif/listas/:id/members ── add or remove contactIds from a list
+// Accepts optional `contacts` array to batch-upsert new contacts into Supabase contacts table
 app.post('/api/dif/listas/:id/members', async (req, res) => {
   const { wsId } = req.query
-  const { add = [], remove = [] } = req.body
+  const { add = [], remove = [], contacts: newContacts = [] } = req.body
   if (!wsId) return res.status(400).json({ error: 'wsId requerido' })
   try {
+    // Upsert any new contacts sent from CSV import (they don't exist in Supabase yet)
+    if (newContacts.length) {
+      await Promise.all(newContacts.map(c => db_upsertContact(wsId, c).catch(() => {})))
+    }
     const ws = await getWorkspace(wsId)
     const data = ws?.data || {}
     const lista = (data.difListas || []).find(l => l.id === req.params.id)
