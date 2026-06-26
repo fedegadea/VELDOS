@@ -512,14 +512,28 @@ async function patchWorkspace(wsId, data, fullRow = null) {
 
     // CRM, finanzas, flowDone, flowHistory → en tablas propias — no mergear en el blob
 
-    // ── Guard flows: merge por ID — preservar flows del servidor que el cliente no tiene,
-    //    excepto los que el cliente marcó como eliminados explícitamente ──
-    if (cur.flows?.length) {
+    // ── Guard flows: merge por ID con resolución por timestamp ──
+    // Para cada flow, preservar la versión más nueva comparando updatedAt.
+    // Esto evita que events del servidor (capture-contact, TN webhooks, etc.)
+    // sobreescriban flows editados por el admin concurrentemente.
+    {
       const deletedIds = new Set(data.deletedFlowIds || [])
-      const clientFlowIds = new Set((data.flows || []).map(f => f.id).filter(Boolean))
-      const serverOnlyFlows = cur.flows.filter(f => f.id && !clientFlowIds.has(f.id) && !deletedIds.has(f.id))
-      if (serverOnlyFlows.length) {
-        data.flows = [...(data.flows || []), ...serverOnlyFlows]
+      const curFlows  = (cur.flows  || []).filter(f => f.id && !deletedIds.has(f.id))
+      const dataFlows = (data.flows || []).filter(f => f.id && !deletedIds.has(f.id))
+      if (curFlows.length || dataFlows.length) {
+        const byId = new Map()
+        // Cargar primero los del servidor (base)
+        for (const f of curFlows)  byId.set(f.id, f)
+        // Sobreescribir con los del cliente sólo si son más nuevos (o si no hay updatedAt en servidor)
+        for (const f of dataFlows) {
+          const existing = byId.get(f.id)
+          if (!existing) { byId.set(f.id, f); continue }
+          const curTs  = existing.updatedAt || 0
+          const dataTs = f.updatedAt        || 0
+          if (dataTs > curTs) byId.set(f.id, f)
+          // Si no tienen timestamp (flows viejos), preferir el del servidor (cur) — ya está en el map
+        }
+        data.flows = [...byId.values()]
       }
     }
 

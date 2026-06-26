@@ -8645,7 +8645,7 @@ function saveFlow(){
   };
   const estados=Array.from(document.querySelectorAll('.fflow-estado-cb:checked')).map(cb=>cb.value);
   const enabled=document.getElementById('fflow-enabled').checked;
-  const flowData={name,trigger,filter:{estados},enabled,steps:JSON.parse(JSON.stringify(_flowSteps))};
+  const flowData={name,trigger,filter:{estados},enabled,steps:JSON.parse(JSON.stringify(_flowSteps)),updatedAt:Date.now()};
   if(_flowEditId){
     const f=S.flows.find(x=>x.id===_flowEditId);
     if(f)Object.assign(f,flowData);
@@ -8686,7 +8686,7 @@ function deleteFlow(flowId){
 
 function toggleFlow(flowId,enabled){
   const f=(S.flows||[]).find(x=>x.id===flowId);
-  if(f){f.enabled=enabled;save();renderFlowsPage();}
+  if(f){f.enabled=enabled;f.updatedAt=Date.now();save();renderFlowsPage();}
 }
 
 // Resuelve la ruta inicial.
