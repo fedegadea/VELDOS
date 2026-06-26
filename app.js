@@ -1478,17 +1478,22 @@ app.get('/api/admin/popup-stats', async (req, res) => {
   if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
   try {
     const enc = encodeURIComponent
-    const baseQ = `ws_id=eq.${enc(wsId)}&canal=in.(Popup%20TN,Popup)&order=created_at.desc`
+    const sel = 'select=id,nombre,email,tel,created_at,tags,data'
     const limitQ = download === '1' ? '' : '&limit=200'
-    const rows = await _sGET('contacts', `${baseQ}${limitQ}&select=id,nombre,email,tel,created_at,data,tags,origen`)
-    const total = rows?.length || 0
-    const subs = (rows || []).map(r => ({
+    // Two separate queries to avoid PostgREST `in` parsing issues with spaces
+    const [rowsTN, rowsWeb] = await Promise.all([
+      _sGET('contacts', `ws_id=eq.${enc(wsId)}&canal=eq.Popup%20TN&order=created_at.desc${limitQ}&${sel}`),
+      _sGET('contacts', `ws_id=eq.${enc(wsId)}&canal=eq.Popup&order=created_at.desc${limitQ}&${sel}`)
+    ])
+    const rows = [...(rowsTN || []), ...(rowsWeb || [])]
+      .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+    const total = rows.length
+    const subs = rows.map(r => ({
       id:     r.id,
       nombre: r.nombre || '',
       email:  r.email  || '',
       wapp:   r.tel    || r.data?.tel || '',
       tags:   Array.isArray(r.tags) ? r.tags.join(', ') : (r.tags || ''),
-      origen: r.origen || '',
       creado: r.created_at?.slice(0,10) || ''
     }))
     res.json({ total, subs })
