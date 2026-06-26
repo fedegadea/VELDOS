@@ -22074,7 +22074,8 @@ function crealPublishToMeta() {
 
   <!-- TAB: EMAIL -->
   <div class="plan-section" id="diftab-email">
-    <div class="dif-grid">
+    <!-- Fila superior: 2 columnas (Destinatarios + Config/Asunto/Envío) -->
+    <div class="dif-grid" style="margin-bottom:14px">
       <!-- Destinatarios -->
       <div>
         <div class="dif-card">
@@ -22107,7 +22108,7 @@ function crealPublishToMeta() {
         </div>
       </div>
 
-      <!-- Redactar -->
+      <!-- Config remitente + Asunto + Opciones envío -->
       <div style="display:flex;flex-direction:column;gap:10px">
         <!-- Config remitente -->
         <div class="dif-card">
@@ -22139,7 +22140,7 @@ function crealPublishToMeta() {
           </div>
         </div>
 
-        <!-- Asunto + cuerpo -->
+        <!-- Asunto + Delay + Test + Horario -->
         <div class="dif-card">
           <div class="dif-card-title">Mensaje</div>
           <div style="display:flex;flex-direction:column;gap:8px">
@@ -22148,10 +22149,56 @@ function crealPublishToMeta() {
               <input type="text" id="em-subject" placeholder="Hola {nombre}, te escribimos desde…" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px">
             </div>
 
-            <!-- ══ VISUAL BLOCK BUILDER ══ -->
-            <div>
-              <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:6px">Constructor visual de email</label>
-              <div style="display:grid;grid-template-columns:200px 1fr 300px;gap:0;height:max(700px,calc(100vh - 220px));border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <div style="display:flex;flex-direction:column;gap:3px;flex:1">
+                <span style="font-size:10px;color:var(--muted)">Delay entre envíos (seg)</span>
+                <input type="number" id="em-delay" min="1" max="60" value="2" style="background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;text-align:center">
+              </div>
+              <div style="flex:2;display:flex;flex-direction:column;gap:3px">
+                <span style="font-size:10px;color:var(--muted)">Test rápido — mandar a un email</span>
+                <div style="display:flex;gap:6px">
+                  <input type="email" id="em-test-addr" placeholder="vos@gmail.com" style="flex:1;background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px">
+                  <button class="btn btn-xs" onclick="sendEmailTest()">📨 Test</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Horario de envío -->
+            <div style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:4px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <span style="font-size:11px;font-weight:600">🕐 Horario de envío</span>
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer">
+                  <input type="checkbox" id="em-horario-activo" style="accent-color:var(--accent)" onchange="document.getElementById('em-horario-config').style.display=this.checked?'flex':'none'">
+                  Restringir horario
+                </label>
+              </div>
+              <div id="em-horario-config" style="display:none;align-items:center;gap:10px;flex-wrap:wrap">
+                <span style="font-size:11px;color:var(--muted)">Enviar solo entre</span>
+                <input type="time" id="em-hora-desde" value="08:00" style="background:var(--s1);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px">
+                <span style="font-size:11px;color:var(--muted)">y</span>
+                <input type="time" id="em-hora-hasta" value="20:00" style="background:var(--s1);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px">
+                <span style="font-size:10px;color:var(--muted)">(hora local del dispositivo)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="sendEmailBroadcast()" style="width:100%;padding:11px">📧 Enviar campaña</button>
+        <div id="em-progress" style="display:none;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span id="em-progress-text" style="font-size:11px;flex:1">Enviando…</span>
+            <span id="em-progress-pct" style="font-size:11px;color:var(--gold);font-weight:600;margin-right:8px">0%</span>
+            <button id="em-pause-btn" class="btn btn-xs" onclick="toggleEmailPause()" style="font-size:10px;padding:3px 12px;min-width:80px">⏸ Pausar</button>
+          </div>
+          <div class="dif-progress-bar"><div class="dif-progress-fill" id="em-progress-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VISUAL BLOCK BUILDER — full width ══ -->
+    <div class="dif-card">
+      <div class="dif-card-title">Constructor visual de email</div>
+      <div style="display:grid;grid-template-columns:200px 1fr 300px;gap:0;height:max(700px,calc(100vh - 220px));border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:10px">
 
                 <!-- Left: Block palette -->
                 <div style="background:var(--s1);border-right:1px solid var(--border);padding:14px;overflow-y:auto">
@@ -22201,86 +22248,41 @@ function crealPublishToMeta() {
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Starter templates row -->
-            <div>
-              <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Plantillas de inicio</div>
-              <div id="em-starter-templates" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-            </div>
-
-            <!-- Templates row -->
-            <div>
-              <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Plantillas guardadas</div>
-              <div id="em-templates-list" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-            </div>
-
-            <!-- Campañas enviadas -->
-            <div>
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em">Campañas enviadas</div>
-                <button class="btn btn-xs" onclick="loadEmailCampaigns()" style="font-size:10px">↻ Actualizar</button>
+              <!-- Starter templates row -->
+              <div style="margin-top:14px">
+                <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Plantillas de inicio</div>
+                <div id="em-starter-templates" style="display:flex;gap:8px;flex-wrap:wrap"></div>
               </div>
-              <div id="em-campaigns-list"><div style="font-size:11px;color:var(--muted)">Aún no enviaste ninguna campaña</div></div>
-            </div>
 
-            <!-- Preview Modal (block builder) -->
-            <div id="em-preview-modal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:20px">
-              <div style="background:#fff;border-radius:12px;width:min(640px,100%);max-height:90vh;overflow:hidden;display:flex;flex-direction:column">
-                <div style="padding:14px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between">
-                  <div style="font-size:14px;font-weight:700">Preview del email</div>
-                  <button onclick="document.getElementById('em-preview-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer">✕</button>
+              <!-- Templates row -->
+              <div style="margin-top:10px">
+                <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Plantillas guardadas</div>
+                <div id="em-templates-list" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+              </div>
+
+              <!-- Campañas enviadas -->
+              <div style="margin-top:10px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em">Campañas enviadas</div>
+                  <button class="btn btn-xs" onclick="loadEmailCampaigns()" style="font-size:10px">↻ Actualizar</button>
                 </div>
-                <div style="overflow-y:auto;padding:20px;background:#f5f5f5">
-                  <div id="em-preview-content" style="max-width:600px;margin:0 auto;background:#fff;border-radius:4px;overflow:hidden"></div>
-                </div>
+                <div id="em-campaigns-list"><div style="font-size:11px;color:var(--muted)">Aún no enviaste ninguna campaña</div></div>
               </div>
-            </div>
 
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <div style="display:flex;flex-direction:column;gap:3px;flex:1">
-                <span style="font-size:10px;color:var(--muted)">Delay entre envíos (seg)</span>
-                <input type="number" id="em-delay" min="1" max="60" value="2" style="background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;text-align:center">
-              </div>
-              <div style="flex:2;display:flex;flex-direction:column;gap:3px">
-                <span style="font-size:10px;color:var(--muted)">Test rápido — mandar a un email</span>
-                <div style="display:flex;gap:6px">
-                  <input type="email" id="em-test-addr" placeholder="vos@gmail.com" style="flex:1;background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px">
-                  <button class="btn btn-xs" onclick="sendEmailTest()">📨 Test</button>
+              <!-- Preview Modal (block builder) -->
+              <div id="em-preview-modal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:20px">
+                <div style="background:#fff;border-radius:12px;width:min(640px,100%);max-height:90vh;overflow:hidden;display:flex;flex-direction:column">
+                  <div style="padding:14px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between">
+                    <div style="font-size:14px;font-weight:700">Preview del email</div>
+                    <button onclick="document.getElementById('em-preview-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer">✕</button>
+                  </div>
+                  <div style="overflow-y:auto;padding:20px;background:#f5f5f5">
+                    <div id="em-preview-content" style="max-width:600px;margin:0 auto;background:#fff;border-radius:4px;overflow:hidden"></div>
+                  </div>
                 </div>
               </div>
             </div>
-            <!-- Horario de envío -->
-            <div style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:4px">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                <span style="font-size:11px;font-weight:600">🕐 Horario de envío</span>
-                <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer">
-                  <input type="checkbox" id="em-horario-activo" style="accent-color:var(--accent)" onchange="document.getElementById('em-horario-config').style.display=this.checked?'flex':'none'">
-                  Restringir horario
-                </label>
-              </div>
-              <div id="em-horario-config" style="display:none;align-items:center;gap:10px;flex-wrap:wrap">
-                <span style="font-size:11px;color:var(--muted)">Enviar solo entre</span>
-                <input type="time" id="em-hora-desde" value="08:00" style="background:var(--s1);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px">
-                <span style="font-size:11px;color:var(--muted)">y</span>
-                <input type="time" id="em-hora-hasta" value="20:00" style="background:var(--s1);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px">
-                <span style="font-size:10px;color:var(--muted)">(hora local del dispositivo)</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <button class="btn btn-primary" onclick="sendEmailBroadcast()" style="width:100%;padding:11px">📧 Enviar campaña</button>
-        <div id="em-progress" style="display:none;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <span id="em-progress-text" style="font-size:11px;flex:1">Enviando…</span>
-            <span id="em-progress-pct" style="font-size:11px;color:var(--gold);font-weight:600;margin-right:8px">0%</span>
-            <button id="em-pause-btn" class="btn btn-xs" onclick="toggleEmailPause()" style="font-size:10px;padding:3px 12px;min-width:80px">⏸ Pausar</button>
-          </div>
-          <div class="dif-progress-bar"><div class="dif-progress-fill" id="em-progress-fill" style="width:0%"></div></div>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- TAB: POP-UP -->
