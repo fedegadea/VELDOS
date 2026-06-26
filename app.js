@@ -812,6 +812,8 @@ app.get("/api/tn/products", async (req, res) => {
     const compact = all.map(p => ({
       id: p.id,
       name: typeof p.name === "object" ? (p.name.es || p.name.pt || Object.values(p.name||{})[0] || "") : (p.name || ""),
+      image: Array.isArray(p.images) && p.images.length ? (p.images[0].src || p.images[0].url || '') : '',
+      permalink: p.permalink || '',
       variants: (p.variants || []).map(v => ({
         id: v.id,
         sku: v.sku || "",

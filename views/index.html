@@ -5894,6 +5894,7 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
     <button class="plan-tab active" id="flow-tab-hoy" onclick="switchFlowTab('hoy',this)">📋 Tareas pendientes <span id="flow-today-count" style="background:var(--accent,#a87bff);color:#fff;font-size:10px;padding:1px 7px;border-radius:9px;margin-left:4px">0</span></button>
     <button class="plan-tab" id="flow-tab-flows" onclick="switchFlowTab('flows',this)">⚙️ Automatizaciones</button>
     <button class="plan-tab" id="flow-tab-historial" onclick="switchFlowTab('historial',this)">🗂 Historial</button>
+    <button class="plan-tab" id="flow-tab-analytics" onclick="switchFlowTab('analytics',this)">📊 Analytics</button>
   </div>
 
   <!-- Tab: Tareas de hoy -->
@@ -5936,6 +5937,11 @@ input,textarea,select,button{transition:border-color 0.15s ease,box-shadow 0.15s
   <!-- Tab: Historial -->
   <div class="plan-section" id="flowtab-historial">
     <div id="flow-history-list" style="margin-top:14px"></div>
+  </div>
+
+  <!-- Tab: Analytics -->
+  <div class="plan-section" id="flowtab-analytics">
+    <div id="flow-analytics-content" style="margin-top:14px"></div>
   </div>
 </div>
 
@@ -7672,6 +7678,7 @@ function switchFlowTab(tab,btn){
   document.getElementById('flowtab-'+tab)?.classList.add('active');
   btn?.classList.add('active');
   if(tab==='historial') loadFlowLog();
+  if (tab === 'analytics') renderFlowsAnalytics();
 }
 
 async function loadFlowLog(){
@@ -7933,6 +7940,122 @@ function clearAllFlowHistory(){
   S.flowHistory=[];
   _saveDelta({flowHistory:S.flowHistory});
   renderFlowsHistory();
+}
+
+function renderFlowsAnalytics() {
+  const el = document.getElementById('flow-analytics-content');
+  if (!el) return;
+  const history = S.flowHistory || [];
+  const difLog = S.difLog || [];
+
+  // ── FLOWS analytics ────────────────────────────────────────────
+  const flowMap = {};
+  history.forEach(h => {
+    const key = h.flowId || 'sin-flow';
+    if (!flowMap[key]) flowMap[key] = { name: h.flowName || key, sent: 0, failed: 0, wa: 0, email: 0, both: 0, contacts: new Set() };
+    if (h.status === 'sent') { flowMap[key].sent++; flowMap[key][h.channel==='whatsapp'?'wa':h.channel==='email'?'email':'both']++; }
+    else flowMap[key].failed++;
+    if (h.contactId) flowMap[key].contacts.add(h.contactId);
+  });
+  const flowRows = Object.values(flowMap).sort((a,b)=>b.sent-a.sent);
+
+  // ── DIFUSIONES analytics ────────────────────────────────────────
+  const emailCampaigns = difLog.filter(d => d.tipo === 'email' && d.total > 0).slice(-30).reverse();
+  const waCampaigns = difLog.filter(d => d.tipo !== 'email' && d.total > 0).slice(-30).reverse();
+
+  const statBox = (label, value, sub='', color='var(--text)') =>
+    `<div style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;text-align:center;min-width:80px">
+      <div style="font-size:20px;font-weight:800;color:${color}">${value}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px">${label}</div>
+      ${sub?`<div style="font-size:10px;color:var(--muted2)">${sub}</div>`:''}
+    </div>`;
+
+  el.innerHTML = `
+    <!-- Flows -->
+    <div style="margin-bottom:24px">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">⚡ Performance por Flow</div>
+      ${!flowRows.length ? `<div style="font-size:12px;color:var(--muted);padding:20px 0">Sin historial de envíos aún.</div>` :
+      `<div style="display:flex;flex-direction:column;gap:10px">
+        ${flowRows.map(f => {
+          const total = f.sent + f.failed;
+          const rate = total ? Math.round(f.sent/total*100) : 0;
+          return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:14px 16px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">
+              <div style="font-size:13px;font-weight:600">${f.name}</div>
+              <div style="font-size:10px;color:var(--muted)">${f.contacts.size} contacto${f.contacts.size===1?'':'s'}</div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              ${statBox('Enviados',f.sent,'','var(--green)')}
+              ${statBox('Fallidos',f.failed,'',f.failed?'var(--red)':'var(--muted)')}
+              ${statBox('Tasa envío',rate+'%','',(rate>=80?'var(--green)':rate>=50?'var(--gold)':'var(--red)'))}
+              ${f.wa?statBox('WhatsApp',f.wa,'','var(--green)'):''}
+              ${f.email?statBox('Email',f.email,'','var(--accent)'):''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`}
+    </div>
+
+    <!-- Difusiones Email -->
+    ${emailCampaigns.length ? `
+    <div style="margin-bottom:24px">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">✉️ Campañas de Email</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border)">
+              <th style="text-align:left;padding:6px 10px;color:var(--muted);font-weight:600">Fecha</th>
+              <th style="text-align:left;padding:6px 10px;color:var(--muted);font-weight:600">Asunto</th>
+              <th style="text-align:center;padding:6px 10px;color:var(--muted);font-weight:600">Enviados</th>
+              <th style="text-align:center;padding:6px 10px;color:var(--muted);font-weight:600">Open rate</th>
+              <th style="text-align:center;padding:6px 10px;color:var(--muted);font-weight:600">Click rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${emailCampaigns.map(c => {
+              const openR = c.recipients > 0 ? Math.round((c.openCount||0)/c.recipients*100) : (c.openRate||0);
+              const clickR = c.recipients > 0 ? Math.round((c.clickCount||0)/c.recipients*100) : (c.clickRate||0);
+              return `<tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:7px 10px;color:var(--muted)">${(c.fecha||'').slice(0,10)}</td>
+                <td style="padding:7px 10px">${c.asunto||'—'}</td>
+                <td style="padding:7px 10px;text-align:center">${c.enviados||c.total||0}</td>
+                <td style="padding:7px 10px;text-align:center;color:${openR>=20?'var(--green)':openR>=10?'var(--gold)':'var(--muted)'}">${c.openCount!=null||c.openRate!=null?openR+'%':'—'}</td>
+                <td style="padding:7px 10px;text-align:center;color:${clickR>=3?'var(--green)':clickR>=1?'var(--gold)':'var(--muted)'}">${c.clickCount!=null||c.clickRate!=null?clickR+'%':'—'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>` : ''}
+
+    <!-- Difusiones WA -->
+    ${waCampaigns.length ? `
+    <div style="margin-bottom:24px">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">💬 Campañas de WhatsApp</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border)">
+              <th style="text-align:left;padding:6px 10px;color:var(--muted);font-weight:600">Fecha</th>
+              <th style="text-align:left;padding:6px 10px;color:var(--muted);font-weight:600">Mensaje</th>
+              <th style="text-align:center;padding:6px 10px;color:var(--muted);font-weight:600">Enviados</th>
+              <th style="text-align:center;padding:6px 10px;color:var(--muted);font-weight:600">Fallidos</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${waCampaigns.map(c => `<tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:7px 10px;color:var(--muted)">${(c.fecha||'').slice(0,10)}</td>
+              <td style="padding:7px 10px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.mensaje||c.mensaje?.slice(0,60)||'—'}</td>
+              <td style="padding:7px 10px;text-align:center;color:var(--green)">${c.enviados||0}</td>
+              <td style="padding:7px 10px;text-align:center;color:${c.fallidos?'var(--red)':'var(--muted)'}">${c.fallidos||0}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>` : ''}
+    ${!emailCampaigns.length && !waCampaigns.length && !flowRows.length ? '' :
+      `<div style="font-size:10px;color:var(--muted);margin-top:8px">Open rate e indicadores de ventas disponibles próximamente con tracking avanzado.</div>`}
+  `;
 }
 
 function renderFlowsHistory(){
@@ -22028,7 +22151,7 @@ function crealPublishToMeta() {
             <!-- ══ VISUAL BLOCK BUILDER ══ -->
             <div>
               <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:6px">Constructor visual de email</label>
-              <div style="display:grid;grid-template-columns:170px 1fr 260px;gap:0;height:max(580px,calc(100vh - 380px));border:1px solid var(--border);border-radius:10px;overflow:hidden">
+              <div style="display:grid;grid-template-columns:200px 1fr 300px;gap:0;height:max(700px,calc(100vh - 220px));border:1px solid var(--border);border-radius:10px;overflow:hidden">
 
                 <!-- Left: Block palette -->
                 <div style="background:var(--s1);border-right:1px solid var(--border);padding:14px;overflow-y:auto">
@@ -24545,8 +24668,8 @@ function emRenderProps(block) {
           <button type="button" onclick="_emInsertLink('${block.id}')" style="background:var(--s3);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:11px;color:var(--accent);cursor:pointer">🔗 Link</button>
         </div>
         <div id="em-ce-${block.id}" contenteditable="true"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();document.execCommand('insertLineBreak');}"
-          oninput="emUpdateProp('${block.id}','content',this.innerHTML)"
+          onfocus="document.execCommand('defaultParagraphSeparator',false,'br')"
+          oninput="_emCEInput(this,'${block.id}')"
           style="min-height:90px;background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;color:var(--text);line-height:1.7;outline:none;white-space:pre-wrap;word-break:break-word"
         >${d.content||''}</div>
       </div>`;
@@ -24556,12 +24679,14 @@ function emRenderProps(block) {
       html += `<div style="margin-bottom:8px"><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">URL destino <span style="color:var(--red)">*obligatorio</span></label><input class="form-input" style="font-size:11px${!d.url?';border-color:var(--red)':''}" placeholder="https://..." value="${esc(d.url)}" oninput="emUpdateProp('${block.id}','url',this.value)"></div>`;
       html += col('bgColor','Color botón',d.bgColor) + col('textColor','Texto botón',d.textColor); break;
     case 'product': {
-      // Selector de producto de Mi Tienda
-      const tiendaProds = S.store?.productos || [];
-      const prodOpts = tiendaProds.length
-        ? `<div style="margin-bottom:10px"><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">Cargar desde Mi Tienda</label><select class="form-select" style="font-size:11px" onchange="emLoadProdFromStore('${block.id}',this.value)"><option value="">— Elegir producto —</option>${tiendaProds.map(p=>`<option value="${p.id}">${p.nombre} — $${(p.precio||0).toLocaleString('es-AR')}</option>`).join('')}</select></div>`
-        : '';
-      html += prodOpts + imgField('image','Imagen',d.image) + imgSize('imageWidth','Tamaño imagen',d.imageWidth||80,40,220,'px') + inp('name','Nombre','Producto',d.name) + inp('price','Precio','$0',d.price) + inp('url','URL "Comprar" *','https://',d.url) + inp('buttonText','Texto botón','Comprar ahora',d.buttonText); break;
+      const tnProds = typeof _tnbStockData !== 'undefined' ? _tnbStockData : [];
+      const miProds = S.store?.productos || [];
+      const prodOpts = tnProds.length
+        ? `<div style="margin-bottom:10px"><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">Cargar desde Tienda Nube</label><select class="form-select" style="font-size:11px" onchange="emLoadProdFromTN('${block.id}',this.value)"><option value="">— Elegir producto TN —</option>${tnProds.map(p=>`<option value="${p.id}">${p.name||p.nombre||p.id}${p.variants?.[0]?.price?' — $'+(p.variants[0].price).toLocaleString('es-AR'):''}</option>`).join('')}</select></div>`
+        : miProds.length
+        ? `<div style="margin-bottom:10px"><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">Cargar desde Mi Tienda</label><select class="form-select" style="font-size:11px" onchange="emLoadProdFromStore('${block.id}',this.value)"><option value="">— Elegir producto —</option>${miProds.map(p=>`<option value="${p.id}">${p.nombre} — $${(p.precio||0).toLocaleString('es-AR')}</option>`).join('')}</select></div>`
+        : `<div style="font-size:10px;color:var(--muted);margin-bottom:10px">Cargá primero el Stock TN para usar productos de Tienda Nube.</div>`;
+      html += prodOpts + imgField('image','Imagen del producto',d.image) + imgSize('imageWidth','Tamaño imagen',d.imageWidth||80,40,220,'px') + inp('name','Nombre','Producto',d.name) + inp('price','Precio','$0',d.price) + inp('url','URL "Comprar" *','https://',d.url) + inp('buttonText','Texto botón','Comprar ahora',d.buttonText); break;
     }
     case 'image':
       html += imgField('src','Imagen',d.src);
@@ -24605,6 +24730,18 @@ function emUpdateProp(blockId, field, value) {
     const controlsHtml = controls ? controls.outerHTML : '';
     item.innerHTML = controlsHtml + emRenderBlock(block);
   }
+}
+
+function _emCEInput(el, blockId) {
+  // Normalize Chrome's div/p wrapper structure → <br> for email-safe HTML
+  let h = el.innerHTML;
+  h = h.replace(/<div><br\s*\/?><\/div>/gi, '<br>');
+  h = h.replace(/<div>([\s\S]*?)<\/div>/gi, (_, c) => c + '<br>');
+  h = h.replace(/<p><br\s*\/?><\/p>/gi, '<br>');
+  h = h.replace(/<p>([\s\S]*?)<\/p>/gi, (_, c) => c + '<br>');
+  // Remove trailing <br> artifacts
+  h = h.replace(/(<br\s*\/?>)+$/i, '');
+  emUpdateProp(blockId, 'content', h);
 }
 
 function _emInsertLink(blockId) {
@@ -24847,6 +24984,21 @@ async function loadEmailCampaigns() {
       </div>`;
     }).join('');
   } catch(e) { el.innerHTML = '<div style="font-size:11px;color:var(--coral)">Error al cargar campañas</div>'; }
+}
+
+function emLoadProdFromTN(blockId, prodId) {
+  if (!prodId) return;
+  const p = (_tnbStockData || []).find(x => String(x.id) === String(prodId));
+  if (!p) return;
+  const block = _emBlocks.find(b => b.id === blockId);
+  if (!block) return;
+  const price = p.variants?.[0]?.price;
+  block.data.name = p.name || p.nombre || '';
+  block.data.price = price != null ? '$' + Number(price).toLocaleString('es-AR') : '';
+  block.data.image = p.image || p.images?.[0]?.src || p.images?.[0] || '';
+  block.data.url = p.permalink || p.url || '';
+  emSelectBlock(blockId);
+  notify('Producto cargado desde Tienda Nube');
 }
 
 // Carga un producto de Mi Tienda en el bloque de email
