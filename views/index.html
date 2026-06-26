@@ -21876,6 +21876,12 @@ function crealPublishToMeta() {
     <button class="plan-tab" id="diftab-btn-popup" onclick="switchDifTab('popup',this)">🪄 Pop-up</button>
     <button class="plan-tab" id="diftab-btn-listas" onclick="switchDifTab('listas',this)">📋 Listas</button>
     <button class="plan-tab" id="diftab-btn-historial" onclick="switchDifTab('historial',this)">🕓 Historial</button>
+    <button class="plan-tab" id="diftab-btn-analytics" onclick="switchDifTab('analytics',this)">📊 Analytics</button>
+  </div>
+
+  <!-- TAB: ANALYTICS -->
+  <div class="plan-section" id="diftab-analytics">
+    <div id="dif-analytics-content" style="margin-top:14px"></div>
   </div>
 
   <!-- Banner de reanudación -->
@@ -23617,6 +23623,153 @@ async function _runDifusionFromJob(job) {
   notify(_difCancelled?`⛔ Cancelada — ${sent} enviados`:`✅ Completa: ${sent} enviados, ${failed} fallidos`);
 }
 
+function renderDifAnalytics() {
+  const el = document.getElementById('dif-analytics-content');
+  if (!el) return;
+
+  const emailCampaigns = (S.emailCampaigns || []).slice().reverse();
+  const difLog = S.difLog || [];
+  const waCampaigns = difLog.filter(d => d.tipo !== 'email' && d.total > 0);
+  const flowHistory = S.flowHistory || [];
+  const ordenes = S.tienda?.ordenes || [];
+
+  function pct(n, total) {
+    if (!total) return '—';
+    return Math.round(n / total * 100) + '%';
+  }
+
+  function atribuidas(camp) {
+    if (!camp.sentAt || !camp.recipientEmails?.length) return null;
+    const from = new Date(camp.sentAt).getTime();
+    const to = from + 7 * 24 * 60 * 60 * 1000;
+    const emails = new Set(camp.recipientEmails.map(e => (e||'').toLowerCase()));
+    return ordenes.filter(o => {
+      const email = (o.email || o.comprador?.email || o.buyer?.email || '').toLowerCase();
+      if (!email || !emails.has(email)) return false;
+      const t = new Date(o.fecha || o.created_at || o.date).getTime();
+      return t >= from && t <= to;
+    }).length;
+  }
+
+  function statCard(label, val, color) {
+    return `<div style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;text-align:center;min-width:70px">
+      <div style="font-size:18px;font-weight:800;color:${color||'var(--text)'}">${val}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px">${label}</div>
+    </div>`;
+  }
+
+  // ── FLOWS ──────────────────────────────────────────────────────────────────
+  const flowMap = {};
+  flowHistory.forEach(h => {
+    const key = h.flowId || 'sin-flow';
+    if (!flowMap[key]) flowMap[key] = { name: h.flowName || h.flowId || key, sent: 0, failed: 0, wa: 0, email: 0, contacts: new Set() };
+    if (h.status === 'sent') { flowMap[key].sent++; if(h.channel==='whatsapp') flowMap[key].wa++; if(h.channel==='email') flowMap[key].email++; }
+    else flowMap[key].failed++;
+    if (h.contactId) flowMap[key].contacts.add(h.contactId);
+  });
+  const flowRows = Object.values(flowMap).sort((a,b) => b.sent - a.sent);
+
+  // ── EMAIL CAMPAIGNS ────────────────────────────────────────────────────────
+  const emailRows = emailCampaigns.filter(c => c.recipients > 0);
+
+  // ── WA CAMPAIGNS ──────────────────────────────────────────────────────────
+  const waRows = waCampaigns.slice(0, 30);
+
+  el.innerHTML = `
+    ${emailRows.length ? `
+    <div style="margin-bottom:28px">
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text);margin-bottom:12px">✉️ Campañas de Email</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="border-bottom:1px solid var(--border)">
+            <th style="text-align:left;padding:6px 10px;color:var(--muted);font-weight:600">Fecha</th>
+            <th style="text-align:left;padding:6px 10px;color:var(--muted);font-weight:600">Asunto</th>
+            <th style="text-align:center;padding:6px 10px;color:var(--muted);font-weight:600">Enviados</th>
+            <th style="text-align:center;padding:6px 10px;color:var(--muted);font-weight:600">Aperturas</th>
+            <th style="text-align:center;padding:6px 10px;color:var(--muted);font-weight:600">Open Rate</th>
+            <th style="text-align:center;padding:6px 10px;color:var(--muted);font-weight:600">Clicks</th>
+            <th style="text-align:center;padding:6px 10px;color:var(--muted);font-weight:600">CTR</th>
+            <th style="text-align:center;padding:6px 10px;color:var(--muted);font-weight:600">Ventas atribuidas</th>
+          </tr></thead>
+          <tbody>
+            ${emailRows.map(c => {
+              const opens = c.openCount || 0;
+              const clicks = c.clickCount || 0;
+              const recipients = c.recipients || 1;
+              const openR = Math.round(opens / recipients * 100);
+              const clickR = Math.round(clicks / recipients * 100);
+              const sales = atribuidas(c);
+              const fecha = c.sentAt ? new Date(c.sentAt).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+              return `<tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:8px 10px;color:var(--muted);white-space:nowrap">${fecha}</td>
+                <td style="padding:8px 10px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.subject||'—'}</td>
+                <td style="padding:8px 10px;text-align:center">${c.recipients}</td>
+                <td style="padding:8px 10px;text-align:center">${opens}</td>
+                <td style="padding:8px 10px;text-align:center;font-weight:600;color:${openR>=20?'var(--green)':openR>=10?'var(--gold)':'var(--muted)'}">${pct(opens,recipients)}</td>
+                <td style="padding:8px 10px;text-align:center">${clicks}</td>
+                <td style="padding:8px 10px;text-align:center;font-weight:600;color:${clickR>=3?'var(--green)':clickR>=1?'var(--gold)':'var(--muted)'}">${pct(clicks,recipients)}</td>
+                <td style="padding:8px 10px;text-align:center;font-weight:600;color:${sales>0?'var(--green)':'var(--muted)'}">${sales==null?'—':sales}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:8px">Open rate y CTR registrados por tracking pixel y links rastreados. Ventas atribuidas: órdenes de TN en los 7 días post-envío cuyo comprador estuvo en la lista.</div>
+    </div>` : ''}
+
+    ${flowRows.length ? `
+    <div style="margin-bottom:28px">
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text);margin-bottom:12px">⚡ Flows automáticos</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${flowRows.map(f => {
+          const total = f.sent + f.failed;
+          const rate = total ? Math.round(f.sent/total*100) : 0;
+          return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:14px 16px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px">
+              <div style="font-size:13px;font-weight:600">${f.name}</div>
+              <div style="font-size:10px;color:var(--muted)">${f.contacts.size} contacto${f.contacts.size===1?'':'s'} únicos</div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              ${statCard('Enviados', f.sent, 'var(--green)')}
+              ${f.failed ? statCard('Errores', f.failed, 'var(--red)') : ''}
+              ${statCard('Tasa de entrega', rate+'%', rate>=80?'var(--green)':rate>=50?'var(--gold)':'var(--red)')}
+              ${f.wa ? statCard('WhatsApp', f.wa, '#25d366') : ''}
+              ${f.email ? statCard('Email', f.email, 'var(--accent)') : ''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : ''}
+
+    ${waRows.length ? `
+    <div style="margin-bottom:28px">
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text);margin-bottom:12px">💬 Campañas WhatsApp</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="border-bottom:1px solid var(--border)">
+            <th style="text-align:left;padding:6px 10px;color:var(--muted);font-weight:600">Fecha</th>
+            <th style="text-align:left;padding:6px 10px;color:var(--muted);font-weight:600">Mensaje</th>
+            <th style="text-align:center;padding:6px 10px;color:var(--muted);font-weight:600">Enviados</th>
+            <th style="text-align:center;padding:6px 10px;color:var(--muted);font-weight:600">Fallidos</th>
+          </tr></thead>
+          <tbody>
+            ${waRows.map(c => `<tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:8px 10px;color:var(--muted);white-space:nowrap">${c.fecha?(new Date(c.fecha).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})):'—'}</td>
+              <td style="padding:8px 10px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(c.mensaje||'').slice(0,80)||'—'}</td>
+              <td style="padding:8px 10px;text-align:center;color:var(--green)">${c.enviados||0}</td>
+              <td style="padding:8px 10px;text-align:center;color:${c.fallidos?'var(--red)':'var(--muted)'}">${c.fallidos||0}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>` : ''}
+
+    ${!emailRows.length && !flowRows.length && !waRows.length
+      ? `<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:13px">Sin datos de campañas aún. Enviá una campaña de email o WA para ver analytics aquí.</div>`
+      : ''}
+  `;
+}
+
 function renderDifLog() {
   const el = document.getElementById('dif-log');
   if (!el) return;
@@ -23697,6 +23850,8 @@ function switchDifTab(tab, btn) {
   if (tab === 'envio') { renderDifusiones(); }
   if (tab === 'email') { _emLoadFromConfig(); renderEmailRecipients?.(); emRenderTemplates(); renderEmailSavedLists(); }
   if (tab === 'popup') { loadCaptureTabSettings(); }
+  if (tab === 'email' && !_tnbStockData.length) _loadTNStockSilent();
+  if (tab === 'analytics') renderDifAnalytics();
 }
 
 // ── Filtro de búsqueda en destinatarios — con debounce ──
@@ -25423,6 +25578,7 @@ async function sendEmailBroadcast() {
     subject,
     sentAt: new Date().toISOString(),
     recipients: contacts.length,
+    recipientEmails: contacts.map(c => c.email).filter(Boolean),
     conversions: 0,
     revenue: 0,
     openCount: 0,
@@ -29411,6 +29567,15 @@ async function deleteSizeChart() {
 // ─── STOCK TN ───────────────────────────────────────────────────────────────
 
 let _tnbStockData = []
+
+async function _loadTNStockSilent() {
+  if (_tnbStockData.length) return;
+  try {
+    const r = await fetch(`/api/tn/products?wsId=${encodeURIComponent(_activeWsId||'')}`);
+    if (!r.ok) return;
+    _tnbStockData = await r.json();
+  } catch(e) {}
+}
 
 async function loadTNBStock() {
   const listEl = document.getElementById('tnb-stock-list')
