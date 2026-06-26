@@ -1472,22 +1472,23 @@ app.post('/api/tn/update-profile', async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }) }
 })
 
-// ── Admin: popup stats (subscribers via Popup TN) ────────────────────────────
+// ── Admin: popup stats (subscribers via Popup TN + Popup web) ────────────────
 app.get('/api/admin/popup-stats', async (req, res) => {
-  const { wsId } = req.query
+  const { wsId, download } = req.query
   if (!wsId) return res.status(400).json({ error: 'Falta wsId' })
   try {
-    // Count total contacts from popup
-    const countRows = await _sGET('contacts', `ws_id=eq.${encodeURIComponent(wsId)}&canal=eq.Popup%20TN&select=id`)
-    const total = Array.isArray(countRows) ? countRows.length : 0
-    // Get last 50 subscribers with relevant fields
-    const rows = await _sGET('contacts', `ws_id=eq.${encodeURIComponent(wsId)}&canal=eq.Popup%20TN&order=created_at.desc&limit=50&select=id,nombre,email,tel,created_at,data`)
+    const enc = encodeURIComponent
+    const baseQ = `ws_id=eq.${enc(wsId)}&canal=in.(Popup%20TN,Popup)&order=created_at.desc`
+    const limitQ = download === '1' ? '' : '&limit=200'
+    const rows = await _sGET('contacts', `${baseQ}${limitQ}&select=id,nombre,email,tel,created_at,data,tags,origen`)
+    const total = rows?.length || 0
     const subs = (rows || []).map(r => ({
-      id: r.id,
+      id:     r.id,
       nombre: r.nombre || '',
-      email: r.email || '',
-      tel: r.tel || '',
-      wapp: r.tel || (r.data?.tel) || '',
+      email:  r.email  || '',
+      wapp:   r.tel    || r.data?.tel || '',
+      tags:   Array.isArray(r.tags) ? r.tags.join(', ') : (r.tags || ''),
+      origen: r.origen || '',
       creado: r.created_at?.slice(0,10) || ''
     }))
     res.json({ total, subs })

@@ -20726,7 +20726,10 @@ function crealPublishToMeta() {
         <div style="font-size:15px;font-weight:700">Pop Up — Suscriptores</div>
         <div style="font-size:12px;color:var(--muted);margin-top:2px">Contactos captados por el popup de descuento en la tienda.</div>
       </div>
-      <button class="btn btn-sm" onclick="renderTNBPopup()">↺ Actualizar</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" onclick="renderTNBPopup()">↺ Actualizar</button>
+        <button class="btn btn-sm" style="background:var(--accent);color:#fff" onclick="_downloadPopupCSV()">📥 Descargar CSV</button>
+      </div>
     </div>
     <div id="tnb-popup-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px"></div>
     <div id="tnb-popup-list"></div>
@@ -28462,6 +28465,34 @@ async function renderTNBPopup() {
     statsEl.innerHTML = ''
     listEl.innerHTML = `<div style="color:var(--error,#e55);font-size:13px">Error cargando datos: ${e.message}</div>`
   }
+}
+
+async function _downloadPopupCSV() {
+  const wsId = _activeWsId
+  if (!wsId) return
+  try {
+    notify('Descargando suscriptores…')
+    const res = await fetch(`/api/admin/popup-stats?wsId=${encodeURIComponent(wsId)}&download=1`).then(r => r.json())
+    const subs = res.subs || []
+    if (!subs.length) { notify('No hay suscriptores para descargar'); return }
+    const header = ['nombre','email','whatsapp','tags','fecha_alta']
+    const rows = subs.map(s => [
+      s.nombre,
+      s.email,
+      s.wapp,
+      s.tags,
+      s.creado
+    ].map(v => `"${(v||'').replace(/"/g,'""')}"`).join(','))
+    const csv = [header.join(','), ...rows].join('\r\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `suscriptores-popup-${new Date().toISOString().slice(0,10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    notify(`${subs.length} suscriptores descargados`)
+  } catch(e) { notify('Error al descargar: ' + e.message) }
 }
 
 function _tnbGetCustomerOrders(email) {
