@@ -22,6 +22,13 @@
 // Monto de Mercado Pago: precio por maple (precioMapleMP, si no el de transferencia, si no 25000)
 // con descuento por cantidad. descuento2Maples aplica a 2 maples; descuento3Maples desde 3.
 // El porcentaje se recorta a 0..100; si falta o no es un número, es 0.
+function diasCobro (c) {
+  return c && c.frecuencia === 'quincenal' ? 14 : 7
+}
+function cadaTxt (c) {
+  return diasCobro(c) === 14 ? 'cada 2 semanas' : 'por semana'
+}
+
 function montoMP (cfg, maples) {
   const c = cfg || {}
   const unitMP = c.precioMapleMP || c.precioMaple || 25000
@@ -99,13 +106,23 @@ module.exports = function pipa (app, deps) {
   // Fechas en hora argentina, igual que lib/fechas.ts del sitio.
   const isoAR = ms => new Date(ms - 3 * 3600e3).toISOString().slice(0, 10)
   const sumar = (s, n) => new Date(Date.parse(s + 'T00:00:00Z') + n * 864e5).toISOString().slice(0, 10)
-  const miercolesDesde = s => sumar(s, (3 - new Date(Date.parse(s + 'T00:00:00Z')).getUTCDay() + 7) % 7)
-  /** Miércoles de entrega que cubre un pago aprobado: el primero desde la fecha del pago sin cobrar. */
-  function miercolesCubierto (c, cfg, fechaPagoMs) {
+  const dowCliente = c => c && c.franja === 'sabado' ? 6 : c && (c.franja === 'jueves-manana' || c.franja === 'jueves-tarde') ? 4 : 3
+  const diaDesde = (s, dow) => sumar(s, (dow - new Date(Date.parse(s + 'T00:00:00Z')).getUTCDay() + 7) % 7)
+  /** Entrega que cubre un pago aprobado: la primera del ritmo del cliente (cada 7 o 14) que todavía no se cobró. */
+  function entregaCubierta (c, cfg, fechaPagoMs) {
     const fer = cfg.feriados || []
-    let w = miercolesDesde(isoAR(fechaPagoMs))
-    for (let i = 0; i < 30; i++, w = sumar(w, 7)) {
-      if (fer.includes(w) || (c.saltos || []).includes(w) || w < c.inicio) continue
+    const paso = diasCobro(c)
+    const dow = dowCliente(c)
+    let w = diaDesde(isoAR(fechaPagoMs), dow)
+    if (c.inicio) {
+      const base = diaDesde(c.inicio, dow)
+      const diff = Math.round((Date.parse(w + 'T00:00:00Z') - Date.parse(base + 'T00:00:00Z')) / 864e5)
+      const resto = ((diff % paso) + paso) % paso
+      if (w < base) w = base
+      else if (resto) w = sumar(w, paso - resto)
+    }
+    for (let i = 0; i < 30; i++, w = sumar(w, paso)) {
+      if (fer.includes(w) || (c.saltos || []).includes(w) || (c.inicio && w < c.inicio)) continue
       if (!(c.entregas || {})[w] || !c.entregas[w].cobrado) return w
     }
     return null
@@ -122,7 +139,7 @@ module.exports = function pipa (app, deps) {
     c.pagos = c.pagos.slice(0, 80)
     if (pago.status === 'approved' && !yaAprobado) {
       c.entregas = c.entregas || {}
-      const w = c.tipo === 'unico' ? c.inicio : miercolesCubierto(c, p.cfg || {}, Date.parse(reg.at) || Date.now())
+      const w = c.tipo === 'unico' ? c.inicio : entregaCubierta(c, p.cfg || {}, Date.parse(reg.at) || Date.now())
       if (w) { c.entregas[w] = { ...(c.entregas[w] || {}), cobrado: true, mpPago: id }; reg.miercoles = w }
     }
     c.mp = { ...(c.mp || {}), ultimoPago: { id, estado: pago.status, at: reg.at } }
@@ -132,17 +149,18 @@ module.exports = function pipa (app, deps) {
   /* Plan de suscripción semanal por monto (1 maple, 2 maples…). Se usa cuando MP rechaza
      el débito armado con el email del cliente (por ejemplo "Payer is associated with a
      different site"): con el plan, la persona entra a MP con la cuenta que quiera. */
-  async function planPara (monto, maples) {
+  async function planPara (monto, maples, dias) {
+    const cada = Number(dias) === 14 ? 14 : 7
     const p = await leer()
-    const k = String(monto)
+    const k = monto + 'x' + cada
     const guardado = (p.mpPlanes || {})[k]
     if (guardado && guardado.id && guardado.url) return guardado
     const n = Number(maples) || 1
     const d = await mp('/preapproval_plan', {
       method: 'POST',
       body: {
-        reason: `Pipa · ${n} ${n === 1 ? 'maple' : 'maples'} de huevos pastoriles por semana`,
-        auto_recurring: { frequency: 7, frequency_type: 'days', transaction_amount: monto, currency_id: 'ARS' },
+        reason: `Pipa · ${n} ${n === 1 ? 'maple' : 'maples'} de huevos pastoriles ${cada === 14 ? 'cada 2 semanas' : 'por semana'}`,
+        auto_recurring: { frequency: cada, frequency_type: 'days', transaction_amount: monto, currency_id: 'ARS' },
         back_url: `${SITIO()}/mp-vuelta`
       }
     })
@@ -154,26 +172,28 @@ module.exports = function pipa (app, deps) {
   async function crearCobro (c, cfg) {
     const n = Number(c.maples) || 1
     const total = montoMP(cfg, n)
+    const dias = diasCobro(c)
+    const ritmo = cadaTxt(c)
     const back = `${SITIO()}/mi/${c.token}?mp=1`
     const titulo = `Pipa · ${n} ${n === 1 ? 'maple' : 'maples'} de huevos pastoriles`
     if (c.tipo === 'suscripcion') {
       const conPlan = async (motivo) => {
-        const plan = await planPara(total, n)
+        const plan = await planPara(total, n, dias)
         if (motivo) log('suscripción por plan', c.codigo, motivo)
-        return { url: plan.url, plan: true, mp: { tipo: 'plan', planId: plan.id, preapprovalId: null, estado: 'pending', monto: total, creado: ahora() } }
+        return { url: plan.url, plan: true, mp: { tipo: 'plan', planId: plan.id, preapprovalId: null, estado: 'pending', monto: total, cada: dias, creado: ahora() } }
       }
       if (!c.email) return conPlan('sin email')
       let d
       try {
         d = await mp('/preapproval', {
         method: 'POST',
-        idem: `pipa-${c.id}-${n}-${total}-${Date.now()}`,
+        idem: `pipa-${c.id}-${n}-${total}-${dias}-${Date.now()}`,
         body: {
-          reason: `${titulo} por semana`,
+          reason: `${titulo} ${ritmo}`,
           external_reference: c.id,
           payer_email: c.email,
           back_url: back,
-          auto_recurring: { frequency: 7, frequency_type: 'days', transaction_amount: total, currency_id: 'ARS' },
+          auto_recurring: { frequency: dias, frequency_type: 'days', transaction_amount: total, currency_id: 'ARS' },
           status: 'pending'
         }
         })
@@ -182,7 +202,7 @@ module.exports = function pipa (app, deps) {
         if (/payer|site|email|collector|same user/i.test(e.message)) return conPlan(e.message)
         throw e
       }
-      return { url: d.init_point, mp: { tipo: 'preapproval', preapprovalId: d.id, estado: d.status || 'pending', monto: total, creado: ahora() } }
+      return { url: d.init_point, mp: { tipo: 'preapproval', preapprovalId: d.id, estado: d.status || 'pending', monto: total, cada: dias, creado: ahora() } }
     }
     const d = await mp('/checkout/preferences', {
       method: 'POST',
@@ -217,10 +237,11 @@ module.exports = function pipa (app, deps) {
       if (c.tipo === 'unico' && c.entregas && c.entregas[c.inicio] && c.entregas[c.inicio].cobrado) return res.json({ ya: true })
       // Reusar el cobro pendiente si es por el mismo monto (no llenar MP de cobros sin pagar).
       const monto = montoMP(p.cfg, Number(c.maples) || 1)
-      if (c.mp && Number(c.mp.monto) === monto) {
+      const dias = diasCobro(c)
+      if (c.mp && Number(c.mp.monto) === monto && (Number(c.mp.cada) || 7) === dias) {
         try {
           if (c.tipo === 'suscripcion' && c.mp.tipo === 'plan' && !c.mp.preapprovalId && c.mp.planId) {
-            const plan = (p.mpPlanes || {})[String(monto)]
+            const plan = (p.mpPlanes || {})[monto + 'x' + dias]
             if (plan && plan.id === c.mp.planId) return res.json({ url: plan.url, plan: true })
           }
           if (c.tipo === 'suscripcion' && c.mp.preapprovalId && c.mp.estado === 'pending') {
@@ -307,11 +328,13 @@ module.exports = function pipa (app, deps) {
         return res.json({ ok: true, estado: 'cancelled' })
       }
       const monto = montoMP(p.cfg, Number(c.maples) || 1)
+      const dias = diasCobro(c)
       const cambio = {}
       const quiere = c.estado === 'cancelada' ? 'cancelled' : c.estado === 'pausada' ? 'paused' : d.status === 'paused' && c.estado === 'activa' ? 'authorized' : null
       // Una pendiente (sin autorizar) solo se puede cancelar; pausar o reactivar recién cuando está autorizada.
       if (quiere && quiere !== d.status && (d.status !== 'pending' || quiere === 'cancelled')) cambio.status = quiere
-      if (Number((d.auto_recurring || {}).transaction_amount) !== monto && !cambio.status?.startsWith('cancel')) cambio.auto_recurring = { transaction_amount: monto, currency_id: 'ARS' }
+      const rec = d.auto_recurring || {}
+      if ((Number(rec.transaction_amount) !== monto || Number(rec.frequency) !== dias) && !cambio.status?.startsWith('cancel')) cambio.auto_recurring = { transaction_amount: monto, frequency: dias, frequency_type: 'days', currency_id: 'ARS' }
       let final = d
       if (Object.keys(cambio).length) final = await mp('/preapproval/' + encodeURIComponent(d.id), { method: 'PUT', body: cambio })
       await mutar(q => {
@@ -393,3 +416,4 @@ module.exports = function pipa (app, deps) {
   })
 }
 module.exports.montoMP = montoMP
+module.exports.diasCobro = diasCobro

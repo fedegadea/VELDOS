@@ -92,6 +92,18 @@ async function main () {
   const pre = calls.find(c => c.url.includes('/preapproval') && c.method === 'POST')
   assert.ok(pre, 'tiene que crear la suscripción en el mock, no en Mercado Pago')
   assert.strictEqual(JSON.parse(pre.body).auto_recurring.transaction_amount, 50400)
+  assert.strictEqual(JSON.parse(pre.body).auto_recurring.frequency, 7)
+
+  cliente.frecuencia = 'quincenal'
+  cliente.mp = undefined
+  calls.length = 0
+  const quin = await post(app, '/api/pipa/pagar', { token })
+  assert.strictEqual(quin.status, 200)
+  const pre2 = calls.filter(c => c.url.includes('/preapproval') && c.method === 'POST').pop()
+  assert.strictEqual(JSON.parse(pre2.body).auto_recurring.frequency, 14)
+  assert.strictEqual(JSON.parse(pre2.body).auto_recurring.transaction_amount, 50400)
+  cliente.frecuencia = undefined
+  cliente.mp = undefined
 
   cliente.tipo = 'unico'
   cliente.maples = 3
